@@ -1,0 +1,17 @@
+# ── Python environment ───────────────────────────────────────────────────────
+.DisloClusterVenv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Build trees ──────────────────────────────────────────────────────────────
+ZrClusterDynamics/ZrMicro/build/
+MoDELib3/build/
+
+# ── Run output ───────────────────────────────────────────────────────────────
+ZrClusterDynamics/ZrMicro/output/
+
+# ── Editor / OS ──────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
