@@ -1,0 +1,8 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/ZrMicro/cpp_utils",
+    "cmake.buildDirectory": "${workspaceFolder}/ZrMicro/build",
+    "python.defaultInterpreterPath": "${workspaceFolder}/../.DisloClusterVenv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/ZrMicro"
+    ]
+}

@@ -1,0 +1,9 @@
+
+type=AnalyticalSolidSolutionNoise;
+tag=_0;
+gridSize=256 256 64; 			# number of grid points in each direction
+gridSpacing_SI=1e-10 1e-10 1e-10; 	# [m] spacing of grid on the glide plane
+spreadLstress_SI=1e-10; 		# add comment
+a_cai_SI=1e-10; 			# add comment
+seed=0; 				# add comment
+MSSS_SI=0.09e18;			# [Pa^2] Mean Square Shear Stress 

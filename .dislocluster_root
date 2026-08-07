@@ -1,0 +1,10 @@
+# Marker file: this directory is the root of the DisloCluster repository.
+#
+# py_utils/paths.py walks upward from its own location until it finds this
+# file, so every script, module and notebook in the repo resolves the same
+# REPO_ROOT no matter what the working directory is.
+#
+# Layout expected below this marker:
+#   ZrClusterDynamics/   0-D reduced cluster dynamics (ZrMicro) + docs
+#   MoDELib3/            3-D dislocation dynamics / spatially-resolved CD
+#                        (fork of MoDELib2-NNL)

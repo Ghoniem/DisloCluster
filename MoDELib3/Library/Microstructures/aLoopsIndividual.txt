@@ -1,0 +1,7 @@
+type=aLoop;
+style=individual;
+planeIDs=7; # 0 basal. 7 prismatic
+loopRadii_SI=100.0e-10; # [m] loop radii
+loopSides=36; # [-] number of side of loop polygon
+loopCenters=1546.5 1546.5 1546.5;
+isVacancyLoop=0; # 1=vacancy-type loops, 0=interstiatial-type loops

@@ -15,3 +15,6 @@ ZrClusterDynamics/ZrMicro/output/
 .DS_Store
 Thumbs.db
 *.swp
+
+# ── Cowork cleanup staging ──
+_to_delete/

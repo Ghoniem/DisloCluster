@@ -1,0 +1,14 @@
+type=PolyhedronInclusions;
+style=individual;
+#mshFile=../../../Library/Meshes/sphere2D.msh;
+#mshFile=../../../Library/Meshes/cylinder2D.msh;
+mshFile=../../../Library/Meshes/unitCube8_2D.msh;
+
+# Transform mesh coordinate x into y=Fx+x0
+x0=0 0 0;
+F=200 0 0
+  0 300 0
+  0 0 100];
+eigenDistortion=0.03 0 0 0 0.03 0 0 0 0.03;
+velocityReductionFactor=1;
+phaseID=0; # ID of secondPhase 

@@ -1,0 +1,9 @@
+type=FrankLoops;
+style=density;
+targetDensity=5e13; # [m^-2] dislocation density
+planeIDs=1 2 3 4 5 6; # [-] slip systems to sample when dislocation loops density, -1 samples all slip systems
+radiusDistributionMean=1e-07; [m] mean of loop radii
+radiusDistributionStd=0e-8; [m] std of loop radii
+numberOfSides=20; [-] number of sides in each loop polygon
+burgersFactor=1; # [-] scaling of burgers vector
+areVacancyLoops=0; # 1=vacancy-type loops, 0=interstiatial-type loops

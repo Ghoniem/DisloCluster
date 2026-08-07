@@ -1,0 +1,16 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/.DisloClusterVenv/Scripts/python.exe",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/ZrClusterDynamics/ZrMicro"
+    ],
+    "cmake.sourceDirectory": "${workspaceFolder}/ZrClusterDynamics/ZrMicro/cpp_utils",
+    "cmake.buildDirectory": "${workspaceFolder}/ZrClusterDynamics/ZrMicro/build",
+    "files.watcherExclude": {
+        "**/.DisloClusterVenv/**": true,
+        "**/MoDELib3/build/**": true,
+        "**/ZrClusterDynamics/ZrMicro/build/**": true
+    },
+    "jupyter.kernels.excludePythonEnvironments": [
+        "${workspaceFolder}/.DisloClusterVenv/Scripts/python.exe"
+    ]
+}

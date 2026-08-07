@@ -1,0 +1,11 @@
+materialFile=../../../MaterialsLibrary/Zr3.txt;
+absoluteTemperature=553; # [K] simulation temperature
+meshFile=../../../MeshLibrary/unitCube_15K.msh;
+C2G1=1.0 0.0 0.0
+     0.0 1.0 0.0
+     0.0 0.0 1.0; # crystal rotation matrix 
+F=3093 0 0
+0 3093 0
+0 0 3093; 
+X0=0.0 0.0 0.0; # mesh shift. Mesh nodes X are mapped to x=F*(X-X0) 
+periodicFaceIDs=; # IDs of faces labelled as periodic 

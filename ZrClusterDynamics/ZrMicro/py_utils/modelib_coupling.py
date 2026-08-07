@@ -1,0 +1,190 @@
+"""
+modelib_coupling.py — operator-split QSSA driver for the two-time-scale
+ZrMicro <-> MoDELib2-NNL coupling.
+
+This is the Python side of step S4 in
+    Docs/Formulation/ZrMicro_MoDELib2_two_time_scale_coupling.tex (Sec. "Adopted
+    Implementation: Operator-Split QSSA").
+
+The spatial code (MoDELib2-NNL) solves the FAST mobile reaction-diffusion BVP on
+its FE mesh, producing a steady mobile field C_M*(x) = [Cv,Ci,C2i,C3i] at every
+quadrature point. This module advances the SLOW immobile state at all quadrature
+points over one dose step [t_n, t_n+dt] by reusing the EXISTING ZrMicro C++
+solver with ``freeze_mobile=1``: each quadrature point becomes one case of the
+OpenMP ``--batch_file`` mode, integrated concurrently in a single subprocess,
+with its mobile species pinned to the supplied C_M*.
+
+Native state layout (what the ZrMicro solver integrates), length N_EQ = 19:
+    y[0:4]   mobile        Cv, Ci, C2i, C3i              <- frozen at C_M*
+    y[4:8]   loop numbers  CiL, CaiL, CvL, CavL
+    y[8:12]  loop content  CiL_i, CaiL_i, CvL_v, CavL_v
+    y[12:18] accumulators  (conservation diagnostics; reset per step)
+    y[18]    rho_N         evolving network dislocation density
+
+The crystallographic a1/a2/a3 resolution (Option A in the formulation) is a layer
+in the spatial code: it splits the lumped <a> interstitial loops by the
+resolved-stress weights w_k (see modelib_export.py) and calls this micro-model per
+variant. This module itself operates on the native lumped representation that the
+C++ integrator understands.
+
+Typical dose-step loop (spatially uniform T, sigma -> one shared base_cli):
+
+    from py_utils.cpp_bridge import collect_solver_args
+    from py_utils.modelib_coupling import pack_y0, run_immobile_step, IMMOBILE_SLICE
+
+    base_cli = collect_solver_args(sim, solver_config)      # material params (uniform)
+    Q = [pack_y0(cm_star_q, immob_q, rhoN_q) for q in points]   # initial per-point state
+
+    for (t0, t1) in dose_intervals:                          # t = gamma / G
+        # (MoDELib solves the fast BVP here -> updates cm_star_q at each point)
+        for q, cm in enumerate(cm_star_by_point):
+            Q[q][0:4] = cm                                   # inject frozen mobile
+        Q = run_immobile_step(base_cli, Q, t0, t1)           # advance immobile (batch)
+        # (MoDELib forms L^I from the per-point immobile rates, solves mechanics)
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+from py_utils.cpp_bridge import run_cpp_solver_batch
+
+# Native ZrMicro state vector length (12 species + 6 accumulators + rho_N).
+N_EQ = 19
+IDX_RHO_N = 18
+
+# Convenience slices into the native state vector.
+MOBILE_SLICE = slice(0, 4)        # Cv, Ci, C2i, C3i
+IMMOBILE_SLICE = slice(4, 12)     # CiL,CaiL,CvL,CavL, CiL_i,CaiL_i,CvL_v,CavL_v
+ACCUMULATOR_SLICE = slice(12, 18)
+
+IMMOBILE_NAMES = [
+    "CiL", "CaiL", "CvL", "CavL",            # loop number densities
+    "CiL_i", "CaiL_i", "CvL_v", "CavL_v",    # loop defect contents
+]
+
+
+def pack_y0(c_m_star, immobile, rho_N, reset_accumulators=True):
+    """Assemble a native length-19 state vector for one quadrature point.
+
+    Parameters
+    ----------
+    c_m_star : sequence of 4 floats   — frozen steady mobile field [Cv,Ci,C2i,C3i]
+    immobile : sequence of 8 floats   — IMMOBILE_NAMES order (numbers then contents)
+    rho_N    : float                  — network dislocation density [m^-2]
+    reset_accumulators : bool         — zero y[12:18] (per-step conservation start)
+
+    Returns
+    -------
+    y0 : np.ndarray shape (19,)
+    """
+    y0 = np.zeros(N_EQ, dtype=float)
+    y0[MOBILE_SLICE] = np.asarray(c_m_star, dtype=float)
+    y0[IMMOBILE_SLICE] = np.asarray(immobile, dtype=float)
+    y0[IDX_RHO_N] = float(rho_N)
+    if not reset_accumulators:
+        pass  # caller already placed accumulator values in a full-length vector
+    return y0
+
+
+def _cli_to_dict(cli):
+    """['--k=v', ...] -> {'k': 'v', ...} (last value wins on duplicates)."""
+    d = {}
+    for a in cli:
+        s = a[2:] if a.startswith("--") else a
+        k, _, v = s.partition("=")
+        d[k] = v
+    return d
+
+
+def _dict_to_cli(d):
+    return [f"--{k}={v}" for k, v in d.items()]
+
+
+def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
+    """Build per-quadrature-point batch cases for the frozen-mobile immobile march.
+
+    Each case inherits the shared material parameters in ``base_cli`` (valid when
+    T, sigma, and the bias factors are spatially uniform) and overrides the
+    per-point initial state, the integration window, and the operator-split flags.
+
+    Parameters
+    ----------
+    base_cli : list[str]            — collect_solver_args(sim, solver_config) output
+    y0_list  : sequence of (19,)    — native state per quadrature point (mobile slots
+                                      already set to the local C_M*)
+    t_begin, t_end : float          — dose-step window in SECONDS (t = gamma / G)
+
+    Returns
+    -------
+    cases_cli : list[list[str]]     — one '--key=value' list per quadrature point
+    """
+    base = _cli_to_dict(base_cli)
+    base["freeze_mobile"] = "1"
+    base["t_begin"] = repr(float(t_begin))
+    base["t_end"] = repr(float(t_end))
+    base["n_points"] = "2"      # endpoints only — we read the last row
+    base["log_time"] = "0"      # linear span of [t_begin, t_end]
+
+    cases = []
+    for y0 in y0_list:
+        y0 = np.asarray(y0, dtype=float)
+        if y0.shape[0] != N_EQ:
+            raise ValueError(f"each y0 must have length {N_EQ}, got {y0.shape[0]}")
+        d = dict(base)
+        for k in range(N_EQ):
+            d[f"y0_{k}"] = repr(float(y0[k]))
+        cases.append(_dict_to_cli(d))
+    return cases
+
+
+def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None):
+    """Advance the immobile state at all quadrature points over one dose step.
+
+    Solves, for every point q independently and concurrently (OpenMP batch),
+    the ZrMicro immobile ODEs with the mobile species frozen at y0_list[q][0:4],
+    from t_begin to t_end, and returns the endpoint state.
+
+    Parameters
+    ----------
+    base_cli : list[str]            — shared material-parameter CLI (uniform fields)
+    y0_list  : sequence of (19,)    — per-point native state (mobile = local C_M*)
+    t_begin, t_end : float          — dose-step window in seconds
+    base_dir : Path or None         — ZrMicro/ root; auto-detected if None
+
+    Returns
+    -------
+    list  — same length as y0_list; each entry is the endpoint state vector
+            np.ndarray shape (19,), or None if that point's integration failed.
+    """
+    cases = build_immobile_cases(base_cli, y0_list, t_begin, t_end)
+    raw = run_cpp_solver_batch(cases, base_dir=base_dir)
+    out = []
+    for r in raw:
+        if r is None:
+            out.append(None)
+        else:
+            _t, y = r                # y shape (N_EQ, n_pts)
+            out.append(np.asarray(y[:, -1], dtype=float))   # endpoint state
+        # cf. cpp_bridge._parse_batch_stdout: r = (t, y) per case
+    return out
+
+
+def immobile_rates(y_begin, y_end, dt):
+    """Per-point immobile rate dQ/dt over the step, for the L^I source in MoDELib.
+
+    A simple first-order (one-sided) estimate from the step endpoints; feeds the
+    plastic distortion L^P = sum_X (dc_I^X/dt)(habit_X (x) habit_X) of the
+    formulation. Returns a dict keyed by IMMOBILE_NAMES plus 'rho_N'.
+
+    Parameters
+    ----------
+    y_begin, y_end : (19,) arrays    — state before/after the dose step
+    dt : float                       — step length in seconds (= dgamma / G)
+    """
+    yb = np.asarray(y_begin, dtype=float)
+    ye = np.asarray(y_end, dtype=float)
+    inv = 1.0 / dt
+    rates = {name: (ye[4 + k] - yb[4 + k]) * inv for k, name in enumerate(IMMOBILE_NAMES)}
+    rates["rho_N"] = (ye[IDX_RHO_N] - yb[IDX_RHO_N]) * inv
+    return rates

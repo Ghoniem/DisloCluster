@@ -1,0 +1,9 @@
+type=aLoops;
+style=Density;
+slipSystemIDs=6 8 10 6 8 10;
+targetDensity=1e18 1e18 1e18 1e18 1e18 1e18; 
+loopRadiusMean=10e-9 10e-9 10e-9 10e-9 10e-9 10e-9; 
+loopRadiusStd=0 0 0 0 0 0;
+numberOfSides=36 36 36 36 36 36;
+areVacancyLoops=1 1 1 0 0 0;
+ellipticityFactor=1.5 1.5 1.5 1.5 1.5 1.5; 

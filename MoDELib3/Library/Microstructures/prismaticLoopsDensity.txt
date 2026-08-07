@@ -1,0 +1,7 @@
+type=PrismaticLoop;
+style=density;
+targetDensity_SI=1e13; # [m^-2] dislocation density
+radiusDistributionMean_SI=3e-08; [m] mean of loop radii
+radiusDistributionStd_SI=0e-8; [m] std of loop radii
+allowedGrainIDs=-1; # set of grain IDs where loops are allowed. Use -1 for all grains
+allowedSlipSystemIDs=-1; # set of slip system IDs whose Burgers vector are allowed to be the prism axis. Use -1 for all slip systems

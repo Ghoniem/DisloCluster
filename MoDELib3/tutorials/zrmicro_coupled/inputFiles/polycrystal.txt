@@ -1,0 +1,12 @@
+materialFile=Zr3d_ghoniem.txt;
+absoluteTemperature=573; # [K] simulation temperature 
+meshFile=unitCube_15K.msh; # mesh file 
+F=3093.0 0.0 0.0
+  0.0 3093.4427423180146 0.0
+  0.0 0.0 3092.889048554226; # mesh deformation gradient. Mesh nodes X are mapped to x=F*(X-X0) 
+X0=0 0 0; # mesh shift. Mesh nodes X are mapped to x=F*(X-X0) 
+periodicFaceIDs=; # non-periodic (mesh has no full 3D periodicity); compare INTERIOR, ~14 depletion lengths from any face
+C2G1 =
+1.000000000000000 0.000000000000000 0.000000000000000
+0.000000000000000 1.000000000000000 0.000000000000000
+0.000000000000000 0.000000000000000 1.000000000000000;

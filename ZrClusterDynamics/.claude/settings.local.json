@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(../.DisloClusterVenv/Scripts/python.exe -c ' *)",
+      "Bash(ls -la Docs/Formulation/figs/)"
+    ]
+  }
+}

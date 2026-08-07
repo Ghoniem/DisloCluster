@@ -1,0 +1,9 @@
+type=MDSolidSolution;
+tag=1;
+seed=0;
+correlationFile_L=placeHolder.vtk;
+correlationFile_T=placeHolder.vtk;
+gridSize=100 100;
+gridSpacing_SI=1e-9 1e-9;
+a_cai_SI=0;
+
