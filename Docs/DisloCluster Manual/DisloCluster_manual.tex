@@ -223,13 +223,24 @@ anywhere. Three optional environment variables override the defaults:
 checkout outside the tree), and \code{MODELIB\_BUILD} (its build directory).
 
 \begin{notebox}
-Some in-repository documents (\file{README.md}, the \file{CLAUDE.md} files,
-and the docstring of \file{paths.py}) still refer to the formulation
-documents and the WSL build script as living under
-\file{ZrClusterDynamics/Docs/}. In the current tree that folder is
-\file{Docs/} at the \emph{repository root}. This manual uses the actual
-locations throughout; where the difference matters (the build script's
-default arguments, Section~\ref{sec:buildmod}) it is called out explicitly.
+\textbf{Resolved (8 August 2026).} \file{README.md}, the \file{CLAUDE.md}
+files and \file{paths.py} used to refer to the formulation documents and the
+WSL build script as living under \file{ZrClusterDynamics/Docs/}. No such
+folder exists --- all documents are under \file{Docs/} at the
+\emph{repository root} --- and the stale references had produced two live
+faults, both now fixed:
+\begin{itemize}
+  \item \file{paths.py} defined \code{DOCS\_DIR} as
+        \file{ZrClusterDynamics/Docs/Formulation}, so
+        \code{MODELIB\_BUILD\_SCRIPT} pointed at a non-existent file and the
+        coupling notebook's automatic \MoD{} build silently declined to run
+        (it tests \code{is\_file()} and returns without comment).
+        \code{DOCS\_DIR} is now the root \file{Docs/}, with
+        \code{DOCS\_FORMULATION} and \code{DOCS\_MANUAL} beside it.
+  \item \file{build\_modelib\_wsl.sh} derived the repository root by walking
+        up three directories, correct only from the old location
+        (Section~\ref{sec:buildmod}).
+\end{itemize}
 \end{notebox}
 
 \subsection{Conventions used in this manual}
@@ -476,14 +487,20 @@ PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh MoDELib3
 \end{lstlisting}
 
 \begin{notebox}
-Pass the \file{MoDELib3} argument explicitly, as above. The script's
-no-argument default locates the \MoD{} checkout relative to the script's own
-location assuming it sits at \file{ZrClusterDynamics/Docs/Formulation/}; with
-\file{Docs/} now at the repository root that default resolves outside the
-repository and the script stops with ``\code{CMakeLists.txt not found}''.
-The explicit argument is unambiguous from any location. (Running as
-\code{-u root} avoids an interactive \code{sudo} password prompt for the
-package installs.)
+\textbf{Fixed (8 August 2026).} The script's no-argument default used to walk
+up \emph{three} directories from its own location, which was correct only
+while it sat at \file{ZrClusterDynamics/Docs/Formulation/}. From
+\file{Docs/Formulation/} --- two levels below the root --- that resolved one
+directory \emph{above} the checkout, and the script stopped with
+``\code{CMakeLists.txt not found}''. Only the explicit-argument path, which
+the coupling notebook uses, still worked. It now walks up two levels, so the
+no-argument form works again:
+\begin{lstlisting}[style=ps]
+PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
+\end{lstlisting}
+Passing \file{MoDELib3} explicitly remains unambiguous from any location.
+(Running as \code{-u root} avoids an interactive \code{sudo} password prompt
+for the package installs.)
 \end{notebox}
 
 The script performs, in order:

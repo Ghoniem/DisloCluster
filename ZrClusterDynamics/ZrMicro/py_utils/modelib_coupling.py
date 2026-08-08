@@ -126,6 +126,30 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     base["n_points"] = "2"      # endpoints only — we read the last row
     base["log_time"] = "0"      # linear span of [t_begin, t_end]
 
+    # ── Solver configuration specific to the operator-split march ────────────
+    # With the mobile species frozen and the six conservation accumulators
+    # carried as CVODES quadrature variables, the implicit block the Newton
+    # iteration and the dense LU touch is 9x9 rather than 19x19, and the
+    # Jacobian is the exact one obtained by forward-mode AD instead of
+    # difference quotients.
+    #
+    # The decisive gain here is not the flop count but the step-size control.
+    # Each substep restarts at t ~ 1e7 s with the accumulators reset to zero;
+    # with atol = 1e-20 their error weights are ~1e20, which drives CVODE's
+    # initial step down to the point where t + h == t in double precision. The
+    # legacy path emits that roundoff warning on every substep of every point
+    # (2048 of them in a 1024-point, 5-substep march) and wastes the steps that
+    # provoke it. Taking the accumulators out of the error test removes the
+    # pathology outright: zero warnings and ~18% fewer internal steps.
+    #
+    # These are set here, not in collect_solver_args, so that a standalone 0-D
+    # run stays bit-identical to the pre-existing solver.
+    # Assigned, not setdefault: collect_solver_args always emits these keys with
+    # their standalone default of 0.0, so setdefault would silently leave the
+    # march on the legacy path.
+    base["reduced"] = "1"
+    base["analytic_jac"] = "1"
+
     cases = []
     for y0 in y0_list:
         y0 = np.asarray(y0, dtype=float)

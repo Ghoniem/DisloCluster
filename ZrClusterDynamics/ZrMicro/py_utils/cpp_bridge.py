@@ -168,6 +168,24 @@ def collect_solver_args(sim, solver_config):
     # are bit-identical.
     params['freeze_mobile'] = 1.0 if solver_config.get('freeze_mobile', False) else 0.0
 
+    # ── Reduced implicit block + analytic AD Jacobian ──────────────────────
+    # 'reduced'      : carry the six conservation accumulators as CVODES
+    #                  quadrature variables instead of ODE state, shrinking the
+    #                  Newton system from 19 to 13 (or to 9 with freeze_mobile).
+    #                  It also removes the accumulators from the error test,
+    #                  which is what stops their zero initial value from forcing
+    #                  a roundoff-limited first step on every coupling substep.
+    # 'analytic_jac' : exact dense Jacobian by forward-mode AD instead of
+    #                  SUNDIALS' difference quotients (dense linear solver only).
+    #
+    # Both default OFF here so a standalone 0-D run remains bit-identical to the
+    # pre-existing solver. modelib_coupling.build_immobile_cases turns them on
+    # for the operator-split march, where they are measurably better.
+    params['reduced']      = 1.0 if solver_config.get('reduced', False) else 0.0
+    params['analytic_jac'] = 1.0 if solver_config.get('analytic_jac', False) else 0.0
+    if solver_config.get('stats', False):
+        params['stats'] = 1.0
+
     # ── Integration method options ─────────────────────────────────────────
     # Optional 'solver_method' sub-dict in solver_config:
     #   backend   : 'cvode' (default) or 'arkode'

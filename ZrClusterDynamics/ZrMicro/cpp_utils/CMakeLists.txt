@@ -41,9 +41,14 @@ add_executable(solver
 # Include cpp_utils/ so solver.cpp can find parameters.h and rate_equations.h
 target_include_directories(solver PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Link SUNDIALS — CVODE + ARKODE + linear solver modules (dense, band, SPGMR)
+# Link SUNDIALS — CVODES + ARKODE + linear solver modules (dense, band, SPGMR)
+#
+# CVODES rather than CVODE: solver.cpp already included <cvodes/cvodes.h> (the
+# two share the CVodeCreate/CVodeInit/CVode symbol names, so linking plain cvode
+# happened to work), but the reduced implicit block needs CVodeQuadInit /
+# CVodeGetQuad / CVodeGetQuadNumRhsEvals, which exist only in CVODES.
 target_link_libraries(solver
-    SUNDIALS::cvode
+    SUNDIALS::cvodes
     SUNDIALS::arkode
     SUNDIALS::nvecserial
     SUNDIALS::sunlinsolband
@@ -57,3 +62,9 @@ if(OpenMP_CXX_FOUND)
 else()
     message(STATUS "OpenMP NOT found — solver batch mode will run serially")
 endif()
+
+# ── Jacobian verification tool ───────────────────────────────────────────────
+# Checks the forward-AD Jacobian against a central-difference Jacobian of the
+# same templated core. Header-only: no SUNDIALS dependency.
+add_executable(jac_check ${CMAKE_CURRENT_SOURCE_DIR}/jac_check.cpp)
+target_include_directories(jac_check PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

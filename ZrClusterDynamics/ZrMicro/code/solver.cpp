@@ -63,6 +63,7 @@
 
 #include "parameters.h"
 #include "rate_equations.h"
+#include "rate_equations_core.h"
 
 #include <cvodes/cvodes.h>
 #include <arkode/arkode_arkstep.h>
@@ -76,6 +77,7 @@
 #include <sunmatrix/sunmatrix_band.h>
 #include <sundials/sundials_types.h>
 
+#include <chrono>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -141,17 +143,122 @@ std::map<std::string, double> parse_kv_line(const std::string& line) {
     return props;
 }
 
+// ── Reusable per-thread solver workspace ──────────────────────────────────────
+//
+// Building a SUNContext, state vector, dense matrix, linear solver and CVODE
+// memory, then tearing them all down again, costs FAR more than a short
+// integration: measured on this machine a 256-case frozen-mobile batch spends
+// ~1.3 s of thread time on construction/destruction versus ~0.2 s on the actual
+// solves. The coupling march runs exactly that shape of workload — one short
+// integration per quadrature point per substep — so the per-case setup was the
+// dominant cost of the whole 0-D side.
+//
+// A Workspace is created once per OpenMP thread and reused across every case
+// that thread handles, via CVodeReInit / CVodeQuadReInit. It is rebuilt only if
+// a case needs a different shape (dimension, linear solver, LMM, Jacobian mode).
+// Nothing is shared between threads, so the batch stays thread-safe.
+struct Workspace {
+    SUNContext      sunctx    = nullptr;
+    void*           cvode_mem = nullptr;
+    N_Vector        y         = nullptr;
+    N_Vector        yQ        = nullptr;
+    SUNMatrix       A         = nullptr;
+    SUNLinearSolver LS        = nullptr;
+    SolverCtx       ctx{};                 // stable address -> set user_data once
+
+    // Signature of what is currently built.
+    int  neq = -1, linsol = -1, lmm = -1, max_order = -1;
+    bool reduced = false, ajac = false, built = false;
+
+    long n_build = 0, n_reuse = 0;
+};
+
+static void ws_teardown_solver(Workspace& ws) {
+    if (ws.cvode_mem) { CVodeFree(&ws.cvode_mem); ws.cvode_mem = nullptr; }
+    if (ws.LS) { SUNLinSolFree(ws.LS); ws.LS = nullptr; }
+    if (ws.A)  { SUNMatDestroy(ws.A);  ws.A  = nullptr; }
+    if (ws.yQ) { N_VDestroy(ws.yQ);    ws.yQ = nullptr; }
+    if (ws.y)  { N_VDestroy(ws.y);     ws.y  = nullptr; }
+    ws.built = false;
+}
+
+static void ws_release(Workspace& ws) {
+    ws_teardown_solver(ws);
+    if (ws.sunctx) { SUNContext_Free(&ws.sunctx); ws.sunctx = nullptr; }
+}
+
+// Ensure the workspace matches the requested shape. Returns 0 on success.
+static int ws_ensure(Workspace& ws, const Parameters& P,
+                     int neq, bool reduced, bool ajac) {
+    if (ws.built && ws.neq == neq && ws.reduced == reduced && ws.ajac == ajac &&
+        ws.linsol == P.linsol && ws.lmm == P.lmm && ws.max_order == P.max_order) {
+        ++ws.n_reuse;
+        return 0;
+    }
+    ws_teardown_solver(ws);
+
+    // The context itself is shape-independent and survives a rebuild.
+    if (!ws.sunctx && SUNContext_Create(SUN_COMM_NULL, &ws.sunctx) != 0)
+        return 101;
+
+    ws.y = N_VNew_Serial(neq, ws.sunctx);
+    if (!ws.y) return 102;
+    if (reduced) {
+        ws.yQ = N_VNew_Serial(N_ACC, ws.sunctx);
+        if (!ws.yQ) return 103;
+    }
+
+    if (P.linsol == 1) {
+        int mu = P.mu < neq - 1 ? P.mu : neq - 1;
+        int ml = P.ml < neq - 1 ? P.ml : neq - 1;
+        ws.A  = SUNBandMatrix(neq, mu, ml, ws.sunctx);
+        if (!ws.A)  return 104;
+        ws.LS = SUNLinSol_Band(ws.y, ws.A, ws.sunctx);
+    } else if (P.linsol == 2) {
+        ws.LS = SUNLinSol_SPGMR(ws.y, SUN_PREC_NONE, 0, ws.sunctx);
+    } else {
+        ws.A  = SUNDenseMatrix(neq, neq, ws.sunctx);
+        if (!ws.A)  return 104;
+        ws.LS = SUNLinSol_Dense(ws.y, ws.A, ws.sunctx);
+    }
+    if (!ws.LS) return 105;
+
+    const int lmm_flag = (P.lmm == 1) ? CV_ADAMS : CV_BDF;
+    ws.cvode_mem = CVodeCreate(lmm_flag, ws.sunctx);
+    if (!ws.cvode_mem) return 130;
+
+    CVRhsFn rhs_fn = reduced ? rhs_zrmicro_reduced : rhs_zrmicro;
+    // t0 here is a placeholder; every case sets its own through CVodeReInit.
+    if (CVodeInit(ws.cvode_mem, rhs_fn, 0.0, ws.y) != CV_SUCCESS) return 131;
+    if (CVodeSetUserData(ws.cvode_mem, &ws.ctx) != CV_SUCCESS) return 131;
+    if (CVodeSetLinearSolver(ws.cvode_mem, ws.LS, ws.A) != CV_SUCCESS) return 132;
+    if (ajac) {
+        CVLsJacFn jf = reduced ? jac_zrmicro_reduced : jac_zrmicro;
+        if (CVodeSetJacFn(ws.cvode_mem, jf) != CV_SUCCESS) return 132;
+    }
+    if (reduced &&
+        CVodeQuadInit(ws.cvode_mem, quad_zrmicro_reduced, ws.yQ) != CV_SUCCESS)
+        return 133;
+    if (P.max_order > 0 &&
+        CVodeSetMaxOrd(ws.cvode_mem, P.max_order) != CV_SUCCESS) return 131;
+
+    ws.neq = neq; ws.reduced = reduced; ws.ajac = ajac;
+    ws.linsol = P.linsol; ws.lmm = P.lmm; ws.max_order = P.max_order;
+    ws.built = true;
+    ++ws.n_build;
+    return 0;
+}
+
 // ── One integration ───────────────────────────────────────────────────────────
 //
-// Integrate a single parameter set and append the result rows to `out`.
-// Self-contained: creates and frees its OWN SUNContext, state vector, linear
-// solver and integrator memory, so it is safe to call concurrently from
-// independent OpenMP threads (each call touches only its own objects + the
-// thread-local `out` stream and the read-only `P`).
+// Integrate a single parameter set and append the result rows to `out`, reusing
+// the caller-supplied per-thread workspace. Each call touches only that
+// workspace, the thread-local `out` stream and the read-only `P`, so it remains
+// safe to call concurrently from independent OpenMP threads.
 //
 // Returns 0 on success; a non-zero status code on any setup/integration error.
 
-static int integrate_one(const Parameters& P, std::ostream& out) {
+static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) {
 
     // ── Time evaluation grid ──────────────────────────────────────────────────
     std::vector<double> t_eval(P.n_points);
@@ -167,126 +274,253 @@ static int integrate_one(const Parameters& P, std::ostream& out) {
             t_eval[i] = P.t_begin + i * step;
     }
 
-    // ── SUNDIALS context (one per call → thread-safe) ─────────────────────────
-    SUNContext sunctx;
-    if (SUNContext_Create(SUN_COMM_NULL, &sunctx) != 0)
-        return 101;
+    // ── Fixed-step explicit Euler ─────────────────────────────────────────────
+    // The reference scheme: forward Euler on the SAME rate_equations_core.h
+    // right-hand side, euler_nsub substeps per output interval, with the
+    // per-substep positivity clamp MoDELib applies to its immobile field.
+    // No Jacobian, no linear solve, no error control -- exactly what
+    // ClusterDynamicsFEM::solveImmobileClusters does nodally.
+    if (P.euler_nsub > 0) {
+        out << std::scientific << std::setprecision(10);
+        const auto tE0 = std::chrono::steady_clock::now();
+        double y[N_EQ], dy[N_EQ];
+        for (int k = 0; k < N_EQ; ++k) y[k] = P.y0[k];
 
-    // ── State vector — initialised from Python-computed y0 ────────────────────
-    N_Vector y = N_VNew_Serial(N_EQ, sunctx);
-    if (!y) { SUNContext_Free(&sunctx); return 102; }
-    for (int k = 0; k < N_EQ; ++k)
-        NV_Ith_S(y, k) = P.y0[k];
+        auto emit = [&](double t) {
+            out << t;
+            for (int k = 0; k < N_EQ; ++k) out << ' ' << y[k];
+            out << '\n';
+        };
+        emit(t_eval[0]);
 
-    SUNMatrix       A  = nullptr;
-    SUNLinearSolver LS = nullptr;
-
-    auto make_linear_solver = [&](void* solver_mem, bool is_arkode) -> bool {
-        if (P.linsol == 1) {
-            A  = SUNBandMatrix(N_EQ, P.mu, P.ml, sunctx);
-            if (!A)  return false;
-            LS = SUNLinSol_Band(y, A, sunctx);
-            if (!LS) return false;
-        } else if (P.linsol == 2) {
-            LS = SUNLinSol_SPGMR(y, SUN_PREC_NONE, 0, sunctx);
-            if (!LS) return false;
-            A = nullptr;
-        } else {
-            A  = SUNDenseMatrix(N_EQ, N_EQ, sunctx);
-            if (!A)  return false;
-            LS = SUNLinSol_Dense(y, A, sunctx);
-            if (!LS) return false;
+        long nfe = 0;
+        bool blew_up = false;
+        for (int i = 1; i < P.n_points && !blew_up; ++i) {
+            const double h = (t_eval[i] - t_eval[i - 1]) / P.euler_nsub;
+            for (int s = 0; s < P.euler_nsub; ++s) {
+                zrcore::rhs_core<double>(y, dy, P);
+                ++nfe;
+                for (int k = 0; k < N_EQ; ++k) y[k] += h * dy[k];
+                // MoDELib clamps n and c to their floors after every substep.
+                for (int k = 0; k < N_PHYS; ++k)
+                    if (y[k] < P.C_floor) y[k] = P.C_floor;
+                for (int k = 0; k < N_EQ; ++k)
+                    if (!std::isfinite(y[k])) { blew_up = true; break; }
+                if (blew_up) break;
+            }
+            if (!blew_up) emit(t_eval[i]);
         }
-        int r = is_arkode ? ARKodeSetLinearSolver(solver_mem, LS, A)
-                          : CVodeSetLinearSolver(solver_mem, LS, A);
-        return r == 0;
-    };
+        const double tE = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - tE0).count();
+        if (P.stats) {
+            out << "# STATS neq=" << N_EQ << " nst=" << (nfe)
+                << " nfe=" << nfe << " nje=0 nni=0 netf=0 nfeLS=0 nsetups=0"
+                << " ncfn=" << (blew_up ? 1 : 0) << " nqe=0 nqhit=0 nqmiss=0"
+                << " nbuild=0 nreuse=0 t_int=" << tE << '\n';
+        }
+        return blew_up ? 150 : 0;
+    }
 
-    auto cleanup = [&]() {
-        if (LS) SUNLinSolFree(LS);
-        if (A)  SUNMatDestroy(A);
-        N_VDestroy(y);
-        SUNContext_Free(&sunctx);
-    };
+    // ── Reduced implicit block ────────────────────────────────────────────────
+    // The six accumulators are pure quadratures (rows written, columns never
+    // read), so CVODES can integrate them with CVodeQuadInit on the same step
+    // sequence while keeping them out of the Newton system and the error test.
+    // With the mobile species also frozen by the operator split, the block the
+    // dense LU factorises drops from 19x19 to 9x9. ARKODE has no quadrature
+    // module, so the reduction is CVODE-only; requesting it with --backend=1
+    // silently falls back to the full system (the emitted stats line reports
+    // the dimension actually used, so a benchmark cannot be misled).
+    const bool reduced   = P.reduced && P.backend == 0;
+    const int  NEQ_SOLVE = reduced ? red_dim(P) : N_EQ;
+
+    // Analytic AD Jacobian: dense direct solver only. Band would need a
+    // different element accessor and GMRES needs no Jacobian at all; both keep
+    // SUNDIALS' difference quotients.
+    const bool use_ajac = P.analytic_jac && P.linsol == 0;
 
     out << std::scientific << std::setprecision(10);
     int flag, status = 0;
-    void* user_data = const_cast<Parameters*>(&P);
 
+    // Integration-only wall time, so a benchmark can separate solver cost from
+    // the process-spawn and text-parsing overhead of the batch interface.
+    const auto t_wall0 = std::chrono::steady_clock::now();
+
+    // ── ARKODE: not reused (no quadrature module, not the coupling path) ──────
     if (P.backend == 1) {
-        // ── ARKODE ARKStep — implicit Runge-Kutta (DIRK) ──────────────────────
+        SUNContext sunctx;
+        if (SUNContext_Create(SUN_COMM_NULL, &sunctx) != 0) return 101;
+
+        N_Vector y = N_VNew_Serial(N_EQ, sunctx);
+        if (!y) { SUNContext_Free(&sunctx); return 102; }
+        for (int k = 0; k < N_EQ; ++k) NV_Ith_S(y, k) = P.y0[k];
+
+        SUNMatrix       A  = nullptr;
+        SUNLinearSolver LS = nullptr;
+        if (P.linsol == 1) {
+            A  = SUNBandMatrix(N_EQ, P.mu, P.ml, sunctx);
+            LS = A ? SUNLinSol_Band(y, A, sunctx) : nullptr;
+        } else if (P.linsol == 2) {
+            LS = SUNLinSol_SPGMR(y, SUN_PREC_NONE, 0, sunctx);
+        } else {
+            A  = SUNDenseMatrix(N_EQ, N_EQ, sunctx);
+            LS = A ? SUNLinSol_Dense(y, A, sunctx) : nullptr;
+        }
+        auto ark_cleanup = [&]() {
+            if (LS) SUNLinSolFree(LS);
+            if (A)  SUNMatDestroy(A);
+            N_VDestroy(y);
+            SUNContext_Free(&sunctx);
+        };
+        if (!LS) { ark_cleanup(); return 105; }
+
+        SolverCtx actx{};
+        actx.P = &P; actx.acc_valid = false; actx.nq_hit = 0; actx.nq_miss = 0;
+
         void* ark_mem = ARKStepCreate(nullptr, rhs_zrmicro, t_eval[0], y, sunctx);
-        if (!ark_mem) { cleanup(); return 110; }
+        if (!ark_mem) { ark_cleanup(); return 110; }
 
         if (ARKStepSetImplicit(ark_mem) != ARK_SUCCESS ||
             ARKStepSetTableNum(ark_mem,
                                static_cast<ARKODE_DIRKTableID>(P.ark_table),
                                ARKODE_ERK_NONE) != ARK_SUCCESS ||
-            ARKodeSetUserData(ark_mem, user_data) != ARK_SUCCESS ||
+            ARKodeSetUserData(ark_mem, &actx) != ARK_SUCCESS ||
             ARKodeSStolerances(ark_mem, P.rtol, P.atol) != ARK_SUCCESS ||
-            ARKodeSetMaxNumSteps(ark_mem, 500000) != ARK_SUCCESS) {
-            ARKodeFree(&ark_mem); cleanup(); return 111;
+            ARKodeSetMaxNumSteps(ark_mem, 500000) != ARK_SUCCESS ||
+            ARKodeSetLinearSolver(ark_mem, LS, A) != ARK_SUCCESS) {
+            ARKodeFree(&ark_mem); ark_cleanup(); return 111;
         }
         if (P.max_order > 0 &&
             ARKodeSetOrder(ark_mem, P.max_order) != ARK_SUCCESS) {
-            ARKodeFree(&ark_mem); cleanup(); return 111;
+            ARKodeFree(&ark_mem); ark_cleanup(); return 111;
         }
-        if (!make_linear_solver(ark_mem, true)) {
-            ARKodeFree(&ark_mem); cleanup(); return 112;
+        if (use_ajac && ARKodeSetJacFn(ark_mem, jac_zrmicro) != ARK_SUCCESS) {
+            ARKodeFree(&ark_mem); ark_cleanup(); return 112;
         }
 
-        out << t_eval[0];
-        for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
-        out << '\n';
+        auto emit_ark = [&](double t) {
+            out << t;
+            for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
+            out << '\n';
+        };
+        emit_ark(t_eval[0]);
 
         sunrealtype t_current = t_eval[0];
         for (int i = 1; i < P.n_points; ++i) {
             flag = ARKodeEvolve(ark_mem, t_eval[i], y, &t_current, ARK_NORMAL);
             if (flag < 0) { status = 120; break; }
-            out << t_eval[i];
-            for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
-            out << '\n';
+            emit_ark(t_eval[i]);
+        }
+        const double t_int_s = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - t_wall0).count();
+        if (P.stats) {
+            // ARKODE is not the benchmarked path (the reduction is CVODE-only),
+            // so only the portable step/nonlinear counters are reported here.
+            long nst = 0, nni = 0, netf = 0;
+            ARKodeGetNumSteps(ark_mem, &nst);
+            ARKodeGetNumNonlinSolvIters(ark_mem, &nni);
+            ARKodeGetNumErrTestFails(ark_mem, &netf);
+            out << "# STATS neq=" << N_EQ << " nst=" << nst
+                << " nfe=-1 nje=-1"
+                << " nni=" << nni << " netf=" << netf
+                << " nfeLS=-1 nsetups=-1 ncfn=-1 nqe=-1"
+                << " nqhit=0 nqmiss=0 nbuild=1 nreuse=0"
+                << " t_int=" << t_int_s << '\n';
         }
         ARKodeFree(&ark_mem);
-
-    } else {
-        // ── CVODE — linear multistep BDF or Adams ─────────────────────────────
-        int lmm_flag = (P.lmm == 1) ? CV_ADAMS : CV_BDF;
-
-        void* cvode_mem = CVodeCreate(lmm_flag, sunctx);
-        if (!cvode_mem) { cleanup(); return 130; }
-
-        if (CVodeSetUserData(cvode_mem, user_data) != CV_SUCCESS ||
-            CVodeInit(cvode_mem, rhs_zrmicro, t_eval[0], y) != CV_SUCCESS ||
-            CVodeSStolerances(cvode_mem, P.rtol, P.atol) != CV_SUCCESS ||
-            CVodeSetMaxNumSteps(cvode_mem, 500000) != CV_SUCCESS) {
-            CVodeFree(&cvode_mem); cleanup(); return 131;
-        }
-        if (P.max_order > 0 &&
-            CVodeSetMaxOrd(cvode_mem, P.max_order) != CV_SUCCESS) {
-            CVodeFree(&cvode_mem); cleanup(); return 131;
-        }
-        if (!make_linear_solver(cvode_mem, false)) {
-            CVodeFree(&cvode_mem); cleanup(); return 132;
-        }
-
-        out << t_eval[0];
-        for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
-        out << '\n';
-
-        sunrealtype t_current = t_eval[0];
-        for (int i = 1; i < P.n_points; ++i) {
-            flag = CVode(cvode_mem, t_eval[i], y, &t_current, CV_NORMAL);
-            if (flag < 0) { status = 140; break; }
-            out << t_eval[i];
-            for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
-            out << '\n';
-        }
-        CVodeFree(&cvode_mem);
+        ark_cleanup();
+        return status;
     }
 
-    cleanup();
+    // ── CVODE, on the reusable workspace ──────────────────────────────────────
+    const int st = ws_ensure(ws, P, NEQ_SOLVE, reduced, use_ajac);
+    if (st != 0) return st;
+
+    ws.ctx.P = &P;
+    ws.ctx.acc_valid = false;
+    ws.ctx.nq_hit = 0;
+    ws.ctx.nq_miss = 0;
+
+    N_Vector y  = ws.y;
+    N_Vector yQ = ws.yQ;
+    void* cvode_mem = ws.cvode_mem;
+
+    if (reduced)
+        for (int j = 0; j < NEQ_SOLVE; ++j) NV_Ith_S(y, j) = P.y0[red_idx(P, j)];
+    else
+        for (int k = 0; k < N_EQ; ++k)      NV_Ith_S(y, k) = P.y0[k];
+    if (reduced)
+        for (int k = 0; k < N_ACC; ++k) NV_Ith_S(yQ, k) = P.y0[N_PHYS + k];
+
+    if (CVodeReInit(cvode_mem, t_eval[0], y) != CV_SUCCESS) return 134;
+    if (reduced && CVodeQuadReInit(cvode_mem, yQ) != CV_SUCCESS) return 135;
+    if (CVodeSStolerances(cvode_mem, P.rtol, P.atol) != CV_SUCCESS) return 131;
+    if (CVodeSetMaxNumSteps(cvode_mem, 500000) != CV_SUCCESS) return 131;
+
+    // Emit one output row in the unchanged 19-column contract, reassembling the
+    // full state from the reduced block, the frozen mobile values and the
+    // quadrature accumulators when running reduced.
+    auto emit_row = [&](double t) {
+        double full[N_EQ];
+        if (reduced) {
+            for (int k = 0; k < N_MOB; ++k) full[k] = P.y0[k];   // frozen or seeded
+            for (int j = 0; j < NEQ_SOLVE; ++j) full[red_idx(P, j)] = NV_Ith_S(y, j);
+            for (int k = 0; k < N_ACC; ++k) full[N_PHYS + k] = NV_Ith_S(yQ, k);
+        } else {
+            for (int k = 0; k < N_EQ; ++k) full[k] = NV_Ith_S(y, k);
+        }
+        out << t;
+        for (int k = 0; k < N_EQ; ++k) out << ' ' << full[k];
+        out << '\n';
+    };
+
+    emit_row(t_eval[0]);
+
+    sunrealtype t_current = t_eval[0];
+    for (int i = 1; i < P.n_points; ++i) {
+        flag = CVode(cvode_mem, t_eval[i], y, &t_current, CV_NORMAL);
+        if (flag < 0) { status = 140; break; }
+        if (reduced) {
+            sunrealtype tq;
+            CVodeGetQuad(cvode_mem, &tq, yQ);
+        }
+        emit_row(t_eval[i]);
+    }
+
+    const double t_int_s = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - t_wall0).count();
+    if (P.stats) {
+        long nst = 0, nfe = 0, nsetups = 0, netf = 0, nni = 0, ncfn = 0,
+             nje = 0, nfeLS = 0, nqe = 0;
+        CVodeGetNumSteps(cvode_mem, &nst);
+        CVodeGetNumRhsEvals(cvode_mem, &nfe);
+        CVodeGetNumLinSolvSetups(cvode_mem, &nsetups);
+        CVodeGetNumErrTestFails(cvode_mem, &netf);
+        CVodeGetNumNonlinSolvIters(cvode_mem, &nni);
+        CVodeGetNumNonlinSolvConvFails(cvode_mem, &ncfn);
+        if (P.linsol != 2) {
+            CVodeGetNumJacEvals(cvode_mem, &nje);
+            CVodeGetNumLinRhsEvals(cvode_mem, &nfeLS);
+        }
+        if (reduced) CVodeGetQuadNumRhsEvals(cvode_mem, &nqe);
+        out << "# STATS neq=" << NEQ_SOLVE << " nst=" << nst
+            << " nfe=" << nfe << " nje=" << nje
+            << " nni=" << nni << " netf=" << netf
+            << " nfeLS=" << nfeLS << " nsetups=" << nsetups
+            << " ncfn=" << ncfn << " nqe=" << nqe
+            << " nqhit=" << ws.ctx.nq_hit << " nqmiss=" << ws.ctx.nq_miss
+            << " nbuild=" << ws.n_build << " nreuse=" << ws.n_reuse
+            << " t_int=" << t_int_s << '\n';
+    }
     return status;
+}
+
+// Convenience overload for the single-case path: private workspace, torn down
+// on return, so behaviour is exactly as before.
+static int integrate_one(const Parameters& P, std::ostream& out) {
+    Workspace ws;
+    int s = integrate_one(P, out, ws);
+    ws_release(ws);
+    return s;
 }
 
 // ── Batch mode ─────────────────────────────────────────────────────────────────
@@ -334,15 +568,30 @@ static int run_batch(const std::string& batch_file) {
     std::cerr << "Batch: " << ncases << " cases (serial; built without OpenMP)\n";
 #endif
 
-    // Cases differ in stiffness / number of internal steps, so use dynamic
-    // scheduling to keep all threads busy until the work is drained.
-#pragma omp parallel for schedule(dynamic)
-    for (int c = 0; c < ncases; ++c) {
-        std::ostringstream oss;
-        int s = integrate_one(cases[c], oss);
-        status[c] = s;
-        outbuf[c] = oss.str();
+    // One workspace per thread, reused across every case that thread handles.
+    // Cases differ in stiffness / number of internal steps, so dynamic
+    // scheduling keeps all threads busy until the work is drained.
+    long tot_build = 0, tot_reuse = 0;
+#ifdef _OPENMP
+#pragma omp parallel reduction(+ : tot_build, tot_reuse)
+#endif
+    {
+        Workspace ws;
+#ifdef _OPENMP
+#pragma omp for schedule(dynamic)
+#endif
+        for (int c = 0; c < ncases; ++c) {
+            std::ostringstream oss;
+            int s = integrate_one(cases[c], oss, ws);
+            status[c] = s;
+            outbuf[c] = oss.str();
+        }
+        tot_build += ws.n_build;
+        tot_reuse += ws.n_reuse;
+        ws_release(ws);
     }
+    std::cerr << "Batch: " << tot_build << " solver build(s), "
+              << tot_reuse << " reuse(s)\n";
 
     // Ordered, race-free output: one thread wrote each buffer; main emits them.
     for (int c = 0; c < ncases; ++c) {

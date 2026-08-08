@@ -78,7 +78,7 @@ wsl --install            # enables WSL + installs Ubuntu; then REBOOT
 Then build (the whole thing is scripted) from a WSL shell:
 
 ```bash
-bash <DisloCluster>/ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh
+bash <DisloCluster>/Docs/Formulation/build_modelib_wsl.sh
 # with no argument it builds <DisloCluster>/MoDELib3
 # installs deps, patches the macOS-isms in CMakeLists, skips DDqt, builds
 # build/tools/DDomp/DDomp  (+ build/tools/pyMoDELib/*.so)

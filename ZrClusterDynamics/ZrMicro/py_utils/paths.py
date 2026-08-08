@@ -11,8 +11,10 @@ Repository layout
     DisloCluster/                      <- REPO_ROOT   (holds .dislocluster_root)
       .DisloClusterVenv/               <- VENV_DIR    (Python 3.14 environment)
       requirements.txt
-      ZrClusterDynamics/               <- ZR_ROOT     (0-D code + Docs)
-        Docs/Formulation/              <- DOCS_DIR
+      Docs/                            <- DOCS_DIR    (ALL documents)
+        Formulation/                   <- DOCS_FORMULATION (+ build_modelib_wsl.sh)
+        DisloCluster Manual/           <- DOCS_MANUAL
+      ZrClusterDynamics/               <- ZR_ROOT     (0-D code)
         Gmsh/                          <- GMSH_DIR    (mesh generator + meshes/)
         ZrMicro/                       <- ZRMICRO_DIR
           code/  cpp_utils/  py_utils/  input/  build/  output/
@@ -43,7 +45,8 @@ import sys
 from pathlib import Path
 
 __all__ = [
-    "REPO_ROOT", "ZR_ROOT", "ZRMICRO_DIR", "DOCS_DIR", "MODELIB_ROOT",
+    "REPO_ROOT", "ZR_ROOT", "ZRMICRO_DIR", "DOCS_DIR", "DOCS_FORMULATION",
+    "DOCS_MANUAL", "MODELIB_ROOT",
     "MODELIB_BUILD", "MODELIB_MATERIAL", "MODELIB_MATERIAL_COUPLED",
     "MODELIB_MATERIAL_STANDALONE", "MODELIB_TUTORIALS", "COUPLED_SIM_TUTORIAL",
     "MODELIB_BUILD_SCRIPT", "VENV_DIR", "GMSH_DIR", "GMSH_MESHES",
@@ -120,7 +123,13 @@ VENV_DIR    = REPO_ROOT / VENV_NAME
 
 ZR_ROOT     = _first_existing(REPO_ROOT, _ZR_DIR_NAMES, "ZrMicro")
 ZRMICRO_DIR = ZR_ROOT / "ZrMicro"
-DOCS_DIR    = ZR_ROOT / "Docs" / "Formulation"
+# Documents live in the REPOSITORY-ROOT Docs/ tree, not under ZrClusterDynamics.
+# DOCS_DIR pointed at ZR_ROOT/"Docs"/"Formulation", which does not exist; that
+# silently broke MODELIB_BUILD_SCRIPT below and with it the notebook's automatic
+# MoDELib build, which checks `is_file()` and returns quietly when it fails.
+DOCS_DIR         = REPO_ROOT / "Docs"
+DOCS_FORMULATION = DOCS_DIR / "Formulation"
+DOCS_MANUAL      = DOCS_DIR / "DisloCluster Manual"
 
 # Mesh generation. GMSH_DIR holds generate_mesh.py; GMSH_MESHES caches the
 # generated .msh files (gitignored — they are reproducible from the spec).
@@ -156,7 +165,7 @@ MODELIB_MATERIAL = (MODELIB_MATERIAL_COUPLED if MODELIB_MATERIAL_COUPLED.is_file
 
 MODELIB_TUTORIALS    = MODELIB_ROOT / "tutorials"
 COUPLED_SIM_TUTORIAL = MODELIB_TUTORIALS / "zrmicro_coupled"
-MODELIB_BUILD_SCRIPT = DOCS_DIR / "build_modelib_wsl.sh"
+MODELIB_BUILD_SCRIPT = DOCS_FORMULATION / "build_modelib_wsl.sh"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

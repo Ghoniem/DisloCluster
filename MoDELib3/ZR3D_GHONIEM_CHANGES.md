@@ -24,7 +24,7 @@ Not physics — required to build on WSL/Ubuntu rather than macOS.
 | `CMakeLists.txt` | `EIGEN3_INCLUDE_DIRS` `/opt/local/include/eigen3` → `/usr/include/eigen3`; dropped the hard-coded Qt prefix path and macOS `RPATH` | Paths were absolute to a macOS MacPorts install |
 | `tools/CMakeLists.txt` | `DDqt` subdirectory commented out | Needs Qt; not required for CD runs |
 
-Two build traps worth recording (handled in `ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh`):
+Two build traps worth recording (handled in `Docs/Formulation/build_modelib_wsl.sh`):
 
 - The repo declares `cmake_minimum_required(VERSION 3.1.0)`. CMake ≥ 4.0 **rejects**
   anything below 3.5 outright, so `-DCMAKE_POLICY_VERSION_MINIMUM=3.5` is mandatory,

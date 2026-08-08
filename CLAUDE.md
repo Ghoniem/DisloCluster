@@ -12,7 +12,7 @@ Python interpreter, SUNDIALS, and (on Windows) WSL.
 | `ZrClusterDynamics/ZrMicro/` | 0-D reduced cluster dynamics — 19 ODEs (12 physical species, 6 conservation accumulators, ρ_N) | Python + C++/SUNDIALS |
 | `ZrClusterDynamics/Gmsh/` | simulation-domain meshing (cubic / hexagonal) | Python + Gmsh SDK |
 | `MoDELib3/` | 3-D spatially-resolved cluster dynamics / dislocation dynamics (fork of MoDELib2-NNL) | C++20 |
-| `ZrClusterDynamics/Docs/Formulation/` | Formulation LaTeX/PDF, MoDELib WSL build script | — |
+| `Docs/` | **All documents** — see the table below | — |
 
 Two drivers:
 
@@ -20,6 +20,25 @@ Two drivers:
 |---|---|
 | [`ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb`](ZrClusterDynamics/ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb) | the operator-split 0-D ↔ 3-D dose march |
 | [`ZrMicro/py_utils/run_zr3d_singlecrystal.py`](ZrClusterDynamics/ZrMicro/py_utils/run_zr3d_singlecrystal.py) | post-processes the standalone 3-D **single cubic crystal** run |
+
+---
+
+## Documents
+
+**Every document lives under the repository-root [`Docs/`](Docs/).** There is no
+`ZrClusterDynamics/Docs/` — earlier revisions of this file claimed one, which
+led to documents being written into a stray tree.
+
+| Directory | Contents |
+|---|---|
+| [`Docs/DisloCluster Manual/`](Docs/DisloCluster%20Manual/) | `DisloCluster_manual`, `MoDELib_manual`, development notes such as `solver_and_coupling_rearchitecture` |
+| [`Docs/Formulation/`](Docs/Formulation/) | formulation LaTeX/PDF, `build_modelib_wsl.sh`, `MoDELib_build_and_coupling_notes.md` |
+| [`Docs/Reports/`](Docs/Reports/) | deliverables |
+| [`Docs/Presentations/`](Docs/Presentations/) | slides |
+
+New documents go in the fitting subdirectory above. Write prose and code
+comments in **American English** (`-ize`, `-or`, no hyphen after an `-ly`
+adverb).
 
 ---
 
@@ -77,7 +96,7 @@ but enables the parallel `--batch_file` mode the coupling march depends on.
 ### 3-D code (WSL)
 
 ```bash
-wsl -u root -e bash ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh
+wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
 ```
 
 Defaults to `<repo>/MoDELib3`. The script detects and discards a CMake cache

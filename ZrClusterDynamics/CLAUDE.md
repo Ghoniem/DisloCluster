@@ -6,7 +6,9 @@ formulation documents. It is one of the two codebases in the
 
 > Historical note: this tree previously also carried `ClusterDynamics/`,
 > `Creep/` and `ZrProps/`. Those were stripped when DisloCluster was assembled.
-> Only `ZrMicro/` and `Docs/` remain.
+> Only `ZrMicro/` remains. The formulation documents that once sat here now live
+> in the repository-root [`Docs/`](../Docs/) tree — there is no
+> `ZrClusterDynamics/Docs/`.
 
 ---
 
@@ -16,7 +18,7 @@ formulation documents. It is one of the two codebases in the
 |---|---|
 | `ZrMicro/` | Microstructure evolution in neutron-irradiated Zr — 19 ODEs |
 | `ZrMicro/py_utils/paths.py` | **Single source of truth for every path in the repository** |
-| `Docs/Formulation/` | Formulation LaTeX/PDF, `build_modelib_wsl.sh` |
+| `../Docs/Formulation/` | Formulation LaTeX/PDF, `build_modelib_wsl.sh` (repository root, **not** under this directory) |
 
 See [`ZrMicro/CLAUDE.md`](ZrMicro/CLAUDE.md) for the model equations, the state
 vector, the solver algorithm, and the file map.

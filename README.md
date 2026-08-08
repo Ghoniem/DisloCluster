@@ -16,8 +16,12 @@ marched pointwise in dose.
 DisloCluster/                        <- repository root (.dislocluster_root marker)
 ├── .DisloClusterVenv/               Python 3.14 environment for the whole repo
 ├── requirements.txt                 pinned dependencies
-├── ZrClusterDynamics/               0-D cluster dynamics (ZrMicro) + formulation docs
-│   ├── Docs/Formulation/            LaTeX/PDF formulation, MoDELib build script
+├── Docs/                            ALL documents live here (see below)
+│   ├── DisloCluster Manual/         manuals and development notes
+│   ├── Formulation/                 LaTeX/PDF formulation, MoDELib build script
+│   ├── Reports/                     deliverables
+│   └── Presentations/               slides
+├── ZrClusterDynamics/               0-D cluster dynamics (ZrMicro)
 │   └── ZrMicro/
 │       ├── code/                    notebooks + solver.cpp
 │       │   ├── coupled_0d_3d_ZrMicro.ipynb   ← the coupled 0-D ↔ 3-D driver
@@ -90,7 +94,7 @@ automatically and enables the parallel batch mode the coupling march relies on.
 ### 3. 3-D code (MoDELib, built inside WSL on Windows)
 
 ```bash
-wsl -u root -e bash ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh
+wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
 ```
 
 With no argument the script builds `<repo>/MoDELib3`. It produces

@@ -4,10 +4,10 @@
 #
 # Run this AFTER `wsl --install` + reboot + Ubuntu first-run setup, from a WSL
 # shell:
-#     bash <DisloCluster>/ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh [MODELIB_ROOT]
+#     bash <DisloCluster>/Docs/Formulation/build_modelib_wsl.sh [MODELIB_ROOT]
 #
 # With no argument the MoDELib checkout is located relative to this script
-# (../../../MoDELib3 = DisloCluster/MoDELib3), so the build works wherever the
+# (../../MoDELib3 = DisloCluster/MoDELib3), so the build works wherever the
 # repository is cloned. The coupling notebook passes the path explicitly.
 #
 # It installs dependencies, patches the macOS-hardcoded bits of the repo's
@@ -15,9 +15,14 @@
 # The repo is read from the Windows filesystem via /mnt/<drive> by default.
 set -euo pipefail
 
-# <script>/../../..  == ZrClusterDynamics/Docs/Formulation -> ZrClusterDynamics -> DisloCluster
+# <script>/../..  ==  Docs/Formulation -> Docs -> DisloCluster
+# (This walked up three levels when the script lived under
+#  ZrClusterDynamics/Docs/Formulation. It is two levels below the repo root at
+#  Docs/Formulation, so three put _REPO_ROOT one directory ABOVE the checkout
+#  and the default REPO pointed at a non-existent <parent>/MoDELib3. Only the
+#  explicit-argument path used by the coupling notebook still worked.)
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_REPO_ROOT="$(cd "$_SCRIPT_DIR/../../.." && pwd)"
+_REPO_ROOT="$(cd "$_SCRIPT_DIR/../.." && pwd)"
 REPO="${1:-$_REPO_ROOT/MoDELib3}"
 echo "==> MoDELib repo: $REPO"
 test -f "$REPO/CMakeLists.txt" || { echo "CMakeLists.txt not found in $REPO"; exit 1; }

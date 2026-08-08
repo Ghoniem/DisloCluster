@@ -21,7 +21,7 @@ BIN="${MODELIB_BUILD:-$MODELIB/build}/tools"
 cd "$SIM"
 test -x "$BIN/DDomp/DDomp" || {
     echo "DDomp not built at $BIN/DDomp/DDomp"
-    echo "Build it with: bash $MODELIB/../ZrClusterDynamics/Docs/Formulation/build_modelib_wsl.sh"
+    echo "Build it with: bash $MODELIB/../Docs/Formulation/build_modelib_wsl.sh"
     exit 1
 }
 sed "s/\r$//" "$LIB/Materials/Zr3d_ghoniem.txt" > inputFiles/Zr3d_ghoniem.txt
