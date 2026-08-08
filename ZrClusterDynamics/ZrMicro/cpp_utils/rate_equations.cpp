@@ -57,7 +57,7 @@ int rhs_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector ydot,
     const Parameters& P = *C.P;
     const int n = red_dim(P);
 
-    double yr[N_RED_FREE], yf[N_EQ], df[N_EQ];
+    double yr[N_RLX_FREE], yf[N_EQ], df[N_EQ];
     for (int j = 0; j < n; ++j) yr[j] = NV_Ith_S(y, j);
     red_scatter(P, yr, yf);
 
@@ -94,7 +94,7 @@ int quad_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector yQdot,
     }
 
     ++C.nq_miss;
-    double yr[N_RED_FREE], yf[N_EQ], df[N_EQ];
+    double yr[N_RLX_FREE], yf[N_EQ], df[N_EQ];
     for (int j = 0; j < n; ++j) yr[j] = NV_Ith_S(y, j);
     red_scatter(P, yr, yf);
 
@@ -134,7 +134,17 @@ int jac_zrmicro_reduced(sunrealtype /*t*/, N_Vector y, N_Vector /*fy*/,
                         SUNMatrix J, void* user_data,
                         N_Vector, N_Vector, N_Vector) {
     const Parameters& P = *static_cast<SolverCtx*>(user_data)->P;
-    if (P.freeze_mobile) jac_reduced_impl<N_RED_FROZEN>(P, y, J);
-    else                 jac_reduced_impl<N_RED_FREE>  (P, y, J);
+    if (P.acc_mode == ACC_STATE_RELAX) {
+        // Accumulators are part of the state here, so the block is six wider.
+        // Their columns are structurally zero (nothing reads an accumulator),
+        // which makes J block lower triangular; the dense LU does not exploit
+        // that, and the cost of not exploiting it is exactly what mode 2 trades
+        // away for dropping the extra quadrature sweep.
+        if (P.freeze_mobile) jac_reduced_impl<N_RLX_FROZEN>(P, y, J);
+        else                 jac_reduced_impl<N_RLX_FREE>  (P, y, J);
+    } else {
+        if (P.freeze_mobile) jac_reduced_impl<N_RED_FROZEN>(P, y, J);
+        else                 jac_reduced_impl<N_RED_FREE>  (P, y, J);
+    }
     return 0;
 }

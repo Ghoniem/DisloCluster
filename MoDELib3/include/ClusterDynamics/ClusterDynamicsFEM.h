@@ -133,6 +133,44 @@ namespace model
 
         const Eigen::VectorXd cascadeGlobalProduction;
 
+        /*! Whether solve() advances the immobile population after the mobile
+         *  QSSA solve. Read from DD.txt as `useImmobileSolver`, default 1.
+         *
+         *  Setting it to 0 turns a DDomp run into the FAST STEP ALONE of the
+         *  two-time-scale split: the steady mobile field C_M*(x) is solved for
+         *  the immobile state currently in the CD block, and the immobile field
+         *  is passed through untouched. That is what lets an external driver
+         *  own the slow step -- the ZrMicro coupled march integrates the
+         *  immobile ODEs at every node with CVODE and calls back here for a
+         *  fresh C_M*(x) each time. The alternative, replaying a mobile field
+         *  recorded by some other run, is not an operator split at all: the
+         *  mobile field would never respond to the immobile state the march is
+         *  building, so a seed away from quasi-steady state could never relax.
+         */
+        const bool useImmobileSolver;
+
+        /*! Run-time controls on the mobile fixed-point loop. Upstream that loop
+         *  is `while(cError>1e-5)` with no cap; these expose its tolerance, cap
+         *  it, and allow under-relaxation and a different error measure. All
+         *  are optional DD.txt scalars; the defaults reproduce the historical
+         *  iteration except that it can no longer run forever.
+         */
+        const double mobileSolverTolerance;      // cTol,        default 1e-5
+        const int    mobileSolverMaxIterations;  // 0=unlimited, default 200
+        const double mobileSolverRelaxation;     // w,           default 1.0
+        const int    mobileSolverErrorMode;      // 0/1/2,       default 0
+        /*! Whether the positivity floor is applied INSIDE the fixed-point loop.
+         *  1 (default) is MoDELib3's behaviour. 0 is upstream's: fullCD has no
+         *  mobile clamp at all, and clamping inside the loop turns the
+         *  iteration into a projected Newton method, which cycles when
+         *  undamped. With 0 the floor is applied once, after the loop.
+         */
+        const int    mobileSolverClampInLoop;    // 0/1,         default 1
+
+        static bool getUseImmobileSolver(const DislocationDynamicsBase<dim>& ddBase);
+        static double ddScalar(const DislocationDynamicsBase<dim>& ddBase,
+                               const std::string& key,const double& fallback);
+
         ClusterDynamicsFEM(const DislocationDynamicsBase<dim>& ddBase_in,const ClusterDynamicsParameters<dim>& cdp_in);
         void clampMobileClusters();   // positivity floor (ZrMicro C_floor)
         void writeNodePositions() const;  // evl/cdNodes.txt, for spatial plotting

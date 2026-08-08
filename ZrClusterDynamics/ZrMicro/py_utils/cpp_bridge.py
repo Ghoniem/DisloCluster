@@ -181,7 +181,12 @@ def collect_solver_args(sim, solver_config):
     # Both default OFF here so a standalone 0-D run remains bit-identical to the
     # pre-existing solver. modelib_coupling.build_immobile_cases turns them on
     # for the operator-split march, where they are measurably better.
-    params['reduced']      = 1.0 if solver_config.get('reduced', False) else 0.0
+    # acc_mode: 0 = accumulators in the state and in the error test (legacy,
+    #           bit-identical), 1 = CVODES quadrature, 2 = in the state with
+    #           their atol neutralized. See modelib_coupling for the
+    #           measurements behind the coupling default of 2.
+    params['acc_mode']     = int(solver_config.get(
+        'acc_mode', 1 if solver_config.get('reduced', False) else 0))
     params['analytic_jac'] = 1.0 if solver_config.get('analytic_jac', False) else 0.0
     if solver_config.get('stats', False):
         params['stats'] = 1.0
@@ -464,6 +469,37 @@ def _parse_batch_stdout(text, ncases):
     return results
 
 
+def _batch_lines(cases_cli):
+    """Serialize cases as an '@BASE' line plus one delta line per case.
+
+    Returns the list of lines to write. With a single case, or when nothing is
+    shared, this degrades gracefully to the original full-line format.
+    """
+    toks = [[a[2:] if a.startswith('--') else a for a in cli] for cli in cases_cli]
+    dicts = []
+    for t in toks:
+        d = {}
+        for tok in t:
+            k, _, v = tok.partition('=')
+            d[k] = v
+        dicts.append(d)
+
+    if len(dicts) < 2:
+        return [' '.join(f'{k}={v}' for k, v in d.items()) for d in dicts]
+
+    # A key belongs in the base only if every case has it with the same text.
+    first = dicts[0]
+    shared = {k: v for k, v in first.items()
+              if all(d.get(k) == v for d in dicts[1:])}
+    if not shared:
+        return [' '.join(f'{k}={v}' for k, v in d.items()) for d in dicts]
+
+    lines = ['@BASE ' + ' '.join(f'{k}={v}' for k, v in shared.items())]
+    for d in dicts:
+        lines.append(' '.join(f'{k}={v}' for k, v in d.items() if k not in shared))
+    return lines
+
+
 def run_cpp_solver_batch(cases_cli, base_dir=None):
     """Solve many independent cases in ONE solver subprocess (OpenMP-parallel).
 
@@ -499,11 +535,13 @@ def run_cpp_solver_batch(cases_cli, base_dir=None):
         print(f"❌ solver executable not found under {Path(base_dir) / 'build'}")
         return [None] * n
 
-    # Write the batch file: one case per line, '--' prefix stripped for clarity.
-    lines = []
-    for cli in cases_cli:
-        toks = [a[2:] if a.startswith('--') else a for a in cli]
-        lines.append(' '.join(toks))
+    # ── Write the batch file in the base+delta protocol ──────────────────────
+    # Keys whose value is identical across every case go once into an "@BASE"
+    # line; each case line then carries only what differs. In the coupling march
+    # that is the 19 y0 values and the time window, roughly 22 tokens per case
+    # instead of ~150. The solver accepts both formats, so an older case file
+    # still parses.
+    lines = _batch_lines(cases_cli)
 
     tf = tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False,
                                      encoding='ascii')

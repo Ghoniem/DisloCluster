@@ -13,7 +13,7 @@ useClusterDynamicsFEM=1;
 # slow step -- which is how the ZrMicro coupled march calls DDomp.
 useImmobileSolver=1;
 useCracks=0;
-Nsteps=31; # 0..30 dpa, output every 1 dpa (evl_N holds the state after N+1 steps)
+Nsteps=20; # 0.1 -> 20.1 dpa in 1 dpa steps
 startAtTimeStep = 0;  # ALWAYS start from evl_0; -1 silently restarts from a stale evl_N and double-counts dose
 
 ######################################

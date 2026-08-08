@@ -11,7 +11,7 @@ Python interpreter, SUNDIALS, and (on Windows) WSL.
 |---|---|---|
 | `ZrClusterDynamics/ZrMicro/` | 0-D reduced cluster dynamics — 19 ODEs (12 physical species, 6 conservation accumulators, ρ_N) | Python + C++/SUNDIALS |
 | `ZrClusterDynamics/Gmsh/` | simulation-domain meshing (cubic / hexagonal) | Python + Gmsh SDK |
-| `MoDELib3/` | 3-D spatially-resolved cluster dynamics / dislocation dynamics (fork of MoDELib2-NNL) | C++20 |
+| `MoDELib3/` | 3-D spatially-resolved cluster dynamics / dislocation dynamics (fork of MoDELib-fullCD) | C++20 |
 | `Docs/` | **All documents** — see the table below | — |
 
 Two drivers:
@@ -168,22 +168,37 @@ Rendering lives in `py_utils/modelib_report.py`; it reads `evl/cdNodes.txt` +
 
 ## The coupling contract
 
-Operator-split QSSA over each dose step `[γ_n, γ_{n+1}]`:
+Operator-split QSSA, alternating over each substep:
 
-1. **Fast solve** — steady mobile field `C_M*(x)` with the immobile state frozen
-   (`modelib_fem.MoDELibFEMSolver.solve`, or the analytic placeholder).
+1. **Fast solve** — steady mobile field `C_M*(x)` for the immobile state
+   currently held. This is MoDELib3's own `ClusterDynamicsFEM::
+   solveMobileClusters`, which has no time derivative at all; the immobile
+   population enters only through `ImmobileSinks` evaluated at every quadrature
+   point. Driven from Python by `modelib_qssa.MobileQSSASolver.solve`, which
+   calls DDomp with `useImmobileSolver=0`.
 2. **Slow march** — the immobile ODEs integrated independently at every
    quadrature point with the mobile species frozen
    (`modelib_coupling.run_immobile_step`, one OpenMP batch subprocess).
 
-Splitting error is first order in `Δγ`.
+**The fast solve belongs inside the loop.** If the mobile field is instead
+replayed from a previously recorded run, the loop is not an operator split:
+`C_M` never responds to the immobile state the march is building, so a seed
+away from quasi-steady state can never relax. A 0-D seed is always such a seed —
+it is spatially uniform and carries no boundary layer, while the true `C_M*(x)`
+is pinned to thermal equilibrium on every Dirichlet face.
+
+Splitting error is first order in the interval between fast solves
+(`FEM_EVERY` substeps), not in the dose-snapshot spacing.
 
 | Direction | Carrier | Module |
 |---|---|---|
-| 0-D → 3-D | per-family loop density/radius → MoDELib sink field | `modelib_fem.write_sink_field` |
-| 3-D → 0-D | `C_M*` at quadrature points | `modelib_fem.solve` |
+| 0-D → 3-D | per-node immobile field → `evl` CD block | `modelib_field.FieldBridge.write_immobile_field` |
+| 3-D → 0-D | `C_M*(x)` at the CD nodes | `modelib_qssa.MobileQSSASolver.solve` |
 | 0-D → 3-D | dose-indexed closure table | `modelib_export` |
 | both | material constants | `MoDELib3/Library/Materials/Zr3d_ghoniem.txt` (`paths.MODELIB_MATERIAL`) |
+
+`modelib_fem.py` predates this: it wrote four scalars per dose step into the
+microstructure-generator inputs. It is superseded by the field channel above.
 
 State vector (19): `[Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i,
 CvL_v, CavL_v, 6 accumulators, rho_N]`.
@@ -257,6 +272,30 @@ Every run creates
 Because the DisloCluster root is not itself a git repository (`ZrClusterDynamics/` and
 `MoDELib3/` carry their own `.git`), `paths.git_hash()` falls back root →
 `ZrClusterDynamics` → `MoDELib3`.
+
+---
+
+## Which MoDELib upstream to compare against
+
+There are two upstream repositories and they are **not** interchangeable:
+
+| Repository | `iSize` | Immobile machinery |
+|---|---:|---|
+| `mlm335/MoDELib2-NNL` | 0 | none — empty `solveImmobileClusters()`, a literal `// Missing immobile sinks` placeholder |
+| `mlm335/MoDELib-fullCD` | 8 | complete — `ImmobileSinkRate.h`, `SpatialODESolver.h`, `FirstOrderReaction.h`, continuum→discrete loop conversion |
+
+**Use `MoDELib-fullCD` for anything touching cluster dynamics.** `MoDELib3`'s
+immobile solver is a *re-discretization* of fullCD's, not a new scheme: 31 CD
+parameter keys are shared verbatim and most of the rest are renames. fullCD
+projects the rate through the consistent mass matrix then takes one explicit
+Euler step of `dtMax` followed by sequential implicit loss factors; MoDELib3
+evaluates the rate at nodes and takes 20 substeps of a single fused
+semi-implicit update. MoDELib3 has **no** continuum→discrete loop transition —
+that is what "fullCD" names, and it is the largest functional regression.
+
+Do not cite `Zr4.txt`'s missing immobile keys as evidence about upstream: that
+is a property of one file in this checkout, and fullCD's `Zr4_Fitted.txt`
+carries the full set.
 
 ---
 

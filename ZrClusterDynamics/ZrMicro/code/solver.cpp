@@ -167,7 +167,8 @@ struct Workspace {
     SolverCtx       ctx{};                 // stable address -> set user_data once
 
     // Signature of what is currently built.
-    int  neq = -1, linsol = -1, lmm = -1, max_order = -1;
+    N_Vector        atolv     = nullptr;   // mode 2: per-component atol
+    int  neq = -1, linsol = -1, lmm = -1, max_order = -1, acc_mode = -1;
     bool reduced = false, ajac = false, built = false;
 
     long n_build = 0, n_reuse = 0;
@@ -177,6 +178,7 @@ static void ws_teardown_solver(Workspace& ws) {
     if (ws.cvode_mem) { CVodeFree(&ws.cvode_mem); ws.cvode_mem = nullptr; }
     if (ws.LS) { SUNLinSolFree(ws.LS); ws.LS = nullptr; }
     if (ws.A)  { SUNMatDestroy(ws.A);  ws.A  = nullptr; }
+    if (ws.atolv) { N_VDestroy(ws.atolv); ws.atolv = nullptr; }
     if (ws.yQ) { N_VDestroy(ws.yQ);    ws.yQ = nullptr; }
     if (ws.y)  { N_VDestroy(ws.y);     ws.y  = nullptr; }
     ws.built = false;
@@ -191,6 +193,7 @@ static void ws_release(Workspace& ws) {
 static int ws_ensure(Workspace& ws, const Parameters& P,
                      int neq, bool reduced, bool ajac) {
     if (ws.built && ws.neq == neq && ws.reduced == reduced && ws.ajac == ajac &&
+        ws.acc_mode == P.acc_mode &&
         ws.linsol == P.linsol && ws.lmm == P.lmm && ws.max_order == P.max_order) {
         ++ws.n_reuse;
         return 0;
@@ -203,9 +206,13 @@ static int ws_ensure(Workspace& ws, const Parameters& P,
 
     ws.y = N_VNew_Serial(neq, ws.sunctx);
     if (!ws.y) return 102;
-    if (reduced) {
+    if (P.acc_mode == ACC_QUADRATURE) {
         ws.yQ = N_VNew_Serial(N_ACC, ws.sunctx);
         if (!ws.yQ) return 103;
+    }
+    if (P.acc_mode == ACC_STATE_RELAX) {
+        ws.atolv = N_VNew_Serial(neq, ws.sunctx);
+        if (!ws.atolv) return 103;
     }
 
     if (P.linsol == 1) {
@@ -236,13 +243,14 @@ static int ws_ensure(Workspace& ws, const Parameters& P,
         CVLsJacFn jf = reduced ? jac_zrmicro_reduced : jac_zrmicro;
         if (CVodeSetJacFn(ws.cvode_mem, jf) != CV_SUCCESS) return 132;
     }
-    if (reduced &&
+    if (P.acc_mode == ACC_QUADRATURE &&
         CVodeQuadInit(ws.cvode_mem, quad_zrmicro_reduced, ws.yQ) != CV_SUCCESS)
         return 133;
     if (P.max_order > 0 &&
         CVodeSetMaxOrd(ws.cvode_mem, P.max_order) != CV_SUCCESS) return 131;
 
     ws.neq = neq; ws.reduced = reduced; ws.ajac = ajac;
+    ws.acc_mode = P.acc_mode;
     ws.linsol = P.linsol; ws.lmm = P.lmm; ws.max_order = P.max_order;
     ws.built = true;
     ++ws.n_build;
@@ -330,8 +338,9 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
     // module, so the reduction is CVODE-only; requesting it with --backend=1
     // silently falls back to the full system (the emitted stats line reports
     // the dimension actually used, so a benchmark cannot be misled).
-    const bool reduced   = P.reduced && P.backend == 0;
+    const bool reduced   = is_reduced(P) && P.backend == 0;
     const int  NEQ_SOLVE = reduced ? red_dim(P) : N_EQ;
+    const bool use_quad  = reduced && P.acc_mode == ACC_QUADRATURE;
 
     // Analytic AD Jacobian: dense direct solver only. Band would need a
     // different element accessor and GMRES needs no Jacobian at all; both keep
@@ -448,12 +457,23 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
         for (int j = 0; j < NEQ_SOLVE; ++j) NV_Ith_S(y, j) = P.y0[red_idx(P, j)];
     else
         for (int k = 0; k < N_EQ; ++k)      NV_Ith_S(y, k) = P.y0[k];
-    if (reduced)
+    if (use_quad)
         for (int k = 0; k < N_ACC; ++k) NV_Ith_S(yQ, k) = P.y0[N_PHYS + k];
 
     if (CVodeReInit(cvode_mem, t_eval[0], y) != CV_SUCCESS) return 134;
-    if (reduced && CVodeQuadReInit(cvode_mem, yQ) != CV_SUCCESS) return 135;
-    if (CVodeSStolerances(cvode_mem, P.rtol, P.atol) != CV_SUCCESS) return 131;
+    if (use_quad && CVodeQuadReInit(cvode_mem, yQ) != CV_SUCCESS) return 135;
+    if (P.acc_mode == ACC_STATE_RELAX) {
+        // Per-component absolute tolerance: the accumulators get one so large
+        // that their error weight 1/(rtol|y|+atol) is numerically zero, so they
+        // ride the step sequence the state equations demand instead of setting
+        // it. Same effect on the error test as taking them out of the system,
+        // at no extra core evaluation.
+        for (int j = 0; j < NEQ_SOLVE; ++j)
+            NV_Ith_S(ws.atolv, j) = (red_idx(P, j) >= N_PHYS &&
+                                     red_idx(P, j) < IDX_RHO_N)
+                                    ? ACC_ATOL_RELAXED : P.atol;
+        if (CVodeSVtolerances(cvode_mem, P.rtol, ws.atolv) != CV_SUCCESS) return 131;
+    } else if (CVodeSStolerances(cvode_mem, P.rtol, P.atol) != CV_SUCCESS) return 131;
     if (CVodeSetMaxNumSteps(cvode_mem, 500000) != CV_SUCCESS) return 131;
 
     // Emit one output row in the unchanged 19-column contract, reassembling the
@@ -464,7 +484,8 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
         if (reduced) {
             for (int k = 0; k < N_MOB; ++k) full[k] = P.y0[k];   // frozen or seeded
             for (int j = 0; j < NEQ_SOLVE; ++j) full[red_idx(P, j)] = NV_Ith_S(y, j);
-            for (int k = 0; k < N_ACC; ++k) full[N_PHYS + k] = NV_Ith_S(yQ, k);
+            if (use_quad)
+                for (int k = 0; k < N_ACC; ++k) full[N_PHYS + k] = NV_Ith_S(yQ, k);
         } else {
             for (int k = 0; k < N_EQ; ++k) full[k] = NV_Ith_S(y, k);
         }
@@ -501,7 +522,7 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
             CVodeGetNumJacEvals(cvode_mem, &nje);
             CVodeGetNumLinRhsEvals(cvode_mem, &nfeLS);
         }
-        if (reduced) CVodeGetQuadNumRhsEvals(cvode_mem, &nqe);
+        if (use_quad) CVodeGetQuadNumRhsEvals(cvode_mem, &nqe);
         out << "# STATS neq=" << NEQ_SOLVE << " nst=" << nst
             << " nfe=" << nfe << " nje=" << nje
             << " nni=" << nni << " netf=" << netf
@@ -532,12 +553,36 @@ static int run_batch(const std::string& batch_file) {
         return 1;
     }
 
+    // ── Case-file protocol ────────────────────────────────────────────────────
+    // Historically every line repeated the FULL parameter set -- ~150 key=value
+    // tokens -- although only the 19 y0 values and the time window differ from
+    // case to case. At q = 24115 that is ~3.6M redundant string-to-double
+    // conversions and map inserts per substep, which measurement showed
+    // dominating the batch once the solver itself was made cheap.
+    //
+    // A line beginning with "@BASE " now supplies the shared defaults once;
+    // every later line carries only its overrides. The old format still works:
+    // with no @BASE line each case is parsed standalone exactly as before.
     std::vector<Parameters> cases;
+    std::map<std::string, double> base_map;
+    bool have_base = false;
     std::string line;
     while (std::getline(f, line)) {
+        if (line.rfind("@BASE", 0) == 0) {
+            base_map = parse_kv_line(line.substr(5));
+            have_base = true;
+            continue;
+        }
         if (line.find('=') == std::string::npos)
             continue;   // skip blank / comment lines
-        cases.push_back(build_parameters(parse_kv_line(line)));
+        if (have_base) {
+            std::map<std::string, double> m(base_map);
+            for (const auto& kv : parse_kv_line(line))
+                m[kv.first] = kv.second;      // per-case override wins
+            cases.push_back(build_parameters(m));
+        } else {
+            cases.push_back(build_parameters(parse_kv_line(line)));
+        }
     }
     const int ncases = static_cast<int>(cases.size());
     if (ncases == 0) {

@@ -67,9 +67,25 @@ integrator against the CVODE march --- correcting, along the way, the common
 description of it as explicit Euler: it is a first-order semi-implicit scheme,
 and it has to be, because the measured stiffness puts its step 46\,000 times
 beyond the forward-Euler limit. Section~\ref{sec:provenance} then traces where
-each scheme came from --- the immobile field does not exist at all in the
-upstream MoDELib2-NNL --- and draws out the maintenance consequence of the two
-different routes.
+each scheme came from, against the correct upstream:
+\code{mlm335/MoDELib-fullCD}, which already carries a full immobile field and
+its own IMEX integrator. MoDELib3's immobile solver is therefore a
+re-discretization of an existing scheme --- nodal collocation and a single fused
+semi-implicit update, in place of fullCD's Galerkin mass-matrix projection
+followed by explicit Euler and sequential implicit loss factors --- and not,
+as an earlier revision of this report stated on the strength of the wrong
+repository, an invention from nothing.
+
+A later revision corrects the coupled route itself. As first written it did not
+perform an operator split: it read its mobile field out of a previously recorded
+standalone run, so $\mathbf C_M$ never responded to the immobile state the march
+was building. Section~\ref{sec:fastinloop} puts MoDELib3's own steady mobile
+solve back inside the loop, through a new \code{useImmobileSolver} switch that
+lets a DDomp run perform the fast step alone.
+Section~\ref{sec:seedrelax} then measures what that repairs: a 0-D seed at
+0.1 \dpa\ carries a $C_v$ some $690\times$ above the quasi-steady value and no
+boundary layer at all, and the fast step supplies both corrections on its first
+call.
 \end{abstract}
 
 \tableofcontents
@@ -718,6 +734,13 @@ node --- with entirely different schemes. This section characterizes both, since
 the difference is a systematic source of 0-D/3-D discrepancy that is independent
 of the physics non-correspondences already documented in \code{CLAUDE.md}.
 
+Everything said here about ``MoDELib'' means MoDELib3, the standalone route
+actually used in this work. The upstream \code{MoDELib-fullCD} discretizes the
+same physics differently again --- a Galerkin mass-matrix projection of the rate,
+then explicit Euler and sequential implicit loss factors, one step per dose step
+rather than twenty --- and is characterized separately in
+Section~\ref{sec:fullcd}.
+
 \subsection{What MoDELib actually does}
 
 It is worth stating precisely, because the scheme is often described as explicit
@@ -924,46 +947,143 @@ Section~\ref{sec:integrators} compared the two integrators as they stand. This
 section records where each came from, because the histories explain the
 asymmetry between them and carry a maintenance consequence.
 
+\paragraph{Correction: the upstream is MoDELib-fullCD, not MoDELib2-NNL.}
+An earlier revision of this section took \code{MoDELib2-NNL} as the ancestor of
+MoDELib3's cluster dynamics and concluded, from that repository, that ``the
+immobile field does not exist at all upstream''. Every factual claim made about
+that repository holds --- a checkout confirms \code{iSize = 0}, an empty
+\code{solveImmobileClusters()} body, no \code{ImmobileSinkRate.h} or
+\code{SpatialODESolver.h}, and the literal \code{// Missing immobile sinks}
+placeholder at \code{ClusterDynamicsFEM.cpp:110} --- but the baseline was the
+wrong one, so the conclusion drawn from it does not follow. The CD-complete
+upstream is
+\href{https://github.com/mlm335/MoDELib-fullCD}{\code{mlm335/MoDELib-fullCD}}
+(commit \code{62ac34f}), which carries a full immobile field, its own immobile
+integrator, and the loop sink on the mobile equation. Everything below has been
+re-derived from a checkout of that repository, and the conclusions change: the
+MoDELib3 immobile solver is a \emph{re-discretization} of an existing upstream
+scheme, not an invention from nothing.
+
+The lineage is checkable in the parameter set. Of the cluster-dynamics keys read
+by \code{ClusterDynamicsParameters}, 31 are common to both codes verbatim, and
+most of the remainder are renames of one another:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+MoDELib-fullCD & MoDELib3 (\code{Zr3d\_ghoniem}) \\
+\midrule
+\code{loopAnnealTau0\_SI}, \code{loopAnnealEa\_eV} & \code{tau0\_vLoop\_SI}, \code{Ea\_vLoop\_eV} \\
+\code{loopNucDefects}      & \code{nNuc} \\
+\code{loopCoalLL}, \code{loopCoalLN} & \code{cLL}, \code{cLN} \\
+\code{loopCoalKappaLL}, \code{loopCoalKappaLN} & \code{kappaLL}, \code{kappaLN} \\
+\code{loopCoalNetwork\_SI} & \code{rhoNetwork\_SI} \\
+\code{loopCascadeFraction} & \code{loopCascadeFractions} \\
+\code{minimumLoopSize}     & \code{r\_min} \\
+\code{initLoopSinks\_SI}   & \code{initloopSinks\_SI} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+What is genuinely \emph{new} in MoDELib3 is small and specific:
+\code{dadAnisotropy} and \code{dadZ0} (the DAD reconciliation with the 0-D),
+\code{atomicVolume\_SI} (the CD atomic volume decoupled from the lattice cell
+volume), \code{concentrationFloor} (ZrMicro's $C_{\mathrm{floor}}$) and
+\code{loopSinkScale}. What is genuinely \emph{lost} is
+\code{clusterDiscretizationTime}/\code{clusterDiscretizationFactor} and with them
+\code{initializeDiscreteClimbLoops()}: fullCD converts its continuum loop field
+into discrete climb loops once the dose reaches a set threshold, and MoDELib3
+has no such transition at all. That capability is what the name ``fullCD''
+denotes, and dropping it is the largest functional regression of the fork.
+
 \begin{table}[htb]
 \centering
-\caption{Immobile-species integration across the three code states.}
+\caption{Immobile-species integration across the three code states. The upstream
+column is \code{MoDELib-fullCD}, read from a checkout, not inferred.}
 \label{tab:provenance}
-\begin{tabular}{lccc}
+\begin{tabular}{lp{3.5cm}p{3.5cm}p{3.0cm}}
 \toprule
-& MoDELib2-NNL & MoDELib3 & ZrMicro coupled march \\
+& MoDELib-fullCD & MoDELib3 & ZrMicro coupled march \\
 & (upstream) & (standalone route) & (this work) \\
 \midrule
-\code{iSize} (immobile dofs/node) & \textbf{0} & 8 & --- \\
-Immobile integrator     & \textbf{empty stub} & semi-implicit, nodal & CVODE BDF \\
-\code{ImmobileSinks.h}  & \textbf{absent} & new file & n/a \\
-Order                   & --- & 1 & up to 5 \\
-Step control            & --- & fixed, 20/\dpa & adaptive \\
-Error control           & --- & none & \code{rtol}$=10^{-6}$ \\
-Loop sink on the mobile & \textbf{none} & \code{bWF\_RI}/\code{lWF\_RI} & frozen $\mathbf C_M^\star$ \\
+\code{iSize} (immobile dofs/node) & 8 & 8 & --- \\
+Rate discretization & Galerkin: consistent-mass $L^2$ projection, CG to $10^{-4}$ & nodal collocation, no mass matrix & pointwise, per node \\
+Time update & explicit Euler on the projected rate, then sequential implicit loss factors & one fused semi-implicit update & CVODE BDF \\
+Order & 1 & 1 & up to 5 \\
+Step control & one step of \code{dtMax} & fixed, 20 substeps/\dpa & adaptive \\
+Error control & none & none & \code{rtol}$=10^{-6}$ \\
+Loop sink on the mobile & \code{FirstOrderReaction} & \code{ImmobileSinks} (renamed) & frozen $\mathbf C_M^\star$ \\
+Continuum $\to$ discrete loops & \code{initializeDiscreteClimbLoops} & \textbf{absent} & n/a \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{The standalone scheme: from absent, to explicit, to semi-implicit}
+\subsection{The upstream scheme, and how MoDELib3 re-discretized it}
+\label{sec:fullcd}
 
-There is no upstream scheme to compare against. In MoDELib2-NNL the immobile
-machinery does not exist: \code{iSize} is zero, \code{solveImmobileClusters()}
-is an empty stub, \code{ImmobileSinks.h} is absent, and the mobile species see
-only the network sink through \code{otherSinks\_SI}, the source carrying a
-\code{// Missing immobile sinks} placeholder where the loop term would go. The
-material files corroborate this independently: \code{Zr4.txt}, the upstream-era
-standalone 3-D calibration, contains \textbf{zero} immobile keys
-(\code{immobileSpecies*}, \code{tauVac}, \code{nNuc}, \code{cLL},
-\code{kappaLL}, \code{dad*}) against eight such key families in
-\code{Zr3d\_ghoniem.txt} --- which is exactly why \code{Zr4.txt} is incompatible
-with the fork. Consequently the upstream standalone route cannot produce an
-\aloop/\cloop\ loop microstructure at all; the 1~\textmu m case requires
-MoDELib3.
+fullCD advances the immobile field in three distinct stages per DD step.
 
-MoDELib3 introduced the field and its integrator wholesale --- but not in its
-present form. It began fully explicit, and reached the semi-implicit update
-through four documented corrections, recorded in
-\code{MoDELib3/ZR3D\_GHONIEM\_CHANGES.md}:
+\begin{enumerate}
+\item \textbf{Rate, by Galerkin projection.} \code{ImmobileSinkRate} is an
+      \code{EvalFunction} evaluated at \emph{quadrature points} --- absorption
+      growth, cascade nucleation, and homogeneous cluster nucleation from
+      $-\tfrac12\,\mathbf C^{\!\top} \mathsf R_2 \mathbf C$ --- assembled into the
+      linear form $(\,\text{test}(c_I),\,\dot c_I)\,\mathrm dV$ and then
+      \emph{projected} onto the trial space by solving the consistent mass
+      matrix $\mathsf M=(\text{test}(c_I),c_I)\,\mathrm dV$ with conjugate
+      gradients to $10^{-4}$ (\code{SpatialODESolver}). The stored rate is
+      $\mathsf M^{-1}\mathbf b$.
+\item \textbf{Explicit Euler.} \code{updateImmobileClusters(dt)} does
+      $\mathbf c_I \mathrel{+}= \dot{\mathbf c}_I\,\mathrm dt$ with
+      $\mathrm dt=\code{dtMax}$ --- one step per DD step, no sub-cycling.
+\item \textbf{Implicit loss corrections, applied in sequence.}
+      \code{applyImmobilePopulationCorrections} then divides the result by
+      $(1+\mathrm dt\,\lambda)$ once per loss channel, in a fixed order:
+      thermal annealing (with the content debited by
+      $n_{\mathrm{nuc}}(N_{\mathrm{old}}-N_{\mathrm{new}})$), content removal,
+      then loop--loop and loop--network coalescence with their Avrami factors.
+      A clamp enforces $N\ge0$ and a minimum loop content
+      $c \ge n_{\min}\Omega N$.
+\end{enumerate}
+
+MoDELib3 keeps the physics of stages 1 and 3 and changes how both are
+discretized. The rate is evaluated \textbf{at nodes} rather than projected, so
+the mass matrix and its CG solve disappear; and the explicit step and the loss
+divisions are \textbf{fused into a single semi-implicit formula},
+$n^{\mathrm{new}}=(n+\mathrm dt\,\dot n_{\mathrm{nuc}})/(1+\mathrm dt\,
+\lambda_{\mathrm{tot}})$, sub-cycled 20 times per dose step.
+
+Neither choice is strictly better, and the trade is worth stating. The Galerkin
+projection is the more accurate representation of a smooth field, because it
+respects the element shape functions instead of sampling them at nodes; but it
+couples neighbouring nodes, and on a sharp gradient it overshoots. fullCD says
+so in its own comment --- the corrected sink value exists ``to adjust for
+negative values at the barycenter of the quadratic elements where we have a
+sharp gradient of sink values between two end nodes''. Nodal collocation cannot
+produce that artifact, at the cost of ignoring the sub-element variation
+entirely. Given that the 1~\textmu m case has a boundary layer spanning twelve
+orders of magnitude in $C_v$ (Table~\ref{tab:seedrelax}), sharp gradients are
+the normal condition here rather than the exception, and MoDELib3's choice is
+defensible on those grounds --- though it was not, so far as the change log
+records, made for that reason.
+
+The sequencing also differs in a way that matters for large $\mathrm dt$.
+fullCD applies its loss factors \emph{one after another}, so with three active
+channels the result is $\prod_k (1+\mathrm dt\,\lambda_k)^{-1}$, whereas
+MoDELib3's fused form gives $(1+\mathrm dt\sum_k \lambda_k)^{-1}$. The two agree
+to $O(\mathrm dt^2)$ and diverge when any $\mathrm dt\,\lambda_k \gtrsim 1$,
+which --- given the measured $\mathrm dt\,\lambda \approx 46\,000$ of
+Section~\ref{sec:integrators} --- is the operating regime, not a corner case.
+Both remain unconditionally positive, which is the property that matters most
+here; neither is a controlled approximation at that step size.
+
+\subsection{How MoDELib3's variant reached its present form}
+
+MoDELib3 re-derived its update rather than porting fullCD's, and in doing so it
+re-encountered the stiffness that fullCD's loss factors already handle. It began
+fully explicit and reached the semi-implicit update through four documented
+corrections, recorded in \code{MoDELib3/ZR3D\_GHONIEM\_CHANGES.md}:
 
 \begin{table}[htb]
 \centering
@@ -1029,15 +1149,33 @@ The coupling was then added in three steps:
       ($19\to9$), the exact AD Jacobian, and per-thread workspace reuse.
 \end{enumerate}
 
-\subsection{Two routes to the same conclusion}
+\subsection{Three routes to the same conclusion}
 
-Both codes ended up treating the immobile loss channels implicitly, and both
-were right to, but they arrived from opposite directions. MoDELib3 found the
-stiffness empirically --- twice, as loop populations collapsing onto the
-positivity floor --- and fixed it term by term. The 0-D side never exposed the
-problem, because BDF absorbed it silently from the start; it took the spectrum
-of Table~\ref{tab:spectrum} to put a number on what was being absorbed
-($46\,000\times$ the forward-Euler limit).
+All three codes end up treating the immobile loss channels implicitly, and all
+three are right to, but they arrive from three different directions --- and the
+agreement is stronger evidence than any one of them alone.
+
+\begin{itemize}
+\item \textbf{fullCD} put the losses in implicit denominators \emph{by
+      construction}: annealing, content removal and both coalescence channels
+      are applied as $(1+\mathrm dt\,\lambda)^{-1}$ factors from the outset,
+      while the source terms stay explicit. It is a deliberate IMEX split.
+\item \textbf{MoDELib3} re-derived the update, started fully explicit, and
+      found the stiffness \emph{empirically} --- twice, as loop populations
+      collapsing onto the positivity floor (issues 7 and 14) --- then fixed it
+      term by term until it had reconstructed the same partition fullCD already
+      had.
+\item \textbf{The 0-D side} never exposed the problem at all, because BDF
+      absorbed it silently from the start; it took the spectrum of
+      Table~\ref{tab:spectrum} to put a number on what was being absorbed
+      ($46\,000\times$ the forward-Euler limit).
+\end{itemize}
+
+That MoDELib3 rediscovered fullCD's partition by symptom, one channel at a time,
+is the clearest single argument that the partition is forced by the physics and
+not a modelling preference. It is also an argument for reading the upstream: the
+two failures documented as issues 7 and 14 were both already answered by
+\code{applyImmobilePopulationCorrections}.
 
 That difference in route leaves a difference in robustness, and it is the
 practical point of this section. MoDELib3's scheme is unconditionally stable on
@@ -1050,14 +1188,531 @@ will again be a species quietly pinned on the floor. CVODE would have flagged
 the same term through step rejection and error-test failures without anyone
 having to notice a collapsed population.
 
-\paragraph{Sourcing.} MoDELib2-NNL is not present in this checkout: there is no
-vendored copy, and \code{MoDELib3/} carries no independent git history, having
-been flattened from a submodule (the six commits present are DisloCluster's
-own). The upstream statements above therefore rest on MoDELib3's own change log
---- a detailed first-party record --- corroborated by the direct evidence of the
-\code{Zr4.txt} versus \code{Zr3d\_ghoniem.txt} key comparison, which was checked
-against the files in this repository. They have not been verified against the
-upstream repository itself.
+\paragraph{Sourcing.} The upstream statements in this section were read directly
+from a checkout of \code{mlm335/MoDELib-fullCD} at commit \code{62ac34f}
+(\code{src/ClusterDynamics/}, \code{include/ClusterDynamics/},
+\code{Library/Materials/}). \code{MoDELib3/} itself carries no independent git
+history, having been flattened from a submodule --- the commits present are
+DisloCluster's own --- so the fork point cannot be recovered from the repository
+and the correspondence above is established by reading the two sources side by
+side rather than from history.
+
+One earlier piece of evidence should be retired rather than repeated.
+\code{MoDELib3/Library/Materials/Zr4.txt} does contain zero immobile keys, and
+that fact is correct; the \emph{inference} drawn from it --- that the upstream
+standalone route therefore could not produce an \aloop/\cloop\ microstructure at
+all --- was wrong. \code{Zr4.txt} is simply an older material file that happens
+to be carried in this checkout. Upstream, \code{Zr4\_Fitted.txt} and
+\code{Zr4\_BMD19\_nuc.txt} each carry the full sixteen-key immobile set
+(\code{immobileSpeciesVector}, \code{loopCascadeFraction}, \code{loopNucDefects},
+\code{loopContentTau\_SI}, \code{loopAnnealTau0\_SI}, \code{loopCoal*},
+\code{n\_min}, \code{dislocationSinks\_SI}). The absence of those keys from one
+file in this repository says nothing about the upstream code.
+
+% ============================================================================
+\section{The three recommendations, implemented and measured}
+\label{sec:recs}
+% ============================================================================
+
+The three items at the head of the earlier recommendation list have been built
+and measured on the real field: $q = 24\,115$ CD nodes of the 1~\textmu m cube,
+one 1 \dpa\ substep, seeded from the shared 0.1 \dpa\ state with the mobile
+field taken from the 3-D solve.
+
+\subsection{Recommendation 1: how the accumulators are carried}
+
+The choice is now explicit, \code{--acc\_mode}:
+
+\begin{center}
+\begin{tabular}{cp{11.4cm}}
+\toprule
+Mode & Treatment \\
+\midrule
+0 & In the implicit state \emph{and} in the error test --- the legacy layout. \\
+1 & CVODES quadrature variables. Smallest Newton block, but the quadrature
+    right-hand side needs its own core evaluation at the accepted step point,
+    and the memo meant to reuse the residual's evaluation essentially never
+    hits (Section~\ref{sec:memo}). \\
+2 & In the implicit state, with a per-component \code{atol} large enough that
+    their error weights vanish (\code{CVodeSVtolerances}). Bigger Newton block,
+    but \emph{zero} extra core evaluations. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{table}[htb]
+\centering
+\caption{Accumulator handling, $q=24\,115$, one 1 \dpa\ substep, AD Jacobian.
+Errors are against mode 0.}
+\label{tab:rec1}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Mode & $n$ & wall [s] & cpu [s] & steps & core evals & $n_{\mathrm{LU}}$ & LU flops \\
+\midrule
+0 in state, error-controlled & 19 & 4.193 & 74.01 & 3\,346\,941 & 4\,184\,924 & 961\,510 & $2.20\times10^{9}$ \\
+1 CVODES quadrature          &  9 & 3.402 & 49.84 & 2\,508\,983 & 5\,838\,440 & 584\,867 & $1.42\times10^{8}$ \\
+2 in state, atol relaxed     & 15 & \textbf{3.314} & \textbf{49.06} & \textbf{2\,397\,987} & \textbf{3\,077\,945} & 507\,161 & $5.71\times10^{8}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The prediction of Section~\ref{sec:memo} is confirmed, and quantified. Mode 1
+has the smallest Newton block by a wide margin --- an order of magnitude fewer
+LU flops than mode 0 --- yet the \emph{largest} core-evaluation count of the
+three, because the quadrature adds roughly one full sweep per step. Mode 2
+gives that LU saving back and wins where the cost actually is: \textbf{26\%
+fewer core evaluations than the legacy layout and 47\% fewer than the
+quadrature}, with the fewest steps of the three. Modes 1 and 2 agree with each
+other to $1.7\times10^{-5}$ against mode 0, which is the expected consequence of
+removing the accumulators from the error test, not a disagreement between them.
+
+Mode 2 is now the coupling default. Mode 0 remains the default for standalone
+0-D runs, which stay bit-identical.
+
+\subsection{Recommendation 2: the base+delta case protocol}
+
+Every batch line used to repeat the full parameter set. A line beginning
+\code{@BASE} now carries the shared defaults once and each case line only its
+overrides; a file without a \code{@BASE} line still parses exactly as before,
+and the solver reports on \code{stderr} which protocol it used so a benchmark
+cannot silently measure the wrong one.
+
+\begin{table}[htb]
+\centering
+\caption{Case-file protocol, $q=24\,115$. The two rows of each pair differ only
+in how the same cases are serialized. The upper block is the seed step, where
+the immobile state is still uniform and only the four mobile values differ; the
+lower block is the realistic mid-march state, where all thirteen trajectory
+components differ per node.}
+\label{tab:rec2}
+\begin{tabular}{llrrr}
+\toprule
+State & Protocol & file [MB] & tokens/case & wall [s] \\
+\midrule
+uniform seed        & full-line  & 35.39 & 88 & 5.410 \\
+                    & base+delta &  1.58 &  4 & 3.407 \\
+\addlinespace
+realistic mid-march & full-line  & 36.75 & 89 & 6.911 \\
+                    & base+delta &  7.13 & 13 & \textbf{5.369} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The honest figure is the lower block: \textbf{$1.29\times$} end to end, with the
+case file shrinking $5\times$. The upper block would read $1.59\times$, but only
+because a uniform seed leaves just four values varying per case; quoting it as
+the general result would overstate the gain, since after the first substep the
+immobile state varies node to node and thirteen values differ.
+
+\subsection{Recommendation 3: deduplicating points before dispatch}
+
+Neighbouring nodes in a smooth field integrate nearly identical initial-value
+problems. \code{run\_immobile\_step} now optionally groups points whose
+trajectory-determining components (the four frozen mobile values, the eight
+immobile components and $\rho_N$ --- not the accumulators, which reset every
+substep) agree to a relative tolerance, integrates one representative per group
+and scatters the endpoint back.
+
+\begin{table}[htb]
+\centering
+\caption{Deduplication, $q=24\,115$, one 1 \dpa\ substep. Errors are against no
+deduplication.}
+\label{tab:rec3}
+\begin{tabular}{lrrrl}
+\toprule
+\code{dedup\_rtol} & integrations & factor & wall [s] & max rel.\ error \\
+\midrule
+off        & 24\,115 & 1.00 & 8.964 & --- \\
+$10^{-10}$ & 17\,582 & 1.37 & 6.042 & $0$ (exact) \\
+$10^{-8}$  & 17\,582 & 1.37 & \textbf{5.983} & $0$ (exact) \\
+$10^{-6}$  & 17\,582 & 1.37 & 6.610 & $0$ (exact) \\
+$10^{-4}$  & 15\,753 & 1.53 & 5.683 & $9.9\times10^{-5}$ \\
+$10^{-2}$  &  6\,368 & 3.79 & 2.301 & $9.7\times10^{-3}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is well short of the $10^{2}$--$10^{3}$ collapse the earlier note
+speculated about, and the reason is worth recording. Tolerances from $10^{-10}$
+to $10^{-6}$ all find the \emph{same} 17\,582 distinct states: those 6\,533
+merges are \textbf{exact} duplicates, and the error is not merely small but
+identically zero. They are the Dirichlet-pinned boundary nodes, where the mobile
+field is clamped to the same value. Away from the boundary the field varies
+smoothly and continuously across eight decades, so genuinely distinct states
+stay distinct at any tolerance tight enough to be free.
+
+Buying more requires accepting error: $10^{-4}$ gives $1.53\times$ for
+$10^{-4}$ relative error, and $10^{-2}$ gives $3.79\times$ for about 1\%. At an
+integrator \code{rtol} of $10^{-6}$ the defensible setting is $10^{-8}$, which
+is what the coupling uses --- \textbf{$1.37\times$ fewer integrations at zero
+error}. The speculation that this would dominate everything else was wrong for
+this field, and the measurement says so.
+
+\subsection{Combined effect}
+
+Taken together on the coupling path --- mode 2, base+delta, deduplication at
+$10^{-8}$, on top of the workspace reuse and AD Jacobian of the earlier
+sections --- the per-substep cost at $q=24\,115$ falls from the 8.96~s of the
+undeduplicated legacy-protocol path to 5.98~s, while the core-evaluation count
+drops 26\% and the roundoff-warning pathology stays cured.
+
+% ============================================================================
+\section{The 1\,\textmu m reference through both routes}
+\label{sec:tworoute}
+% ============================================================================
+
+Both routes were run on the 1~\textmu m single crystal from \emph{one} shared
+microstructure --- the 0-D state at 0.1 \dpa\ written uniformly onto all
+24\,115 CD nodes --- and advanced to 20.1 \dpa\ in 5 \dpa\ intervals.
+
+Both run the \emph{same} operator split and the same fast step; they differ in
+what advances the immobile population.
+
+\begin{center}
+\begin{tabular}{lp{9.6cm}}
+\toprule
+Route & Immobile advance \\
+\midrule
+standalone & MoDELib3's own nodal semi-implicit scheme, 20 substeps per 1 \dpa\
+             step, run by DDomp. \\
+coupled    & CVODE BDF at every node, \code{acc\_mode=2}, exact AD Jacobian,
+             workspace reuse, base+delta protocol, deduplication at $10^{-8}$.
+             The mobile field is re-solved by MoDELib3 every \code{FEM\_EVERY}
+             substeps and frozen in between. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{The fast step belongs inside the loop}
+\label{sec:fastinloop}
+
+The first version of this comparison did not perform an operator split at all,
+and the defect is worth stating plainly because it invalidated part of the
+earlier numbers.
+
+MoDELib3's \code{ClusterDynamicsFEM::solve()} \emph{is} the split:
+
+\begin{center}
+\begin{minipage}{0.88\textwidth}
+\begin{verbatim}
+solveMobileClusters();      // FAST -- steady C_M*(x). No time derivative
+                            // anywhere; the immobile population enters only
+                            // through ImmobileSinks, evaluated at every
+                            // quadrature point from the LOCAL state.
+solveImmobileClusters();    // SLOW -- dt update of the nodal n_I, c_I
+\end{verbatim}
+\end{minipage}
+\end{center}
+
+\noindent
+The coupled route was meant to keep the first call and replace the second. What
+it actually did was read the mobile field out of the \emph{standalone run's}
+recorded snapshots. Under that arrangement $\mathbf C_M$ never responds to the
+immobile state the march is building: the coupling is one-way, and the march has
+no mechanism to relax a seed that is not already at quasi-steady state. Worse,
+the nearest recorded snapshot to the 0.1 \dpa\ seed sits at 1.1 \dpa, outside
+the 0.75 \dpa\ acceptance window, so the entire first interval --- a quarter of
+the march --- ran on the raw uniform seed field.
+
+The fix is a new DD.txt scalar, \code{useImmobileSolver} (default 1, so every
+pre-existing case is untouched). With \code{useImmobileSolver=0} a DDomp run
+performs the fast step and passes the immobile field straight through. The march
+then calls it as a subroutine: write the current per-node immobile state into
+the \code{evl} CD block, run one DDomp step to obtain $\mathbf C_M^*(x)$
+\emph{for that state}, freeze it, and integrate the immobile ODEs at every node.
+Because \code{runSingleStep} writes output \emph{before} incrementing
+\code{runID}, a run with \code{startAtTimeStep=0} and \code{Nsteps=1} reads
+\code{evl\_0.txt} and overwrites the same file, which makes the exchange an
+in-place round trip. \code{py\_utils/modelib\_qssa.py} drives it and asserts on
+DDomp's \code{immobile solver SKIPPED} line, so a binary predating the flag
+fails loudly rather than advancing the immobile field twice.
+
+\subsection{A non-terminating mobile solve, and its cause}
+\label{sec:mobilehang}
+
+Closing the loop exposed a defect that the standalone route had never triggered.
+Asked to solve the mobile field against an immobile state supplied by the march,
+\code{solveMobileClusters} does not converge: \code{cError} falls from
+$5.8\times10^{5}$ to $1.3\times10^{-4}$ in nine iterations and then oscillates
+around $5\times10^{-5}$ indefinitely. The loop is
+
+\begin{center}\code{while (cError > cTol)}\end{center}
+
+\noindent
+with \code{cTol}~$=10^{-5}$, \emph{no iteration cap and no stagnation test} ---
+inherited verbatim, since MoDELib2-NNL, MoDELib-fullCD and MoDELib3 all carry
+the identical loop. So DDomp never returns.
+
+\paragraph{Cause.} The one structural difference from upstream is the cause.
+fullCD has \emph{no mobile clamp at all}; MoDELib3 inserted
+\code{clampMobileClusters()} between the Newton update and the error test, which
+makes the iteration a \emph{projected} Newton method.
+
+The obvious explanation --- that the active set oscillates --- is wrong, and an
+instrumented run refutes it: the set freezes at 7090 of 96\,460 dofs by
+iteration~3 and reports zero entering and zero leaving on every iteration after.
+What actually fails is that the Newton matrix
+\code{dmBWF+bWF\_R1+bWF\_R2+bWF\_RI} is the \emph{unconstrained} Jacobian and
+does not know any dof is pinned. Each iteration it computes an increment for
+every dof, including moves for the pinned ones; the projection discards exactly
+those moves, but the increment for the \emph{free} dofs was computed on the
+assumption that the pinned ones would move. The free dofs therefore respond,
+every iteration, to a coupling that is immediately cancelled, and that
+inconsistency does not decay. Solve-then-project is not a consistent method for
+a constrained system; the consistent form is an active-set method, in which the
+pinned rows are eliminated and the reduced system solved.
+
+The intent is visible in the routine's own comment --- the clamp mirrors
+ZrMicro, ``which applies $y=\max(y,C_{\mathrm{floor}})$ before every \emph{rate
+evaluation}''. In ZrMicro the floor belongs to the rate evaluation. Here it
+mutates the state inside the iteration, and only that breaks convergence.
+
+\paragraph{Every remedy, measured on one saved state.}
+
+\begin{table}[htb]
+\centering
+\caption{Mobile solve on an identical marched immobile state, 24\,115 CD nodes.
+The last column is the maximum relative error in $C_i$ against the converged
+field, over the 22\,344 nodes above the floor.}
+\label{tab:mobilefix}
+\begin{tabular}{lrrlrr}
+\toprule
+Configuration & iters & wall [s] & converged & \code{cError} & max err.\ $C_i$ \\
+\midrule
+clamp in loop (as shipped)       & 30\rlap{$^\ast$} & 392 & \textbf{no}  & $6.06\times10^{-5}$ & 53.6\% \\
+\textbf{clamp deferred}          & \textbf{5}       & \textbf{112} & \textbf{yes} & $6.83\times10^{-7}$ & --- \\
+clamp deferred, \code{cTol}=$10^{-8}$ & 6           & 120 & yes & $2.26\times10^{-15}$ & $0.0$ \\
+damped $w=0.5$                   & 30\rlap{$^\ast$} & 400 & no  & $9.42\times10^{-5}$ & 4.0\% \\
+damped $w=0.7$                   & 20               & 283 & yes & $8.21\times10^{-6}$ & 0.19\% \\
+error test excludes floored dofs & 40\rlap{$^\ast$} & 492 & no  & $4.67\times10^{-5}$ & 21.1\% \\
+\code{cTol} relaxed to $10^{-4}$ & 19               & 258 & ``yes'' & $9.22\times10^{-5}$ & 49.9\% \\
+\bottomrule
+\multicolumn{6}{l}{\footnotesize $^\ast$ stopped at the iteration cap.}
+\end{tabular}
+\end{table}
+
+Deferring the clamp restores \textbf{quadratic} convergence ---
+$2.95\times10^{4} \to 1.23\times10^{3} \to 6.77\times10^{1} \to
+5.73\times10^{-2} \to 6.83\times10^{-7} \to 2.26\times10^{-15}$, each error the
+square of the last --- and is the fastest option by a factor of 2.5.
+
+Three of the alternatives are instructive failures. Changing the error metric is
+\emph{bit-identical} to the baseline, all sixteen digits, iteration for
+iteration: a floored dof has $c^{\mathrm{new}}=c^{\mathrm{old}}$ and already
+contributes nothing to the step norm, so the free dofs are genuinely
+oscillating. Under-relaxation does converge, but only linearly, at roughly a
+factor of two per iteration. And relaxing \code{cTol} is actively dangerous: it
+reports success at iteration 19 while accepting a field that is 49.9\% wrong in
+$C_i$ at the worst node.
+
+\paragraph{Verification.} The chosen fix was checked four ways rather than
+assumed from the fact that it terminates. Convergence is quadratic; the fields
+at \code{cTol}~$=10^{-5}$ and $10^{-8}$ are \emph{bit-identical}, so five
+iterations already reach machine precision; the independent damped route reaches
+the same field to within 0.19\%, with the means agreeing to five figures, so the
+clamp was corrupting the iteration and not the answer; and the result is
+physical --- zero negative entries and exactly the same 7090 floored dofs as the
+clamped runs, because the floor is still applied, once, after the loop.
+
+The stalled iterate is not merely unrecognized as converged. Its means agree with
+the converged field to four figures, but two nodes exceed 1\% and one reaches
+53.6\% in $C_i$. A handful of nodes at the clamp boundary drives the whole
+failure, and because the error test is a maximum over nodes, those few alone
+prevent it from ever settling.
+
+\paragraph{What was changed.} Five optional DD.txt scalars
+(\code{mobileSolverTolerance}, \code{mobileSolverMaxIterations},
+\code{mobileSolverRelaxation}, \code{mobileSolverErrorMode},
+\code{mobileSolverClampInLoop}), all defaulting to the historical behaviour
+except the iteration cap, which now retains the \emph{best} iterate and so
+converts a hang into a bounded, reproducible result. The coupled fast solve sets
+\code{mobileSolverClampInLoop=0} in its own simulation directory and warns if any
+solve returns capped rather than converged. The standalone route's defaults are
+deliberately left unchanged: making the deferral global is very likely correct,
+but it alters a path that currently runs to completion, and that warrants a full
+standalone verification first.
+
+\subsection{Does the split repair a seed that is not quasi-steady?}
+\label{sec:seedrelax}
+
+This is the question the arrangement exists to answer, and it can be asked
+directly: solve the fast step once against the seed's own immobile state, before
+any immobile marching, and compare with what was seeded.
+
+\begin{table}[htb]
+\centering
+\caption{The 0.1 \dpa\ 0-D seed against the quasi-steady field solved for that
+         same immobile state. 24\,115 CD nodes, 573 K, $10^{-7}$ \dpa/s.
+         Reproduced to the digit on an independent invocation.}
+\label{tab:seedrelax}
+\begin{tabular}{lrrrrr}
+\toprule
+Species & seeded (uniform) & QSSA mean & seed\,/\,QSSA & QSSA min & QSSA max \\
+\midrule
+$C_v$   & $1.134\times10^{-5}$  & $1.643\times10^{-8}$  & $690$ & $1.0\times10^{-20}$ & $6.15\times10^{-8}$ \\
+$C_i$   & $1.645\times10^{-10}$ & $1.754\times10^{-12}$ & $94$  & $4.1\times10^{-27}$ & $6.77\times10^{-12}$ \\
+$C_{2i}$& $1.113\times10^{-12}$ & $8.966\times10^{-15}$ & $124$ & $3.4\times10^{-53}$ & $3.46\times10^{-14}$ \\
+$C_{3i}$& $4.455\times10^{-13}$ & $5.977\times10^{-15}$ & $75$  & $1.3\times10^{-70}$ & $2.31\times10^{-14}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The seed was very far from quasi-steady, and the fast step supplies the whole
+difference. Two corrections are happening at once, and they are worth
+separating:
+
+\begin{itemize}
+\item \textbf{Magnitude.} The seeded $C_v$ is $690\times$ the quasi-steady mean.
+      The 0-D reaches its own steady balance against a homogenized sink
+      strength; the 3-D domain has, in addition, six Dirichlet faces holding the
+      mobile species at thermal equilibrium and draining the interior.
+\item \textbf{Structure.} The seed is uniform by construction, so its spatial
+      contrast is exactly 1. The relaxed $C_v$ field runs from $10^{-20}$ at the
+      faces to $6.15\times10^{-8}$ in the interior --- twelve orders of
+      magnitude. The whole boundary layer is absent from the seed and is created
+      by the fast solve. No amount of immobile marching could have produced it,
+      because the immobile equations carry no spatial derivative at all.
+\end{itemize}
+
+The $C_i$ minimum of $4.1\times10^{-27}$ is the imposed boundary value
+$\exp(-3.0\,\mathrm{eV}/kT)$, deliberately \emph{not} floored at $10^{-20}$:
+flooring it would raise the boundary concentration by seven orders and quietly
+disable the grain boundary as an interstitial sink, which is the one piece of
+physics the 3-D model adds over the 0-D.
+
+So the answer is yes. The split reaches quasi-steady state on its own, and it
+does not need the 0-D seed to be right --- which is fortunate, because a 0-D
+seed can never be right about a boundary layer it does not represent.
+
+\subsection{What this does and does not isolate}
+
+With the fast step closed, both routes now solve the same fast problem with the
+same code, each against its own immobile state. Two differences remain, and
+neither is the integrator alone:
+
+\begin{enumerate}
+\item \textbf{Different immobile equations.} The coupled route integrates
+      ZrMicro's immobile right-hand side; the standalone integrates MoDELib3's.
+      These are two models, not two integrations of one model.
+\item \textbf{Different integrators}, as characterized in
+      Section~\ref{sec:integrators}, and a different splitting cadence:
+      \code{FEM\_EVERY} substeps between fast solves against the standalone's
+      one per internal substep.
+\end{enumerate}
+
+Attributing any number below to the integrator alone would therefore still be
+wrong. Section~\ref{sec:attrib} separates the contributions.
+
+\subsection{Speed}
+
+\begin{table}[htb]
+\centering
+\caption{Wall clock for the full 0.1--20.1 \dpa\ schedule, 24 cores.}
+\label{tab:tworoutespeed}
+\begin{tabular}{llrr}
+\toprule
+Route & Integrator & wall [s] & per \dpa\ [s] \\
+\midrule
+standalone & MoDELib3 semi-implicit, 20 substeps/\dpa, nodal & 2409 & 120.5 \\
+coupled ($\Delta\gamma = 5$ \dpa) & CVODE BDF, \code{acc\_mode=2}, AD Jacobian & \textbf{424} & 21.2 \\
+coupled ($\Delta\gamma = 1$ \dpa) & as above, mobile refreshed 5$\times$ more often & 526 & 26.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The coupled march is $5.7\times$ faster than the standalone solve at equal dose
+span. That is not a like-for-like statement about integrators: the standalone
+also solves the mobile FEM boundary-value problem at every step, which the
+coupled route reads from a file rather than computing. It is a statement about
+the two routes as a user runs them.
+
+\subsection{Attribution: model, splitting, or integrator?}
+\label{sec:attrib}
+
+The decisive measurement is to place both routes against the plain 0-D model
+integrated over the same dose range.
+
+\begin{table}[htb]
+\centering
+\caption{Domain-mean \aloop\ loop number density (atom fraction). ``0-D alone''
+is ZrMicro integrated to the same dose with no spatial coupling at all.}
+\label{tab:attrib}
+\begin{tabular}{rrrrrr}
+\toprule
+Dose [\dpa] & 0-D alone & coupled & standalone & coupled / 0-D & standalone / 0-D \\
+\midrule
+ 5.1 & $1.03\times10^{-2}$ & $2.61\times10^{-3}$ & $1.43\times10^{-4}$ & 0.255 & 0.0140 \\
+10.1 & $1.84\times10^{-2}$ & $8.79\times10^{-3}$ & $1.53\times10^{-4}$ & 0.478 & 0.0083 \\
+15.1 & $2.14\times10^{-2}$ & $1.56\times10^{-2}$ & $1.62\times10^{-4}$ & 0.728 & 0.0076 \\
+20.1 & $2.32\times10^{-2}$ & $2.23\times10^{-2}$ & $1.72\times10^{-4}$ & \textbf{0.961} & \textbf{0.0074} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The coupled route \textbf{converges onto the plain 0-D answer} as dose
+accumulates ($0.255 \to 0.961$): the spatially resolved mobile field delays the
+0-D result but does not change where it goes. The standalone sits about
+$130\times$ below the 0-D throughout.
+
+Refining the splitting interval settles the remaining ambiguity. Halving is not
+enough to be conclusive, so the interval was cut by five, holding the total
+substep count fixed:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+& $\Delta\gamma = 5$ \dpa & $\Delta\gamma = 1$ \dpa & change \\
+\midrule
+coupled \aloop\ at 20.1 \dpa & $2.23\times10^{-2}$ & $2.77\times10^{-2}$ & $+24\%$ \\
+ratio to standalone          & 130 & 161 & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A five-fold refinement of the splitting moves the answer by 24\%, and moves it
+\emph{away} from the standalone rather than toward it. So:
+
+\begin{itemize}
+\item the \textbf{model difference is ${\sim}130\times$} and dominates
+      everything else by two orders of magnitude;
+\item the \textbf{splitting error is ${\sim}20$--$25\%$} at $\Delta\gamma = 5$
+      \dpa, and is not what separates the routes;
+\item the \textbf{integrator difference is bounded well below both}, consistent
+      with Section~\ref{sec:integrators}.
+\end{itemize}
+
+The \cloop\ family shows the mirror image: the standalone holds
+$1.78\times10^{-8}$ while the coupled route sits at $5.50\times10^{-10}$, a
+factor 32 the other way, flat in dose in both routes.
+
+\subsection{A discrepancy with the calibration record}
+
+This conflicts with what \code{ZR3D\_GHONIEM\_CHANGES.md} records. Its issue 14
+states that after moving coalescence into the implicit update, ``\aloop\ loop
+density went from 3--4$\times$ the 0-D to within ${\sim}30\%$''. Here MoDELib3
+sits at 0.7--1.4\% of the 0-D --- roughly $100\times$ \emph{below}, not within
+30\%.
+
+One difference from the calibration conditions is visible in the run itself and
+should be checked first. The calibration used the tutorial's \emph{generated}
+microstructure; this run seeds MoDELib with the 0-D state at 0.1 \dpa, for which
+$N_a = 4.94\times10^{-4}$. MoDELib immediately coalesces that down to
+$1.43\times10^{-4}$ by 5.1 \dpa\ and then holds it essentially flat
+($1.72\times10^{-4}$ at 20.1 \dpa) while the 0-D grows a hundredfold. Whether
+that is the seeded start putting MoDELib outside its calibrated regime, or a
+genuine regression in the calibration, is not resolved here. It is flagged
+rather than explained, and no physics conclusion should be drawn from these
+fields until it is.
+
+\subsection{Output}
+
+The run writes the reference layout under
+\code{output/<stamp>\_<hash>\_coupled\_vs\_standalone/}: \code{0d/},
+\code{3d/standalone/} and \code{3d/coupled/}, \code{gb/} for both routes,
+\code{tables/} with the comparison in Markdown, CSV and JSON, and
+\code{evl\_coupled/} holding the marched CD fields as complete, restartable
+MoDELib configurations. \code{run\_coupled\_vs\_standalone.py} drives it, and
+Section 14 of \code{coupled\_0d\_3d\_ZrMicro.ipynb} calls that driver.
 
 % ============================================================================
 \section{Summary and recommended next steps}
@@ -1091,25 +1746,21 @@ on the 3-D side, adaptive to $10^{-6}$ on the 0-D side --- which is a systematic
 0-D/3-D discrepancy distinct from the three physics non-correspondences on
 record (Section~\ref{sec:integrators}).
 
-Ordered by expected return:
+Items 1--3 of the original list have been implemented and measured
+(Section~\ref{sec:recs}); what follows is what remains, ordered by expected
+return.
 
 \begin{enumerate}
-\item \textbf{Replace the quadrature with a vector-\code{atol} state}
-      (Section~\ref{sec:memo}). Keeps the step-size cure at zero extra core
-      evaluations; should convert the reduction's current $-4\%$ into a clear
-      win.
-\item \textbf{Replace the text case-file protocol.} Every batch line repeats
-      the full material parameter set; only the 19 \code{y0} values differ. At
-      $q=1024$ that is ${\sim}1.5\times10^{5}$ redundant string-to-double
-      conversions per substep. A base-plus-delta or binary format would attack
-      what is now, after the workspace change, the largest remaining
-      non-physics cost.
-\item \textbf{Deduplicate quadrature points before dispatch.} In a smooth field
-      neighbouring nodes integrate nearly identical initial-value problems.
-      Clustering the 13-dimensional input state to a tolerance could collapse
-      $q\sim10^{5}$ to $10^{2}$--$10^{3}$ genuine integrations --- likely a
-      larger factor than everything above combined, and it composes with all of
-      it.
+\item \textbf{Drive MoDELib in process.} This is now the binding constraint.
+      Item~1 of the previous version of this list --- put the FEM mobile solve
+      inside the march loop --- has been done (Section~\ref{sec:fastinloop}),
+      and doing it exposed the cost: every fast solve is a separate DDomp
+      invocation, so the mesh load, the FE assembly and the factorization of the
+      diffusion operator are repeated on each of them, at 174\,s per call,
+      against a standalone run that amortizes all of it once over twenty steps.
+      \code{pyMoDELib} removes the restart, and with it the dominant cost of a
+      short splitting interval. Until then \code{FEM\_EVERY} is as much a
+      wall-clock knob as a numerical one.
 \item \textbf{Guard the standalone immobile solver against the next stiff term.}
       Section~\ref{sec:provenance} shows the same failure was found twice, by
       symptom, and there is still no mechanism that would catch a third. Any new
@@ -1118,11 +1769,10 @@ Ordered by expected return:
       standing check is to run one case at \code{nSub} and at $10\,\code{nSub}$
       and assert the answers agree, which turns a silent floor collapse into a
       visible regression.
-\item \textbf{Verify the 3-D fast solve end to end} in the field backend, then
-      revisit GPU offload. Until the spatial solve actually runs inside the
-      march loop, $q$ is set by the node count of a stored configuration rather
-      than by a live coupling, and the case for batched GPU integration cannot
-      be assessed on real numbers.
+\item \textbf{Revisit GPU offload only after the above.} With the core-evaluation
+      count now the dominant cost and the LU already irrelevant at $n=15$, the
+      case for batched GPU integration rests entirely on how large $q$ becomes
+      in a live coupling --- which is not yet known.
 \end{enumerate}
 
 \paragraph{Files.}
@@ -1135,6 +1785,7 @@ Ordered by expected return:
 \code{py\_utils/cpp\_bridge.py},
 \code{py\_utils/modelib\_coupling.py},
 \code{py\_utils/modelib\_field.py} (new),
+\code{py\_utils/run\_coupled\_vs\_standalone.py} (new),
 \code{code/coupled\_0d\_3d\_ZrMicro.ipynb}.
 The build now links \code{SUNDIALS::cvodes} rather than \code{SUNDIALS::cvode},
 because \code{CVodeQuadInit} and its companions exist only in CVODES; the

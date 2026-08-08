@@ -9,10 +9,13 @@
 #define model_ClusterDynamicsFEM_cpp_
 
 #include <cmath>
+#include <limits>
+#include <vector>
 #include <ClusterDynamicsFEM.h>
 #include <ExternalAndInternalBoundary.h>
 #include <Fix.h>
 #include <ImmobileSinks.h>
+#include <TextFileParser.h>
 
 namespace model
 {
@@ -64,6 +67,39 @@ template struct InvDscaling<3>;
 
 
     template<int dim>
+    bool ClusterDynamicsFEM<dim>::getUseImmobileSolver(const DislocationDynamicsBase<dim>& ddBase)
+    {/*! `useImmobileSolver` from DD.txt, defaulting to 1 when the key is absent.
+      *
+      *  TextFileParser::readScalar throws on a missing key, and every DD.txt
+      *  written before this flag existed lacks it. Defaulting on a throw keeps
+      *  those cases running exactly as they did.
+      */
+        try
+        {
+            return bool(TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<int>("useImmobileSolver",true));
+        }
+        catch(const std::runtime_error&)
+        {
+            return true;
+        }
+    }
+
+    template<int dim>
+    double ClusterDynamicsFEM<dim>::ddScalar(const DislocationDynamicsBase<dim>& ddBase,const std::string& key,const double& fallback)
+    {/*! An optional DD.txt scalar. TextFileParser throws on a missing key, and
+      *  none of these exist in a DD.txt written before they did.
+      */
+        try
+        {
+            return TextFileParser(ddBase.simulationParameters.traitsIO.ddFile).readScalar<double>(key,true);
+        }
+        catch(const std::runtime_error&)
+        {
+            return fallback;
+        }
+    }
+
+    template<int dim>
     ClusterDynamicsFEM<dim>::ClusterDynamicsFEM(const DislocationDynamicsBase<dim>& ddBase_in,const ClusterDynamicsParameters<dim>& cdp_in) :
     /* init */ ddBase(ddBase_in)
     /* init */,cdp(cdp_in)
@@ -88,6 +124,12 @@ template struct InvDscaling<3>;
     /* init */,solverInitialized(false)
 //    /* init */,cascadeGlobalProduction(((test(this->mobileClusters),make_constant(this->cdp.G))*dV).globalVector())
     /* init */,cascadeGlobalProduction(((test(iDs*this->mobileClusters),make_constant(this->cdp.G))*dV).globalVector())
+    /* init */,useImmobileSolver(getUseImmobileSolver(ddBase_in))
+    /* init */,mobileSolverTolerance(ddScalar(ddBase_in,"mobileSolverTolerance",1.0e-5))
+    /* init */,mobileSolverMaxIterations(int(ddScalar(ddBase_in,"mobileSolverMaxIterations",200)))
+    /* init */,mobileSolverRelaxation(ddScalar(ddBase_in,"mobileSolverRelaxation",1.0))
+    /* init */,mobileSolverErrorMode(int(ddScalar(ddBase_in,"mobileSolverErrorMode",0)))
+    /* init */,mobileSolverClampInLoop(int(ddScalar(ddBase_in,"mobileSolverClampInLoop",1)))
     {
         mobileClustersIncrement.setConstant(Eigen::Matrix<double,mSize,1>::Zero());
         mobileClusters.setConstant(cdp.equilibriumMobileConcentration(0.0).matrix().transpose());
@@ -124,11 +166,57 @@ template struct InvDscaling<3>;
         clampMobileClusters();
 
         if(this->cdp.computeReactions)
-        {
-            const double cTol(1.0e-5);
+        {/*! Fixed-point/Newton loop on the mobile reaction terms.
+          *
+          *  Upstream (both MoDELib2-NNL and MoDELib-fullCD) this is
+          *  `while(cError>cTol)` with cTol = 1e-5, no iteration cap and no
+          *  stagnation test. That is safe only while the iteration always
+          *  converges. It does not: on a mobile field solved against an
+          *  immobile state supplied by an external march, cError falls to
+          *  ~1e-4 in nine iterations and then stagnates, oscillating around
+          *  5e-5 indefinitely. With no cap the solve never returns.
+          *
+          *  The loop below is the same iteration with four run-time controls,
+          *  all read from DD.txt and all defaulting to the historical
+          *  behaviour except the iteration cap:
+          *
+          *    mobileSolverTolerance      cTol                        (1e-5)
+          *    mobileSolverMaxIterations  cap; 0 = unlimited           (200)
+          *    mobileSolverRelaxation     w in c += w*increment        (1.0)
+          *    mobileSolverErrorMode      0 = all dofs (historical)
+          *                               1 = exclude floored+Dirichlet dofs
+          *                               2 = max nodal |dc|/(|c|+floor)
+          *
+          *  The best iterate seen is retained, so hitting the cap returns the
+          *  most converged field rather than whatever the last oscillation
+          *  happened to leave behind.
+          */
+            const double cTol(mobileSolverTolerance);
+            const int maxIter(mobileSolverMaxIterations);
+            const double relax(mobileSolverRelaxation);
+            const int errMode(mobileSolverErrorMode);
             double cError(1.0);
+            double bestError(std::numeric_limits<double>::max());
+            Eigen::VectorXd bestDof(mobileClusters.dofVector());
+            int iter(0);
+            // Active set of the positivity floor, carried between iterations.
+            // The count alone does not settle the question: a cycle can hold
+            // the cardinality fixed while membership churns, one dof entering
+            // as another leaves. `entered`/`left` measure that directly.
+            std::vector<char> activePrev;
             while(cError>cTol)
             {
+                if(maxIter>0 && iter>=maxIter)
+                {
+                    std::cout<<"    mobile solver STOPPED at "<<iter
+                             <<" iterations: cError="<<cError
+                             <<" > cTol="<<cTol
+                             <<"; keeping best iterate (cError="<<bestError<<")"
+                             <<std::endl;
+                    mobileClusters=bestDof;
+                    break;
+                }
+                ++iter;
                 const auto R1((this->cdp.R1cd).eval());
                 auto bWF_R1((test(iDs*mobileClustersIncrement),R1*(-1.0*mobileClustersIncrement))*dV); // THIS SHOULD BE STORED SINCE IT IS ALWAYS THE SAME
                 auto lWF_R1((test(iDs*mobileClustersIncrement),eval(R1*mobileClusters))*dV);
@@ -161,28 +249,110 @@ template struct InvDscaling<3>;
                 rSolver.compute(dmBWF+bWF_R1+bWF_R2+bWF_RI);
                 mobileClustersIncrement=rSolver.solve(cascadeGlobalProduction-mSolver.getA()*mobileClusters.dofVector()+(lWF_R1+lWF_R2+lWF_RI).globalVector());
                 
-                Eigen::MatrixXd cOld(mobileClusters.dofVector());
+                const Eigen::VectorXd dofBefore(mobileClusters.dofVector());
+                Eigen::MatrixXd cOld(dofBefore);
                 cOld.resize(mSize,mobileClusters.gSize()/mSize);
-                mobileClusters += mobileClustersIncrement.dofVector();
-                clampMobileClusters();
+                mobileClusters += relax*mobileClustersIncrement.dofVector();
 
-                Eigen::MatrixXd cNew(mobileClusters.dofVector());
-                cNew.resize(mSize,mobileClusters.gSize()/mSize);
-                
-                const Eigen::VectorXd absErr((cNew-cOld).rowwise().norm());
-                const Eigen::VectorXd cNewNorm((cNew.rowwise().norm().array()+1.e-50).matrix());
-                const Eigen::VectorXd relErr((absErr.array()/cNewNorm.array()).matrix());
-                
-                cError=relErr.maxCoeff();//aError/cInorm;
-                if(false)
+                // How many dofs the floor actually moves. If this is large the
+                // step the error test sees is not the step Newton proposed, and
+                // that is the mechanism behind the stagnation.
+                const Eigen::VectorXd dofPre(mobileClusters.dofVector());
+                if(mobileSolverClampInLoop)
                 {
-                    std::cout<<"max values="<<cNew.rowwise().maxCoeff().transpose()<<std::endl;
-                    std::cout<<"min values="<<cNew.rowwise().minCoeff().transpose()<<std::endl;
-                    std::cout<<"absolute errors="<<absErr.transpose()<<std::endl;
-                    std::cout<<"solution norms="<<cNewNorm.transpose()<<std::endl;
-                    std::cout<<"relative error="<<relErr.transpose()<<std::endl;
+                    clampMobileClusters();
                 }
-                std::cout<<"convergenceError="<<cError<<std::endl;
+                const Eigen::VectorXd dofPost(mobileClusters.dofVector());
+                const long nClamped((dofPost.array()>dofPre.array()).count());
+
+                std::vector<char> active(size_t(dofPost.size()),0);
+                for(long j=0;j<dofPost.size();++j)
+                {
+                    active[size_t(j)]=(dofPost(j)>dofPre(j))?1:0;
+                }
+                long entered(0),left(0);
+                if(activePrev.size()==active.size())
+                {
+                    for(size_t j=0;j<active.size();++j)
+                    {
+                        if(active[j] && !activePrev[j]) ++entered;
+                        if(!active[j] && activePrev[j]) ++left;
+                    }
+                }
+                activePrev=active;
+
+                Eigen::MatrixXd cNew(dofPost);
+                cNew.resize(mSize,mobileClusters.gSize()/mSize);
+
+                Eigen::VectorXd relErr(Eigen::VectorXd::Zero(mSize));
+                if(errMode==2)
+                {// max over dofs of |dc|/(|c|+floor): a componentwise measure,
+                 // so a converged decade-spanning field is not judged by its
+                 // largest entry alone.
+                    const Eigen::VectorXd num((dofPost-dofBefore).cwiseAbs());
+                    const Eigen::VectorXd den(dofPost.cwiseAbs().array()+cdp.concentrationFloor);
+                    const Eigen::VectorXd r((num.array()/den.array()).matrix());
+                    for(int k=0;k<mSize;++k)
+                    {
+                        double m(0.0);
+                        for(int j=k;j<r.size();j+=mSize)
+                        {
+                            m=std::max(m,r(j));
+                        }
+                        relErr(k)=m;
+                    }
+                }
+                else
+                {
+                    Eigen::MatrixXd dC(cNew-cOld);
+                    if(errMode==1)
+                    {// zero out dofs the clamp touched and the imposed Dirichlet
+                     // dofs, so the test measures only where the iteration is
+                     // free to move.
+                        Eigen::VectorXd mask(Eigen::VectorXd::Ones(dofPost.size()));
+                        for(long j=0;j<dofPost.size();++j)
+                        {
+                            if(dofPost(j)>dofPre(j))
+                            {
+                                mask(j)=0.0;
+                            }
+                        }
+                        for(const auto& dc : TrialBase<MobileTrialType>::dirichletConditions())
+                        {
+                            mask(dc.first)=0.0;
+                        }
+                        Eigen::MatrixXd maskM(mask);
+                        maskM.resize(mSize,mobileClusters.gSize()/mSize);
+                        dC=(dC.array()*maskM.array()).matrix();
+                    }
+                    const Eigen::VectorXd absErr(dC.rowwise().norm());
+                    const Eigen::VectorXd cNewNorm((cNew.rowwise().norm().array()+1.e-50).matrix());
+                    relErr=(absErr.array()/cNewNorm.array()).matrix();
+                }
+
+                int worst(0);
+                cError=relErr.maxCoeff(&worst);
+                if(cError<bestError)
+                {
+                    bestError=cError;
+                    bestDof=mobileClusters.dofVector();
+                }
+                static const char* mNames[4]={"Cv","Ci","C2i","C3i"};
+                std::cout<<"convergenceError="<<cError
+                         <<" [it "<<iter
+                         <<", worst "<<(worst<4?mNames[worst]:"?")
+                         <<", clamped "<<nClamped<<"/"<<dofPost.size()
+                         <<", set +"<<entered<<"/-"<<left
+                         <<"]"<<std::endl;
+            }
+            if(cError<=cTol)
+            {
+                std::cout<<"    mobile solver converged in "<<iter
+                         <<" iterations (cError="<<cError<<")"<<std::endl;
+            }
+            if(!mobileSolverClampInLoop)
+            {// the floor was deferred out of the iteration; apply it once now
+                clampMobileClusters();
             }
         }
         // Find immobile rate
@@ -518,9 +688,24 @@ template struct InvDscaling<3>;
 
     template<int dim>
     void ClusterDynamicsFEM<dim>::solve()
-    {
+    {/*! The two-time-scale split, in the order the split requires: the FAST
+      *  step first -- solveMobileClusters() has no time derivative at all, it
+      *  is the quasi-steady solve of the mobile field for the immobile state
+      *  currently held -- then the SLOW step, which advances the immobile
+      *  population over dt with that mobile field frozen.
+      *
+      *  With useImmobileSolver=0 only the fast step runs, and an external
+      *  driver supplies the slow one.
+      */
         solveMobileClusters();
-        solveImmobileClusters();
+        if(useImmobileSolver)
+        {
+            solveImmobileClusters();
+        }
+        else
+        {
+            std::cout<<", immobile solver SKIPPED (useImmobileSolver=0)"<<std::flush;
+        }
     }
 
     template<int dim>

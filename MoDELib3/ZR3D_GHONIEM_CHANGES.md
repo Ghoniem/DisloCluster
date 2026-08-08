@@ -1,17 +1,51 @@
-# Zr3d_ghoniem — differences from the original MoDELib2-NNL
+# Zr3d_ghoniem — differences from upstream MoDELib
 
-**Branch:** `zr3d_ghoniem`  ·  **Baseline:** `main` (Po's MoDELib2-NNL)  ·  **Status:** in progress, see §6
+**Branch:** `zr3d_ghoniem`  ·  **Status:** in progress, see §6
 
-Zr3d_ghoniem is a variant of MoDELib2-NNL whose cluster-dynamics equations and parameters
+Zr3d_ghoniem is a variant of MoDELib whose cluster-dynamics equations and parameters
 are taken from the **ZrMicro 0-D code** (`d:/GitHub/ZrClusterDynamics/ZrMicro`), so that the
 3-D spatially-resolved solve reduces to the 0-D result in the well-mixed limit.
 
 The governing equations are those of Po & Ghoniem, Deliverable D1/M1
 (`Docs/Formulation/GW_Phase4_D1M1_NG.pdf`), §2.2 in particular.
 
-Po's `Library/Materials/Zr4.txt` is **untouched**. The Zr3d_ghoniem material definition is a
-new file, `Library/Materials/Zr3d_ghoniem.txt`. The C++ changes, however, are global: `iSize`
-goes from 0 to 8, so `Zr4.txt` cannot be run from this branch. Check out `main` for that.
+## Which upstream — read this before comparing anything
+
+There are two upstream repositories and they are **not** interchangeable:
+
+| Repository | `iSize` | Immobile machinery |
+|---|---:|---|
+| [`mlm335/MoDELib2-NNL`](https://github.com/mlm335/MoDELib2-NNL) | **0** | none — `solveImmobileClusters()` is an empty body, no `ImmobileSinkRate.h`, no `SpatialODESolver.h`, and a literal `// Missing immobile sinks` placeholder at `ClusterDynamicsFEM.cpp:110` |
+| [`mlm335/MoDELib-fullCD`](https://github.com/mlm335/MoDELib-fullCD) | **8** | complete — `ImmobileSinkRate.h`, `SpatialODESolver.h`, `FirstOrderReaction.h`, and continuum→discrete loop conversion |
+
+**`MoDELib-fullCD` is the correct baseline for anything touching cluster dynamics.**
+Earlier revisions of this file and of the reports that cite it used MoDELib2-NNL, which made
+the immobile solver look like an invention from nothing. It is not: it is a
+**re-discretization** of fullCD's scheme. 31 of the CD parameter keys are shared verbatim and
+most of the rest are renames (`loopNucDefects`→`nNuc`, `loopCoalLL/LN`→`cLL/cLN`,
+`loopCoalKappa*`→`kappa*`, `loopAnnealTau0_SI`→`tau0_vLoop_SI`,
+`loopCoalNetwork_SI`→`rhoNetwork_SI`, `minimumLoopSize`→`r_min`).
+
+How the two immobile schemes differ:
+
+| | MoDELib-fullCD | this branch |
+|---|---|---|
+| Rate | Galerkin: assembled at quadrature points, then L2-projected through the consistent mass matrix (CG to 1e-4, `SpatialODESolver`) | nodal collocation; no mass matrix |
+| Time update | explicit Euler `dof += rate*dt`, then **sequential** implicit loss factors `(1+dt·λ_k)^-1` per channel | one **fused** semi-implicit update `(n + dt·nucRate)/(1 + dt·lossN)` |
+| Sub-cycling | none — one step of `dtMax` | `nSub = 20` per dose step |
+
+Genuinely new here: `dadAnisotropy`/`dadZ0` (DAD reconciliation with the 0-D), `atomicVolume_SI`,
+`concentrationFloor`, `loopSinkScale`, size-dependent vacancy-loop emission, the bi-pyramid
+family. Genuinely **lost** here: `clusterDiscretizationTime` and `initializeDiscreteClimbLoops()` —
+fullCD converts its continuum loop field into discrete climb loops once the dose passes a
+threshold, and this branch has no such transition. That is the largest functional regression.
+
+`Library/Materials/Zr4.txt` is **untouched**. The Zr3d_ghoniem material definition is a
+new file, `Library/Materials/Zr3d_ghoniem.txt`. The C++ changes are global: `iSize`
+goes from 0 to 8 relative to MoDELib2-NNL, so `Zr4.txt` cannot be run from this branch.
+Note that `Zr4.txt` here carries no immobile keys, but that is a property of this one file
+and **not** evidence about upstream: fullCD's `Zr4_Fitted.txt` and `Zr4_BMD19_nuc.txt` each
+carry the full sixteen-key immobile set.
 
 ---
 
@@ -101,6 +135,142 @@ new code.
   content equations, evaluated per node from `cdp.loopNucChannels` and the local
   mobile field, and split across the families of matching polarity in proportion
   to `loopCascadeFractions`. See issue 17 below.
+
+### The mobile fixed-point loop: an inherited non-termination bug
+
+`solveMobileClusters` iterates `while(cError>cTol)` with `cTol = 1e-5`, **no iteration
+cap and no stagnation test**. That code is inherited verbatim — MoDELib2-NNL and
+MoDELib-fullCD both have the identical loop — and it is safe only while the iteration
+always converges. It does not always converge.
+
+Solving the mobile field against an immobile state supplied by an external march (the
+ZrMicro coupled route), `cError` falls from 5.8e5 to 1.3e-4 in nine iterations and then
+**stagnates**, oscillating between 4.7e-5 and 1.2e-4 in near-identical successive pairs.
+With no cap, DDomp never returns. Diagnostics show the worst species is always `Ci` and
+that 7090 of 96460 mobile dofs sit on the positivity floor, a count that does not change
+from iteration to iteration.
+
+The one structural difference from upstream is the cause. fullCD has **no mobile clamp at
+all**; this branch inserted `clampMobileClusters()` between the Newton update and the error
+test, which turns the iteration into a *projected* Newton method.
+
+The precise failure is an inconsistency between the linear system and the constraint, and
+it is worth stating exactly, because the obvious explanation is wrong. The active set does
+**not** oscillate: an instrumented run shows it freeze at 7090 dofs by iteration 3 and never
+change again (`set +0/-0` on every subsequent iteration). What fails is that the Newton
+matrix `dmBWF+bWF_R1+bWF_R2+bWF_RI` is the **unconstrained** Jacobian — it does not know any
+dof is pinned. Each iteration it computes an increment for all dofs, including moves for the
+pinned ones; the projection then discards exactly those moves, but the increment for the
+**free** dofs was computed assuming the pinned ones would move. The free dofs therefore
+respond every iteration to a coupling that is immediately cancelled, and that inconsistency
+does not decay.
+
+Solve-then-project is simply not a consistent method for a constrained system. The
+consistent form is an active-set method: eliminate the pinned rows and solve the reduced
+system. Removing the projection avoids the issue entirely (convergence becomes quadratic);
+under-relaxation only makes the inconsistent map a contraction, which is why it converges
+linearly and needs four times as many iterations.
+
+Two further observations follow from the same mechanism and were both confirmed:
+
+- Changing the **error metric** cannot help. A floored dof has `cOld = cNew = floor` and so
+  contributes exactly zero to the step norm already; excluding floored and Dirichlet dofs
+  (`mobileSolverErrorMode=1`) reproduces the baseline iteration *bit for bit*, all 16 digits,
+  iteration for iteration. The free dofs are genuinely oscillating.
+- Relaxing `cTol` to 1e-4 "converges" at iteration 19 — but only because the oscillation
+  happens to dip below the loosened bar, and the field it then accepts is **49.9% wrong**
+  in `Ci` at the worst node. It is not a fix; it declares victory on the bad field.
+
+The comment on `clampMobileClusters()` states the intent exactly, and shows why the
+placement is wrong: it mirrors ZrMicro, "which applies `y = max(y, C_floor)` **before every
+rate evaluation**". In ZrMicro the floor is part of the *rate evaluation*. Here it mutates
+the *state* inside the iteration, which is a different operation, and only the second one
+breaks convergence.
+
+**Measured, all from the identical saved immobile state (24 115 CD nodes, 96 460 mobile dofs):**
+
+| configuration | iters | converged | final `cError` | wall |
+|---|---:|---|---:|---:|
+| clamp in loop, undamped (as shipped) | 30 (capped) | no | 6.4e-5, cycling | 392 s |
+| **clamp deferred out of the loop** (fullCD) | **5** | **yes** | **6.83e-7** | **112 s** |
+| clamp in loop, damped `w=0.5` | 30 (capped) | not yet | 9.4e-5, still halving | 400 s |
+| clamp in loop, damped `w=0.7` | 20 | yes | 8.2e-6 | 283 s |
+| clamp in loop, `errorMode=1` | 40 (capped) | no | 5.1e-5 (= baseline exactly) | 492 s |
+| clamp in loop, `cTol=1e-4` | 19 | "yes" | 9.2e-5 | 258 s |
+
+Accuracy of each resulting field, as the maximum relative difference in `Ci` against the
+converged solution, over the 22 344 nodes above the floor. Only the two genuinely converged
+configurations recover it:
+
+| configuration | max rel. difference in `Ci` |
+|---|---:|
+| clamp deferred (converged, 6.8e-7) | — (reference) |
+| damped `w=0.7` (converged, 8.2e-6) | **0.19%** |
+| `errorMode=1` (capped) | 21.1% |
+| `cTol=1e-4` ("converged") | 49.9% |
+| baseline (capped) | 53.6% |
+
+Deferring the clamp restores **quadratic** convergence — 2.95e4 → 1.23e3 → 6.77e1 → 5.73e-2
+→ 6.83e-7 — i.e. a genuine Newton method, and it is faster than the solve has ever been.
+Under-relaxation also converges, but only linearly (a factor ≈2 per iteration in the tail),
+so it needs ~40+ iterations to reach the same tolerance.
+
+Two checks on the deferred-clamp result, both passed:
+
+- **Physicality.** The resulting field has zero negative entries, exactly 7090 dofs on the
+  floor, and the same min/max as the clamped runs. Deferring the floor does not leak
+  negative concentrations into the answer.
+- **Same fixed point.** The damped clamp-in-loop iterate agrees with it to within 4% on
+  every species while still 1e-4 from convergence, and their means agree to 4–5 figures.
+
+The stalled iterate is not merely unrecognized as converged: against the converged field its
+means agree to four figures, but **2 nodes exceed 1% and one reaches 53.6% on `Ci`**
+(3.11e-16 converged against 4.77e-16 stalled). A handful of nodes hovering at the clamp
+boundary drives the cycle, and because the error test is a max-norm over nodes, those few
+alone prevent it from ever settling.
+
+Five optional DD.txt scalars now control the loop. All default to the historical behavior
+except the iteration cap, which converts a hang into a bounded, reproducible result:
+
+| key | default | meaning |
+|---|---|---|
+| `mobileSolverTolerance` | `1e-5` | `cTol` |
+| `mobileSolverMaxIterations` | `200` | cap; `0` = unlimited (the old behavior). On hitting the cap the **best** iterate seen is restored, not the last |
+| `mobileSolverRelaxation` | `1.0` | `w` in `c += w·increment`; `w<1` damps the cycle |
+| `mobileSolverErrorMode` | `0` | `0` all dofs (historical), `1` exclude floored and Dirichlet dofs, `2` max nodal `\|dc\|/(\|c\|+floor)` |
+| `mobileSolverClampInLoop` | `1` | `1` clamp every iteration (this branch), `0` clamp once after the loop (fullCD) |
+
+Each iteration now prints the iteration number, which species attains the maximum, and how
+many dofs the floor moved.
+
+### `useImmobileSolver` — running the fast step alone
+
+`ClusterDynamicsFEM::solve()` already *is* the two-time-scale split:
+
+```cpp
+solveMobileClusters();        // FAST — steady C_M*(x). No time derivative
+                              // anywhere; the immobile population enters only
+                              // through ImmobileSinks, evaluated at every
+                              // quadrature point from the LOCAL state.
+solveImmobileClusters();      // SLOW — dt update of the nodal n_I, c_I
+```
+
+A new DD.txt scalar `useImmobileSolver` (default 1 when the key is absent, so
+every pre-existing case is unaffected) makes the second call conditional. With
+`useImmobileSolver=0` a DDomp run performs the fast step and passes the immobile
+field through untouched, which lets an external driver own the slow step. That
+is how the ZrMicro coupled march works: it writes its per-node immobile state
+into the `evl` CD block, calls DDomp for one step to obtain C_M*(x) for *that*
+state, freezes it, and integrates the immobile ODEs at every node with CVODE.
+
+Because `runSingleStep` writes output *before* incrementing `runID`, a run with
+`startAtTimeStep=0` and `Nsteps=1` reads `evl_0.txt` and overwrites the same
+file — an in-place round trip. `py_utils/modelib_qssa.py` drives it and asserts
+on the `immobile solver SKIPPED` line, so a binary predating this flag fails
+loudly rather than advancing the immobile field twice.
+
+Files: `include/ClusterDynamics/ClusterDynamicsFEM.h`,
+`src/ClusterDynamics/ClusterDynamicsFEM.cpp`.
 
 ---
 

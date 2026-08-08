@@ -147,7 +147,23 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     # Assigned, not setdefault: collect_solver_args always emits these keys with
     # their standalone default of 0.0, so setdefault would silently leave the
     # march on the legacy path.
-    base["reduced"] = "1"
+    #
+    # acc_mode=2 keeps the accumulators in the state but neutralizes their atol.
+    # Measured on the 24115-node field, one 1 dpa substep, against acc_mode=0
+    # (legacy) and acc_mode=1 (CVODES quadrature):
+    #
+    #   mode  neq   steps      core evals   LU flops   wall
+    #     0    19   3.35e6     4.18e6       2.20e9     4.193 s
+    #     1     9   2.51e6     5.84e6       1.42e8     3.402 s
+    #     2    15   2.40e6     3.08e6       5.71e8     3.314 s
+    #
+    # Mode 1 has by far the smallest Newton block but pays an extra core sweep
+    # per step for the quadrature (its memo almost never hits), which shows up
+    # as the largest core-evaluation count of the three. Mode 2 gives up the LU
+    # saving — irrelevant at n=15 — and wins on the metric that actually costs:
+    # 26% fewer core evaluations than legacy and 47% fewer than the quadrature.
+    base["acc_mode"] = "2"
+    base.pop("reduced", None)
     base["analytic_jac"] = "1"
 
     cases = []
@@ -162,7 +178,41 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     return cases
 
 
-def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None):
+# Components that determine a point's trajectory over one substep: the four
+# frozen mobile values, the eight immobile components, and rho_N. The six
+# accumulators are excluded — they are reset to zero every substep and never
+# feed back, so two points differing only there follow the same trajectory.
+_DEDUP_IDX = list(range(0, 12)) + [IDX_RHO_N]
+
+
+def dedup_keys(y0_list, rtol):
+    """Group points whose initial states agree to a relative tolerance.
+
+    Returns (keys, groups): ``keys[q]`` is the group label of point q, and
+    ``groups`` maps each label to the list of member indices.
+
+    Neighbouring quadrature points in a smooth field integrate nearly identical
+    initial-value problems, so one integration can serve many of them. Each
+    component is quantized logarithmically, which makes the tolerance relative
+    across the ~34 decades the state spans; values at or below the
+    concentration floor collapse onto one bucket. Keeping ``rtol`` well under
+    the integrator's own ``rtol`` bounds the error this introduces by the
+    tolerance already being accepted.
+    """
+    y = np.asarray(y0_list, dtype=float)[:, _DEDUP_IDX]
+    scale = 1.0 / np.log1p(rtol)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        q = np.where(y > 0.0, np.rint(np.log(np.abs(y)) * scale), -np.inf)
+    q = np.nan_to_num(q, nan=-np.inf, posinf=-np.inf, neginf=-np.inf)
+    keys = [tuple(row) for row in q]
+    groups = {}
+    for i, k in enumerate(keys):
+        groups.setdefault(k, []).append(i)
+    return keys, groups
+
+
+def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
+                      dedup_rtol=0.0, stats=None):
     """Advance the immobile state at all quadrature points over one dose step.
 
     Solves, for every point q independently and concurrently (OpenMP batch),
@@ -181,16 +231,46 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None):
     list  — same length as y0_list; each entry is the endpoint state vector
             np.ndarray shape (19,), or None if that point's integration failed.
     """
-    cases = build_immobile_cases(base_cli, y0_list, t_begin, t_end)
+    n_in = len(y0_list)
+
+    # ── Optional deduplication (see dedup_keys) ─────────────────────────────
+    # Integrate one representative per group and scatter the endpoint back to
+    # every member. Off by default: whether it pays depends entirely on how
+    # smooth the incoming field is, which is a property of the run, not of the
+    # solver, so it is measured rather than assumed.
+    reps, groups = None, None
+    if dedup_rtol and dedup_rtol > 0.0 and n_in > 1:
+        _, groups = dedup_keys(y0_list, dedup_rtol)
+        reps = [members[0] for members in groups.values()]
+        send = [y0_list[i] for i in reps]
+    else:
+        send = y0_list
+
+    cases = build_immobile_cases(base_cli, send, t_begin, t_end)
     raw = run_cpp_solver_batch(cases, base_dir=base_dir)
-    out = []
+
+    endpoints = []
     for r in raw:
         if r is None:
-            out.append(None)
+            endpoints.append(None)
         else:
             _t, y = r                # y shape (N_EQ, n_pts)
-            out.append(np.asarray(y[:, -1], dtype=float))   # endpoint state
+            endpoints.append(np.asarray(y[:, -1], dtype=float))   # endpoint state
         # cf. cpp_bridge._parse_batch_stdout: r = (t, y) per case
+
+    if reps is None:
+        out = endpoints
+    else:
+        out = [None] * n_in
+        for rep_pos, members in enumerate(groups.values()):
+            e = endpoints[rep_pos] if rep_pos < len(endpoints) else None
+            for m in members:
+                out[m] = None if e is None else e.copy()
+
+    if stats is not None:
+        stats["n_points"] = n_in
+        stats["n_integrated"] = len(send)
+        stats["dedup_ratio"] = n_in / max(len(send), 1)
     return out
 
 

@@ -51,6 +51,33 @@ static constexpr int N_IMMOB = 8;   // immobile species (loop numbers + contents
 static constexpr int N_RED_FROZEN = N_EQ - N_ACC - N_MOB;   //  9
 static constexpr int N_RED_FREE   = N_EQ - N_ACC;           // 13
 
+// ── How the accumulators are carried (--acc_mode) ────────────────────────────
+//   0 STATE_CTRL   legacy: in the implicit state AND in the error test.
+//   1 QUADRATURE   CVODES quadrature variables. Smallest Newton block (9/13),
+//                  but the quadrature right-hand side needs its own evaluation
+//                  of the core at the accepted step point, and the memo that
+//                  tries to reuse the residual's evaluation almost always
+//                  misses (measured 1 hit in 2565), so it costs ~1 extra core
+//                  sweep per step.
+//   2 STATE_RELAX  in the implicit state, but with a per-component atol large
+//                  enough that their error weights vanish. Larger Newton block
+//                  (15/19) yet ZERO extra core evaluations, and it keeps the
+//                  property that matters: the accumulators, which restart at
+//                  zero every coupling substep, no longer drive the initial
+//                  step down to the roundoff limit.
+static constexpr int ACC_STATE_CTRL  = 0;
+static constexpr int ACC_QUADRATURE  = 1;
+static constexpr int ACC_STATE_RELAX = 2;
+
+// Newton-block sizes for mode 2: the reduced set plus the six accumulators.
+static constexpr int N_RLX_FROZEN = N_RED_FROZEN + N_ACC;   // 15
+static constexpr int N_RLX_FREE   = N_RED_FREE   + N_ACC;   // 19
+
+// atol given to the accumulator components in mode 2. Large enough that
+// 1/(rtol*|y| + atol) underflows the error weight to nothing, small enough to
+// stay far from overflow.
+static constexpr double ACC_ATOL_RELAXED = 1.0e300;
+
 struct Parameters {
     // ── Pre-computed jump frequencies (ReactionRates.calculate_basic_frequencies) ──
     double omega_i;   // interstitial jump frequency  [s^-1]
@@ -156,11 +183,11 @@ struct Parameters {
     // solve. Default false -> the standalone 0-D model is unchanged.
     bool   freeze_mobile;
 
-    // ── Reduced implicit block (accumulators moved to CVODES quadrature) ─────
-    // CVODE only (ARKODE has no quadrature module) and dense/band linear
-    // solvers only. Default false -> the legacy 19-equation implicit system, so
-    // existing runs are bit-identical.
-    bool   reduced;
+    // ── Reduced implicit block ───────────────────────────────────────────────
+    // One of ACC_STATE_CTRL / ACC_QUADRATURE / ACC_STATE_RELAX above. CVODE
+    // only (ARKODE has no quadrature module). Default 0 -> the legacy
+    // 19-equation implicit system, so existing runs stay bit-identical.
+    int    acc_mode;
 
     // ── Analytic Jacobian by forward-mode AD (see dual.h) ────────────────────
     // Default false -> SUNDIALS' difference-quotient Jacobian. Dense linear
@@ -209,8 +236,16 @@ struct Parameters {
 
 // ── Reduced-state index mapping ──────────────────────────────────────────────
 
-// Dimension of the implicit block actually solved in reduced mode.
+// True when the solver runs a reduced/reordered state rather than the plain
+// 19-component legacy layout.
+inline bool is_reduced(const Parameters& P) {
+    return P.acc_mode == ACC_QUADRATURE || P.acc_mode == ACC_STATE_RELAX;
+}
+
+// Dimension of the implicit block actually solved.
 inline int red_dim(const Parameters& P) {
+    if (P.acc_mode == ACC_STATE_RELAX)
+        return P.freeze_mobile ? N_RLX_FROZEN : N_RLX_FREE;
     return P.freeze_mobile ? N_RED_FROZEN : N_RED_FREE;
 }
 
@@ -218,6 +253,9 @@ inline int red_dim(const Parameters& P) {
 //   frozen : j = 0..7  -> 4..11 (immobile),  j = 8  -> 18 (rho_N)
 //   free   : j = 0..11 -> 0..11 (mobile + immobile), j = 12 -> 18
 inline int red_idx(const Parameters& P, int j) {
+    const int n_core = P.freeze_mobile ? N_RED_FROZEN : N_RED_FREE;
+    if (j >= n_core)            // mode 2 only: the six accumulators, appended
+        return N_PHYS + (j - n_core);
     if (P.freeze_mobile)
         return (j < N_IMMOB) ? (N_MOB + j) : IDX_RHO_N;
     return (j < N_PHYS) ? j : IDX_RHO_N;
@@ -228,6 +266,9 @@ inline int red_idx(const Parameters& P, int j) {
 // them, so whatever sits there cannot influence the result. Frozen mobile
 // values come from y0[0:4], which is where the FEM fast solve deposits C_M*.
 inline void red_scatter(const Parameters& P, const double* yr, double* yf) {
+    // Accumulator slots start at zero; in mode 2 the loop below overwrites them
+    // with the carried state, and in mode 1 they stay zero (the core writes
+    // rows 12..17 but never reads them, so the value cannot matter).
     for (int k = 0; k < N_EQ; ++k) yf[k] = 0.0;
     if (P.freeze_mobile)
         for (int k = 0; k < N_MOB; ++k) yf[k] = P.y0[k];
@@ -340,7 +381,11 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
 
     // Reduced implicit block + analytic AD Jacobian; both default off so the
     // legacy path is untouched.
-    P.reduced      = (optional_param(p, "reduced",      0.0) > 0.5);
+    // --acc_mode is the current spelling; --reduced=1 remains accepted as the
+    // older name for the quadrature mode.
+    P.acc_mode     = static_cast<int>(optional_param(
+                         p, "acc_mode",
+                         (optional_param(p, "reduced", 0.0) > 0.5) ? 1.0 : 0.0));
     P.analytic_jac = (optional_param(p, "analytic_jac", 0.0) > 0.5);
     P.stats        = (optional_param(p, "stats",        0.0) > 0.5);
     P.euler_nsub   = static_cast<int>(optional_param(p, "euler_nsub", 0.0));

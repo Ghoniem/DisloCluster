@@ -28,7 +28,9 @@
 \newcommand{\aloop}{\ensuremath{\langle a\rangle}}
 \newcommand{\cloop}{\ensuremath{\langle c\rangle}}
 \newcommand{\ZrM}{\textsf{ZrMicro}}
-\newcommand{\MoD}{\textsf{MoDELib2-NNL}}
+\newcommand{\MoD}{\textsf{MoDELib3}}
+\newcommand{\MoDfull}{\textsf{MoDELib-fullCD}}
+\newcommand{\MoDnnl}{\textsf{MoDELib2-NNL}}
 \newcommand{\Zrd}{\textsf{Zr3d\_ghoniem}}
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\file}[1]{\texttt{\footnotesize #1}}
@@ -275,17 +277,18 @@ repository & remote & role \\
 \midrule
 \file{Fluor\_Zr} & \file{Ghoniem/Fluor\_Zr} &
   0-D model, orchestration, post-processing, documents \\
-\file{MoDELib2-NNL} & \file{Ghoniem/MoDELib2-NNL}, branch \file{zr3d\_ghoniem} &
+ile{MoDELib3} & ile{Ghoniem/MoDELib3}, branch ile{zr3d\_ghoniem} &
   3-D FEM SR-CD solver \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \noindent
-The \MoD{} work lives on the branch \file{zr3d\_ghoniem} of a fork; the upstream
-is \file{mlm335/MoDELib2-NNL}. Po's original material definition \file{Zr4.txt}
-is left untouched --- the reconciled definition is the separate file
-\file{Zr3d\_ghoniem.txt}.
+The \MoD{} work lives on the branch \file{zr3d\_ghoniem} of a fork. The
+cluster-dynamics upstream is \file{mlm335/MoDELib-fullCD}, \emph{not}
+\file{mlm335/MoDELib2-NNL} --- see Section~\ref{sec:changes}. Po's original
+material definition \file{Zr4.txt} is left untouched --- the reconciled
+definition is the separate file \file{Zr3d\_ghoniem.txt}.
 
 \subsection{Python components (\file{Fluor\_Zr/ZrMicro/py\_utils/})}
 
@@ -391,7 +394,7 @@ file & route & role \\
   mobile derivatives \emph{after} every reaction term has used them. \\
 \file{cpp\_utils/CMakeLists.txt} & A &
   C++17, SUNDIALS 7.1.1, OpenMP auto-detected. \\[4pt]
-\multicolumn{3}{@{}l}{\textbf{\file{MoDELib2-NNL/} (branch \file{zr3d\_ghoniem})}}\\[2pt]
+\multicolumn{3}{@{}l}{\textbf{\file{MoDELib3/} (branch \file{zr3d\_ghoniem})}}\\[2pt]
 \file{tools/DDomp/DDomp.cpp} & B &
   The runner. Constructs \code{DislocationDynamicsBase}, reads \file{evl/},
   constructs \code{DefectiveCrystal}, calls \code{runSteps()}. \\
@@ -1126,27 +1129,101 @@ of the coupling surface, and keeping it that small is what has allowed the two
 codes to be reconciled term by term.
 
 %==============================================================================
-\section{Changes and Differences from the Original \MoD{}}
+\section{Changes and Differences from Upstream}
 \label{sec:changes}
 
 Everything described so far is the architecture of \Zrd{}, the branch. This
-section separates what was inherited from Po's \MoD{} from what was added, so
+section separates what was inherited from upstream from what was added, so
 that the preceding sections are not read as a description of the upstream code.
-The comparison is against \file{main} of \file{mlm335/MoDELib2-NNL}; the
-statements below were taken from that revision directly, not from recollection.
 
-\subsection{What the original code contains}
+\subsection{Which upstream --- a correction}
+\label{sec:whichupstream}
 
-The starting point is more sharply defined than one might expect
-(Table~\ref{tab:upstream}), and it governs everything else in this section.
+Earlier revisions of this document compared \Zrd{} against \file{main} of
+\MoDnnl{}. Those statements are individually accurate --- a checkout confirms
+every row of Table~\ref{tab:upstream} --- but \MoDnnl{} is the wrong baseline
+for cluster dynamics, and comparing against it makes the immobile solver look
+like an invention from nothing. It is not.
 
 \begin{table}[htbp]
 \centering
-\caption{State of the immobile (loop) machinery in the original code.}
+\caption{The two upstream repositories. Both were checked out and read.}
+\label{tab:twoupstream}
+\begin{tabular}{@{}lcp{0.52\textwidth}@{}}
+\toprule
+repository & \code{iSize} & immobile machinery \\
+\midrule
+\file{mlm335/MoDELib2-NNL}  & 0 &
+  none: empty \code{solveImmobileClusters()}, no \file{ImmobileSinkRate.h} or
+  \file{SpatialODESolver.h}, and a literal \code{// Missing immobile sinks}
+  placeholder \\
+\file{mlm335/MoDELib-fullCD} & 8 &
+  complete: \file{ImmobileSinkRate.h}, \file{SpatialODESolver.h},
+  \file{FirstOrderReaction.h}, and continuum-to-discrete loop conversion \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+\textbf{\MoDfull{} is the correct baseline.} Measured against it, \Zrd{}'s
+immobile solver is a \emph{re-discretization} of an existing scheme: 31
+cluster-dynamics parameter keys are shared verbatim, and most of the remainder
+are renames (\code{loopNucDefects}$\to$\code{nNuc},
+\code{loopCoalLL/LN}$\to$\code{cLL/cLN},
+\code{loopAnnealTau0\_SI}$\to$\code{tau0\_vLoop\_SI},
+\code{loopCoalNetwork\_SI}$\to$\code{rhoNetwork\_SI},
+\code{minimumLoopSize}$\to$\code{r\_min}). What differs is how the same physics
+is discretized:
+
+\begin{table}[htbp]
+\centering
+\caption{Immobile discretization, \MoDfull{} against \Zrd{}.}
+\label{tab:fullcdvsours}
+\begin{tabular}{@{}lp{0.33\textwidth}p{0.33\textwidth}@{}}
+\toprule
+ & \MoDfull{} & \Zrd{} \\
+\midrule
+rate & Galerkin: assembled at quadrature points, then $L^2$-projected through
+       the consistent mass matrix (CG to $10^{-4}$) & nodal collocation; no
+       mass matrix \\
+time update & explicit Euler, then \emph{sequential} implicit loss factors
+       $(1+\mathrm dt\lambda_k)^{-1}$ per channel & one \emph{fused}
+       semi-implicit update \\
+sub-cycling & none, one step of \code{dtMax} & \code{nSub}$=20$ per dose step \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+Genuinely new in \Zrd{}: \code{dadAnisotropy}/\code{dadZ0} (DAD reconciliation
+with the 0-D), \code{atomicVolume\_SI}, \code{concentrationFloor},
+\code{loopSinkScale}, size-dependent vacancy-loop emission, and the bi-pyramid
+family. Genuinely \emph{lost}: \code{clusterDiscretizationTime} and
+\code{initializeDiscreteClimbLoops()}. \MoDfull{} converts its continuum loop
+field into discrete climb loops once the dose passes a threshold; \Zrd{} has no
+such transition, which is the largest functional regression of the fork and the
+capability its name refers to.
+
+Note also that \file{Zr4.txt} in this checkout carries no immobile keys, but
+that is a property of one file and not evidence about upstream: \MoDfull{}'s
+\file{Zr4\_Fitted.txt} and \file{Zr4\_BMD19\_nuc.txt} each carry the full
+sixteen-key immobile set.
+
+\subsection{What \MoDnnl{} contains}
+
+The remainder of this section is stated against \MoDnnl{}, and is retained
+because it is the accurate account of \emph{that} repository and of how much of
+the model had to be written on this branch without reference to \MoDfull{}
+(Table~\ref{tab:upstream}). Read it as the difference from the
+\emph{dislocation-dynamics} upstream, not from the cluster-dynamics one.
+
+\begin{table}[htbp]
+\centering
+\caption{State of the immobile (loop) machinery in \MoDnnl{}.}
 \label{tab:upstream}
 \begin{tabular}{@{}ll@{}}
 \toprule
-item & state on \file{main} \\
+item & state on \MoDnnl{} \file{main} \\
 \midrule
 \code{iSize} & $0$ --- no immobile species exist \\
 \code{solveImmobileClusters()} & present, but an \emph{empty function body} \\
@@ -1158,7 +1235,7 @@ mobile solve & carries the comment \code{// Missing immobile sinks} \\
 \end{table}
 
 \noindent
-The original therefore solves the mobile steady-state PDE of \dref{1} --- and
+\MoDnnl{} therefore solves the mobile steady-state PDE of \dref{1} --- and
 nothing else. Diffusion, cascade production, the first-order losses $R_1$ and the
 binary reactions $R_2$ are all present and working. \emph{The entire immobile
 half of the model, deliverable Sec.~2.2, was not implemented.}
@@ -1175,8 +1252,9 @@ against the equation of the deliverable that each term realizes.
 
 \begin{table}[htbp]
 \centering
-\caption{Physics with no upstream implementation. All of it is new on the
-\file{zr3d\_ghoniem} branch.}
+\caption{Physics with no implementation in \MoDnnl{}. All of it is new on the
+\file{zr3d\_ghoniem} branch --- though \MoDfull{} implements most of it too, by
+the different discretization of Table~\ref{tab:fullcdvsours}.}
 \label{tab:eqadded}
 \begin{tabular}{@{}llp{0.36\textwidth}@{}}
 \toprule

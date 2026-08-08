@@ -5,7 +5,7 @@
 %  Compiles with pdflatex; also fine on Overleaf.
 %
 %  Replaces the operating appendix of "Zr3d Code Architecture", which was
-%  written for the earlier two-repository layout (Fluor_Zr + MoDELib2-NNL).
+%  written for the earlier two-repository layout (Fluor_Zr + MoDELib).
 %  This manual is written against the unified DisloCluster repository:
 %      https://github.com/Ghoniem/DisloCluster
 %==============================================================================
@@ -97,7 +97,7 @@
 (0-D) reduced cluster-dynamics model of point-defect and dislocation-loop
 evolution (\ZrM{}) to a three-dimensional, spatially resolved
 cluster-dynamics / dislocation-dynamics code (\MoD{}, a fork of
-MoDELib2-NNL). This manual takes a user from a fresh clone of the repository
+MoDELib-fullCD). This manual takes a user from a fresh clone of the repository
 on a new Windows machine to a completed simulation: installing the
 prerequisites (Section~\ref{sec:install}), creating the Python virtual
 environment (Section~\ref{sec:venv}), compiling the two C++ codes
@@ -111,7 +111,7 @@ the known failure modes and their fixes, and Section~\ref{sec:repro}
 describes the provenance system that makes every run reproducible.
 Appendix~\ref{app:arch} is a condensed architecture reference,
 Appendix~\ref{app:changes} summarizes the physics added relative to the
-upstream MoDELib2-NNL code, and Appendix~\ref{app:quickref} is a one-page
+upstream MoDELib-fullCD code, and Appendix~\ref{app:quickref} is a one-page
 command summary.
 \end{abstract}
 
@@ -205,7 +205,7 @@ DisloCluster/                    <- repository root (.dislocluster_root marker)
 |     |- input/                  Excel parameter workbook
 |     |- build/                  compiled solver.exe (created by the build)
 |     \- output/                 timestamped run directories
-\- MoDELib3/                     3-D side (fork of MoDELib2-NNL)
+\- MoDELib3/                     3-D side (fork of MoDELib-fullCD)
    |- Library/Materials/         Zr3d_ghoniem.txt is the coupled material
    |- tutorials/zrmicro_coupled/ the single-crystal verification case
    \- build/                     DDomp + pyMoDELib (built inside WSL)
@@ -1431,19 +1431,36 @@ the 0-D uses a constant surrogate.
 \end{enumerate}
 
 %==============================================================================
-\section{Changes relative to upstream MoDELib2-NNL}
+\section{Changes relative to upstream MoDELib}
 \label{app:changes}
 
-\MoD{} is a fork of \file{mlm335/MoDELib2-NNL}. The upstream code solves the
-mobile steady-state PDE of Eq.~\eqref{eq:mobile} --- and nothing else: on
-upstream \file{main} the immobile species count is zero,
-\code{solveImmobileClusters()} is an empty function body, and
-\file{ImmobileSinks.h} does not exist. The entire immobile half of the model
-was added in this fork:
+\paragraph{Which upstream.} There are two, and they are not interchangeable.
+\file{mlm335/MoDELib2-NNL} solves the mobile steady-state PDE of
+Eq.~\eqref{eq:mobile} and nothing else: its immobile species count is zero,
+\code{solveImmobileClusters()} is an empty function body, and there is a literal
+\code{// Missing immobile sinks} placeholder where the loop term would go.
+\file{mlm335/MoDELib-fullCD} is the \emph{cluster-dynamics-complete} upstream:
+\code{iSize} is 8, it has its own immobile integrator
+(\file{ImmobileSinkRate.h}, \file{SpatialODESolver.h}), the loop sink on the
+mobile species (\file{FirstOrderReaction.h}), and a continuum-to-discrete loop
+conversion that \MoD{} does not have.
+
+\textbf{\file{MoDELib-fullCD} is the correct baseline for anything touching
+cluster dynamics}, and the list below is stated against it. Measured against
+fullCD, \MoD{}'s immobile solver is a \emph{re-discretization} of an existing
+scheme rather than a new one: 31 cluster-dynamics parameter keys are shared
+verbatim and most of the rest are renames. The differences are in the
+discretization --- fullCD projects its rate through the consistent mass matrix
+and takes one explicit-Euler step of \code{dtMax} followed by sequential
+implicit loss factors, where \MoD{} evaluates the rate at nodes and takes 20
+sub-steps of a single fused semi-implicit update.
+
+Relative to \file{MoDELib2-NNL} the entire immobile half of the model is new;
+relative to \file{MoDELib-fullCD} the following are re-implemented or added:
 
 \begin{itemize}
 \item the loop density and content evolution equations
-(\code{solveImmobileClusters()});
+(\code{solveImmobileClusters()}), re-discretized as above;
 \item homogeneous SIA-clustering nucleation, read off the reaction network
 the mobile solve already uses (\code{getLoopNucChannels()});
 \item the loop absorption sink on the mobile species

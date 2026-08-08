@@ -48,7 +48,7 @@ struct SolverCtx {
     const Parameters* P;
     bool   acc_valid;          // memo holds a usable entry
     double acc_t;              // t it was taken at
-    double acc_y[N_RED_FREE];  // reduced state it was taken at
+    double acc_y[N_RLX_FREE];  // reduced state it was taken at
     double acc[N_ACC];         // the six accumulator rates there
     long   nq_hit;             // quadrature memo hits
     long   nq_miss;            // quadrature memo misses (full core re-evaluated)

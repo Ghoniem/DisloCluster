@@ -1,17 +1,19 @@
-# Building `MoDELib2-NNL` and Coupling it to `ZrMicro`
+# Building MoDELib and Coupling it to `ZrMicro`
 
 Companion to `ZrMicro_MoDELib2_two_time_scale_coupling.tex` and
 `ZrMicro/coupling_demo.ipynb`. This documents how to build the spatially-resolved
 solver and activate the **`"modelib"`** fast-solve backend in the coupling
 notebook. The MoDELib checkout lives inside this repository at `DisloCluster/MoDELib3/`
-(a fork of `https://github.com/mlm335/MoDELib2-NNL`). Its location is resolved
+(a fork of `https://github.com/mlm335/MoDELib-fullCD`, which is the
+cluster-dynamics-complete upstream; `mlm335/MoDELib2-NNL` has `iSize=0` and no
+immobile machinery at all, and is NOT the right baseline for CD comparisons). Its location is resolved
 by `ZrMicro/py_utils/paths.py` (`paths.MODELIB_ROOT`); never hard-code it.
 
 ---
 
 ## 1. Why it does not build on the current Windows box
 
-`MoDELib2-NNL` is a **C++20** library compiled with **GCC/Clang** flags
+MoDELib is a **C++20** library compiled with **GCC/Clang** flags
 (`-Ofast -march=native -fopenmp`, top-level `CMakeLists.txt:18`). This machine
 has only **MSVC** (which built `ZrMicro/solver.exe` via the Visual Studio
 generator); MSVC rejects those flags. There is **no GCC/Clang/MinGW and no WSL**
@@ -181,13 +183,13 @@ run.
 
 | Component | Path |
 |---|---|
-| Top CMake | `MoDELib2-NNL/CMakeLists.txt` |
-| ClusterDynamics | `MoDELib2-NNL/include/ClusterDynamics/{ClusterDynamics,ClusterDynamicsFEM,FixedDirichletSolver,SecondOrderReaction}.h` |
-| FEM | `MoDELib2-NNL/include/FEM/` |
-| Runner | `MoDELib2-NNL/tools/DDomp/DDomp.cpp` |
-| Python module | `MoDELib2-NNL/tools/pyMoDELib/pyMoDELib.cxx` |
-| Zr materials | `MoDELib2-NNL/Library/Materials/Zr{1..4}.txt` |
-| Meshes | `MoDELib2-NNL/Library/Meshes/unitCube_15K.msh` |
-| CD tutorial | `MoDELib2-NNL/tutorials/irradiation_singlecrystal/generateInputFiles.py` |
-| Python utils | `MoDELib2-NNL/python/modlibUtils.py` (`setInputVariable`, `setInputVector`, `PolyCrystalFile`) |
+| Top CMake | `MoDELib3/CMakeLists.txt` |
+| ClusterDynamics | `MoDELib3/include/ClusterDynamics/{ClusterDynamics,ClusterDynamicsFEM,FixedDirichletSolver,SecondOrderReaction}.h` |
+| FEM | `MoDELib3/include/FEM/` |
+| Runner | `MoDELib3/tools/DDomp/DDomp.cpp` |
+| Python module | `MoDELib3/tools/pyMoDELib/pyMoDELib.cxx` |
+| Zr materials | `MoDELib3/Library/Materials/Zr{1..4}.txt` |
+| Meshes | `MoDELib3/Library/Meshes/unitCube_15K.msh` |
+| CD tutorial | `MoDELib3/tutorials/irradiation_singlecrystal/generateInputFiles.py` |
+| Python utils | `MoDELib3/python/modlibUtils.py` (`setInputVariable`, `setInputVector`, `PolyCrystalFile`) |
 | **Coupling bridge** | `ZrMicro/py_utils/modelib_fem.py` |

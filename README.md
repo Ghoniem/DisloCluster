@@ -33,7 +33,7 @@ DisloCluster/                        <- repository root (.dislocluster_root mark
 │       ├── input/                   Excel parameter workbooks
 │       ├── build/                   compiled solver.exe
 │       └── output/                  timestamped run directories
-└── MoDELib3/                        3-D DD / spatially-resolved CD (MoDELib2-NNL fork)
+└── MoDELib3/                        3-D DD / spatially-resolved CD (MoDELib-fullCD fork)
     ├── Library/Materials/            Zr3d_ghoniem.txt is the coupled material
     ├── tutorials/                   simulation-directory templates
     └── build/                       DDomp + pyMoDELib (built inside WSL on Windows)

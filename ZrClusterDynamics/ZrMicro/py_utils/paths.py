@@ -147,9 +147,30 @@ _md_env     = os.environ.get("MODELIB_ROOT")
 MODELIB_ROOT = (Path(_md_env).expanduser().resolve() if _md_env
                 else _first_existing(REPO_ROOT, _MODELIB_DIR_NAMES, "CMakeLists.txt"))
 
+_MODELIB_BUILD_NAMES = ("build", "build_dc")
+
+
+def _first_build_dir(root):
+    """The MoDELib build tree that actually holds a DDomp, else ``build``.
+
+    ``build/`` came into DisloCluster as a verbatim copy of the upstream
+    ``MoDELib2-NNL`` build tree, absolute paths and all, so CMake refuses to
+    reconfigure it ("the current CMakeCache.txt directory ... is different")
+    and it can only ever be discarded. ``build_dc`` is this repository's own
+    tree. Preferring whichever one carries the binary means a checkout that
+    still has the inherited tree, and one that has been rebuilt cleanly, both
+    resolve without an environment variable.
+    """
+    for name in _MODELIB_BUILD_NAMES:
+        if (root / name / "tools" / "DDomp" / "DDomp").exists() or \
+           (root / name / "tools" / "DDomp" / "DDomp.exe").exists():
+            return root / name
+    return root / _MODELIB_BUILD_NAMES[0]
+
+
 _mb_env      = os.environ.get("MODELIB_BUILD")
 MODELIB_BUILD = (Path(_mb_env).expanduser().resolve() if _mb_env
-                 else MODELIB_ROOT / "build")
+                 else _first_build_dir(MODELIB_ROOT))
 
 # Material file shared by the two codes. `Zr3d_ghoniem.txt` is the coupled
 # definition: its cluster-dynamics parameters are taken from the 0-D code, and
