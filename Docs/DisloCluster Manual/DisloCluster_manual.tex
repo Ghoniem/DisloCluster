@@ -11,6 +11,16 @@
 %==============================================================================
 \documentclass[11pt]{article}
 
+% Type1 outlines for the whole EC/TC family. Without these the document falls
+% back to OT1 Computer Modern, and the first text-companion glyph asks MiKTeX
+% to build a bitmap font with METAFONT -- which fails here with
+% "This can't happen (copy)" on tctt0900 and takes the build down with it.
+% solver_and_coupling_rearchitecture.tex has carried these three lines from the
+% start, which is why it compiles cleanly and this document did not.
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
@@ -411,7 +421,7 @@ PS> .DisloClusterVenv\Scripts\python.exe -m pip install -r requirements.txt
 
 \file{requirements.txt} pins the full stack --- NumPy~2.4, SciPy~1.17,
 pandas, Matplotlib, openpyxl (the Excel workbook reader), the Gmsh SDK (mesh
-generation for the coupled notebook), and the complete JupyterLab toolchain
+generation for the Adaptive notebook), and the complete JupyterLab toolchain
 --- so the install is reproducible on any machine.
 
 \subsection{Register the Jupyter kernel}
@@ -461,7 +471,7 @@ PS> cmake --build ZrClusterDynamics\ZrMicro\build --config Release
 This produces \file{ZrClusterDynamics\textbackslash ZrMicro\textbackslash
 build\textbackslash Release\textbackslash solver.exe}. Use \code{Release}:
 the parameter-identification utilities call the solver thousands of times,
-and the OpenMP batch mode --- which the coupled march relies on --- is only
+and the OpenMP batch mode --- which the Adaptive march relies on --- is only
 worth having when optimized. OpenMP is detected automatically by CMake; the
 solver still builds and runs serially without it, and the configure output
 says which happened
@@ -554,12 +564,13 @@ exists for exactly this reason.
 
 %==============================================================================
 \section{First simulation: the 3-D single-crystal test}
+\label{sec:firstsim}
 \label{sec:first}
 
 \subsection{The case}
 
 \file{MoDELib3/tutorials/zrmicro\_coupled/} is the standalone 3-D
-verification case, independent of the coupled march: a single cubic crystal
+verification case, independent of the Adaptive march: a single cubic crystal
 of edge 1~$\mu$m ($3093\,b$ per side, 24\,115 finite-element nodes for the
 cluster-dynamics trial functions) with Dirichlet conditions on \emph{all six
 faces}, so the entire surface acts as a grain boundary. The irradiation
@@ -743,7 +754,7 @@ reproducible even as the workbook evolves
 \subsection{The state vector}
 
 The integrated state is a flat array of length 19, and the same layout is
-used by the Python layer, the C++ solver, and the coupled march:
+used by the Python layer, the C++ solver, and the Adaptive march:
 
 \begin{table}[htbp]
 \centering
@@ -806,7 +817,7 @@ F, H, I & ARKODE (other tables) & dense & $10^{4}$--$10^{7}$ (fails) \\
 
 \subsection{The idea}
 
-The coupled march realizes the operator-split QSSA over each dose step
+The Adaptive march realizes the operator-split QSSA over each dose step
 $[\gamma_n, \gamma_{n+1}]$ in two alternating stages:
 
 \begin{enumerate}
@@ -848,6 +859,113 @@ For a gentle first contact with the coupling machinery,
 \file{code/coupling\_demo.ipynb} is a minimal walk-through of one fast solve
 and one immobile step; the full driver described next is
 \file{code/coupled\_0d\_3d\_ZrMicro.ipynb}.
+
+\subsection{Two options for the slow step}
+\label{sec:options}
+
+The fast solve is the same whichever way you run it: \MoD{}'s
+\code{solveMobileClusters} has no time derivative at all, so it always returns
+the steady $C_M^{*}(x)$ for the immobile state it is handed. What you choose
+is how the \emph{slow} step is integrated.
+
+\begin{table}[htbp]
+\centering
+\caption{The two time-integration options. Both perform the same operator
+         split with the same fast step.}
+\label{tab:options}
+\begin{tabular}{@{}llp{7.6cm}@{}}
+\toprule
+ & name & slow step \\
+\midrule
+\textbf{Option A} & \textbf{IMEX} &
+  Implicit-explicit Euler with Patankar stabilization ---
+  $n \leftarrow (n + \Delta t\,\dot n_{\mathrm{prod}}) /
+   (1 + \Delta t\,\lambda_{\mathrm{loss}})$, production explicit and
+  destruction implicit. Unconditionally positive at any step size, but first
+  order and with no error estimate, so accuracy is set by the step size alone
+  (20 substeps per 1 \textrm{dpa} output step). Runs entirely inside
+  \code{DDomp}. \\[4pt]
+\textbf{Option B} & \textbf{Adaptive} &
+  SUNDIALS CVODE, adaptive-order adaptive-step BDF, at every node with the
+  mobile species frozen. Order and step size both follow a local error
+  estimate against \code{rtol}/\code{atol}, so accuracy is requested rather
+  than inferred. Driven from Python by
+  \code{py\_utils/run\_seeded\_march.py}. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Choose \textbf{IMEX} when you want one self-contained \MoD{} run and the dose
+grid is uniform; choose \textbf{Adaptive} when the dose grid spans decades, when
+you need a requested accuracy rather than an assumed one, or when the
+microstructure is evolving fast enough that a first-order step would have to be
+made small everywhere to stay accurate anywhere.
+
+\paragraph{The names.} These were called \emph{standalone} and \emph{coupled}
+in earlier revisions and in output written before this manual. Those names
+described how each was driven rather than what it is, and ``coupled'' was
+misleading, since both are coupled 0-D~$\leftrightarrow$~3-D in the sense that
+matters. The word is kept for the \emph{architecture} --- the field handoff of
+Table~\ref{tab:coupling} --- and retired as a route name. The canonical
+spellings are in \code{py\_utils/integration\_options.py}, which every driver
+imports so that directory names, table columns and plot legends cannot drift
+apart.
+
+Note that ``standalone'' survives elsewhere in this manual in an unrelated
+sense: the \emph{standalone 3-D single-crystal test} of
+Section~\ref{sec:firstsim} means a \MoD{} run that is not driven by the 0-D
+notebook, which is a statement about who launches it rather than about which
+integrator it uses. That case does in fact use Option A, since a \MoD{} run on
+its own has no other choice.
+
+\subsection{Starting from pristine material}
+\label{sec:pristine-manual}
+
+The march does \emph{not} need a 0-D seed. It can start from unirradiated
+material and nucleate its own loop population.
+
+This works because the two transients are about a hundred times apart in dose.
+Taking the adaptive 0-D as the reference, the mobile species are settled by
+$10^{-4}$~\textrm{dpa} ($C_i$ by $6\times10^{-10}$, $C_{3i}$ by
+$1.6\times10^{-8}$, $C_v$ by $4.2\times10^{-5}$), while loop nucleation runs
+from $10^{-3}$ to $10^{-2}$~\textrm{dpa}. That separation is exactly what the
+operator split assumes, so a smaller starting dose sits \emph{further inside}
+the split's domain of validity, not outside it.
+
+Two further facts make the seed dispensable rather than merely tolerable.
+The seed's mobile half was never used --- the first fast solve overwrites it ---
+so only the immobile half ever mattered; and the loop-free limit is not
+singular, because the dislocation network rather than the loop population
+carries most of the sink strength (deleting every loop raises $C_v$ by 11\%).
+
+Measured on the 1~\textmu m case, a march from pristine material reproduces the
+0-D through the nucleation transient to within 15\%, and from 1~\textrm{dpa}
+onward is indistinguishable from a march that was handed a 0-D seed --- to five
+parts in ten thousand at 6~\textrm{dpa}. Full numbers are in
+\file{Docs/DisloCluster Manual/solver\_and\_coupling\_rearchitecture.pdf},
+Section ``Removing the 0-D seed entirely''.
+
+\begin{lstlisting}
+# stage a fresh domain and let MoDELib write its own CD node set
+python -m py_utils.setup_domain --size-nm 500 --layer-nm 150
+    --layers-across 5 --interior-lc-nm 120 --name zr3d_500nm
+
+# march it from pristine material on a logarithmic dose grid
+python -m py_utils.run_seeded_march --doses 0 1e-3 1e-2 0.1 1 6
+    --substeps 1 --fem-every 2 --tag Adaptive_pristine
+    --template ../../MoDELib3/tutorials/zr3d_500nm
+\end{lstlisting}
+
+\noindent
+(each command is one line; it is wrapped here only to fit the page.)
+
+\noindent
+A seed dose of $0$ selects pristine material. Seeding from the 0-D remains
+convenient when the interest is at doses well past the transient, since it skips
+three decades of dose for a handful of fast solves --- but it is a convenience,
+not a requirement, and it is the weaker choice whenever the transient itself
+matters, because a 0-D seed imposes a spatially uniform loop population that the
+3-D would never produce.
 
 \subsection{The notebook's three control blocks}
 \label{sec:controls}
@@ -1015,7 +1133,7 @@ control blocks that own them.
 to change & edit \\
 \midrule
 irradiation conditions ($T$, $G$, $\sigma$) &
-the \code{RUN} dictionary of the coupled notebook \emph{and}
+the \code{RUN} dictionary of the Adaptive notebook \emph{and}
 \file{inputFiles/polycrystal.txt} / \file{Zr3d\_ghoniem.txt} for the 3-D
 case; they are not linked \\
 0-D material parameters &
@@ -1024,13 +1142,13 @@ the workbook \file{input/Zr\_input\_parameters.xlsx}, or
 3-D material parameters &
 \file{MoDELib3/Library/Materials/Zr3d\_ghoniem.txt}, then re-run
 \file{clean\_run.sh} so the copy in \file{inputFiles/} is refreshed \\
-dose schedule (coupled march) &
+dose schedule (Adaptive march) &
 \code{dose\_seed}, \code{dose\_max}, \code{n\_intervals},
 \code{substeps\_per\_interval} in \code{RUN} \\
 dose schedule (3-D single crystal) &
 \code{Nsteps} and \code{dtMax} in
 \file{tutorials/zrmicro\_coupled/inputFiles/DD.txt} \\
-mesh or domain (coupled march) &
+mesh or domain (Adaptive march) &
 \code{GEOMETRY} / \code{MESH} in cell 6a (regenerates through Gmsh) \\
 mesh or domain (3-D single crystal) &
 \code{meshFile} and the deformation gradient \code{F} in
@@ -1195,7 +1313,7 @@ and the immobile loop families are marched pointwise in dose against the
 frozen mobile field. Both execution routes realize this split:
 
 \begin{itemize}
-\item \textbf{Route A --- notebook-driven coupled march}
+\item \textbf{Route A --- notebook-driven Adaptive march}
 (Section~\ref{sec:coupled}). Python owns the dose loop; \MoD{} solves the
 fast mobile BVP; the \ZrM{} C++ integrator advances the immobile state with
 \code{freeze\_mobile=1}, one OpenMP batch case per quadrature point.
@@ -1211,7 +1329,7 @@ families node by node. No Python at run time.
 \begin{table}[htbp]
 \centering
 \caption{The components a user is most likely to touch. Route marks where
-each participates: A = coupled march, B = monolithic run, P =
+each participates: A = Adaptive march, B = monolithic run, P =
 post-processing.}
 \label{tab:components}
 \begin{tabular}{@{}p{0.34\textwidth}cp{0.50\textwidth}@{}}
@@ -1397,7 +1515,7 @@ Figure~\ref{fig:flow} is the component call graph across both routes.
 \begin{scope}[on background layer]
 \node[draw=cNotebook!50, dashed, rounded corners, fit=(ipynb)(coup)(fem)(bridge)(cvode),
       inner sep=6mm, label={[cNotebook!60!black,font=\scriptsize\bfseries]above left:ROUTE A
-      --- notebook coupled march}] {};
+      --- notebook Adaptive march}] {};
 \node[draw=cMod!50, dashed, rounded corners, fit=(ddomp)(cdp)(fds)(evl),
       inner sep=4mm, label={[cMod!60!black,font=\scriptsize\bfseries]below right:ROUTE B
       --- monolithic MoDELib run}] {};

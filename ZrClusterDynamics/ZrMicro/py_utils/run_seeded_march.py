@@ -107,6 +107,11 @@ def main(argv=None):
                     help="immobile substeps per snapshot interval")
     ap.add_argument("--template", default=None,
                     help="case whose inputFiles/mesh the fast solves use")
+    ap.add_argument("--scaffold", default=None,
+                    help="evl configuration whose CD node count the seed is "
+                         "built on; REQUIRED when --template is not the "
+                         "reference case, since the node set is mesh-specific "
+                         "(see py_utils/setup_domain.py)")
     ap.add_argument("--tag", default=None)
     args = ap.parse_args(argv)
 
@@ -134,7 +139,16 @@ def main(argv=None):
     seed_path = template / "evl" / (
         "evl_seed_pristine.txt" if dose_seed <= 0.0
         else f"evl_seed_{dose_seed:.3f}dpa.txt")
-    y_seed, hit = build_seed(sim, dose_seed, seed_path)
+    scaffold = args.scaffold
+    if scaffold is None and template.resolve() != Path(sstd.TEMPLATE).resolve():
+        auto = template / "evl" / "evl_scaffold_pristine.txt"
+        if not auto.is_file():
+            raise SystemExit(
+                f"--template is {template.name}, which is not the reference "
+                f"case, so the CD node set differs and --scaffold must be "
+                f"given. Expected {auto} from py_utils.setup_domain.")
+        scaffold = auto
+    y_seed, hit = build_seed(sim, dose_seed, seed_path, scaffold=scaffold)
     L = lumped(y_seed)
     what = "pristine" if dose_seed <= 0.0 else f"0-D at {dose_seed} dpa"
     print(f"seed: {what} (solver reached {hit:.4f}): "

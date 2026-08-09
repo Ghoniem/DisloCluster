@@ -1357,31 +1357,65 @@ undeduplicated legacy-protocol path to 5.98~s, while the core-evaluation count
 drops 26\% and the roundoff-warning pathology stays cured.
 
 % ============================================================================
-\section{The 1\,\textmu m reference through both routes}
+\section{Two options for time integration by operator splitting}
 \label{sec:tworoute}
 % ============================================================================
 
-Both routes were run on the 1~\textmu m single crystal from \emph{one} shared
-microstructure --- the 0-D state at 0.1 \dpa\ written uniformly onto all
-24\,115 CD nodes --- and advanced to 20.1 \dpa\ in 5 \dpa\ intervals.
-
-Both run the \emph{same} operator split and the same fast step; they differ in
-what advances the immobile population.
+Everything in this section compares two ways of taking the \emph{slow} step of
+the operator split. Both solve the same problem, by the same split, with the
+same fast step: at every substep the steady mobile field $C_M^*(x)$ is solved
+for the immobile state currently held --- MoDELib3's
+\code{ClusterDynamicsFEM::solveMobileClusters}, which has no time derivative at
+all --- and then frozen while the immobile population is advanced. They differ
+only in how that advance is integrated.
 
 \begin{center}
-\begin{tabular}{lp{9.6cm}}
+\begin{tabular}{llp{8.2cm}}
 \toprule
-Route & Immobile advance \\
+ & Name & Slow step \\
 \midrule
-standalone & MoDELib3's own nodal semi-implicit scheme, 20 substeps per 1 \dpa\
-             step, run by DDomp. \\
-coupled    & CVODE BDF at every node, \code{acc\_mode=2}, exact AD Jacobian,
-             workspace reuse, base+delta protocol, deduplication at $10^{-8}$.
-             The mobile field is re-solved by MoDELib3 every \code{FEM\_EVERY}
-             substeps and frozen in between. \\
+\textbf{Option A} & \textbf{IMEX} &
+  Implicit-explicit Euler with Patankar stabilization: MoDELib3's own nodal
+  update
+  \[
+     n \;\leftarrow\; \frac{n + \Delta t\,\dot n_{\mathrm{prod}}}
+                           {1 + \Delta t\,\lambda_{\mathrm{loss}}},
+  \]
+  production explicit, destruction implicit. The Patankar form is
+  unconditionally positive for any step size and any non-negative state,
+  because a positive numerator is divided by something greater than one. It is
+  first order and carries no error estimate, so accuracy follows the step size
+  alone (20 substeps per 1 \dpa\ output step). Runs inside DDomp. \\[4pt]
+\textbf{Option B} & \textbf{Adaptive} &
+  SUNDIALS CVODE, adaptive-order adaptive-step BDF, applied at every node with
+  the mobile species frozen. Order (1--5) and step size are both selected from
+  a local error estimate against \code{rtol}/\code{atol}, so the accuracy is
+  requested rather than inferred. \code{acc\_mode=2}, exact AD Jacobian,
+  per-thread workspace reuse, base+delta protocol, deduplication at $10^{-8}$.
+  Driven from Python; the mobile field is re-solved every \code{FEM\_EVERY}
+  substeps and frozen in between. \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\paragraph{On the names.} These were called \emph{standalone} (Option A) and
+\emph{coupled} (Option B) up to and including the seeding study, and every
+figure directory and table column written before this section used those words.
+They described how each option was \emph{driven} rather than what it \emph{is},
+and ``coupled'' was actively misleading: both options are coupled
+0-D~$\leftrightarrow$~3-D in the sense that matters, since both re-solve the
+mobile field against the evolving immobile state. The word ``coupled'' is
+therefore still correct for the \emph{architecture} --- the field handoff of
+Section~\ref{sec:fieldcost} --- and is kept there. It is no longer a route name.
+The canonical spellings live in \code{py\_utils/integration\_options.py}, which
+every driver imports, so that directory names, table columns and plot legends
+cannot drift apart.
+
+The measurements that follow were made on the 1~\textmu m single crystal from
+\emph{one} shared microstructure --- the 0-D state at 0.1 \dpa\ written
+uniformly onto all 24\,115 CD nodes --- advanced to 20.1 \dpa\ in 5 \dpa\
+intervals. Section~\ref{sec:pristine} then shows that the shared seed is not
+needed at all.
 
 \subsection{The fast step belongs inside the loop}
 \label{sec:fastinloop}
@@ -1405,8 +1439,8 @@ solveImmobileClusters();    // SLOW -- dt update of the nodal n_I, c_I
 \end{center}
 
 \noindent
-The coupled route was meant to keep the first call and replace the second. What
-it actually did was read the mobile field out of the \emph{standalone run's}
+The Adaptive route was meant to keep the first call and replace the second. What
+it actually did was read the mobile field out of the \emph{IMEX run's}
 recorded snapshots. Under that arrangement $\mathbf C_M$ never responds to the
 immobile state the march is building: the coupling is one-way, and the march has
 no mechanism to relax a seed that is not already at quasi-steady state. Worse,
@@ -1430,7 +1464,7 @@ fails loudly rather than advancing the immobile field twice.
 \subsection{A non-terminating mobile solve, and its cause}
 \label{sec:mobilehang}
 
-Closing the loop exposed a defect that the standalone route had never triggered.
+Closing the loop exposed a defect that the IMEX route had never triggered.
 Asked to solve the mobile field against an immobile state supplied by the march,
 \code{solveMobileClusters} does not converge: \code{cError} falls from
 $5.8\times10^{5}$ to $1.3\times10^{-4}$ in nine iterations and then oscillates
@@ -1525,12 +1559,12 @@ prevent it from ever settling.
 \code{mobileSolverRelaxation}, \code{mobileSolverErrorMode},
 \code{mobileSolverClampInLoop}), all defaulting to the historical behaviour
 except the iteration cap, which now retains the \emph{best} iterate and so
-converts a hang into a bounded, reproducible result. The coupled fast solve sets
+converts a hang into a bounded, reproducible result. The Adaptive fast solve sets
 \code{mobileSolverClampInLoop=0} in its own simulation directory and warns if any
-solve returns capped rather than converged. The standalone route's defaults are
+solve returns capped rather than converged. The IMEX route's defaults are
 deliberately left unchanged: making the deferral global is very likely correct,
 but it alters a path that currently runs to completion, and that warrants a full
-standalone verification first.
+IMEX verification first.
 
 \subsection{Does the split repair a seed that is not quasi-steady?}
 \label{sec:seedrelax}
@@ -1644,7 +1678,7 @@ digit, and it reproduces the experimental reference run
 figures in the loop content at 0.1, 0.5 and 1~\dpa.
 
 \paragraph{A comparison to make carefully.} That reference directory contains
-both a pure 0-D run and a \code{march\_state.npz} from a coupled march with the
+both a pure 0-D run and a \code{march\_state.npz} from an Adaptive march with the
 placeholder fast solve. They are different objects, and comparing a free 0-D
 integration against the marched states --- which this work did twice before
 noticing --- looks like a bug and is not one. Freezing the mobile field holds
@@ -1656,7 +1690,7 @@ itself, present in the old placeholder run as well.
 \subsection{The whole-domain mean is the wrong statistic}
 \label{sec:boundaryartifact}
 
-With the calibrated set in place, the coupled march was run from a seed at
+With the calibrated set in place, the Adaptive march was run from a seed at
 1~\dpa\ --- past the mobile transient --- to 21~\dpa\ in 5~\dpa\ intervals, with
 the fast step re-solved every fifth immobile substep. Sixteen fast solves, every
 one converged, none capped. Averaged over all 24\,115 nodes the result looks
@@ -1665,7 +1699,7 @@ alarming:
 \begin{center}
 \begin{tabular}{rlrrr}
 \toprule
-Dose [\dpa] & Quantity & 0-D & coupled, all nodes & ratio \\
+Dose [\dpa] & Quantity & 0-D & Adaptive, all nodes & ratio \\
 \midrule
  6 & $N_a$ & $8.051\times10^{-8}$ & $9.600\times10^{-6}$ & 119 \\
 11 & $N_a$ & $8.051\times10^{-8}$ & $1.913\times10^{-5}$ & 238 \\
@@ -1707,25 +1741,25 @@ place that many on the six faces --- carry 99.8\% of the total. Their
 $c_a/N_a$ is 300.8 and \code{n\_iL\_nuc} is 300: every loop there is a fresh
 nucleus that has never absorbed a single interstitial.
 
-The mechanism is the one already recorded for MoDELib3's own standalone run.
+The mechanism is the one already recorded for MoDELib3's own IMEX run.
 Cascade nucleation is proportional to dose rate and fires uniformly in space.
 Both loop growth and the only removal channel, coalescence, are driven by the
 absorbed mobile flux --- and the Dirichlet condition pins $C_i$ to
 $4\times10^{-27}$ on the faces. The boundary is a sink for mobile defects but
 \emph{not} for loops, so loops are created there and nothing ever happens to
-them again. That the coupled march reproduces the artifact is evidence for the
+them again. That the Adaptive march reproduces the artifact is evidence for the
 coupling, not against it: the same boundary physics emerges whether MoDELib3's
 nodal scheme or ZrMicro's CVODE march advances the immobile population.
 
-\paragraph{The standalone does the same thing, to four figures.} The claim above
+\paragraph{IMEX does the same thing, to four figures.} The claim above
 is only worth making if MoDELib3's own immobile solver produces the artifact
-too. Binning the standalone run --- same mesh, same seed, same fast step, but
+too. Binning the IMEX run --- same mesh, same seed, same fast step, but
 its nodal semi-implicit scheme in place of the CVODE march --- at 6~\dpa:
 
 \begin{center}
 \begin{tabular}{lrr}
 \toprule
-At 6 \dpa & coupled march & standalone \\
+At 6 \dpa & Adaptive march & IMEX \\
 \midrule
 whole-domain mean $N_a$  & $9.5996\times10^{-6}$ & $9.5994\times10^{-6}$ \\
 surface shell $N_a$      & $3.529\times10^{-5}$  & $3.528\times10^{-5}$ \\
@@ -1766,7 +1800,7 @@ output. This is not a cosmetic choice: it is the difference between a ratio of
 \subsection{Does the seed dose matter? Seeding inside and outside the transient}
 \label{sec:seedingstudy}
 
-The coupled march freezes the mobile field for \code{FEM\_EVERY} immobile
+The Adaptive march freezes the mobile field for \code{FEM\_EVERY} immobile
 substeps at a time, while the 0-D is a genuinely adaptive integration that
 resolves the mobile transient with whatever step size that takes. Where
 $C_M^*$ is changing quickly the frozen-mobile approximation is therefore doing
@@ -1876,16 +1910,16 @@ frozen-mobile substeps. The ratio 1.344 is simply $1/0.744$ --- the same
 interior-to-0-D offset seen everywhere else, read backwards. The first dose at
 which both cases have actually marched is 6~\dpa.
 
-\paragraph{The two routes relax at different rates.} Case B's standalone at
+\paragraph{The two routes relax at different rates.} Case B's IMEX at
 1.1~\dpa\ has $N_a/0\text{-D}=0.916$, still well short of the 0.781 it settles
-at by 6.1~\dpa; the coupled march is already at 0.744 by 1~\dpa. The standalone
-has taken a single 1~\dpa\ step from its seed at that point, where the coupled
+at by 6.1~\dpa; the Adaptive march is already at 0.744 by 1~\dpa. The IMEX
+has taken a single 1~\dpa\ step from its seed at that point, where the Adaptive
 march has taken twenty substeps with four fast solves. The frozen-mobile march
 therefore reaches the fixed point \emph{faster} in dose than MoDELib3's own
 scheme does --- the opposite of what one would expect if the splitting cadence
 were the accuracy-limiting factor.
 
-\paragraph{The standalone forgets its seed too.} The same test on MoDELib3's own
+\paragraph{The IMEX forgets its seed too.} The same test on MoDELib3's own
 route --- two DDomp runs differing only in seed dose, 3109~s and 3239~s, every
 mobile solve converged in both --- gives the ratio of the 0.1~\dpa-seeded run to
 the 1~\dpa-seeded one, as interior means:
@@ -2030,11 +2064,11 @@ the immobile side is adaptive and absorbs the stiffness for free. Two
 qualifications:
 
 \begin{itemize}
-\item \textbf{The standalone cannot follow cheaply.} MoDELib3 steps at a fixed
+\item \textbf{The IMEX cannot follow cheaply.} MoDELib3 steps at a fixed
       \code{dtMax} of 1 \dpa. Resolving $10^{-3}$--$10^{-2}$ \dpa\ needs either a
       global hundred-fold cut --- 2000 steps, some 86 hours at the measured
       155~s/step --- or a variable schedule it does not currently have. The
-      coupled route gets the logarithmic grid for nothing; the standalone does
+      Adaptive route gets the logarithmic grid for nothing; the IMEX does
       not.
 \item \textbf{Below $\sim10^{-4}$ \dpa\ the QSSA genuinely fails}, because the
       mobile field is still rising from zero and a steady solve is the wrong
@@ -2061,12 +2095,12 @@ same code, each against its own immobile state. Two differences remain, and
 neither is the integrator alone:
 
 \begin{enumerate}
-\item \textbf{Different immobile equations.} The coupled route integrates
-      ZrMicro's immobile right-hand side; the standalone integrates MoDELib3's.
+\item \textbf{Different immobile equations.} The Adaptive route integrates
+      ZrMicro's immobile right-hand side; the IMEX integrates MoDELib3's.
       These are two models, not two integrations of one model.
 \item \textbf{Different integrators}, as characterized in
       Section~\ref{sec:integrators}, and a different splitting cadence:
-      \code{FEM\_EVERY} substeps between fast solves against the standalone's
+      \code{FEM\_EVERY} substeps between fast solves against the IMEX's
       one per internal substep.
 \end{enumerate}
 
@@ -2077,15 +2111,15 @@ wrong. Section~\ref{sec:attrib} separates the contributions.
 \label{sec:routecompare}
 
 Both routes were run from the same calibrated seed at 1~\dpa\ to 21~\dpa. The
-standalone completed 20 dose steps in 3109~s with every mobile solve converged;
-the coupled march completed the same span in 3964~s with 16 fast solves, all
+IMEX completed 20 dose steps in 3109~s with every mobile solve converged;
+the Adaptive march completed the same span in 3964~s with 16 fast solves, all
 converged, none capped. Interior means, and the ratios to the 0-D at the same
 dose:
 
 \begin{center}
 \begin{tabular}{rlrrrrrr}
 \toprule
-Dose & Quantity & 0-D & coupled & standalone & cpl/0-D & std/0-D & \textbf{cpl/std} \\
+Dose & Quantity & 0-D & Adaptive & IMEX & cpl/0-D & std/0-D & \textbf{cpl/std} \\
 \midrule
  6 & $N_a$ & $8.051\times10^{-8}$ & $5.983\times10^{-8}$ & $6.307\times10^{-8}$ & 0.743 & 0.783 & \textbf{0.949} \\
 11 & $N_a$ & $8.051\times10^{-8}$ & $5.974\times10^{-8}$ & $6.296\times10^{-8}$ & 0.742 & 0.782 & \textbf{0.949} \\
@@ -2119,11 +2153,11 @@ $c_a$ to 2.5\% and $N_a$ to 5\%. The outlier is $c_c$ at 35\%, and it falls
 exactly where the known model differences are: the bi-pyramid vacancy family
 exists only in the 3-D model, and size-dependent vacancy-loop thermal emission
 is 3-D only where the 0-D uses a constant surrogate. Both are \cloop\ vacancy
-physics, and both would act to lower the standalone's vacancy-loop content
+physics, and both would act to lower the IMEX's vacancy-loop content
 relative to ZrMicro's --- which is the observed direction, $\mathrm{std}/0\text{-D}=0.672$
-against the coupled route's 0.908. The discrepancy is not a units error: the
-standalone figures pass through \code{modelib\_immobile\_to\_0d} while the
-coupled figures are read directly in 0-D variables, and $N_c$, which shares that
+against the Adaptive route's 0.908. The discrepancy is not a units error: the
+IMEX figures pass through \code{modelib\_immobile\_to\_0d} while the
+Adaptive figures are read directly in 0-D variables, and $N_c$, which shares that
 conversion factor with $c_c$, agrees to 0.2\%.
 
 \subsection{Speed}
@@ -2136,17 +2170,17 @@ conversion factor with $c_c$, agrees to 0.2\%.
 \toprule
 Route & Integrator & wall [s] & per \dpa\ [s] \\
 \midrule
-standalone & MoDELib3 semi-implicit, 20 substeps/\dpa, nodal & 2409 & 120.5 \\
-coupled ($\Delta\gamma = 5$ \dpa) & CVODE BDF, \code{acc\_mode=2}, AD Jacobian & \textbf{424} & 21.2 \\
-coupled ($\Delta\gamma = 1$ \dpa) & as above, mobile refreshed 5$\times$ more often & 526 & 26.3 \\
+IMEX & MoDELib3 semi-implicit, 20 substeps/\dpa, nodal & 2409 & 120.5 \\
+Adaptive ($\Delta\gamma = 5$ \dpa) & CVODE BDF, \code{acc\_mode=2}, AD Jacobian & \textbf{424} & 21.2 \\
+Adaptive ($\Delta\gamma = 1$ \dpa) & as above, mobile refreshed 5$\times$ more often & 526 & 26.3 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The coupled march is $5.7\times$ faster than the standalone solve at equal dose
-span. That is not a like-for-like statement about integrators: the standalone
+The Adaptive march is $5.7\times$ faster than the IMEX solve at equal dose
+span. That is not a like-for-like statement about integrators: the IMEX
 also solves the mobile FEM boundary-value problem at every step, which the
-coupled route reads from a file rather than computing. It is a statement about
+Adaptive route reads from a file rather than computing. It is a statement about
 the two routes as a user runs them.
 
 \subsection{Attribution: model, splitting, or integrator?}
@@ -2162,7 +2196,7 @@ is ZrMicro integrated to the same dose with no spatial coupling at all.}
 \label{tab:attrib}
 \begin{tabular}{rrrrrr}
 \toprule
-Dose [\dpa] & 0-D alone & coupled & standalone & coupled / 0-D & standalone / 0-D \\
+Dose [\dpa] & 0-D alone & Adaptive & IMEX & Adaptive / 0-D & IMEX / 0-D \\
 \midrule
  5.1 & $1.03\times10^{-2}$ & $2.61\times10^{-3}$ & $1.43\times10^{-4}$ & 0.255 & 0.0140 \\
 10.1 & $1.84\times10^{-2}$ & $8.79\times10^{-3}$ & $1.53\times10^{-4}$ & 0.478 & 0.0083 \\
@@ -2172,9 +2206,9 @@ Dose [\dpa] & 0-D alone & coupled & standalone & coupled / 0-D & standalone / 0-
 \end{tabular}
 \end{table}
 
-The coupled route \textbf{converges onto the plain 0-D answer} as dose
+The Adaptive route \textbf{converges onto the plain 0-D answer} as dose
 accumulates ($0.255 \to 0.961$): the spatially resolved mobile field delays the
-0-D result but does not change where it goes. The standalone sits about
+0-D result but does not change where it goes. The IMEX sits about
 $130\times$ below the 0-D throughout.
 
 Refining the splitting interval settles the remaining ambiguity. Halving is not
@@ -2186,14 +2220,14 @@ substep count fixed:
 \toprule
 & $\Delta\gamma = 5$ \dpa & $\Delta\gamma = 1$ \dpa & change \\
 \midrule
-coupled \aloop\ at 20.1 \dpa & $2.23\times10^{-2}$ & $2.77\times10^{-2}$ & $+24\%$ \\
-ratio to standalone          & 130 & 161 & --- \\
+Adaptive \aloop\ at 20.1 \dpa & $2.23\times10^{-2}$ & $2.77\times10^{-2}$ & $+24\%$ \\
+ratio to IMEX          & 130 & 161 & --- \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 A five-fold refinement of the splitting moves the answer by 24\%, and moves it
-\emph{away} from the standalone rather than toward it. So:
+\emph{away} from the IMEX rather than toward it. So:
 
 \begin{itemize}
 \item the \textbf{model difference is ${\sim}130\times$} and dominates
@@ -2204,8 +2238,8 @@ A five-fold refinement of the splitting moves the answer by 24\%, and moves it
       with Section~\ref{sec:integrators}.
 \end{itemize}
 
-The \cloop\ family shows the mirror image: the standalone holds
-$1.78\times10^{-8}$ while the coupled route sits at $5.50\times10^{-10}$, a
+The \cloop\ family shows the mirror image: the IMEX holds
+$1.78\times10^{-8}$ while the Adaptive route sits at $5.50\times10^{-10}$, a
 factor 32 the other way, flat in dose in both routes.
 
 \subsection{A discrepancy with the calibration record}
@@ -2280,11 +2314,11 @@ return.
       and doing it exposed the cost: every fast solve is a separate DDomp
       invocation, so the mesh load, the FE assembly and the factorization of the
       diffusion operator are repeated on each of them, at 174\,s per call,
-      against a standalone run that amortizes all of it once over twenty steps.
+      against an IMEX run that amortizes all of it once over twenty steps.
       \code{pyMoDELib} removes the restart, and with it the dominant cost of a
       short splitting interval. Until then \code{FEM\_EVERY} is as much a
       wall-clock knob as a numerical one.
-\item \textbf{Guard the standalone immobile solver against the next stiff term.}
+\item \textbf{Guard the IMEX immobile solver against the next stiff term.}
       Section~\ref{sec:provenance} shows the same failure was found twice, by
       symptom, and there is still no mechanism that would catch a third. Any new
       loss channel added to \code{solveImmobileClusters} must be recast as a

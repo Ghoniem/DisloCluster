@@ -277,6 +277,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     history = {float(snaps[0]): Y.copy()}
     timing = []
     used_steps = set()
+    k_global = 0
     # Summary of C_M*(x) at every fast solve. If the split is doing its job the
     # first entries move and the later ones settle: the mobile field is being
     # re-established against an immobile state that is itself still changing.
@@ -302,7 +303,15 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         n_int, n_fast, fast_s = 0, 0, 0.0
         for k, (a, b) in enumerate(zip(edges[:-1], edges[1:])):
             # ── FAST STEP: steady mobile field for the CURRENT immobile state
-            if k % fem_every == 0:
+            #
+            # The cadence counts substeps over the WHOLE march, not within the
+            # interval. Counting within the interval makes `fem_every` silently
+            # inoperative whenever an interval holds fewer than `fem_every`
+            # substeps -- with one substep per interval, k is always 0 and the
+            # test always fires. For the earlier runs (20 substeps per interval,
+            # fem_every=5) the two counters agree exactly, so this changes no
+            # previous result.
+            if k_global % fem_every == 0:
                 if fast is not None:
                     t_f = time.perf_counter()
                     if not (i == 0 and k == 0):      # step 0 solved above
@@ -330,6 +339,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                 print(f"      warning: {nfail}/{N} points failed")
             Y = np.array([o if o is not None else Y[q] for q, o in enumerate(out)])
             n_int += st.get("n_integrated", N)
+            k_global += 1
             if verbose:
                 print(f"      substep {k + 1:2d}/{SUBSTEPS_PER_INTERVAL} "
                       f"[{d0:.1f}->{d1:.1f} dpa]  "

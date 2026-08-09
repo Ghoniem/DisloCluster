@@ -213,12 +213,12 @@ def write_report(cases, out_dir, sim):
     G = float(sim.input_data.material_params["G"])
     T = float(sim.input_data.material_params["T"])
 
-    md = ["# Seeding study — coupled march, standalone MoDELib3, and the 0-D", "",
+    md = ["# Seeding study — Adaptive (Option B), IMEX (Option A), and the 0-D", "",
           f"1 um single crystal, T = {T} K, G = {G} dpa/s, zero stress. Every "
           f"route uses the calibrated 0-D parameter set "
           f"({len(sim.overrides_applied)} fitted values on top of "
           f"`{Path(sim.input_file).name}`).", "",
-          "`coupled` and `standalone` columns are **interior** means — the "
+          "`Adaptive` and `IMEX` columns are **interior** means — the "
           "innermost quartile of the cube by distance to the nearest face. "
           "The whole-domain mean is in the CSV; it is dominated by the boundary "
           "shell, where loop densities are not quantitative because the "
@@ -228,8 +228,8 @@ def write_report(cases, out_dir, sim):
         md += [f"## Seeded at {c['dose_seed']} dpa", "",
                f"{c['n_nodes']} CD nodes, {c['n_interior']} in the interior "
                f"quartile.", "",
-               "| dose | quantity | 0-D | coupled | standalone (at dose) | "
-               "cpl/0-D | std/0-D | cpl/std |",
+               "| dose | quantity | 0-D | Adaptive | IMEX (at dose) | "
+               "Adpt/0-D | IMEX/0-D | Adpt/IMEX |",
                "|---:|---|---:|---:|---:|---:|---:|---:|"]
         for r in c["rows"]:
             sd = ("" if not np.isfinite(r["standalone_dose"])
@@ -254,8 +254,8 @@ def write_report(cases, out_dir, sim):
         # Doses within half an interval of each other count as the same dose.
         ref, other = seeds[0], seeds[-1]
         md += [f"| dose (seed {ref}) | dose (seed {other}) | quantity | "
-               f"coupled {ref} | coupled {other} | ratio | "
-               f"standalone {ref} | standalone {other} | ratio |",
+               f"Adaptive {ref} | Adaptive {other} | ratio | "
+               f"IMEX {ref} | IMEX {other} | ratio |",
                "|---:|---:|---|---:|---:|---:|---:|---:|---:|"]
         d_ref = sorted({k[0] for k in by_seed[ref]})
         d_oth = sorted({k[0] for k in by_seed[other]})

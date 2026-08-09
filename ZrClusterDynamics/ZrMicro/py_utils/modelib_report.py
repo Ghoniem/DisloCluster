@@ -44,6 +44,18 @@ MOBILE = ("Cv", "Ci", "C2i", "C3i")
 DENSITY = ("n_vL", "n_a1", "n_a2", "n_a3")
 CONTENT = ("c_vL", "c_a1", "c_a2", "c_a3")
 
+# The three prismatic variants are crystallographically equivalent under the
+# symmetry of this loading (zero applied stress), and the coupling bridge splits
+# the lumped 0-D <a> population equally across them, so a1, a2 and a3 carry the
+# same field. Plotting one of them is therefore complete, and plotting all three
+# triples the figure count for nothing.
+DENSITY_A1 = ("n_vL", "n_a1")
+CONTENT_A1 = ("c_vL", "c_a1")
+FAMILY_SLUG_A1 = {0: "c", 1: "a1"}
+
+# One vertical mid-cut (normal to y) and one horizontal (normal to z).
+DEFAULT_PLANES = ("y", "z")
+
 # Short, filesystem-safe names. n_vL is the basal <c> family, so it is filed as
 # N_c rather than N_vL to match how the figures are labelled.
 FILE_SLUG = {
@@ -88,25 +100,35 @@ def _tag(dose):
 
 # ── 3d/ : one field figure per quantity per dose ─────────────────────────────
 def write_3d_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
-                     overlays=True, n_loops=None, plane="y", view=None,
-                     verbose=True, dose_seed=0.1):
+                     overlays=True, n_loops=None, plane=DEFAULT_PLANES,
+                     view=None, verbose=True, dose_seed=0.1, a1_only=True):
     """Figs 19-23, split one quantity per file. Returns the list of paths.
 
-    `plane` selects the mid-cut. "y" is right for the cube, where every cut is
-    equivalent by symmetry. For the hexagonal prism "z" is the informative one:
-    it cuts normal to the c-axis and so shows the hexagonal section with the
-    depletion rim on all six prism faces, whereas a y cut passes through two
+    `plane` selects the mid-cut, and may be a single axis or several drawn into
+    the same axes. The default is one vertical cut (normal to y) and one
+    horizontal (normal to z), which shows the boundary layer on four faces at
+    once. A single "y" is right for a cube if only one cut is wanted, since
+    every cut is then equivalent by symmetry; for a hexagonal prism "z" is the
+    informative single cut, because it sections normal to the c-axis and shows
+    the depletion rim on all six prism faces, whereas a y cut passes through two
     opposite vertices and is just a rectangle. `view=None` picks the viewpoint
-    from the plane.
+    from the plane, or a compromise angle when there is more than one.
+
+    `a1_only` plots one prismatic variant instead of three. They are
+    crystallographically equivalent here and the coupling bridge makes them
+    identical, so the other two carry no information.
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     steps = dose_steps(doses, dose_per_step, dose_seed)
+    groups = ((MOBILE, DENSITY_A1, CONTENT_A1) if a1_only
+              else (MOBILE, DENSITY, CONTENT))
+    fams = FAMILY_SLUG_A1 if a1_only else FAMILY_SLUG
     written = []
 
     for dose, step in zip(doses, steps):
         tag = _tag(dose)
-        for group in (MOBILE, DENSITY, CONTENT):
+        for group in groups:
             for sp in group:
                 out = out_dir / f"{FILE_SLUG[sp]}_{tag}.png"
                 plot_field_panels(
@@ -118,7 +140,7 @@ def write_3d_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
                     print(f"  {out.name}")
 
         if overlays:
-            for k, slug in FAMILY_SLUG.items():
+            for k, slug in fams.items():
                 out = out_dir / f"loops_{slug}_{tag}.png"
                 plot_field_panels(
                     evl_dir, [step], [dose], species=(FAMILY_BG[k],),
@@ -303,8 +325,12 @@ def _profile_figure(x_sets, labels, xlabel, ylabel, title, out_file, logy=True):
 
 
 def write_gb_figures(evl_dir, doses, out_dir, dose_per_step=1.0, max_nm=150.0,
-                     n_bins=60, verbose=True, dose_seed=0.1):
-    """Figs 24-27, split one quantity per file. Returns the list of paths."""
+                     n_bins=60, verbose=True, dose_seed=0.1, a1_only=True):
+    """Figs 24-27, split one quantity per file. Returns the list of paths.
+
+    ``a1_only`` keeps the basal <c> family and one prismatic variant; the
+    other two are identical to a1 here and only multiply the figures.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     steps = dose_steps(doses, dose_per_step, dose_seed)
@@ -328,7 +354,10 @@ def write_gb_figures(evl_dir, doses, out_dir, dose_per_step=1.0, max_nm=150.0,
             print(f"  {out.name}")
 
     # Figs 25 & 26 — loop density [m^-3] and stored content [defects m^-3]
+    keep = set(FAMILY_SLUG_A1) if a1_only else set(FAMILY_SLUG)
     for k, (label, ncol, ccol, bmag, _n, _c) in enumerate(FAMILIES):
+        if k not in keep:
+            continue
         slug = FAMILY_SLUG[k]
 
         sets = [profile(data[s][0], data[s][1][:, ncol] / B_SI ** 3, n_bins, max_nm)

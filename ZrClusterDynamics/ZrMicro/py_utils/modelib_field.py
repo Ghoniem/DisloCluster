@@ -372,14 +372,29 @@ class FieldBridge:
     # -- writing -------------------------------------------------------------
     def write_immobile_field(self, Y, evl_src=None, dest=None,
                              variant_weights=(1 / 3, 1 / 3, 1 / 3),
-                             backup=False):
+                             backup=False, mobile=True):
         """Write the marched per-node 0-D state into an evl CD block.
+
+        Both halves of the CD block are written by default. Writing only the
+        immobile half — which this method did originally — leaves the mobile
+        columns at whatever ``evl_src`` carried, and ``evl_src`` is the seed:
+        spatially uniform, with no boundary layer. The snapshot then claims a
+        flat mobile field that the march never used, since ``run_coupled``
+        replaces ``Y[:, 0:4]`` with the fast solve's ``C_M*(x)`` at every
+        refresh. Any figure or grain-boundary profile of a mobile species drawn
+        from such a snapshot shows the seed, not the solution.
+
+        This does not affect the immobile results: those come from the block
+        written here, and from ``march_state.npz``, both of which were always
+        correct.
 
         Parameters
         ----------
         Y : (N,19) array   — one native ZrMicro state per CD node
         evl_src : path     — configuration to seed from (default: latest)
         dest : path        — output (default: overwrite ``evl_src``)
+        mobile : bool      — also write Y[:, :4] into the mobile columns. Pass
+                             False only to reproduce the historical behaviour.
         """
         src = Path(evl_src) if evl_src is not None else self.latest_evl()
         ev = EvlFile(src)
@@ -393,6 +408,8 @@ class FieldBridge:
             shutil.copy2(src, src.with_suffix(".txt.bak"))
         ev.cd[:, M_SIZE:] = immobile_0d_to_modelib(Y, self.omega,
                                                    variant_weights)
+        if mobile:
+            ev.cd[:, :M_SIZE] = Y[:, :M_SIZE]
         return ev.write(dest if dest is not None else src)
 
     def write_mobile_field(self, C_M, evl_src=None, dest=None):

@@ -45,45 +45,46 @@
 \contentsline {subsection}{\numberline {9.2}Recommendation 2: the base+delta case protocol}{18}{subsection.9.2}%
 \contentsline {subsection}{\numberline {9.3}Recommendation 3: deduplicating points before dispatch}{19}{subsection.9.3}%
 \contentsline {subsection}{\numberline {9.4}Combined effect}{19}{subsection.9.4}%
-\contentsline {section}{\numberline {10}The 1\,\textmu m reference through both routes}{19}{section.10}%
+\contentsline {section}{\numberline {10}Two options for time integration by operator splitting}{19}{section.10}%
+\contentsline {paragraph}{On the names.}{20}{section*.10}%
 \contentsline {subsection}{\numberline {10.1}The fast step belongs inside the loop}{20}{subsection.10.1}%
-\contentsline {subsection}{\numberline {10.2}A non-terminating mobile solve, and its cause}{20}{subsection.10.2}%
-\contentsline {paragraph}{Cause.}{21}{section*.10}%
+\contentsline {subsection}{\numberline {10.2}A non-terminating mobile solve, and its cause}{21}{subsection.10.2}%
+\contentsline {paragraph}{Cause.}{21}{section*.11}%
 \contentsline {paragraph}{Every remedy, measured on one saved state.}{21}{table.20}%
-\contentsline {paragraph}{Verification.}{21}{section*.12}%
-\contentsline {paragraph}{What was changed.}{22}{section*.13}%
+\contentsline {paragraph}{Verification.}{22}{section*.13}%
+\contentsline {paragraph}{What was changed.}{22}{section*.14}%
 \contentsline {subsection}{\numberline {10.3}Does the split repair a seed that is not quasi-steady?}{22}{subsection.10.3}%
-\contentsline {subsection}{\numberline {10.4}A calibration error that voids the earlier physics numbers}{22}{subsection.10.4}%
-\contentsline {paragraph}{Every loop density and mobile concentration reported in earlier revisions of this section is void.}{22}{section*.14}%
-\contentsline {paragraph}{What is unaffected.}{23}{section*.15}%
-\contentsline {paragraph}{A comparison to make carefully.}{23}{section*.16}%
-\contentsline {subsection}{\numberline {10.5}The whole-domain mean is the wrong statistic}{23}{subsection.10.5}%
-\contentsline {paragraph}{It is confined to the Dirichlet faces.}{24}{section*.17}%
-\contentsline {paragraph}{The standalone does the same thing, to four figures.}{24}{section*.18}%
-\contentsline {paragraph}{The interior is well behaved.}{24}{section*.19}%
-\contentsline {paragraph}{Consequence for every comparison in this section.}{25}{section*.20}%
+\contentsline {subsection}{\numberline {10.4}A calibration error that voids the earlier physics numbers}{23}{subsection.10.4}%
+\contentsline {paragraph}{Every loop density and mobile concentration reported in earlier revisions of this section is void.}{23}{section*.15}%
+\contentsline {paragraph}{What is unaffected.}{24}{section*.16}%
+\contentsline {paragraph}{A comparison to make carefully.}{24}{section*.17}%
+\contentsline {subsection}{\numberline {10.5}The whole-domain mean is the wrong statistic}{24}{subsection.10.5}%
+\contentsline {paragraph}{It is confined to the Dirichlet faces.}{24}{section*.18}%
+\contentsline {paragraph}{IMEX does the same thing, to four figures.}{25}{section*.19}%
+\contentsline {paragraph}{The interior is well behaved.}{25}{section*.20}%
+\contentsline {paragraph}{Consequence for every comparison in this section.}{25}{section*.21}%
 \contentsline {subsection}{\numberline {10.6}Does the seed dose matter? Seeding inside and outside the transient}{25}{subsection.10.6}%
-\contentsline {paragraph}{The correction the fast step makes is the same at both seeds.}{25}{section*.21}%
-\contentsline {paragraph}{Both seeds reach the same interior state.}{25}{section*.22}%
-\contentsline {paragraph}{Directly, at every shared dose.}{26}{section*.23}%
-\contentsline {paragraph}{One row that is not a disagreement.}{26}{section*.24}%
-\contentsline {paragraph}{The two routes relax at different rates.}{26}{section*.25}%
-\contentsline {paragraph}{The standalone forgets its seed too.}{26}{section*.26}%
-\contentsline {paragraph}{Conclusion.}{27}{section*.27}%
+\contentsline {paragraph}{The correction the fast step makes is the same at both seeds.}{26}{section*.22}%
+\contentsline {paragraph}{Both seeds reach the same interior state.}{26}{section*.23}%
+\contentsline {paragraph}{Directly, at every shared dose.}{26}{section*.24}%
+\contentsline {paragraph}{One row that is not a disagreement.}{27}{section*.25}%
+\contentsline {paragraph}{The two routes relax at different rates.}{27}{section*.26}%
+\contentsline {paragraph}{The IMEX forgets its seed too.}{27}{section*.27}%
+\contentsline {paragraph}{Conclusion.}{27}{section*.28}%
 \contentsline {subsection}{\numberline {10.7}Removing the 0-D seed entirely}{27}{subsection.10.7}%
-\contentsline {paragraph}{The two transients are 100\,$\times $ apart in dose.}{27}{section*.28}%
-\contentsline {paragraph}{Only the immobile half of the seed was ever used.}{27}{section*.29}%
-\contentsline {paragraph}{The loop-free limit is not singular.}{27}{section*.30}%
-\contentsline {paragraph}{A march from pristine material reproduces the seeded ones.}{28}{section*.31}%
-\contentsline {paragraph}{A by-product that pins down the boundary artifact.}{28}{section*.32}%
-\contentsline {paragraph}{What it costs, and what it does not buy.}{28}{section*.33}%
-\contentsline {subsection}{\numberline {10.8}What this does and does not isolate}{28}{subsection.10.8}%
+\contentsline {paragraph}{The two transients are 100\,$\times $ apart in dose.}{28}{section*.29}%
+\contentsline {paragraph}{Only the immobile half of the seed was ever used.}{28}{section*.30}%
+\contentsline {paragraph}{The loop-free limit is not singular.}{28}{section*.31}%
+\contentsline {paragraph}{A march from pristine material reproduces the seeded ones.}{28}{section*.32}%
+\contentsline {paragraph}{A by-product that pins down the boundary artifact.}{29}{section*.33}%
+\contentsline {paragraph}{What it costs, and what it does not buy.}{29}{section*.34}%
+\contentsline {subsection}{\numberline {10.8}What this does and does not isolate}{29}{subsection.10.8}%
 \contentsline {subsection}{\numberline {10.9}The two routes, compared}{29}{subsection.10.9}%
-\contentsline {paragraph}{The route-to-route offset is constant in dose.}{29}{section*.34}%
-\contentsline {paragraph}{Where they agree and where they do not.}{29}{section*.35}%
-\contentsline {subsection}{\numberline {10.10}Speed}{29}{subsection.10.10}%
+\contentsline {paragraph}{The route-to-route offset is constant in dose.}{30}{section*.35}%
+\contentsline {paragraph}{Where they agree and where they do not.}{30}{section*.36}%
+\contentsline {subsection}{\numberline {10.10}Speed}{30}{subsection.10.10}%
 \contentsline {subsection}{\numberline {10.11}Attribution: model, splitting, or integrator?}{30}{subsection.10.11}%
-\contentsline {subsection}{\numberline {10.12}A discrepancy with the calibration record}{30}{subsection.10.12}%
+\contentsline {subsection}{\numberline {10.12}A discrepancy with the calibration record}{31}{subsection.10.12}%
 \contentsline {subsection}{\numberline {10.13}Output}{31}{subsection.10.13}%
-\contentsline {section}{\numberline {11}Summary and recommended next steps}{31}{section.11}%
-\contentsline {paragraph}{Files.}{32}{section*.36}%
+\contentsline {section}{\numberline {11}Summary and recommended next steps}{32}{section.11}%
+\contentsline {paragraph}{Files.}{32}{section*.37}%

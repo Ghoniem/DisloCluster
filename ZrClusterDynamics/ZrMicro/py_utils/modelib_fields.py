@@ -349,6 +349,10 @@ def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
 
 
 _DEFAULT_VIEW = {"x": (10.0, -80.0), "y": (10.0, -80.0), "z": (55.0, -70.0)}
+# Two orthogonal cuts need a viewpoint that is edge-on to neither. The
+# single-cut angles are nearly frontal (elev 10) or nearly overhead (elev 55);
+# either reduces one of the two planes to a line.
+_MULTI_VIEW = (26.0, -58.0)
 
 
 def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
@@ -356,7 +360,7 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                       log=None, floor_decades=5.0, vlims=None,
                       loop_family=None, n_loops=None, loop_scale=45.0, seed=0,
                       figsize_per_panel=(3.3, 3.2), out_file=None, title=None,
-                      column_titles=True):
+                      column_titles=True, fields=None):
     """Panel figure: one row per species, one column per dose.
 
     Parameters
@@ -388,13 +392,25 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                    otherwise the two headers overlap.
     """
     rng = np.random.default_rng(seed)
+    # `plane` may be a single axis or several. Two orthogonal mid-cuts drawn in
+    # the SAME axes -- one vertical (normal to y) and one horizontal (normal to
+    # z) -- show the boundary layer on four faces at once and reveal whether the
+    # field is genuinely isotropic about the centre, which a single cut cannot.
+    planes = (plane,) if isinstance(plane, str) else tuple(plane)
     if view is None:
-        view = _DEFAULT_VIEW.get(plane, (10.0, -80.0))
-    data = {st: load_cd_fields(evl_dir, st) for st in steps}
+        view = (_MULTI_VIEW if len(planes) > 1
+                else _DEFAULT_VIEW.get(planes[0], (10.0, -80.0)))
+    # `fields` lets a caller supply {step: (P, F)} directly instead of reading
+    # evl files. The movie driver needs this: its frames come from
+    # march_state.npz, which stores the state in ZrMicro's 19-variable form
+    # under the true dose of each snapshot, and so does not depend on the
+    # evl filename convention at all.
+    data = (dict(fields) if fields is not None
+            else {st: load_cd_fields(evl_dir, st) for st in steps})
     P0 = data[steps[0]][0]
     lo, hi = P0.min(0), P0.max(0)
     trees = {st: cKDTree(data[st][0]) for st in steps}
-    corner, uvec, vvec = _plane_grid(lo, hi, plane, n_slice)
+    grids = [_plane_grid(lo, hi, p, n_slice) for p in planes]
 
     # The domain is whatever convex body the nodes fill -- a cube for the
     # reference case, a hexagonal prism for the single-crystal case. Both the
@@ -426,25 +442,29 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
         for c, (st, dose) in enumerate(zip(steps, doses)):
             ax = fig.add_subplot(nrow, ncol, r * ncol + c + 1, projection="3d")
             P, F = data[st]
-            X, Y, Z, S = _sample_plane(trees[st], F[:, col_idx],
-                                       corner, uvec, vvec, n_slice)
-            fc = _JETISH(norm(S))
-            if faces is not None:
-                # The plane grid spans the bounding box, so on a non-box domain
-                # part of it lies outside the crystal. Those cells are made
-                # transparent instead of being painted with an extrapolated
-                # value -- plot_surface colours a cell from its lower corner, so
-                # a cell is dropped if ANY of its four corners is outside.
-                ins = _inside(np.stack([X, Y, Z], -1), faces)
-                cell = ins[:-1, :-1] & ins[1:, :-1] & ins[:-1, 1:] & ins[1:, 1:]
-                fc[..., 3] = 0.0
-                fc[:-1, :-1, 3] = cell
-            ax.plot_surface(X, Y, Z, facecolors=fc, shade=False,
-                            rstride=1, cstride=1, linewidth=0, antialiased=False)
+            for corner, uvec, vvec in grids:
+                X, Y, Z, S = _sample_plane(trees[st], F[:, col_idx],
+                                           corner, uvec, vvec, n_slice)
+                fc = _JETISH(norm(S))
+                if faces is not None:
+                    # The plane grid spans the bounding box, so on a non-box
+                    # domain part of it lies outside the crystal. Those cells
+                    # are made transparent instead of being painted with an
+                    # extrapolated value -- plot_surface colours a cell from its
+                    # lower corner, so a cell is dropped if ANY of its four
+                    # corners is outside.
+                    ins = _inside(np.stack([X, Y, Z], -1), faces)
+                    cell = (ins[:-1, :-1] & ins[1:, :-1] &
+                            ins[:-1, 1:] & ins[1:, 1:])
+                    fc[..., 3] = 0.0
+                    fc[:-1, :-1, 3] = cell
+                ax.plot_surface(X, Y, Z, facecolors=fc, shade=False,
+                                rstride=1, cstride=1, linewidth=0,
+                                antialiased=False)
             _draw_domain(ax, P0, lo, hi)
             if loop_family is not None:
                 _overlay_family(ax, P, F, lo, hi, rng, FAMILIES[loop_family],
-                                n_loops, loop_scale, plane, faces=faces)
+                                n_loops, loop_scale, planes[0], faces=faces)
             ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
             # True proportions. A fixed (1,1,1) box renders the 400 x 346 x 653 nm
             # prism as though it were a cube.

@@ -1,0 +1,15 @@
+{
+  "name": "zr3d_500nm",
+  "size_nm": 500.0,
+  "layer_nm": 150.0,
+  "layers_across": 5,
+  "layer_lc_nm": 30.0,
+  "interior_lc_nm": 120.0,
+  "mesh": "cubic_500nm_15000el_o1_bl_3b5e4592.msh",
+  "n_tets": 20645,
+  "n_mesh_nodes": 4555,
+  "generated": "2026-08-09 09:58:52",
+  "git_hash": "0dea883",
+  "n_cd_nodes": 31812,
+  "scaffold": "evl_scaffold_pristine.txt"
+}

@@ -204,7 +204,7 @@ class ZrMicroVisualizer:
     """
 
     def __init__(self, simulation, results, output_dir,
-                 use_dpa=True, dpa_range=None, sim_config=None):
+                 use_dpa=True, dpa_range=None, sim_config=None, run_dir=None):
         self.sim     = simulation
         self.results = results
         self.inp     = simulation.input_data
@@ -219,10 +219,19 @@ class ZrMicroVisualizer:
         except Exception:
             repo_root = Path(simulation.input_file).resolve().parent.parent.parent
 
-        # Create the unique run directory
-        self.run_dir, self.run_id = create_run_directory(
-            Path(output_dir), repo_root=repo_root
-        )
+        # Create the unique run directory, unless the caller supplied one.
+        # A caller that is placing this figure suite INSIDE a larger run --
+        # the volume-average suite of a 3-D march, for instance -- already owns
+        # a timestamped directory and wants the figures in a named subdirectory
+        # of it, not in a second timestamped tree nested inside the first.
+        if run_dir is not None:
+            self.run_dir = Path(run_dir)
+            self.run_dir.mkdir(parents=True, exist_ok=True)
+            self.run_id = self.run_dir.name
+        else:
+            self.run_dir, self.run_id = create_run_directory(
+                Path(output_dir), repo_root=repo_root
+            )
         print(f'✓ Run directory: {self.run_dir}')
 
         # Write provenance immediately

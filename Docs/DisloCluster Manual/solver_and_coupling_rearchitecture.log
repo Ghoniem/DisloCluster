@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  8 AUG 2026 22:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  9 AUG 2026 10:13
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -748,83 +748,79 @@ Overfull \hbox (33.05818pt too wide) in paragraph at lines 1309--1315
 ti-cal initial-value prob-lems. \T1/lmtt/m/n/10 run_immobile_step
  []
 
-[18]
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\leavevmode@ifvmode' on input line 1360.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                \kern 1.82538pt
-(hyperref)                removed on input line 1360.
-
-[19]
-Overfull \hbox (14.0325pt too wide) in paragraph at lines 1403--1403
+[18] [19]
+Overfull \hbox (14.0325pt too wide) in paragraph at lines 1437--1437
 []\T1/lmtt/m/n/10.95 solveMobileClusters();      // FAST -- steady C_M*(x). No 
 time derivative[] 
  []
 
 
-Overfull \hbox (31.2787pt too wide) in paragraph at lines 1403--1403
+Overfull \hbox (31.2787pt too wide) in paragraph at lines 1437--1437
 []                            \T1/lmtt/m/n/10.95 // anywhere; the immobile popu
 lation enters only[] 
  []
 
 
-Overfull \hbox (8.28377pt too wide) in paragraph at lines 1403--1403
+Overfull \hbox (8.28377pt too wide) in paragraph at lines 1437--1437
 []                            \T1/lmtt/m/n/10.95 // through ImmobileSinks, eval
 uated at every[] 
  []
 
 [20]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 1490.
-
-Overfull \hbox (43.96764pt too wide) in paragraph at lines 1523--1534
+(Font)              <9> on input line 1524.
+ [21]
+Overfull \hbox (43.96764pt too wide) in paragraph at lines 1557--1568
  []\T1/lmr/bx/n/10.95 What was changed.[] \T1/lmr/m/n/10.95 Five op-tional DD.t
 xt scalars (\T1/lmtt/m/n/10 mobileSolverTolerance\T1/lmr/m/n/10.95 , \T1/lmtt/m
 /n/10 mobileSolverMaxIterations\T1/lmr/m/n/10.95 ,
  []
 
-[21]
-Overfull \hbox (17.35272pt too wide) in paragraph at lines 1595--1602
+
+Overfull \hbox (0.26436pt too wide) in paragraph at lines 1557--1568
+\T1/lmr/m/n/10.95 hang into a bounded, re-pro-ducible re-sult. The Adap-tive fa
+st solve sets \T1/lmtt/m/n/10 mobileSolverClampInLoop=0
+ []
+
+[22]
+Overfull \hbox (17.35272pt too wide) in paragraph at lines 1629--1636
 \T1/lmr/m/n/10.95 en-tirely --- and pins ev-ery fit-ted value be-fore build-ing
  the model chain. \T1/lmtt/m/n/10 run_coupled_vs_standalone.py
  []
 
-[22] [23] [24] [25] [26]
-Overfull \hbox (44.10356pt too wide) in paragraph at lines 1957--1963
+[23] [24] [25] [26] [27]
+Overfull \hbox (44.10356pt too wide) in paragraph at lines 1991--1997
 []\T1/lmr/m/n/10.95 This also cor-rects a nat-u-ral mis-read-ing of the fast st
 ep. It has no time deriva-tive --- \T1/lmtt/m/n/10 solveMobileClusters
  []
 
-[27] [28]
-Overfull \hbox (12.77565pt too wide) in paragraph at lines 2135--2144
+[28] [29]
+Overfull \hbox (19.46765pt too wide) in paragraph at lines 2169--2178
  [][] 
  []
 
-[29] [30]
-Overfull \hbox (56.8266pt too wide) in paragraph at lines 2232--2239
+[30]
+Overfull \hbox (56.8266pt too wide) in paragraph at lines 2266--2273
 \T1/lmr/m/n/10.95 ELib con-fig-u-ra-tions. \T1/lmtt/m/n/10 run_coupled_vs_stand
 alone.py \T1/lmr/m/n/10.95 drives it, and Sec-tion 14 of \T1/lmtt/m/n/10 couple
 d_0d_3d_ZrMicro.ipynb
  []
 
-
-Overfull \hbox (8.398pt too wide) in paragraph at lines 2302--2316
+[31]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 2336--2350
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (52.80855pt too wide) in paragraph at lines 2302--2316
+Overfull \hbox (52.80855pt too wide) in paragraph at lines 2336--2350
 \T1/lmtt/m/n/10 py_utils/modelib_coupling.py\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10
  py_utils/modelib_field.py \T1/lmr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/ru
 n_coupled_vs_standalone.py
  []
 
-[31] [32] (solver_and_coupling_rearchitecture.aux)
+[32] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -833,18 +829,25 @@ L3 programming layer <2026-03-20>
 
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
-Package rerunfilecheck Info: File `solver_and_coupling_rearchitecture.out' has 
-not changed.
-(rerunfilecheck)             Checksum: 880BAC14F4FA9B1D30D1C552C58120DA;12620.
+
+Package rerunfilecheck Warning: File `solver_and_coupling_rearchitecture.out' h
+as changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `solver_and_coupling_rearchitecture.
+out':
+(rerunfilecheck)             Before: 880BAC14F4FA9B1D30D1C552C58120DA;12620
+(rerunfilecheck)             After:  2AF3AFE676C4782D2C6E25A44C959CCC;12708.
  ) 
 Here is how much of TeX's memory you used:
- 11721 strings out of 467691
- 180236 string characters out of 5414988
- 615121 words of memory out of 5000000
- 40412 multiletter control sequences out of 15000+600000
- 757179 words of font info for 131 fonts, out of 8000000 for 9000
+ 11722 strings out of 467691
+ 180282 string characters out of 5414988
+ 614122 words of memory out of 5000000
+ 40413 multiletter control sequences out of 15000+600000
+ 756803 words of font info for 130 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,14n,79p,539b,577s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,14n,79p,539b,571s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
@@ -865,10 +868,10 @@ s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users
 /Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users
 /Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10
 .pfb>
-Output written on solver_and_coupling_rearchitecture.pdf (32 pages, 547436 byte
+Output written on solver_and_coupling_rearchitecture.pdf (32 pages, 550281 byte
 s).
 PDF statistics:
  680 PDF objects out of 1000 (max. 8388607)
- 164 named destinations out of 1000 (max. 500000)
+ 165 named destinations out of 1000 (max. 500000)
  433 words of extra memory for PDF output out of 10000 (max. 10000000)
 
