@@ -4,10 +4,10 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Starting point}{3}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Structural observation: the accumulators are pure quadratures}{3}{section.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dimension of the implicit block actually factorized.}}{3}{table.1}\protected@file@percent }
-\newlabel{tab:dims}{{1}{3}{Dimension of the implicit block actually factorized}{table.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{4}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{4}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{3}{subsection.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dimension of the implicit block actually factorized.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:dims}{{1}{4}{Dimension of the implicit block actually factorized}{table.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Bit-identity.}{4}{section*.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Reduced implicit block}{4}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Reusable per-thread solver workspace}{4}{subsection.3.3}\protected@file@percent }
@@ -17,9 +17,9 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Interface}{5}{subsection.3.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Verification}{5}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The AD Jacobian}{5}{subsection.4.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces AD versus central-difference Jacobian, worst row-relative discrepancy over all compared entries. Representative states from the 20 tested.}}{5}{table.3}\protected@file@percent }
-\newlabel{tab:jac}{{3}{5}{AD versus central-difference Jacobian, worst row-relative discrepancy over all compared entries. Representative states from the 20 tested}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Bit-identity of the untouched path}{6}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Bit-identity of the untouched path}{5}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces AD versus central-difference Jacobian, worst row-relative discrepancy over all compared entries. Representative states from the 20 tested.}}{6}{table.3}\protected@file@percent }
+\newlabel{tab:jac}{{3}{6}{AD versus central-difference Jacobian, worst row-relative discrepancy over all compared entries. Representative states from the 20 tested}{table.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Results}{6}{section.5}\protected@file@percent }
 \newlabel{sec:results}{{5}{6}{Results}{section.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Standalone 0-D run}{6}{subsection.5.1}\protected@file@percent }
@@ -27,7 +27,7 @@
 \newlabel{tab:phaseA}{{4}{6}{Standalone 0-D run. ``bit=ref'' is byte-for-byte agreement with the git-HEAD binary}{table.4}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces Standalone accuracy against the tight reference (max relative error).}}{6}{table.5}\protected@file@percent }
 \newlabel{tab:phaseAerr}{{5}{6}{Standalone accuracy against the tight reference (max relative error)}{table.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Operator-split coupling march}{6}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Operator-split coupling march}{7}{subsection.5.2}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Coupling march, $q=1024$ quadrature points, 5 substeps. ``warn'' counts CVODE roundoff warnings (see Section~\ref {sec:pathology}); error is against the git-HEAD result.}}{7}{table.6}\protected@file@percent }
 \newlabel{tab:phaseB}{{6}{7}{Coupling march, $q=1024$ quadrature points, 5 substeps. ``warn'' counts CVODE roundoff warnings (see Section~\ref {sec:pathology}); error is against the git-HEAD result}{table.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces March wall time versus point count. Speedup is against the git-HEAD binary at the same $q$.}}{7}{table.7}\protected@file@percent }
@@ -43,9 +43,9 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.3}The mapping}{9}{subsection.6.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces CD block layout, \texttt  {\small  ClusterDynamicsParameters}: mSize $=4$, iSize $=8$. \texttt  {\small  immobileSpeciesVector = -1 1 1 1} makes family 0 the basal \ensuremath  {\langle c\rangle }\ vacancy family and families 1--3 the three prism \ensuremath  {\langle a\rangle }\ variants.}}{9}{table.8}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Verification on the 3-D verification case}{9}{subsection.6.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Field-handoff verification, 24\,115 CD nodes.}}{9}{table.9}\protected@file@percent }
-\newlabel{tab:field}{{9}{9}{Field-handoff verification, 24\,115 CD nodes}{table.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{A precision detail.}{10}{section*.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{A precision detail.}{9}{section*.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Field-handoff verification, 24\,115 CD nodes.}}{10}{table.9}\protected@file@percent }
+\newlabel{tab:field}{{9}{10}{Field-handoff verification, 24\,115 CD nodes}{table.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.5}Notebook wiring}{10}{subsection.6.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {6.6}Measured cost of the field upgrade}{10}{subsection.6.6}\protected@file@percent }
 \newlabel{sec:fieldcost}{{6.6}{10}{Measured cost of the field upgrade}{subsection.6.6}{}}
@@ -56,40 +56,40 @@
 \@writefile{toc}{\contentsline {section}{\numberline {7}Integrator comparison: MoDELib's nodal update versus the CVODE march}{11}{section.7}\protected@file@percent }
 \newlabel{sec:integrators}{{7}{11}{Integrator comparison: MoDELib's nodal update versus the CVODE march}{section.7}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}What MoDELib actually does}{11}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Test method}{11}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Test method}{12}{subsection.7.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Stability}{12}{subsection.7.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Spectrum of the frozen-mobile $9\times 9$ immobile Jacobian.}}{12}{table.11}\protected@file@percent }
 \newlabel{tab:spectrum}{{11}{12}{Spectrum of the frozen-mobile $9\times 9$ immobile Jacobian}{table.11}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces One 1 \ensuremath  {\mathrm  {dpa}}\ step at the near-boundary node: a genuine forward Euler at $\mathrm  dt=5\times 10^{5}$~s annihilates the entire \ensuremath  {\langle c\rangle }\ vacancy-loop family, exactly the failure the MoDELib source comment anticipates. The \ensuremath  {\langle a\rangle }\ families, which carry no fast decay channel, are unaffected.}}{12}{table.12}\protected@file@percent }
-\newlabel{tab:collapse}{{12}{12}{One 1 \dpa \ step at the near-boundary node: a genuine forward Euler at $\mathrm dt=5\times 10^{5}$~s annihilates the entire \cloop \ vacancy-loop family, exactly the failure the MoDELib source comment anticipates. The \aloop \ families, which carry no fast decay channel, are unaffected}{table.12}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Accuracy and speed}{12}{subsection.7.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces One 1 \ensuremath  {\mathrm  {dpa}}\ step at the near-boundary node: a genuine forward Euler at $\mathrm  dt=5\times 10^{5}$~s annihilates the entire \ensuremath  {\langle c\rangle }\ vacancy-loop family, exactly the failure the MoDELib source comment anticipates. The \ensuremath  {\langle a\rangle }\ families, which carry no fast decay channel, are unaffected.}}{13}{table.12}\protected@file@percent }
+\newlabel{tab:collapse}{{12}{13}{One 1 \dpa \ step at the near-boundary node: a genuine forward Euler at $\mathrm dt=5\times 10^{5}$~s annihilates the entire \cloop \ vacancy-loop family, exactly the failure the MoDELib source comment anticipates. The \aloop \ families, which carry no fast decay channel, are unaffected}{table.12}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {13}{\ignorespaces One 1 \ensuremath  {\mathrm  {dpa}}\ dose step, interior node ($C_v=6.70\times 10^{-6}$), against the \texttt  {\small  rtol=1e-12} reference. ``core evals'' counts evaluations of the shared right-hand side.}}{13}{table.13}\protected@file@percent }
 \newlabel{tab:eulerbdf}{{13}{13}{One 1 \dpa \ dose step, interior node ($C_v=6.70\times 10^{-6}$), against the \code {rtol=1e-12} reference. ``core evals'' counts evaluations of the shared right-hand side}{table.13}{}}
 \@writefile{toc}{\contentsline {paragraph}{What can and cannot be claimed for MoDELib's scheme.}{13}{section*.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Speed.}{13}{section*.7}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.5}Consequence for the coupling}{13}{subsection.7.5}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces The two integrators side by side.}}{13}{table.14}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces The two integrators side by side.}}{14}{table.14}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {8}Provenance: how the two schemes came to be}{14}{section.8}\protected@file@percent }
 \newlabel{sec:provenance}{{8}{14}{Provenance: how the two schemes came to be}{section.8}{}}
 \@writefile{toc}{\contentsline {paragraph}{Correction: the upstream is MoDELib-fullCD, not MoDELib2-NNL.}{14}{section*.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}The upstream scheme, and how MoDELib3 re-discretized it}{14}{subsection.8.1}\protected@file@percent }
-\newlabel{sec:fullcd}{{8.1}{14}{The upstream scheme, and how MoDELib3 re-discretized it}{subsection.8.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Immobile-species integration across the three code states. The upstream column is \texttt  {\small  MoDELib-fullCD}, read from a checkout, not inferred.}}{15}{table.15}\protected@file@percent }
 \newlabel{tab:provenance}{{15}{15}{Immobile-species integration across the three code states. The upstream column is \code {MoDELib-fullCD}, read from a checkout, not inferred}{table.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.1}The upstream scheme, and how MoDELib3 re-discretized it}{15}{subsection.8.1}\protected@file@percent }
+\newlabel{sec:fullcd}{{8.1}{15}{The upstream scheme, and how MoDELib3 re-discretized it}{subsection.8.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.2}How MoDELib3's variant reached its present form}{16}{subsection.8.2}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {16}{\ignorespaces How the standalone immobile scheme reached its present form. Each stiffness failure was fixed by moving one more linear loss into the implicit denominator.}}{16}{table.16}\protected@file@percent }
 \newlabel{tab:evolution}{{16}{16}{How the standalone immobile scheme reached its present form. Each stiffness failure was fixed by moving one more linear loss into the implicit denominator}{table.16}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.3}The coupled march scheme: outward from the 0-D solver}{16}{subsection.8.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.4}Three routes to the same conclusion}{17}{subsection.8.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Sourcing.}{17}{section*.9}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}The three recommendations, implemented and measured}{17}{section.9}\protected@file@percent }
-\newlabel{sec:recs}{{9}{17}{The three recommendations, implemented and measured}{section.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {9}The three recommendations, implemented and measured}{18}{section.9}\protected@file@percent }
+\newlabel{sec:recs}{{9}{18}{The three recommendations, implemented and measured}{section.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {9.1}Recommendation 1: how the accumulators are carried}{18}{subsection.9.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {17}{\ignorespaces Accumulator handling, $q=24\,115$, one 1 \ensuremath  {\mathrm  {dpa}}\ substep, AD Jacobian. Errors are against mode 0.}}{18}{table.17}\protected@file@percent }
 \newlabel{tab:rec1}{{17}{18}{Accumulator handling, $q=24\,115$, one 1 \dpa \ substep, AD Jacobian. Errors are against mode 0}{table.17}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {9.2}Recommendation 2: the base+delta case protocol}{18}{subsection.9.2}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Case-file protocol, $q=24\,115$. The two rows of each pair differ only in how the same cases are serialized. The upper block is the seed step, where the immobile state is still uniform and only the four mobile values differ; the lower block is the realistic mid-march state, where all thirteen trajectory components differ per node.}}{18}{table.18}\protected@file@percent }
-\newlabel{tab:rec2}{{18}{18}{Case-file protocol, $q=24\,115$. The two rows of each pair differ only in how the same cases are serialized. The upper block is the seed step, where the immobile state is still uniform and only the four mobile values differ; the lower block is the realistic mid-march state, where all thirteen trajectory components differ per node}{table.18}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {18}{\ignorespaces Case-file protocol, $q=24\,115$. The two rows of each pair differ only in how the same cases are serialized. The upper block is the seed step, where the immobile state is still uniform and only the four mobile values differ; the lower block is the realistic mid-march state, where all thirteen trajectory components differ per node.}}{19}{table.18}\protected@file@percent }
+\newlabel{tab:rec2}{{18}{19}{Case-file protocol, $q=24\,115$. The two rows of each pair differ only in how the same cases are serialized. The upper block is the seed step, where the immobile state is still uniform and only the four mobile values differ; the lower block is the realistic mid-march state, where all thirteen trajectory components differ per node}{table.18}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {9.3}Recommendation 3: deduplicating points before dispatch}{19}{subsection.9.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {19}{\ignorespaces Deduplication, $q=24\,115$, one 1 \ensuremath  {\mathrm  {dpa}}\ substep. Errors are against no deduplication.}}{19}{table.19}\protected@file@percent }
 \newlabel{tab:rec3}{{19}{19}{Deduplication, $q=24\,115$, one 1 \dpa \ substep. Errors are against no deduplication}{table.19}{}}
@@ -100,12 +100,12 @@
 \newlabel{sec:fastinloop}{{10.1}{20}{The fast step belongs inside the loop}{subsection.10.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {10.2}A non-terminating mobile solve, and its cause}{20}{subsection.10.2}\protected@file@percent }
 \newlabel{sec:mobilehang}{{10.2}{20}{A non-terminating mobile solve, and its cause}{subsection.10.2}{}}
-\@writefile{toc}{\contentsline {paragraph}{Cause.}{20}{section*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Cause.}{21}{section*.10}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {20}{\ignorespaces Mobile solve on an identical marched immobile state, 24\,115 CD nodes. The last column is the maximum relative error in $C_i$ against the converged field, over the 22\,344 nodes above the floor.}}{21}{table.20}\protected@file@percent }
 \newlabel{tab:mobilefix}{{20}{21}{Mobile solve on an identical marched immobile state, 24\,115 CD nodes. The last column is the maximum relative error in $C_i$ against the converged field, over the 22\,344 nodes above the floor}{table.20}{}}
 \@writefile{toc}{\contentsline {paragraph}{Every remedy, measured on one saved state.}{21}{table.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Verification.}{21}{section*.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{What was changed.}{21}{section*.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What was changed.}{22}{section*.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {10.3}Does the split repair a seed that is not quasi-steady?}{22}{subsection.10.3}\protected@file@percent }
 \newlabel{sec:seedrelax}{{10.3}{22}{Does the split repair a seed that is not quasi-steady?}{subsection.10.3}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {21}{\ignorespaces The 0.1 \ensuremath  {\mathrm  {dpa}}\ 0-D seed against the quasi-steady field solved for that same immobile state. 24\,115 CD nodes, 573 K, $10^{-7}$ \ensuremath  {\mathrm  {dpa}}/s. Reproduced to the digit on an independent invocation.}}{22}{table.21}\protected@file@percent }
@@ -130,21 +130,29 @@
 \@writefile{toc}{\contentsline {paragraph}{The two routes relax at different rates.}{26}{section*.25}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{The standalone forgets its seed too.}{26}{section*.26}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Conclusion.}{27}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.7}What this does and does not isolate}{27}{subsection.10.7}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.8}The two routes, compared}{27}{subsection.10.8}\protected@file@percent }
-\newlabel{sec:routecompare}{{10.8}{27}{The two routes, compared}{subsection.10.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{The route-to-route offset is constant in dose.}{27}{section*.28}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Where they agree and where they do not.}{28}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.9}Speed}{28}{subsection.10.9}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Wall clock for the full 0.1--20.1 \ensuremath  {\mathrm  {dpa}}\ schedule, 24 cores.}}{28}{table.22}\protected@file@percent }
-\newlabel{tab:tworoutespeed}{{22}{28}{Wall clock for the full 0.1--20.1 \dpa \ schedule, 24 cores}{table.22}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.10}Attribution: model, splitting, or integrator?}{28}{subsection.10.10}\protected@file@percent }
-\newlabel{sec:attrib}{{10.10}{28}{Attribution: model, splitting, or integrator?}{subsection.10.10}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Domain-mean \ensuremath  {\langle a\rangle }\ loop number density (atom fraction). ``0-D alone'' is ZrMicro integrated to the same dose with no spatial coupling at all.}}{28}{table.23}\protected@file@percent }
-\newlabel{tab:attrib}{{23}{28}{Domain-mean \aloop \ loop number density (atom fraction). ``0-D alone'' is ZrMicro integrated to the same dose with no spatial coupling at all}{table.23}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.11}A discrepancy with the calibration record}{29}{subsection.10.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {10.12}Output}{29}{subsection.10.12}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Summary and recommended next steps}{29}{section.11}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Summary of outcomes against intent.}}{29}{table.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Files.}{30}{section*.30}\protected@file@percent }
-\gdef \@abspage@last{30}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.7}Removing the 0-D seed entirely}{27}{subsection.10.7}\protected@file@percent }
+\newlabel{sec:pristine}{{10.7}{27}{Removing the 0-D seed entirely}{subsection.10.7}{}}
+\@writefile{toc}{\contentsline {paragraph}{The two transients are 100\,$\times $ apart in dose.}{27}{section*.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Only the immobile half of the seed was ever used.}{27}{section*.29}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The loop-free limit is not singular.}{27}{section*.30}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{A march from pristine material reproduces the seeded ones.}{28}{section*.31}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{A by-product that pins down the boundary artifact.}{28}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{What it costs, and what it does not buy.}{28}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.8}What this does and does not isolate}{28}{subsection.10.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.9}The two routes, compared}{29}{subsection.10.9}\protected@file@percent }
+\newlabel{sec:routecompare}{{10.9}{29}{The two routes, compared}{subsection.10.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{The route-to-route offset is constant in dose.}{29}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Where they agree and where they do not.}{29}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.10}Speed}{29}{subsection.10.10}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {22}{\ignorespaces Wall clock for the full 0.1--20.1 \ensuremath  {\mathrm  {dpa}}\ schedule, 24 cores.}}{30}{table.22}\protected@file@percent }
+\newlabel{tab:tworoutespeed}{{22}{30}{Wall clock for the full 0.1--20.1 \dpa \ schedule, 24 cores}{table.22}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.11}Attribution: model, splitting, or integrator?}{30}{subsection.10.11}\protected@file@percent }
+\newlabel{sec:attrib}{{10.11}{30}{Attribution: model, splitting, or integrator?}{subsection.10.11}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {23}{\ignorespaces Domain-mean \ensuremath  {\langle a\rangle }\ loop number density (atom fraction). ``0-D alone'' is ZrMicro integrated to the same dose with no spatial coupling at all.}}{30}{table.23}\protected@file@percent }
+\newlabel{tab:attrib}{{23}{30}{Domain-mean \aloop \ loop number density (atom fraction). ``0-D alone'' is ZrMicro integrated to the same dose with no spatial coupling at all}{table.23}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.12}A discrepancy with the calibration record}{30}{subsection.10.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {10.13}Output}{31}{subsection.10.13}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Summary and recommended next steps}{31}{section.11}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Summary of outcomes against intent.}}{31}{table.24}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Files.}{32}{section*.36}\protected@file@percent }
+\gdef \@abspage@last{32}

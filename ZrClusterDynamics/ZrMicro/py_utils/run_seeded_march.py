@@ -49,9 +49,37 @@ from py_utils.calibration import build_sim                   # noqa: E402
 SCAFFOLD = sstd.SCAFFOLD
 
 
+C_FLOOR = 1.0e-20
+
+
+def pristine_state():
+    """Unirradiated material: every species at the concentration floor.
+
+    Not literally zero. Both codes floor their populations --- ZrMicro at
+    ``C_floor`` before each rate evaluation, MoDELib at ``nFloor =
+    concentrationFloor/omega`` and ``cFloor = concentrationFloor`` --- and the
+    loop mean size is carried as ``r = l_a*sqrt(c/N)``, which is 0/0 at exactly
+    zero. The floor is what both models already mean by "no loops".
+
+    The mobile entries are immaterial: ``run_coupled`` overwrites them with the
+    first fast solve before any immobile marching, so the 0-D seed's mobile
+    field never influences the result even when one is supplied.
+    """
+    y = np.zeros(19)
+    y[0:12] = C_FLOOR
+    return y
+
+
 def build_seed(sim, dose, dest, scaffold=None):
-    """Write the calibrated 0-D state at `dose` uniformly onto the CD nodes."""
-    y, hit = sstd.zero_d_state(sim, dose)
+    """Write a uniform seed onto the CD nodes.
+
+    ``dose <= 0`` seeds pristine material instead of a 0-D state, which is what
+    removing the 0-D seed altogether amounts to.
+    """
+    if dose <= 0.0:
+        y, hit = pristine_state(), 0.0
+    else:
+        y, hit = sstd.zero_d_state(sim, dose)
     ev = mfield.EvlFile(Path(scaffold or SCAFFOLD))
     N = ev.cd.shape[0]
     omega = mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL)
@@ -103,10 +131,13 @@ def main(argv=None):
     rcs.SUBSTEPS_PER_INTERVAL = int(args.substeps)
     rcs.DOSE_SEED = float(dose_seed)
 
-    seed_path = template / "evl" / f"evl_seed_{dose_seed:.3f}dpa.txt"
+    seed_path = template / "evl" / (
+        "evl_seed_pristine.txt" if dose_seed <= 0.0
+        else f"evl_seed_{dose_seed:.3f}dpa.txt")
     y_seed, hit = build_seed(sim, dose_seed, seed_path)
     L = lumped(y_seed)
-    print(f"seed at {dose_seed} dpa (solver reached {hit:.4f}): "
+    what = "pristine" if dose_seed <= 0.0 else f"0-D at {dose_seed} dpa"
+    print(f"seed: {what} (solver reached {hit:.4f}): "
           f"N_a={L['N_a'][0]:.4e} N_c={L['N_c'][0]:.4e} "
           f"c_a={L['c_a'][0]:.4e} c_c={L['c_c'][0]:.4e}")
     print(f"  Cv={y_seed[0]:.4e} Ci={y_seed[1]:.4e}")

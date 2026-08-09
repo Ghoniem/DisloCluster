@@ -1922,6 +1922,138 @@ accumulating splitting error: it is a genuine difference between the
 spatially-resolved interior and a well-mixed 0-D at the same dose, established
 early and then held.
 
+\subsection{Removing the 0-D seed entirely}
+\label{sec:pristine}
+
+If the march forgets its seed, the natural next question is whether the seed is
+needed at all: can the seed dose be pushed down until the 3-D solve resolves the
+nucleation transient itself, starting from unirradiated material? It can, and
+the reason is a time-scale separation that the previous sections did not need to
+name.
+
+\paragraph{The two transients are 100\,$\times$ apart in dose.} Taking the
+adaptive 0-D as the reference, the dose at which each quantity first reaches
+99\% of its 1 \dpa\ value:
+
+\begin{center}
+\begin{tabular}{lrlr}
+\toprule
+Mobile & 99\% at [\dpa] & Immobile & 99\% at [\dpa] \\
+\midrule
+$C_i$   & $6.0\times10^{-10}$ & $N_c$ & $5.9\times10^{-3}$ \\
+$C_{3i}$& $1.6\times10^{-8}$  & $N_a$ & $7.7\times10^{-3}$ \\
+$C_v$   & $4.2\times10^{-5}$  & $c_a$ & $2.3\times10^{-2}$ \\
+        &                     & $c_c$ & $8.2\times10^{-1}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The mobile species are settled by $10^{-4}$ \dpa; loop nucleation runs from
+$10^{-3}$ to $10^{-2}$ \dpa. That gap is precisely the assumption the operator
+split rests on, so \emph{decreasing} the seed dose moves into the regime where
+the split is most valid, not out of it.
+
+This also corrects a natural misreading of the fast step. It has no time
+derivative --- \code{solveMobileClusters} solves
+$\nabla\!\cdot\!(D\nabla C) + G - R(C) = 0$ --- so there is no mobile transient
+in either route to resolve. Both already assume instantaneous quasi-steady
+state. What the 3-D solve would be asked to resolve is the \emph{nucleation}
+transient with the mobile field slaved throughout, which is well posed.
+
+\paragraph{Only the immobile half of the seed was ever used.} \code{run\_coupled}
+overwrites $Y[:,0{:}4]$ with the first fast solve before any immobile marching,
+so the 0-D seed's mobile field never reaches the answer. Removing the seed
+therefore means starting the immobile population at the concentration floor ---
+which is what both codes already mean by ``no loops'', since each floors its
+populations and the mean loop size $r=l_a\sqrt{c/N}$ is $0/0$ at exactly zero.
+
+\paragraph{The loop-free limit is not singular.} Running the same fast solve
+against three immobile states:
+
+\begin{center}
+\begin{tabular}{lrrlrr}
+\toprule
+Immobile state & $N_a$ & wall [s] & converged & $C_v$ mean & $C_{3i}$ mean \\
+\midrule
+pristine  & $2.0\times10^{-20}$ & 211 & yes & $3.602\times10^{-6}$ & $8.08\times10^{-12}$ \\
+0.01 \dpa & $9.7\times10^{-8}$  & 196 & yes & $3.479\times10^{-6}$ & $5.43\times10^{-12}$ \\
+1 \dpa    & $8.1\times10^{-8}$  & 197 & yes & $3.233\times10^{-6}$ & $4.08\times10^{-12}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Deleting every loop raises $C_v$ by 11\% and the di- and tri-interstitial
+clusters by a factor of two, and costs the solver nothing: the dislocation
+network, not the loop population, carries most of the sink strength at this dose
+rate.
+
+\paragraph{A march from pristine material reproduces the seeded ones.} Run on a
+logarithmic grid $0 \to 10^{-3} \to 10^{-2} \to 0.1 \to 1 \to 6$ \dpa, 20
+substeps per interval, a fast solve every fifth: 4818~s, 20 fast solves, none
+capped. Against the adaptive 0-D through the transient, and against the seeded
+marches afterwards, all as interior means:
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+Ratio of pristine march to & $N_a$ & $N_c$ & $c_a$ & $c_c$ \\
+\midrule
+0-D at $10^{-3}$ \dpa            & 0.961 & 1.001 & 1.009 & 0.996 \\
+0-D at $10^{-2}$ \dpa            & 0.871 & 1.000 & 1.148 & 0.892 \\
+march seeded at 0.1 \dpa, at 1 \dpa & 1.0006 & 1.0000 & 1.0000 & 0.9996 \\
+march seeded at 1 \dpa, at 6 \dpa   & 0.9995 & 1.0000 & 0.9998 & 0.9997 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Through the nucleation transient the 3-D interior tracks the adaptive 0-D to
+within 15\%, drifting toward the $0.74\times$ interior fixed point as it should.
+From 1 \dpa\ onward a march that never saw a 0-D state is indistinguishable from
+one that was handed it, to five parts in ten thousand. \textbf{The 0-D seed is
+not required.}
+
+\paragraph{A by-product that pins down the boundary artifact.} The whole-domain
+$N_a$ at 6 \dpa\ is $1.1484\times10^{-5}$ from pristine against
+$9.5996\times10^{-6}$ from the 1 \dpa\ seed, a ratio of 1.196. The two runs
+differ only in how much dose the surface accumulated --- 6 \dpa\ against 5 ---
+and $6/5 = 1.200$. The surface population is therefore exactly linear
+accumulation of cascade nucleation with no removal, to three figures, and the
+whole-domain mean depends on the seeding history purely through that. The
+interior does not: it agrees to 0.05\%.
+
+\paragraph{What it costs, and what it does not buy.} The fast solve is steady,
+so refining the dose grid buys more solves at an unchanged price per solve, and
+the immobile side is adaptive and absorbs the stiffness for free. Two
+qualifications:
+
+\begin{itemize}
+\item \textbf{The standalone cannot follow cheaply.} MoDELib3 steps at a fixed
+      \code{dtMax} of 1 \dpa. Resolving $10^{-3}$--$10^{-2}$ \dpa\ needs either a
+      global hundred-fold cut --- 2000 steps, some 86 hours at the measured
+      155~s/step --- or a variable schedule it does not currently have. The
+      coupled route gets the logarithmic grid for nothing; the standalone does
+      not.
+\item \textbf{Below $\sim10^{-4}$ \dpa\ the QSSA genuinely fails}, because the
+      mobile field is still rising from zero and a steady solve is the wrong
+      answer. Nothing has nucleated there --- $N_a$ at $10^{-5}$ \dpa\ is 0.25\%
+      of its final value --- so the error is confined to a window with nothing
+      in it.
+\end{itemize}
+
+\noindent
+Seeding from the 0-D remains convenient when the interest is at doses well past
+the transient, since it skips three decades of dose for four fast solves. But it
+is a convenience, not a requirement, and it is the less defensible choice
+whenever the transient itself matters: a 0-D seed imposes a spatially uniform
+loop population the 3-D would never produce, including in the boundary shell
+where the 3-D's own answer is qualitatively different --- at $10^{-3}$ \dpa\ the
+surface is \emph{depleted} relative to the interior ($8.69\times10^{-9}$ against
+$1.16\times10^{-8}$), because low $C_{3i}$ there suppresses homogeneous
+nucleation, and only later does cascade accumulation invert it.
+
 \subsection{What this does and does not isolate}
 
 With the fast step closed, both routes now solve the same fast problem with the

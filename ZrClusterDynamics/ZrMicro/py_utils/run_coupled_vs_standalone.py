@@ -276,6 +276,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     G = float(sim.input_data.material_params["G"])
     history = {float(snaps[0]): Y.copy()}
     timing = []
+    used_steps = set()
     # Summary of C_M*(x) at every fast solve. If the split is doing its job the
     # first entries move and the later ones settle: the mobile field is being
     # re-established against an immobile state that is itself still changing.
@@ -349,8 +350,23 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
 
         # 0-D -> 3-D: a complete, restartable configuration at the reference
         # step index, so both routes render through the same code path.
+        #
+        # The step index only exists for a snapshot grid that lies on the
+        # dose-per-step lattice. A logarithmic grid through the nucleation
+        # transient does not: 1e-3, 1e-2 and 0.1 dpa all round to the same
+        # index, and a seed at dose 0 makes the first one negative. Falling
+        # back to the snapshot ordinal keeps the files distinct instead of
+        # silently overwriting one with the next.
+        step = evl_step_for(d1)
+        if step < 0 or step in used_steps:
+            step = f"s{i + 1:02d}"
+            if verbose:
+                print(f"      note: {d1:g} dpa is off the 1 dpa lattice; "
+                      f"snapshot filed as evl_{step}.txt")
+        else:
+            used_steps.add(step)
         br.write_immobile_field(Y, evl_src=seed_evl,
-                                dest=evl_out / f"evl_{evl_step_for(d1)}.txt")
+                                dest=evl_out / f"evl_{step}.txt")
 
     if fast is not None:
         diagnostics["fast_solver"] = dict(calls=fast.n_calls,
