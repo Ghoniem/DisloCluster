@@ -61,13 +61,22 @@ FAMILY_BG = {0: "c_vL", 1: "c_a1", 2: "c_a2", 3: "c_a3"}
 LOOP_SCALE = {0: 1.5, 1: 7.0, 2: 7.0, 3: 7.0}
 
 
-def dose_steps(doses, dose_per_step=1.0):
+def dose_steps(doses, dose_per_step=1.0, dose_seed=0.1):
     """Dose values -> output step indices.
 
-    MoDELib writes output AFTER solve(), so `evl_N` holds the state at (N+1)
-    steps: dose D maps to step D/dose_per_step - 1.
+    MoDELib writes output AFTER solve(), so ``evl_N`` holds the state after
+    (N+1) steps taken from the seed:
+
+        dose = dose_seed + (N + 1) * dose_per_step
+
+    ``dose_seed`` defaults to 0.1 because that is what every case in this
+    repository used originally, and the default reproduces the previous
+    behaviour exactly. It must be passed for a run seeded anywhere else: a run
+    seeded at 1 dpa holds 6 dpa in ``evl_4``, not ``evl_5``, so rendering it
+    against the default reads one whole dose step off and labels the figure
+    with a dose the file does not contain.
     """
-    return [int(round(d / dose_per_step)) - 1 for d in doses]
+    return [int(round((d - dose_seed) / dose_per_step)) - 1 for d in doses]
 
 
 def _tag(dose):
@@ -80,7 +89,7 @@ def _tag(dose):
 # ── 3d/ : one field figure per quantity per dose ─────────────────────────────
 def write_3d_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
                      overlays=True, n_loops=None, plane="y", view=None,
-                     verbose=True):
+                     verbose=True, dose_seed=0.1):
     """Figs 19-23, split one quantity per file. Returns the list of paths.
 
     `plane` selects the mid-cut. "y" is right for the cube, where every cut is
@@ -92,7 +101,7 @@ def write_3d_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    steps = dose_steps(doses, dose_per_step)
+    steps = dose_steps(doses, dose_per_step, dose_seed)
     written = []
 
     for dose, step in zip(doses, steps):
@@ -214,7 +223,7 @@ def write_mesh_figure(msh_path, out_file, extents_nm=None, cut="y",
 
 # ── gb/ : loop size distribution over the domain ─────────────────────────────
 def write_size_distribution_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
-                                    n_bins=40, verbose=True):
+                                    n_bins=40, verbose=True, dose_seed=0.1):
     """Size distribution of the loop population over the whole cube, per dose.
 
     IMPORTANT — what this is and is not. The model carries ONE mean size per
@@ -233,7 +242,7 @@ def write_size_distribution_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    steps = dose_steps(doses, dose_per_step)
+    steps = dose_steps(doses, dose_per_step, dose_seed)
     written = []
 
     for dose, step in zip(doses, steps):
@@ -294,11 +303,11 @@ def _profile_figure(x_sets, labels, xlabel, ylabel, title, out_file, logy=True):
 
 
 def write_gb_figures(evl_dir, doses, out_dir, dose_per_step=1.0, max_nm=150.0,
-                     n_bins=60, verbose=True):
+                     n_bins=60, verbose=True, dose_seed=0.1):
     """Figs 24-27, split one quantity per file. Returns the list of paths."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    steps = dose_steps(doses, dose_per_step)
+    steps = dose_steps(doses, dose_per_step, dose_seed)
     data = {s: load_cd_fields(evl_dir, s) for s in steps}
     labels = [f"{d:g} dpa" for d in doses]
     XL = "distance from grain boundary, $x$ [nm]"

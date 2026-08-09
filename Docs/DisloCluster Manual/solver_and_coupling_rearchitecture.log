@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  8 AUG 2026 13:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  8 AUG 2026 17:54
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -784,45 +784,51 @@ xt scalars (\T1/lmtt/m/n/10 mobileSolverTolerance\T1/lmr/m/n/10.95 , \T1/lmtt/m
  []
 
 [21]
-Overfull \hbox (12.77565pt too wide) in paragraph at lines 1612--1621
+Overfull \hbox (17.35272pt too wide) in paragraph at lines 1595--1602
+\T1/lmr/m/n/10.95 en-tirely --- and pins ev-ery fit-ted value be-fore build-ing
+ the model chain. \T1/lmtt/m/n/10 run_coupled_vs_standalone.py
+ []
+
+[22] [23] [24] [25] [26] [27]
+Overfull \hbox (12.77565pt too wide) in paragraph at lines 2003--2012
  [][] 
  []
 
-[22] [23]
-Overfull \hbox (56.8266pt too wide) in paragraph at lines 1709--1716
+[28]
+Overfull \hbox (56.8266pt too wide) in paragraph at lines 2100--2107
 \T1/lmr/m/n/10.95 ELib con-fig-u-ra-tions. \T1/lmtt/m/n/10 run_coupled_vs_stand
 alone.py \T1/lmr/m/n/10.95 drives it, and Sec-tion 14 of \T1/lmtt/m/n/10 couple
 d_0d_3d_ZrMicro.ipynb
  []
 
-[24]
-Overfull \hbox (8.398pt too wide) in paragraph at lines 1779--1793
+[29]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 2170--2184
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (52.80855pt too wide) in paragraph at lines 1779--1793
+Overfull \hbox (52.80855pt too wide) in paragraph at lines 2170--2184
 \T1/lmtt/m/n/10 py_utils/modelib_coupling.py\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10
  py_utils/modelib_field.py \T1/lmr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/ru
 n_coupled_vs_standalone.py
  []
 
-[25] (solver_and_coupling_rearchitecture.aux)
+[30] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `solver_and_coupling_rearchitecture.out' has 
 not changed.
-(rerunfilecheck)             Checksum: 6F831F3E5861796C7A5A7997C95F51B0;11108.
+(rerunfilecheck)             Checksum: 8F5C9E9D364508776815D1C9C8788417;12397.
  ) 
 Here is how much of TeX's memory you used:
- 11677 strings out of 467691
- 179688 string characters out of 5414988
- 615730 words of memory out of 5000000
- 40402 multiletter control sequences out of 15000+600000
+ 11710 strings out of 467691
+ 180108 string characters out of 5414988
+ 616058 words of memory out of 5000000
+ 40410 multiletter control sequences out of 15000+600000
  757179 words of font info for 131 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  75i,14n,79p,539b,576s stack positions out of 10000i,1000n,20000p,200000b,200000s
@@ -846,10 +852,10 @@ s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users
 /Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users
 /Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10
 .pfb>
-Output written on solver_and_coupling_rearchitecture.pdf (25 pages, 510375 byte
+Output written on solver_and_coupling_rearchitecture.pdf (30 pages, 536987 byte
 s).
 PDF statistics:
- 595 PDF objects out of 1000 (max. 8388607)
- 130 named destinations out of 1000 (max. 500000)
- 393 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 658 PDF objects out of 1000 (max. 8388607)
+ 155 named destinations out of 1000 (max. 500000)
+ 425 words of extra memory for PDF output out of 10000 (max. 10000000)
 

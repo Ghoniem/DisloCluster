@@ -1,0 +1,32 @@
+{
+  "dose_seed": 0.1,
+  "dose_max": 21.1,
+  "n_steps": 21,
+  "dtMax": 6.95868964e+19,
+  "fast_step": {
+    "mobileSolverClampInLoop": "0",
+    "mobileSolverMaxIterations": "50"
+  },
+  "T": 573.0,
+  "G": 1e-07,
+  "n_nodes": 24115,
+  "omega": 0.35511100563968334,
+  "input_file": "D:\\GitHub\\DisloCluster\\ZrClusterDynamics\\ZrMicro\\input\\Zr_input_parameters.xlsx",
+  "n_overrides": 26,
+  "state": {
+    "Cv": 5.2236914137e-06,
+    "Ci": 5.4574113056e-10,
+    "C2i": 2.4652636752e-11,
+    "C3i": 1.5969680186e-11,
+    "CiL": 5.9542886229e-08,
+    "CaiL": 3.6343084284e-08,
+    "CvL": 1.1319002711e-08,
+    "CavL": 6.5866927195e-09,
+    "CiL_i": 8.303935388e-05,
+    "CaiL_i": 5.0469497249e-05,
+    "CvL_v": 0.00023008436859,
+    "CavL_v": 0.0001338881475
+  },
+  "generated": "2026-08-08 16:19:15",
+  "git_hash": "f26c2ab"
+}

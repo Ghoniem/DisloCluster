@@ -1,0 +1,9 @@
+type=aLoops;
+style=Density;
+slipSystemIDs=6 8 10; # a1,a2,a3 prism variants
+targetDensity=0.0 0.0 0.0; # CD-only run: no discrete loops
+loopRadiusMean=4.431778e-09 4.431778e-09 4.431778e-09; # [m]
+loopRadiusStd=0.0 0.0 0.0; # 
+numberOfSides=36 36 36; # 
+areVacancyLoops=0 0 0; # interstitial <a> loops
+ellipticityFactor=1.5 1.5 1.5; # 

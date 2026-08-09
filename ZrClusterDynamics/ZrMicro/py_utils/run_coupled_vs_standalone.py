@@ -78,8 +78,8 @@ from py_utils import modelib_field as mfield                 # noqa: E402
 from py_utils import modelib_coupling as mc                  # noqa: E402
 from py_utils import modelib_qssa as mqssa                   # noqa: E402
 from py_utils import modelib_report as mreport               # noqa: E402
+from py_utils.calibration import build_sim                   # noqa: E402
 from py_utils.cpp_bridge import collect_solver_args          # noqa: E402
-from py_utils.simulation import ZrMicroSimulation            # noqa: E402
 
 DOSE_SEED = 0.1
 DOSE_MAX = 20.1
@@ -117,15 +117,22 @@ def dose_snapshots():
     return DOSE_SEED + DOSE_INTERVAL * np.arange(n + 1)
 
 
-def evl_step_for(dose):
-    """Output-step index holding `dose`, for a 1 dpa step and a 0.1 dpa seed.
+def evl_step_for(dose, dose_seed=None):
+    """Output-step index holding `dose`, for a 1 dpa step.
 
-    MoDELib writes after solve(), so evl_N is the state at (N+1) steps: with
-    the seed at 0.1 dpa, dose = 0.1 + (N+1) and N = round(dose) - 1. This is
-    exactly modelib_report.dose_steps(dose, 1.0), reused so the two routes are
-    rendered by the same code path.
+    MoDELib writes after solve(), so evl_N is the state after (N+1) steps taken
+    from the seed: dose = dose_seed + (N+1) and N = round(dose - dose_seed) - 1.
+    This is exactly modelib_report.dose_steps, reused so the coupled snapshots
+    are named on the same convention the standalone writes and the figure
+    renderer reads.
+
+    The seed dose is taken from ``DOSE_SEED`` rather than assumed to be 0.1.
+    Hardcoding 0.1 was correct only while every case used that seed; a march
+    seeded at 1 dpa would name its 6 dpa snapshot ``evl_5``, which the renderer
+    and the standalone both read as 7 dpa.
     """
-    return mreport.dose_steps([dose], 1.0)[0]
+    return mreport.dose_steps([dose], 1.0,
+                              DOSE_SEED if dose_seed is None else dose_seed)[0]
 
 
 def standalone_dose_map(sim_dir, G, dose_per_step=1.0):
@@ -510,12 +517,16 @@ def main(argv=None):
                          "fast solve overwrites evl_0.txt in it.")
     snaps = dose_snapshots()
 
-    inp = paths.INPUT_DIR / "input_parameters.xlsx"
-    if not inp.exists():
-        inp = paths.INPUT_DIR / "Zr_input_parameters.xlsx"
-    sim = ZrMicroSimulation(str(inp))
+    # The workbook alone is NOT the calibrated model -- 28 parameters have
+    # drifted and 11 are missing from it entirely. Building straight from it,
+    # as this driver used to, integrates a different model: N_a comes out
+    # 2.3e-2 against the calibrated 8.1e-8, and the loop content exceeds unit
+    # atom fraction. See py_utils/calibration.py.
+    sim = build_sim()
     G = float(sim.input_data.material_params["G"])
     T = float(sim.input_data.material_params["T"])
+    print(f"calibrated 0-D: {len(sim.overrides_applied)} fitted parameters "
+          f"applied on top of {Path(sim.input_file).name}")
 
     stamp = time.strftime("%Y%m%d_%H%M%S")
     out = paths.OUTPUT_DIR / f"{stamp}_{paths.git_hash()}_{args.tag}"

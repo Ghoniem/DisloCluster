@@ -1,0 +1,9 @@
+type=FrankLoops;
+style=density;
+targetDensity=0.0; # CD-only run: no discrete loops (continuum immobile fields instead)
+planeIDs=0; # 
+radiusDistributionMean=3.573767e-08; [m] mean of loop radii
+radiusDistributionStd=0e-8; [m] std of loop radii
+numberOfSides=20; [-] number of sides in each loop polygon
+burgersFactor=0.5; # [-] scaling of burgers vector
+areVacancyLoops=1; # 1=vacancy-type loops, 1=interstiatial-type loops

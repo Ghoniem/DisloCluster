@@ -1584,6 +1584,344 @@ So the answer is yes. The split reaches quasi-steady state on its own, and it
 does not need the 0-D seed to be right --- which is fortunate, because a 0-D
 seed can never be right about a boundary layer it does not represent.
 
+\subsection{A calibration error that voids the earlier physics numbers}
+\label{sec:calibration}
+
+\paragraph{Every loop density and mobile concentration reported in earlier
+revisions of this section is void.} The cause is not in the coupling or in the
+solvers; it is that the driver built its 0-D model straight from the input
+workbook.
+
+The workbook is \emph{not} the calibrated model. Section~6c of
+\code{coupled\_0d\_3d\_ZrMicro.ipynb} says so explicitly --- 28 parameters have
+drifted from the fitted set and 11 are absent from the workbook entirely --- and
+pins every fitted value before building the model chain.
+\code{run\_coupled\_vs\_standalone.py} and the seed builder both skipped that
+step, so they integrated a different model. Integrated to 20 \dpa\ at 573~K and
+$10^{-7}$~\dpa/s:
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+0-D parameter set & $N_a$ & $c_a$ & $C_v$ \\
+\midrule
+workbook only (what the marches used) & $2.32\times10^{-2}$ & $8.77$ & $4.2\times10^{-10}$ \\
+\textbf{calibrated} & $8.05\times10^{-8}$ & $1.34\times10^{-4}$ & $5.01\times10^{-6}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Five orders of magnitude in loop density. $c_a$ is an atom fraction, so the
+uncalibrated $8.77$ is impossible on its face; the calibrated $N_a$ is
+$6.7\times10^{21}$~m$^{-3}$ with a mean radius of 4.4~nm, which is where
+irradiated Zr should be. The fitted set is now carried by
+\code{py\_utils/calibration.py} and both drivers build through it.
+
+Two conclusions that were drawn from the uncalibrated runs are withdrawn. The
+\aloop\ content was reported as reaching a value greater than unit atom
+fraction, which is impossible; with the calibrated set it does not. The
+\aloop\ \emph{number density} does still grow without bound when averaged over
+the whole domain, but for a reason that has nothing to do with the parameter
+set --- see Section~\ref{sec:boundaryartifact}, where it is localized to the
+Dirichlet faces. And the 3-D mobile field was reported as
+sitting some $180\times$ below the 0-D, which was read as either grain-boundary
+physics or a scaling error in the sink term. It was neither: with the calibrated
+set the interior plateau of the fast solve is $4.85\times10^{-6}$ against the
+0-D's $5.01\times10^{-6}$ --- agreement to 3\% --- with the boundary layer
+falling to the thermal-equilibrium value $C_v^{\mathrm{eq}}=8.45\times10^{-15}$
+at the faces. The well-mixed limit is satisfied, and no separate test of it was
+needed.
+
+\paragraph{What is unaffected.} The mobile-solver defect and its fix
+(Section~\ref{sec:mobilehang}) are pure numerics: the iteration either converges
+or it does not, for any parameter set, and the measurements there were made on a
+single saved state with all configurations sharing it. The 0-D solver itself was
+also checked and is not implicated --- built from the pre-rewrite commit
+\code{acb884d} and from HEAD, it produces identical output to every printed
+digit, and it reproduces the experimental reference run
+(\code{output/20260806\_090557\_15c465f\_coupled0d3d}) to four significant
+figures in the loop content at 0.1, 0.5 and 1~\dpa.
+
+\paragraph{A comparison to make carefully.} That reference directory contains
+both a pure 0-D run and a \code{march\_state.npz} from a coupled march with the
+placeholder fast solve. They are different objects, and comparing a free 0-D
+integration against the marched states --- which this work did twice before
+noticing --- looks like a bug and is not one. Freezing the mobile field holds
+the nucleation driver $C_{3i}$ at its frozen value, so the marched \aloop\
+density grows to $3.63\times10^{-7}$ at 1 \dpa\ where the free 0-D saturates at
+$8.05\times10^{-8}$. That $4.5\times$ gap is the operator-splitting signature
+itself, present in the old placeholder run as well.
+
+\subsection{The whole-domain mean is the wrong statistic}
+\label{sec:boundaryartifact}
+
+With the calibrated set in place, the coupled march was run from a seed at
+1~\dpa\ --- past the mobile transient --- to 21~\dpa\ in 5~\dpa\ intervals, with
+the fast step re-solved every fifth immobile substep. Sixteen fast solves, every
+one converged, none capped. Averaged over all 24\,115 nodes the result looks
+alarming:
+
+\begin{center}
+\begin{tabular}{rlrrr}
+\toprule
+Dose [\dpa] & Quantity & 0-D & coupled, all nodes & ratio \\
+\midrule
+ 6 & $N_a$ & $8.051\times10^{-8}$ & $9.600\times10^{-6}$ & 119 \\
+11 & $N_a$ & $8.051\times10^{-8}$ & $1.913\times10^{-5}$ & 238 \\
+16 & $N_a$ & $8.051\times10^{-8}$ & $2.866\times10^{-5}$ & 356 \\
+21 & $N_a$ & $8.051\times10^{-8}$ & $3.819\times10^{-5}$ & 474 \\
+\midrule
+21 & $N_c$ & $1.780\times10^{-8}$ & $1.786\times10^{-8}$ & 1.003 \\
+21 & $c_c$ & $3.077\times10^{-3}$ & $2.977\times10^{-3}$ & 0.967 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The \cloop\ family tracks the 0-D to better than 4\%. Only \aloop\ diverges, and
+it does so \emph{exactly} linearly: the increments are $9.53\times10^{-6}$ per
+5~\dpa, equal to four figures. That is the signature of a constant source with
+no sink whatever, not of an instability.
+
+\paragraph{It is confined to the Dirichlet faces.} Binning the nodes by
+fractional distance to the nearest face, at 21~\dpa:
+
+\begin{center}
+\begin{tabular}{lrrrrr}
+\toprule
+Shell & Nodes & $N_a$ mean & $c_a/N_a$ & $C_i$ mean & share of $\sum N_a$ \\
+\midrule
+surface ($<0.02$) & 6522 & $1.409\times10^{-4}$ & 300.8  & $4.11\times10^{-27}$ & \textbf{0.998} \\
+0.02--0.10        & 4371 & $2.002\times10^{-7}$ & 1388   & $1.79\times10^{-10}$ & 0.001 \\
+0.10--0.30        & 6546 & $6.060\times10^{-8}$ & 1838   & $5.86\times10^{-10}$ & 0.000 \\
+0.30--0.60        & 5385 & $5.946\times10^{-8}$ & 1864   & $5.92\times10^{-10}$ & 0.000 \\
+core ($>0.60$)    & 1291 & $6.005\times10^{-8}$ & 1860   & $5.89\times10^{-10}$ & 0.000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The 6522 surface nodes --- 27\% of the node set, because second-order elements
+place that many on the six faces --- carry 99.8\% of the total. Their
+$c_a/N_a$ is 300.8 and \code{n\_iL\_nuc} is 300: every loop there is a fresh
+nucleus that has never absorbed a single interstitial.
+
+The mechanism is the one already recorded for MoDELib3's own standalone run.
+Cascade nucleation is proportional to dose rate and fires uniformly in space.
+Both loop growth and the only removal channel, coalescence, are driven by the
+absorbed mobile flux --- and the Dirichlet condition pins $C_i$ to
+$4\times10^{-27}$ on the faces. The boundary is a sink for mobile defects but
+\emph{not} for loops, so loops are created there and nothing ever happens to
+them again. That the coupled march reproduces the artifact is evidence for the
+coupling, not against it: the same boundary physics emerges whether MoDELib3's
+nodal scheme or ZrMicro's CVODE march advances the immobile population.
+
+\paragraph{The standalone does the same thing, to four figures.} The claim above
+is only worth making if MoDELib3's own immobile solver produces the artifact
+too. Binning the standalone run --- same mesh, same seed, same fast step, but
+its nodal semi-implicit scheme in place of the CVODE march --- at 6~\dpa:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+At 6 \dpa & coupled march & standalone \\
+\midrule
+whole-domain mean $N_a$  & $9.5996\times10^{-6}$ & $9.5994\times10^{-6}$ \\
+surface shell $N_a$      & $3.529\times10^{-5}$  & $3.528\times10^{-5}$ \\
+surface share of $\sum N_a$ & 0.994              & 0.994 \\
+surface $c_a/N_a$        & 303.1                 & 303.1 \\
+\midrule
+core $N_a$               & $6.007\times10^{-8}$  & $6.338\times10^{-8}$ \\
+core $c_a/N_a$           & 1860.1                & 1808.3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Two integrators as different as CVODE BDF under error control and a first-order
+nodal semi-implicit update agree on the boundary population to four significant
+figures. That is the expected outcome rather than a coincidence: at the faces
+the only surviving term is cascade nucleation at a constant rate, which is
+linear in time, and both schemes integrate a constant exactly. The routes
+disagree by 5\% where the physics is actually nonlinear --- in the interior.
+The artifact is therefore a property of the boundary conditions and the loop
+model, shared by both codes, and not something the coupling introduces.
+
+\paragraph{The interior is well behaved.} Per node, the growth factor of $N_a$
+over 1--21~\dpa\ has median 0.746, and the entire p75--p100 band is a single
+repeated value, 1749.9, shared by every surface node --- the distribution is two
+spikes, not a tail. Interior $N_a$ settles at $6.0\times10^{-8}$ against the
+0-D's $8.05\times10^{-8}$ and is flat from 6~\dpa\ onward, with $c_a/N_a=1860$
+against the 0-D's 1661.
+
+\paragraph{Consequence for every comparison in this section.} A whole-domain
+mean over this geometry is a measurement of the boundary shell, not of the
+material. All route-to-route comparisons below therefore report the
+\emph{interior} mean --- the innermost quartile by distance to the nearest
+face --- with the whole-domain figure retained only in the machine-readable
+output. This is not a cosmetic choice: it is the difference between a ratio of
+474 and a ratio of 0.75.
+
+\subsection{Does the seed dose matter? Seeding inside and outside the transient}
+\label{sec:seedingstudy}
+
+The coupled march freezes the mobile field for \code{FEM\_EVERY} immobile
+substeps at a time, while the 0-D is a genuinely adaptive integration that
+resolves the mobile transient with whatever step size that takes. Where
+$C_M^*$ is changing quickly the frozen-mobile approximation is therefore doing
+something the 0-D never does, and at 0.1 \dpa\ it is changing quickly. The
+concern this raises is direct: is a march seeded at 0.1 \dpa\ --- inside the
+transient --- carrying an error that a march seeded at 1 \dpa\ would not?
+
+The test is to run both. Each seed dose is run through \emph{both} routes, on
+one shared snapshot grid so that no comparison is ever made between two
+different doses:
+
+\begin{center}
+\begin{tabular}{llp{7.4cm}}
+\toprule
+Case & Seed & Snapshots \\
+\midrule
+A & 1.0 \dpa & 1, 6, 11, 16, 21 \dpa \\
+B & 0.1 \dpa & 0.1, 1, 6, 11, 16, 21 \dpa --- case A's grid, plus one short
+                interval covering the transient itself \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{The correction the fast step makes is the same at both seeds.}
+Solving once for $C_M^*$ against the seed's own immobile state, before any
+immobile marching, measures how far the seeded field is from quasi-steady:
+
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Species & seed 0.1 \dpa & seed 1.0 \dpa \\
+\midrule
+$C_v$   & $\times 0.643$ & $\times 0.645$ \\
+$C_i$   & $\times 0.730$ & $\times 0.730$ \\
+$C_{2i}$& $\times 0.288$ & $\times 0.263$ \\
+$C_{3i}$& $\times 0.280$ & $\times 0.256$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Moving the seed from inside the transient to outside it changes the required
+correction by two parts in a thousand in $C_v$ and not at all in $C_i$. The
+reason a 0-D seed is not quasi-steady is therefore \emph{not} that it was taken
+mid-transient. It is that a 0-D seed is spatially uniform and carries no
+boundary layer, while the true $C_M^*(x)$ is pinned to thermal equilibrium on
+every Dirichlet face --- a defect the fast step repairs in one solve regardless
+of the dose at which the seed was drawn. The spatial contrast of the relaxed
+field is $5.9\times10^{8}$ in $C_v$ at both seeds.
+
+\paragraph{Both seeds reach the same interior state.} Case B marched from
+0.1~\dpa\ through the transient to 1~\dpa\ --- the dose at which case A was
+\emph{handed} the 0-D state. Comparing what B computed there with what A was
+given, and then with A's own trajectory over the following 20 \dpa, all as
+interior means relative to the 0-D at the same dose:
+
+\begin{center}
+\begin{tabular}{lrrrrr}
+\toprule
+Ratio to 0-D & B at 1 \dpa & A at 6 & A at 11 & A at 16 & A at 21 \\
+\midrule
+$N_a$ & 0.744 & 0.743 & 0.742 & 0.741 & 0.741 \\
+$N_c$ & 1.001 & 1.001 & 1.001 & 1.001 & 1.001 \\
+$c_a$ & 0.834 & 0.832 & 0.831 & 0.831 & 0.831 \\
+$c_c$ & 0.908 & 0.909 & 0.908 & 0.908 & 0.908 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The columns agree to three significant figures. The 3-D interior has its own
+fixed point --- roughly $0.74\times$ the 0-D in \aloop\ number density,
+$0.83\times$ in \aloop\ content, and indistinguishable from the 0-D in \cloop\
+number --- and both seeds land on it. Case B reaches it within its first
+0.9~\dpa\ interval; case A reaches it within its first 5~\dpa\ interval and then
+holds it, unchanged in the fourth digit, for the next 15~\dpa.
+
+\paragraph{Directly, at every shared dose.} With both marches complete the
+comparison can be made without the intermediary of the 0-D. The ratio of the
+0.1~\dpa-seeded march to the 1~\dpa-seeded one, interior means, at every dose
+the two share:
+
+\begin{center}
+\begin{tabular}{rrrrr}
+\toprule
+Dose [\dpa] & $N_a$ & $N_c$ & $c_a$ & $c_c$ \\
+\midrule
+ 6 & 1.000 & 1.000 & 1.000 & 1.000 \\
+11 & 1.000 & 1.000 & 1.000 & 1.000 \\
+16 & 1.000 & 1.000 & 1.000 & 1.000 \\
+21 & 1.000 & 1.000 & 1.000 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Every entry is unity to four digits; the largest deviation anywhere in the set
+is $5\times10^{-4}$. Two marches that differ by a factor of ten in seed dose,
+one of them started deep inside the mobile transient, are indistinguishable from
+6~\dpa\ onward.
+
+\paragraph{One row that is not a disagreement.} At 1~\dpa\ the cross-seed ratio
+is 1.344 in $N_a$ rather than 1.000, and this is a comparison artifact rather
+than a result: case A's ``value at 1~\dpa'' \emph{is} its 0-D seed, which has not
+been marched at all, while case B's is a state marched through 0.9~\dpa\ of
+frozen-mobile substeps. The ratio 1.344 is simply $1/0.744$ --- the same
+interior-to-0-D offset seen everywhere else, read backwards. The first dose at
+which both cases have actually marched is 6~\dpa.
+
+\paragraph{The two routes relax at different rates.} Case B's standalone at
+1.1~\dpa\ has $N_a/0\text{-D}=0.916$, still well short of the 0.781 it settles
+at by 6.1~\dpa; the coupled march is already at 0.744 by 1~\dpa. The standalone
+has taken a single 1~\dpa\ step from its seed at that point, where the coupled
+march has taken twenty substeps with four fast solves. The frozen-mobile march
+therefore reaches the fixed point \emph{faster} in dose than MoDELib3's own
+scheme does --- the opposite of what one would expect if the splitting cadence
+were the accuracy-limiting factor.
+
+\paragraph{The standalone forgets its seed too.} The same test on MoDELib3's own
+route --- two DDomp runs differing only in seed dose, 3109~s and 3239~s, every
+mobile solve converged in both --- gives the ratio of the 0.1~\dpa-seeded run to
+the 1~\dpa-seeded one, as interior means:
+
+\begin{center}
+\begin{tabular}{rrrrr}
+\toprule
+Dose [\dpa] & $N_a$ & $N_c$ & $c_a$ & $c_c$ \\
+\midrule
+ 6 & 0.9994 & 1.0000 & 0.9997 & 0.9997 \\
+11 & 0.9996 & 1.0000 & 0.9999 & 0.9997 \\
+16 & 0.9997 & 1.0000 & 0.9999 & 0.9998 \\
+21 & 0.9998 & 1.0000 & 1.0000 & 0.9998 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The 0.1~\dpa-seeded run reports at 6.1, 11.1, 16.1 and 21.1 \dpa\ --- integer
+dose steps from a 0.1 \dpa\ seed cannot land on 6.0 --- and part of the residual
+is that 0.1 \dpa\ offset rather than seed memory. Whatever remains is at most
+0.06\% at 6 \dpa\ and falls monotonically to 0.02\% by 21 \dpa. The two routes
+therefore agree not only on the answer but on the \emph{insensitivity} to where
+the seed was taken, which is a stronger statement than either run makes alone.
+
+\paragraph{Conclusion.} The march forgets its seed. Seeding inside the mobile
+transient costs nothing that seeding outside it avoids, because the fast step
+re-establishes $C_M^*(x)$ from scratch at every refresh and the immobile
+population relaxes onto the same attractor either way. What the march is
+sensitive to is the \emph{spatial} deficiency of a 0-D seed, not its dose --- and
+that is repaired by the first fast solve. The corollary is that the offset from
+the 0-D visible in the table above is not a seeding artifact and not an
+accumulating splitting error: it is a genuine difference between the
+spatially-resolved interior and a well-mixed 0-D at the same dose, established
+early and then held.
+
 \subsection{What this does and does not isolate}
 
 With the fast step closed, both routes now solve the same fast problem with the
@@ -1602,6 +1940,59 @@ neither is the integrator alone:
 
 Attributing any number below to the integrator alone would therefore still be
 wrong. Section~\ref{sec:attrib} separates the contributions.
+
+\subsection{The two routes, compared}
+\label{sec:routecompare}
+
+Both routes were run from the same calibrated seed at 1~\dpa\ to 21~\dpa. The
+standalone completed 20 dose steps in 3109~s with every mobile solve converged;
+the coupled march completed the same span in 3964~s with 16 fast solves, all
+converged, none capped. Interior means, and the ratios to the 0-D at the same
+dose:
+
+\begin{center}
+\begin{tabular}{rlrrrrrr}
+\toprule
+Dose & Quantity & 0-D & coupled & standalone & cpl/0-D & std/0-D & \textbf{cpl/std} \\
+\midrule
+ 6 & $N_a$ & $8.051\times10^{-8}$ & $5.983\times10^{-8}$ & $6.307\times10^{-8}$ & 0.743 & 0.783 & \textbf{0.949} \\
+11 & $N_a$ & $8.051\times10^{-8}$ & $5.974\times10^{-8}$ & $6.296\times10^{-8}$ & 0.742 & 0.782 & \textbf{0.949} \\
+16 & $N_a$ & $8.051\times10^{-8}$ & $5.970\times10^{-8}$ & $6.290\times10^{-8}$ & 0.741 & 0.781 & \textbf{0.949} \\
+21 & $N_a$ & $8.051\times10^{-8}$ & $5.967\times10^{-8}$ & $6.287\times10^{-8}$ & 0.741 & 0.781 & \textbf{0.949} \\
+\midrule
+ 6 & $N_c$ & $1.780\times10^{-8}$ & $1.781\times10^{-8}$ & $1.778\times10^{-8}$ & 1.001 & 0.999 & \textbf{1.002} \\
+21 & $N_c$ & $1.780\times10^{-8}$ & $1.781\times10^{-8}$ & $1.778\times10^{-8}$ & 1.001 & 0.999 & \textbf{1.002} \\
+\midrule
+ 6 & $c_a$ & $1.338\times10^{-4}$ & $1.113\times10^{-4}$ & $1.141\times10^{-4}$ & 0.832 & 0.853 & \textbf{0.975} \\
+21 & $c_a$ & $1.338\times10^{-4}$ & $1.112\times10^{-4}$ & $1.140\times10^{-4}$ & 0.831 & 0.852 & \textbf{0.975} \\
+\midrule
+ 6 & $c_c$ & $3.077\times10^{-3}$ & $2.796\times10^{-3}$ & $2.072\times10^{-3}$ & 0.909 & 0.673 & \textbf{1.350} \\
+21 & $c_c$ & $3.077\times10^{-3}$ & $2.792\times10^{-3}$ & $2.068\times10^{-3}$ & 0.908 & 0.672 & \textbf{1.350} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{The route-to-route offset is constant in dose.} The \code{cpl/std}
+column does not move in the third digit between 6 and 21 \dpa\ for any of the
+four quantities. That is the diagnostic that matters. An error accumulating
+from the operator split, from the frozen-mobile interval, or from the
+first-order nodal update would compound with dose; a fixed multiplicative
+offset that survives 15 \dpa\ of marching unchanged is a difference between the
+two immobile \emph{models}, not between the two integrations of them. This is
+consistent with the non-correspondences listed in the project documentation and
+inconsistent with a numerical defect in either scheme.
+
+\paragraph{Where they agree and where they do not.} $N_c$ agrees to 0.2\%,
+$c_a$ to 2.5\% and $N_a$ to 5\%. The outlier is $c_c$ at 35\%, and it falls
+exactly where the known model differences are: the bi-pyramid vacancy family
+exists only in the 3-D model, and size-dependent vacancy-loop thermal emission
+is 3-D only where the 0-D uses a constant surrogate. Both are \cloop\ vacancy
+physics, and both would act to lower the standalone's vacancy-loop content
+relative to ZrMicro's --- which is the observed direction, $\mathrm{std}/0\text{-D}=0.672$
+against the coupled route's 0.908. The discrepancy is not a units error: the
+standalone figures pass through \code{modelib\_immobile\_to\_0d} while the
+coupled figures are read directly in 0-D variables, and $N_c$, which shares that
+conversion factor with $c_c$, agrees to 0.2\%.
 
 \subsection{Speed}
 

@@ -203,6 +203,28 @@ microstructure-generator inputs. It is superseded by the field channel above.
 State vector (19): `[Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i,
 CvL_v, CavL_v, 6 accumulators, rho_N]`.
 
+### Study drivers
+
+| Module | Role |
+|---|---|
+| `calibration.py` | **the fitted 0-D parameter set.** `build_sim()` is the only correct way to build the model chain — see below |
+| `setup_standalone.py` | stages a calibrated standalone MoDELib3 case at any seed dose, and pins the fast step to the coupled route's solver settings |
+| `run_seeded_march.py` | the coupled march from any seed dose on an explicit snapshot-dose list |
+| `compare_seeding.py` | coupled vs standalone vs 0-D, interior means, cross-seed ratios |
+
+**The workbook is not the calibrated model** — 28 parameters have drifted and 11
+are absent from it entirely. Any driver that builds `InputData` straight from
+the workbook runs a different model: `N_a = 2.32e-2` and `c_a = 8.77` (an atom
+fraction, so impossible) against the calibrated `8.05e-8` and `1.34e-4`. Always
+go through `calibration.build_sim()`.
+
+**Both routes must share the fast step's solver settings.** MoDELib3's default
+`mobileSolverClampInLoop=1` makes the mobile solve a projected Newton iteration
+that does not converge — it caps out with 53.6% error in `Ci`. `modelib_qssa`
+sets `=0` for the coupled route, and `setup_standalone.FAST_STEP_SETTINGS` does
+the same for the standalone. Left at the default on one side only, a
+route-to-route comparison measures that solver defect rather than the physics.
+
 ---
 
 ## ODE solver options
@@ -259,6 +281,21 @@ absorbed mobile flux — which vanishes where Dirichlet pins the mobile
 concentrations. The boundary is a sink for mobile defects but **not** for loops,
 so ⟨a⟩ density climbs steeply toward it and keeps growing linearly in dose. The
 interior comparison against the 0-D model is unaffected.
+
+**Never report a whole-domain mean of a loop quantity on this geometry.** Of the
+24115 CD nodes, **6522 (27%) lie on the six Dirichlet faces** — second-order
+elements put that many on the surface — and at 21 dpa they carry **99.8%** of
+the total ⟨a⟩ density. Their `c_a/N_a` is 300.8 against `n_iL_nuc = 300`: every
+loop there is a fresh nucleus that never absorbed an interstitial, because `C_i`
+at those nodes is 4e-27. A domain mean therefore measures the boundary shell,
+not the material. Quote the **interior mean** — the innermost quartile by
+distance to the nearest face. The difference is not cosmetic: at 21 dpa the
+coupled march's ⟨a⟩ density is 474× the 0-D as a domain mean and 0.75× it in the
+interior.
+
+The coupled march reproduces this artifact, which is a point *in favor of* the
+coupling — the same boundary behavior emerges whether MoDELib3's nodal scheme or
+ZrMicro's CVODE march advances the immobile population.
 
 ---
 
