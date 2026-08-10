@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  9 AUG 2026 10:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  9 AUG 2026 17:28
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -807,20 +807,111 @@ d_0d_3d_ZrMicro.ipynb
  []
 
 [31]
-Overfull \hbox (8.398pt too wide) in paragraph at lines 2336--2350
+Overfull \hbox (33.73196pt too wide) in paragraph at lines 2323--2326
+\T1/lmr/m/n/10.95 This is defect-count con-ser-va-tion, and it is the same rule
+ \T1/lmtt/m/n/10 fullCD \T1/lmr/m/n/10.95 ap-plies in \T1/lmtt/m/n/10 initializ
+eDiscreteClimbLoops\T1/lmr/m/n/10.95 . 
+ []
+
+
+Underfull \hbox (badness 1132) in paragraph at lines 2336--2336
+[]\T1/lmr/m/n/10.95 Table 24: []Discrete loop fam-i-lies. \T1/lmtt/m/n/10 plane
+ID \T1/lmr/m/n/10.95 in-dexes \T1/lmtt/m/n/10 singleCrystal->slipSystems()\T1/l
+mr/m/n/10.95 ; with
+ []
+
+[32]
+Overfull \hbox (140.59517pt too wide) in paragraph at lines 2418--2425
+\T1/lmtt/m/n/10 fullCD \T1/lmr/m/n/10.95 per-forms the con-ver-sion once, at \T
+1/lmtt/m/n/10 clusterDiscretizationTime\T1/lmr/m/n/10.95 , in \T1/lmtt/m/n/10 C
+lusterDynamics<dim>::initializeDiscreteClimbLoops\T1/lmr/m/n/10.95 .
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2441--2441
+[]|\T1/lmr/m/n/10 Greedy FE vertex-neighbour
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2467--2469
+[]|$\OML/lmm/m/it/10 O\OT1/lmr/m/n/10 (\OML/lmm/m/it/10 N[]\OT1/lmr/m/n/10 )$ \
+T1/lmr/m/n/10 for the count, then
+ []
+
+[33]
+Overfull \hbox (154.20325pt too wide) in paragraph at lines 2504--2508
+\T1/lmr/m/n/10.95 A MoD-ELib3 DD sim-u-la-tion reads a sin-gle \T1/lmtt/m/n/10 
+inputFiles/ \T1/lmr/m/n/10.95 di-rec-tory. Re-view-ing \T1/lmtt/m/n/10 tutorial
+s/periodic_density/generateInputFiles.py
+ []
+
+
+Underfull \hbox (badness 1735) in paragraph at lines 2520--2524
+[]|\T1/lmr/m/n/10 Solver con-trols: \T1/lmtt/m/n/10 useDislocations=1\T1/lmr/m/
+n/10 , \T1/lmtt/m/n/10 useClusterDynamics=0
+ []
+
+
+Underfull \hbox (badness 4181) in paragraph at lines 2520--2524
+\T1/lmr/m/n/10 for a pure DD run, \T1/lmtt/m/n/10 glideSolverType\T1/lmr/m/n/10
+ , \T1/lmtt/m/n/10 climbSolverType\T1/lmr/m/n/10 ,
+ []
+
+
+Underfull \hbox (badness 2134) in paragraph at lines 2520--2524
+\T1/lmtt/m/n/10 timeSteppingMethod\T1/lmr/m/n/10 , \T1/lmtt/m/n/10 Nsteps\T1/lm
+r/m/n/10 , \T1/lmtt/m/n/10 Lmin\T1/lmr/m/n/10 /\T1/lmtt/m/n/10 Lmax\T1/lmr/m/n/
+10 , \T1/lmtt/m/n/10 remeshFrequency\T1/lmr/m/n/10 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 2525--2528
+[]|\T1/lmtt/m/n/10 Zr3d_ghoniem.txt\T1/lmr/m/n/10 , with \T1/lmtt/m/n/10 enable
+dSlipSystems=fullBasal
+ []
+
+
+Underfull \hbox (badness 2512) in paragraph at lines 2532--2535
+[]|\T1/lmr/m/n/10 Written by \T1/lmtt/m/n/10 PolyCrystalFile\T1/lmr/m/n/10 : me
+sh file, \T1/lmtt/m/n/10 boxScaling\T1/lmr/m/n/10 , \T1/lmtt/m/n/10 X0\T1/lmr/m
+/n/10 ,
+ []
+
+
+Overfull \hbox (53.6843pt too wide) in paragraph at lines 2554--2558
+\T1/lmtt/m/n/10 planeIDs=...;  loopRadii_SI=...;  loopSides=...;  loopCenters=.
+..;  isVacancyLoop=...; 
+ []
+
+[34]
+Overfull \hbox (6.0055pt too wide) in paragraph at lines 2589--2591
+ []\T1/lmr/bx/n/10.95 Workflow.[] \T1/lmr/m/n/10.95 Copy \T1/lmtt/m/n/10 aLoops
+_<dose>.txt \T1/lmr/m/n/10.95 into \T1/lmtt/m/n/10 inputFiles/\T1/lmr/m/n/10.95
+ , name it from \T1/lmtt/m/n/10 initialMicrostructure.txt\T1/lmr/m/n/10.95 ,
+ []
+
+[35]
+Overfull \hbox (94.7809pt too wide) in paragraph at lines 2634--2644
+ []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 py_utils/discrete_loops.py \T1/l
+mr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/volume_average.py \T1/lmr/m/n/10.9
+5 (Voronoi weights), \T1/lmtt/m/n/10 py_utils/modelib_gb.py
+ []
+
+[36]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 2707--2721
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (52.80855pt too wide) in paragraph at lines 2336--2350
+Overfull \hbox (52.80855pt too wide) in paragraph at lines 2707--2721
 \T1/lmtt/m/n/10 py_utils/modelib_coupling.py\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10
  py_utils/modelib_field.py \T1/lmr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/ru
 n_coupled_vs_standalone.py
  []
 
-[32] (solver_and_coupling_rearchitecture.aux)
+[37] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -829,25 +920,18 @@ L3 programming layer <2026-03-20>
 
 LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
-
-Package rerunfilecheck Warning: File `solver_and_coupling_rearchitecture.out' h
-as changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `solver_and_coupling_rearchitecture.
-out':
-(rerunfilecheck)             Before: 880BAC14F4FA9B1D30D1C552C58120DA;12620
-(rerunfilecheck)             After:  2AF3AFE676C4782D2C6E25A44C959CCC;12708.
+Package rerunfilecheck Info: File `solver_and_coupling_rearchitecture.out' has 
+not changed.
+(rerunfilecheck)             Checksum: 79FB55576143B30F31F4EB44F91A4E35;14288.
  ) 
 Here is how much of TeX's memory you used:
- 11722 strings out of 467691
- 180282 string characters out of 5414988
- 614122 words of memory out of 5000000
- 40413 multiletter control sequences out of 15000+600000
- 756803 words of font info for 130 fonts, out of 8000000 for 9000
+ 11776 strings out of 467691
+ 180940 string characters out of 5414988
+ 615044 words of memory out of 5000000
+ 40433 multiletter control sequences out of 15000+600000
+ 767842 words of font info for 133 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,14n,79p,539b,571s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,15n,79p,539b,573s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
@@ -857,21 +941,23 @@ b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><
 C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C
 :/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:
-/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/U
-sers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr9.pfb><C:/Use
-rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb><C:/Use
-rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss10.pfb><C:/Use
-rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Use
-rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/User
-s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users
-/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users
-/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users
-/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10
-.pfb>
-Output written on solver_and_coupling_rearchitecture.pdf (32 pages, 550281 byte
+/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr7.pfb><C:/U
+sers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Use
+rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr9.pfb><C:/Users
+/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb><C:/Users
+/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss10.pfb><C:/Users
+/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users
+/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/Users/
+Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy7.pfb><C:/Users/O
+wner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/Ow
+ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Ow
+ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Ow
+ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pf
+b>
+Output written on solver_and_coupling_rearchitecture.pdf (37 pages, 615772 byte
 s).
 PDF statistics:
- 680 PDF objects out of 1000 (max. 8388607)
- 165 named destinations out of 1000 (max. 500000)
- 433 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 788 PDF objects out of 1000 (max. 8388607)
+ 198 named destinations out of 1000 (max. 500000)
+ 489 words of extra memory for PDF output out of 10000 (max. 10000000)
 

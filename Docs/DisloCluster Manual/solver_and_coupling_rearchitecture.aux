@@ -4,16 +4,16 @@
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Starting point}{3}{section.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {2}Structural observation: the accumulators are pure quadratures}{3}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{3}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{3}{subsection.3.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dimension of the implicit block actually factorized.}}{4}{table.1}\protected@file@percent }
 \newlabel{tab:dims}{{1}{4}{Dimension of the implicit block actually factorized}{table.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Implementation}{4}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{4}{subsection.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Bit-identity.}{4}{section*.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Reduced implicit block}{4}{subsection.3.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Reusable per-thread solver workspace}{4}{subsection.3.3}\protected@file@percent }
 \newlabel{sec:workspace}{{3.3}{4}{Reusable per-thread solver workspace}{subsection.3.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Cost decomposition of one 256-case coupling substep, before the workspace change. ``cpu-solve'' is the sum of per-case integration wall times over all threads.}}{4}{table.2}\protected@file@percent }
-\newlabel{tab:overhead}{{2}{4}{Cost decomposition of one 256-case coupling substep, before the workspace change. ``cpu-solve'' is the sum of per-case integration wall times over all threads}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Cost decomposition of one 256-case coupling substep, before the workspace change. ``cpu-solve'' is the sum of per-case integration wall times over all threads.}}{5}{table.2}\protected@file@percent }
+\newlabel{tab:overhead}{{2}{5}{Cost decomposition of one 256-case coupling substep, before the workspace change. ``cpu-solve'' is the sum of per-case integration wall times over all threads}{table.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Interface}{5}{subsection.3.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {4}Verification}{5}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}The AD Jacobian}{5}{subsection.4.1}\protected@file@percent }
@@ -153,7 +153,39 @@
 \newlabel{tab:attrib}{{23}{31}{Domain-mean \aloop \ loop number density (atom fraction). ``0-D alone'' is ZrMicro integrated to the same dose with no spatial coupling at all}{table.23}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {10.12}A discrepancy with the calibration record}{31}{subsection.10.12}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {10.13}Output}{31}{subsection.10.13}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Summary of outcomes against intent.}}{32}{table.24}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Summary and recommended next steps}{32}{section.11}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Files.}{32}{section*.37}\protected@file@percent }
-\gdef \@abspage@last{32}
+\@writefile{toc}{\contentsline {section}{\numberline {11}Construction of Discrete Loops}{32}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.1}What the earlier figures were, and were not}{32}{subsection.11.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.2}Mathematical method}{32}{subsection.11.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Count.}{32}{section*.37}\protected@file@percent }
+\newlabel{eq:loopcount}{{4}{32}{Count}{equation.4}{}}
+\@writefile{toc}{\contentsline {paragraph}{Size.}{32}{section*.38}\protected@file@percent }
+\newlabel{eq:loopradius}{{5}{32}{Size}{equation.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Crystallography.}{32}{section*.39}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {24}{\ignorespaces Discrete loop families. \texttt  {\small  planeID} indexes \texttt  {\small  singleCrystal->slipSystems()}; with \texttt  {\small  enabledSlipSystems=fullBasal fullPrismatic} that list is six basal systems (0--5), then the prismatic planes in pairs.}}{32}{table.24}\protected@file@percent }
+\newlabel{tab:loopcrystal}{{24}{32}{Discrete loop families. \code {planeID} indexes \code {singleCrystal->slipSystems()}; with \code {enabledSlipSystems=fullBasal fullPrismatic} that list is six basal systems (0--5), then the prismatic planes in pairs}{table.24}{}}
+\@writefile{toc}{\contentsline {paragraph}{The polygon carries the area, not the radius.}{33}{section*.40}\protected@file@percent }
+\newlabel{eq:circumradius}{{6}{33}{The polygon carries the area, not the radius}{equation.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.3}Coalescence, and why it must be bounded}{33}{subsection.11.3}\protected@file@percent }
+\newlabel{eq:merge}{{7}{33}{Coalescence, and why it must be bounded}{equation.7}{}}
+\newlabel{eq:percolation}{{8}{33}{Coalescence, and why it must be bounded}{equation.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.4}Differences from MoDELib-fullCD}{33}{subsection.11.4}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {25}{\ignorespaces Construction of discrete loops: \texttt  {\small  MoDELib-fullCD} against the present scheme.}}{34}{table.25}\protected@file@percent }
+\newlabel{tab:fullcd-diff}{{25}{34}{Construction of discrete loops: \code {MoDELib-fullCD} against the present scheme}{table.25}{}}
+\@writefile{toc}{\contentsline {paragraph}{How much more precise.}{34}{section*.41}\protected@file@percent }
+\newlabel{eq:hardening-error}{{9}{34}{How much more precise}{equation.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{How much more efficient.}{34}{section*.42}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.5}Interface with the dislocation dynamics input files}{34}{subsection.11.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The microstructure file.}{34}{section*.43}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {26}{\ignorespaces Input set for a DD simulation. Only the last two rows are produced by the loop construction; the rest are the standard MoDELib deck.}}{35}{table.26}\protected@file@percent }
+\newlabel{tab:ddinputs}{{26}{35}{Input set for a DD simulation. Only the last two rows are produced by the loop construction; the rest are the standard MoDELib deck}{table.26}{}}
+\@writefile{toc}{\contentsline {paragraph}{Two corrections applied on export.}{35}{section*.44}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The \ensuremath  {\langle c\rangle }{} Burgers vector disagrees between the two codes.}{35}{section*.45}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Workflow.}{35}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {11.6}Results}{36}{subsection.11.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {27}{\ignorespaces Interior discrete loop population, $500$~nm cube. $d$ is the mean inter-loop spacing $(V/N)^{1/3}$.}}{36}{table.27}\protected@file@percent }
+\newlabel{tab:loopresults}{{27}{36}{Interior discrete loop population, $500$~nm cube. $d$ is the mean inter-loop spacing $(V/N)^{1/3}$}{table.27}{}}
+\@writefile{toc}{\contentsline {paragraph}{Files.}{36}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {12}Summary and recommended next steps}{36}{section.12}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {28}{\ignorespaces Summary of outcomes against intent.}}{36}{table.28}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Files.}{37}{section*.48}\protected@file@percent }
+\gdef \@abspage@last{37}

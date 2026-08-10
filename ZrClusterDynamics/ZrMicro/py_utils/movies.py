@@ -50,6 +50,24 @@ from py_utils.modelib_report import DEFAULT_PLANES           # noqa: E402
 # that carry the microstructure.
 DEFAULT_SPECIES = ("Cv", "Ci", "n_vL", "n_a1")
 
+# Species drawn on a LINEAR colour scale from zero.
+#
+# The mobile fields are quasi-steady by construction -- the fast solve returns
+# the steady field for the immobile state currently held -- so their entire
+# story is a slow interior drawdown as the loop sinks accumulate: Cv falls 15%
+# and Ci 16% over the whole 10 dpa march. Their spatial range, by contrast, is
+# enormous, because Dirichlet faces pin them at thermal equilibrium: Cv reaches
+# 8.5e-15 and Ci 4.1e-27 at the wall. A log scale wide enough to show the wall
+# spends six decades on a layer a few nodes thick and compresses the interior
+# drawdown into 1% of the colour range -- the movie then looks perfectly static,
+# which is the opposite of what it is for. On a linear scale from zero the same
+# drawdown moves the interior from 62% to 53% of the range, and the boundary
+# layer still reads as a dark rim of the correct thickness.
+#
+# The loop densities need the opposite: they grow fifteen decades from the
+# pristine floor, so only a log scale shows anything at all.
+LINEAR_SPECIES = ("Cv", "Ci")
+
 
 def cd_blocks(run_dir, variant_weights=(1 / 3, 1 / 3, 1 / 3)):
     """``(doses, nodes, {i: (P, F)})`` rebuilt from ``march_state.npz``.
@@ -84,6 +102,9 @@ def global_limits(frames, species, floor_decades=6.0):
         allv = np.concatenate([F[:, col] for _, F in frames.values()])
         allv = allv[np.isfinite(allv)]
         vmax = float(np.percentile(allv, 99.9))
+        if sp in LINEAR_SPECIES:
+            lims[sp] = (0.0, vmax)
+            continue
         pos = allv[allv > 0]
         vmin = float(pos.min()) if pos.size else 0.0
         vmin = max(vmin, vmax * 10.0 ** (-floor_decades))
@@ -92,7 +113,15 @@ def global_limits(frames, species, floor_decades=6.0):
 
 
 def render(run_dir, out_dir, species=DEFAULT_SPECIES, planes=DEFAULT_PLANES,
-           fps=12, keep_frames=False, n_slice=140, verbose=True):
+           fps=12, keep_frames=False, n_slice=90, verbose=True):
+    """Render one GIF per species.
+
+    ``n_slice`` is the plane sampling grid. 90 rather than the 140 used for a
+    single static panel: on a 0.5 um box that is 5.5 nm per sample against a
+    ~15 nm CD node spacing, so the field is still oversampled, while the cost
+    per frame drops from 13.4 s to 5.7 s -- which over 4 species x 101 frames
+    is the difference between 90 minutes and 38.
+    """
     run_dir, out_dir = Path(run_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     doses, nodes, frames = cd_blocks(run_dir)
@@ -101,7 +130,8 @@ def render(run_dir, out_dir, species=DEFAULT_SPECIES, planes=DEFAULT_PLANES,
         print(f"{run_dir.name}: {len(doses)} frames, "
               f"{doses[0]:.4g} .. {doses[-1]:.4g} dpa")
         for sp, (a, b) in lims.items():
-            print(f"  {sp:<5} colour scale {a:.3e} .. {b:.3e}")
+            kind = "linear" if sp in LINEAR_SPECIES else "log"
+            print(f"  {sp:<5} {kind:>6} colour scale {a:.3e} .. {b:.3e}")
 
     from PIL import Image
     written = []
@@ -116,6 +146,7 @@ def render(run_dir, out_dir, species=DEFAULT_SPECIES, planes=DEFAULT_PLANES,
             plot_field_panels(
                 None, [i], [d], species=(sp,), plane=planes,
                 n_slice=n_slice, vlims={sp: lims[sp]}, fields={i: frames[i]},
+                log=(sp not in LINEAR_SPECIES),
                 out_file=png, column_titles=False,
                 title=f"{label}   {d:.4g} dpa")
             paths_png.append(png)
@@ -143,7 +174,7 @@ def main(argv=None):
                     help="default: <run_dir>/movies")
     ap.add_argument("--species", nargs="+", default=list(DEFAULT_SPECIES))
     ap.add_argument("--fps", type=int, default=12)
-    ap.add_argument("--n-slice", type=int, default=140)
+    ap.add_argument("--n-slice", type=int, default=90)
     ap.add_argument("--keep-frames", action="store_true")
     args = ap.parse_args(argv)
 

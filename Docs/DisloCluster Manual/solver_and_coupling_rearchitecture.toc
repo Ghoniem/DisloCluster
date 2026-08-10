@@ -1,7 +1,7 @@
 \contentsline {section}{\numberline {1}Starting point}{3}{section.1}%
 \contentsline {section}{\numberline {2}Structural observation: the accumulators are pure quadratures}{3}{section.2}%
-\contentsline {section}{\numberline {3}Implementation}{3}{section.3}%
-\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{3}{subsection.3.1}%
+\contentsline {section}{\numberline {3}Implementation}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}One templated core, two instantiations}{4}{subsection.3.1}%
 \contentsline {paragraph}{Bit-identity.}{4}{section*.2}%
 \contentsline {subsection}{\numberline {3.2}Reduced implicit block}{4}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}Reusable per-thread solver workspace}{4}{subsection.3.3}%
@@ -86,5 +86,23 @@
 \contentsline {subsection}{\numberline {10.11}Attribution: model, splitting, or integrator?}{30}{subsection.10.11}%
 \contentsline {subsection}{\numberline {10.12}A discrepancy with the calibration record}{31}{subsection.10.12}%
 \contentsline {subsection}{\numberline {10.13}Output}{31}{subsection.10.13}%
-\contentsline {section}{\numberline {11}Summary and recommended next steps}{32}{section.11}%
-\contentsline {paragraph}{Files.}{32}{section*.37}%
+\contentsline {section}{\numberline {11}Construction of Discrete Loops}{32}{section.11}%
+\contentsline {subsection}{\numberline {11.1}What the earlier figures were, and were not}{32}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}Mathematical method}{32}{subsection.11.2}%
+\contentsline {paragraph}{Count.}{32}{section*.37}%
+\contentsline {paragraph}{Size.}{32}{section*.38}%
+\contentsline {paragraph}{Crystallography.}{32}{section*.39}%
+\contentsline {paragraph}{The polygon carries the area, not the radius.}{33}{section*.40}%
+\contentsline {subsection}{\numberline {11.3}Coalescence, and why it must be bounded}{33}{subsection.11.3}%
+\contentsline {subsection}{\numberline {11.4}Differences from MoDELib-fullCD}{33}{subsection.11.4}%
+\contentsline {paragraph}{How much more precise.}{34}{section*.41}%
+\contentsline {paragraph}{How much more efficient.}{34}{section*.42}%
+\contentsline {subsection}{\numberline {11.5}Interface with the dislocation dynamics input files}{34}{subsection.11.5}%
+\contentsline {paragraph}{The microstructure file.}{34}{section*.43}%
+\contentsline {paragraph}{Two corrections applied on export.}{35}{section*.44}%
+\contentsline {paragraph}{The \ensuremath {\langle c\rangle }{} Burgers vector disagrees between the two codes.}{35}{section*.45}%
+\contentsline {paragraph}{Workflow.}{35}{section*.46}%
+\contentsline {subsection}{\numberline {11.6}Results}{36}{subsection.11.6}%
+\contentsline {paragraph}{Files.}{36}{section*.47}%
+\contentsline {section}{\numberline {12}Summary and recommended next steps}{36}{section.12}%
+\contentsline {paragraph}{Files.}{37}{section*.48}%

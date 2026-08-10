@@ -2272,6 +2272,377 @@ MoDELib configurations. \code{run\_coupled\_vs\_standalone.py} drives it, and
 Section 14 of \code{coupled\_0d\_3d\_ZrMicro.ipynb} calls that driver.
 
 % ============================================================================
+\section{Construction of Discrete Loops}
+% ============================================================================
+
+The cluster-dynamics state carries, at every node and for every immobile family
+$k$, exactly two numbers: a loop number density $n_k$ and a stored defect
+content $c_k$. Dislocation dynamics needs something else entirely --- a finite
+list of loops, each with a position, a radius, a habit-plane normal and a
+Burgers vector. This section sets out the conversion, why it differs from the
+one in \code{MoDELib-fullCD}, and how its output enters a DD simulation.
+
+Implementation: \code{py\_utils/discrete\_loops.py}.
+
+\subsection{What the earlier figures were, and were not}
+
+The \code{loops\_*} overlays produced by
+\code{modelib\_fields.\_overlay\_family} are a \emph{size map drawn as an
+ensemble}, not a microstructure. Platelet centres are CD node coordinates; the
+platelet \emph{count} is whatever a greedy non-overlap packing admits, capped at
+2500; and the drawn radii carry a fixed exaggeration ($\times 7$ for \aloop,
+$\times 1.5$ for \cloop). The gap between that and a microstructure is not
+subtle: at $10^{-4}$~\dpa{} the figure draws 2500 platelets into a domain that
+physically contains $2.7$ \aloop$_1$ loops. Nothing in it can be handed to DD.
+
+\subsection{Mathematical method}
+
+\paragraph{Count.} The number of loops of family $k$ in a region $R$ is not a
+parameter. It is
+\begin{equation}
+  N_k \;=\; \sum_{j \in R} n_k(\mathbf{x}_j)\, V_j ,
+  \label{eq:loopcount}
+\end{equation}
+where $V_j$ is the volume attached to CD node $j$. Because \code{cdNodes.txt}
+carries positions only and no connectivity, $V_j$ is obtained by Monte-Carlo
+Voronoi assignment --- draw points uniformly in the domain, assign each to its
+nearest node, take the counts as volume shares --- the same weights the volume
+averaging uses. Loop positions are then an inhomogeneous Poisson sample of
+intensity $n_k(\mathbf{x})$, so spatial structure survives into the discrete
+population rather than being averaged away.
+
+\paragraph{Size.} The defects per loop follow from dividing content by density,
+and the radius from storing them in a disc one Burgers vector thick:
+\begin{equation}
+  m(\mathbf{x}) \;=\; \frac{c_k(\mathbf{x})}{n_k(\mathbf{x})\,\Omega/b^{3}} ,
+  \qquad
+  \pi r^{2}\,|\mathbf{b}_k| \;=\; m\,\Omega
+  \quad\Longrightarrow\quad
+  r(\mathbf{x}) \;=\; \sqrt{\frac{m(\mathbf{x})\,\Omega}{\pi\,|\mathbf{b}_k|}} .
+  \label{eq:loopradius}
+\end{equation}
+This is defect-count conservation, and it is the same rule \code{fullCD} applies
+in \code{initializeDiscreteClimbLoops}.
+
+\paragraph{Crystallography.} These are pure climb loops, so the habit-plane
+normal is parallel to the Burgers vector. Table~\ref{tab:loopcrystal} gives the
+four families.
+
+\begin{table}[htb]
+\centering
+\caption{Discrete loop families. \code{planeID} indexes
+\code{singleCrystal->slipSystems()}; with
+\code{enabledSlipSystems=fullBasal fullPrismatic} that list is six basal systems
+(0--5), then the prismatic planes in pairs.}
+\label{tab:loopcrystal}
+\small
+\begin{tabular}{llllrrl}
+\toprule
+Family & Habit plane & Burgers vector & $|\mathbf{b}|$ & Sides & \code{planeID} & Type \\
+\midrule
+\cloop      & basal $(0001)$ & $\tfrac{1}{2}[0001]$              & $0.8165\,b$ & 6  & 0  & vacancy \\
+\aloop$_1$  & prismatic      & $\tfrac{1}{3}[2\bar{1}\bar{1}0]$  & $1.0\,b$    & 16 & 6  & interstitial \\
+\aloop$_2$  & prismatic      & $\tfrac{1}{3}[11\bar{2}0]$        & $1.0\,b$    & 16 & 8  & interstitial \\
+\aloop$_3$  & prismatic      & $\tfrac{1}{3}[\bar{1}2\bar{1}0]$  & $1.0\,b$    & 16 & 10 & interstitial \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The three \aloop{} entries are the members of $\tfrac{1}{3}\langle
+11\bar{2}0\rangle$. The material file writes them in the three-index lattice
+basis as $(1,0,0)$, $(0,1,0)$ and $(-1,1,0)$, which map to the Miller--Bravais
+indices above and to Cartesian $(1,0,0)$, $(0.5,0.866,0)$ and $(-0.5,0.866,0)$
+--- all of unit length, hence crystallographically equivalent at zero applied
+stress, as they must be.
+
+Hexagons for \cloop{} are not a drawing preference: basal vacancy loops in Zr
+facet on $\langle 10\bar{1}0\rangle$-type edges. \aloop{} loops are round enough
+that a 16-gon is indistinguishable from a circle at these radii.
+
+\paragraph{The polygon carries the area, not the radius.} A regular $n$-gon of
+circumradius $R$ has area $\tfrac{n}{2}R^{2}\sin(2\pi/n)$, which for a hexagon is
+only $82.7\%$ of $\pi R^{2}$. Since the conserved quantity is the number of point
+defects stored, it is the \emph{area} that must match, so the exported
+circumradius is
+\begin{equation}
+  R \;=\; r\,\sqrt{\frac{2\pi}{n\,\sin(2\pi/n)}} ,
+  \label{eq:circumradius}
+\end{equation}
+which is $1.0996$ for the hexagon and $1.013$ for the 16-gon. \code{fullCD} does
+not apply this correction, so its 12-gons under-fill by $2.3\%$.
+
+\subsection{Coalescence, and why it must be bounded}
+
+Where loops are dense enough to overlap, a second pass merges them
+area-conservingly,
+\begin{equation}
+  r_{\text{new}} \;=\; \sqrt{\textstyle\sum_i r_i^{2}} ,
+  \label{eq:merge}
+\end{equation}
+placing the merged loop at the area-weighted centroid so the first moment of the
+stored content is preserved as well.
+
+Iterating this to a fixed point does not work, and the reason is structural
+rather than numerical. Holding the total area $N\pi r^{2}$ fixed while the mean
+spacing is $d=(V/N)^{1/3}$,
+\begin{equation}
+  r \sim N^{-1/2}, \qquad d \sim N^{-1/3}
+  \qquad\Longrightarrow\qquad
+  \frac{2r}{d} \sim N^{-1/6} .
+  \label{eq:percolation}
+\end{equation}
+Every merge lowers $N$, so \textbf{every merge raises $2r/d$}: area-conserving
+coalescence cannot repair overlap, it can only worsen it. Run unbounded on the
+\cloop{} population at $1$~\dpa{} and $186$ loops fuse into a single loop of
+radius $650$~nm, larger than the $500$~nm box. Two bounds keep it physical.
+
+\begin{itemize}
+\item \textbf{Coplanarity.} Two loops may merge only if their centres lie within
+      one interplanar spacing of a common habit plane --- the statement that
+      loops on different parallel planes cannot become one loop without
+      climbing. \code{fullCD} does not test this; it groups by finite-element
+      adjacency.
+\item \textbf{Spacing guard.} A pass whose result would push $2\langle
+      r\rangle/d$ above unity is rejected and the population is reported
+      \emph{saturated}. Saturation is not a failure: it says the continuum state
+      admits no non-overlapping discrete representation, which is precisely the
+      regime the model's own coalescence channel exists to describe.
+\end{itemize}
+
+In the $500$~nm interior population \cloop{} crosses $2r/d=1$ at
+$0.546$~\dpa{} and is flagged saturated for the remaining 26 of 100 dose steps;
+\aloop{} never exceeds $0.11$.
+
+\subsection{Differences from MoDELib-fullCD}
+
+\code{fullCD} performs the conversion once, at \code{clusterDiscretizationTime},
+in \code{ClusterDynamics<dim>::initializeDiscreteClimbLoops}. It ranks finite
+elements by defect content, greedily absorbs vertex-neighbours until a group
+holds \code{clusterDiscretizationFactor} loops, and emits \emph{one} 12-sided
+loop carrying the group's entire content, centred on a random tetrahedron
+barycentre and snapped to the nearest crystallographic plane.
+Table~\ref{tab:fullcd-diff} sets the two side by side.
+
+\begin{table}[htb]
+\centering
+\caption{Construction of discrete loops: \code{MoDELib-fullCD} against the
+present scheme.}
+\label{tab:fullcd-diff}
+\small
+\begin{tabular}{p{3.1cm}p{5.4cm}p{6.2cm}}
+\toprule
+ & \code{MoDELib-fullCD} & Present scheme \\
+\midrule
+Loop count &
+$N_{\text{phys}}/F$, set by the user parameter
+\code{clusterDiscretizationFactor} $=F$ &
+$N_k=\sum_j n_k(\mathbf{x}_j)V_j$, the physical count \\
+Grouping &
+Greedy FE vertex-neighbour growth, applied everywhere &
+None; coarsening only where geometry forces it \\
+Size resolution &
+One radius per element group &
+One radius per loop, from the local $c_k/n_k$ \\
+Placement &
+Random tetrahedron barycentre of the group &
+Inhomogeneous Poisson sample of $n_k(\mathbf{x})$ \\
+Polygon &
+12 sides for every family &
+6 (\cloop, faceted) / 16 (\aloop) \\
+Polygon area &
+Circumradius $=r$; under-fills by $2.3\%$ &
+Area-matched, Eq.~\eqref{eq:circumradius}; exact \\
+Coplanarity test &
+None &
+Within one interplanar spacing \\
+Overlap handling &
+Implicit, uniform, up front &
+Explicit, local, with a saturation guard \\
+Timing &
+One shot at a prescribed time &
+Any dose step, from the stored march state \\
+Cost &
+Sort and regroup $N_{\text{ele}}$ elements per species, with repeated FE
+evaluation &
+$O(N_{\text{node}})$ for the count, then
+$O(N_{\text{loop}}\log N_{\text{loop}})$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{How much more precise.} The coarsening is not free. Under the
+dispersed-barrier model the hardening increment scales as
+$\Delta\tau \propto \sqrt{N_{\text{loop}}\,d_{\text{loop}}}$ with
+$d_{\text{loop}}=2r$. Replacing $F$ loops of radius $r$ by one of radius
+$r\sqrt{F}$ conserves area but gives
+\begin{equation}
+  \frac{\Delta\tau_{\text{coarse}}}{\Delta\tau_{\text{exact}}}
+  \;=\;
+  \sqrt{\frac{(N/F)\,(2r\sqrt{F})}{N\,(2r)}}
+  \;=\; F^{-1/4} ,
+  \label{eq:hardening-error}
+\end{equation}
+so a bundling factor of $F=10$ \emph{understates} radiation hardening by
+$1.78\times$ and $F=100$ by $3.16\times$. The present scheme carries $F=1$
+everywhere the loops fit, so this error is absent by construction.
+
+\paragraph{How much more efficient.} The comparison that matters is not the
+conversion cost --- both are negligible beside a DD solve --- but the number of
+loops the DD run must then carry. \code{fullCD} reduces that count by
+coarse-graining, at the cost of Eq.~\eqref{eq:hardening-error}. The present
+scheme reduces it instead by \emph{selecting the physically meaningful region}:
+the whole $500$~nm domain at $10$~\dpa{} holds $56{,}290$ loops, but $98.6\%$ of
+them sit in the near-boundary shell, where cascade nucleation is uniform while
+the only removal channel --- coalescence driven by the absorbed mobile flux ---
+vanishes against the Dirichlet faces. The interior population is $801$ loops.
+That is a $70\times$ reduction \emph{with no coarse-graining and no precision
+loss at all}, against the $F^{1/4}$ hardening error that a $70\times$ bundling
+factor would have incurred, namely $2.9\times$.
+
+\subsection{Interface with the dislocation dynamics input files}
+
+A MoDELib3 DD simulation reads a single \code{inputFiles/} directory. Reviewing
+\code{tutorials/periodic\_density/generateInputFiles.py} together with the
+\code{clean\_run.sh} scripts of the \code{zrmicro\_*} cases, the required set is
+that of Table~\ref{tab:ddinputs}.
+
+\begin{table}[htb]
+\centering
+\caption{Input set for a DD simulation. Only the last two rows are produced by
+the loop construction; the rest are the standard MoDELib deck.}
+\label{tab:ddinputs}
+\small
+\begin{tabular}{p{4.6cm}p{10.2cm}}
+\toprule
+File & Role \\
+\midrule
+\code{DD.txt} &
+Solver controls: \code{useDislocations=1}, \code{useClusterDynamics=0} for a
+pure DD run, \code{glideSolverType}, \code{climbSolverType},
+\code{timeSteppingMethod}, \code{Nsteps}, \code{Lmin}/\code{Lmax},
+\code{remeshFrequency}, \code{outputFrequency} \\
+\code{<Material>.txt} &
+\code{Zr3d\_ghoniem.txt}, with
+\code{enabledSlipSystems=fullBasal fullPrismatic} --- which is what fixes the
+\code{planeID} values of Table~\ref{tab:loopcrystal} \\
+\code{ElasticDeformation.txt} &
+\code{ExternalStress0} and \code{ExternalStrainRate}: the loading that drives
+plastic deformation \\
+\code{polycrystal.txt} &
+Written by \code{PolyCrystalFile}: mesh file, \code{boxScaling},
+\code{X0}, \code{periodicFaceIDs}, grain orientation,
+\code{absoluteTemperature} \\
+\code{<mesh>.msh} &
+The domain. For the present case a $500$~nm cube, $1546.55\,b$ per side \\
+\code{initialMicrostructure.txt} &
+One \code{microstructureFile=<name>;} line per microstructure to superpose \\
+\midrule
+\code{aLoops\_<dose>.txt} &
+\textbf{Produced here.} The loop population as an \code{aLoops}/\code{individual}
+specification \\
+\code{loops\_<dose>.csv} &
+\textbf{Produced here.} Per-loop record --- family, position in $b$ and nm,
+radius, circumradius, Burgers vector, normal, merge count --- for analysis
+outside MoDELib \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The microstructure file.} Every field of the \code{aLoops}
+individual specification is per loop, so all four families go into one file:
+\begin{quote}\small
+\code{type=aLoops;} \quad \code{style=individual;} \\
+\code{planeIDs=...;} \quad \code{loopRadii\_SI=...;} \quad
+\code{loopSides=...;} \quad \code{loopCenters=...;} \quad
+\code{isVacancyLoop=...;}
+\end{quote}
+\code{planeIDs} selects basal or prismatic, \code{loopSides} gives the hexagons
+and 16-gons of Table~\ref{tab:loopcrystal}, and \code{isVacancyLoop} sets the
+polarity, which \code{aLoopGenerator::generateSingle} then reconciles against the
+polygon winding so that the sign of $\mathbf{b}$ matches the loop's area normal.
+Both branches of that generator emit \code{SESSILELOOP}, which is correct: for a
+climb loop $\mathbf{b}\cdot\mathbf{n}\neq 0$, and MoDELib3 assigns
+\code{loopType} on exactly that test.
+
+\paragraph{Two corrections applied on export.} First, \code{loopRadii\_SI}
+carries the \emph{circumradius} of Eq.~\eqref{eq:circumradius}, not the disc
+radius, because the generator places vertices on a circle of the radius it is
+handed. Second, the type key is written \code{type=aLoops;} with the plural: the
+generator dispatches on \code{type=="aLoops"}, and the shipped example
+\code{Library/Microstructures/aLoopsIndividual.txt} writes \code{type=aLoop;},
+which matches no branch and is therefore silently not generated.
+\code{aLoopsDensity.txt} in the same directory has it right. This is a defect in
+the MoDELib3 library example, not in the specification parser.
+
+\paragraph{The \cloop{} Burgers vector disagrees between the two codes.} The
+cluster-dynamics material file gives the \cloop{} family a \emph{full}
+$[0001]$ Burgers vector, $|\mathbf{b}| = c/a = 1.633\,b$, while
+\code{aLoopGenerator}'s basal branch builds a \emph{half} $[0001]$ loop,
+$|\mathbf{b}| = 0.8165\,b$ --- the physically standard basal vacancy loop in Zr.
+The invariant handed from CD to DD is the number of vacancies stored, not the
+radius, so Eq.~\eqref{eq:loopradius} is evaluated with the \emph{DD} Burgers
+magnitude. The consequence is that \cloop{} radii come out a factor $\sqrt{2}$
+larger than the CD-internal value, $47.7$~nm rather than $33.7$~nm at
+$10$~\dpa. This is a genuine model inconsistency and should be resolved on the
+cluster-dynamics side.
+
+\paragraph{Workflow.} Copy \code{aLoops\_<dose>.txt} into \code{inputFiles/},
+name it from \code{initialMicrostructure.txt}, then
+\begin{quote}\small
+\code{microstructureGenerator .} \quad$\rightarrow$\quad \code{evl/evl\_0.txt}
+\quad$\rightarrow$\quad \code{DDomp .}
+\end{quote}
+The generator builds the loop network --- nodes, loop links, glide planes ---
+from the specification and writes the initial configuration; \code{DDomp} then
+runs the plasticity. Because a separate file is written at every dose step, a
+deformation simulation can be started from the irradiated state at any dose on
+the march without re-running either the cluster dynamics or the coupling.
+
+\subsection{Results}
+
+Table~\ref{tab:loopresults} gives the interior population of the $500$~nm
+pristine-start Adaptive run. The count rises to a maximum of $1024$ loops near
+$0.027$~\dpa{} and then \emph{falls} to a plateau of about $800$: that maximum is
+the crossover from nucleation-dominated to growth-dominated evolution, and it is
+visible only because the dose grid is resolved logarithmically over five decades.
+
+\begin{table}[htb]
+\centering
+\caption{Interior discrete loop population, $500$~nm cube. $d$ is the mean
+inter-loop spacing $(V/N)^{1/3}$.}
+\label{tab:loopresults}
+\small
+\begin{tabular}{rrrrrrr}
+\toprule
+Dose [\dpa] & $N_{\cloop}$ & $r_{\cloop}$ [nm] & $2r/d$ &
+$N_{\aloop}$ each & $r_{\aloop}$ [nm] & Total \\
+\midrule
+$10^{-4}$ & 13  & 2.41  & 0.023 & 4   & 1.53 & 25 \\
+$0.0105$  & 187 & 3.45  & 0.079 & 283 & 3.18 & 1036 \\
+$0.107$   & 187 & 15.6  & 0.356 & 233 & 4.44 & 886 \\
+$0.977$   & 186 & 47.4  & 1.081 & 205 & 4.70 & 801 \\
+$10$      & 186 & 47.7  & 1.089 & 205 & 4.69 & 801 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As a check on plausibility, the interior \aloop{} density at $10$~\dpa{} is
+$4.9\times10^{21}$~m$^{-3}$, squarely within the range reported for irradiated
+Zr at that dose.
+
+\paragraph{Files.}
+\code{py\_utils/discrete\_loops.py} (new),
+\code{py\_utils/volume\_average.py} (Voronoi weights),
+\code{py\_utils/modelib\_gb.py} (face distances),
+\code{Docs/DisloCluster Manual/continuum\_to\_discrete\_loops.md}.
+Output per run directory: \code{discrete\_loops/} with
+\code{aLoops\_<dose>.txt}, \code{loops\_<dose>.csv},
+\code{loops\_<dose>.png} and \code{loops\_<family>\_<dose>.png} for every dose
+step, and \code{manifest.json} carrying counts, radii, spacings, the $2r/d$
+ratio before and after coalescence, and the area-conservation and saturation
+flags.
+
+% ============================================================================
 \section{Summary and recommended next steps}
 % ============================================================================
 
