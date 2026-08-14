@@ -83,7 +83,7 @@ construction on its footing in the numerical multiple-time-scale literature
 computational singular perturbation, the heterogeneous multiscale method, and
 projective integration); (iii) give an explicit coupling protocol with a
 schematic (Fig.~\ref{fig:schematic}); (iv) document a concrete exporter,
-\code{ZrMicro/py\_utils/modelib\_export.py}, that serializes a \ZrMicro{} run as
+\code{dislocluster\_code/coupling/export.py}, that serializes a \ZrMicro{} run as
 the dose-indexed closure table \MoDELib{} consumes; and (v) specify in
 implementation-ready detail the \textbf{adopted operator-split QSSA scheme}
 (\S\ref{sec:opsplit}) --- a steady mobile FEM solve coupled to a \emph{pointwise}
@@ -241,7 +241,7 @@ calibrates the shared scalar kinetic coefficients.}
 \label{sec:zrmicro}
 
 This section states the \emph{actual} \ZrMicro{} model in the notation of the
-code; source references are to \code{ZrMicro/py\_utils/} and
+code; source references are to \code{dislocluster\_code/} and
 \code{ZrMicro/cpp\_utils/}.
 
 \subsection{Mobile species (fast subset)}
@@ -1020,7 +1020,7 @@ Material data & \code{input/*.xlsx} (3 sheets) & \code{Library/Materials/} (Zr),
 \subsection{The exporter: \texttt{modelib\_export.py}}
 \label{sec:exporter}
 
-The ``Level 1'' deliverable is \code{ZrMicro/py\_utils/modelib\_export.py}, which
+The ``Level 1'' deliverable is \code{dislocluster\_code/coupling/export.py}, which
 serializes a completed \ZrMicro{} run as the closure table \MoDELib{} reads. It
 performs exactly the collapse \eqref{eq:collapse} and the resolved-stress split
 \eqref{eq:variant_split}, and writes two files:
@@ -1043,7 +1043,7 @@ schema, and units.
 Both are plain text, parsed trivially by \MoDELib{}'s C++ I/O, numpy, or pandas.
 Usage from the \ZrMicro{} notebook after \code{process\_solution}:
 \begin{verbatim}
-    from py_utils.modelib_export import export_for_modelib
+    from dislocluster_code.coupling.export import export_for_modelib
     export_for_modelib(results, input_data, run_dir)                 # zero stress
     export_for_modelib(results, input_data, run_dir,                 # uniaxial:
                        sigma_a_resolved=(s1, s2, s3))                #  resolved
@@ -1332,7 +1332,7 @@ strengths $\langle k^2_{X,m}\rangle$, and $\mathbf L^P,\mathbf L^V,\mathbf L^D,\
 \paragraph{Reuse checklist.}
 \begin{enumerate}[label=(\alph*),leftmargin=1.6em,itemsep=1pt]
 \item Add \code{freeze\_mobile} to \code{parameters.h}, \code{rate\_equations.cpp::rhs},
-and \code{py\_utils/rate\_equations.py::\_rhs\_full} (four-line zeroing of the
+and \code{dislocluster\_code/zerod/rate\_equations.py::\_rhs\_full} (four-line zeroing of the
 mobile derivatives, \S\ref{sec:opsplit_rhs}).
 \item Keep \emph{all} immobile terms when frozen --- growth and nucleation (use
 $\CM^\star$) \emph{and} the $\CM$-independent annealing $\tau(T)$, coalescence,

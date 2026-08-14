@@ -7,7 +7,7 @@ notebook. The MoDELib checkout lives inside this repository at `DisloCluster/MoD
 (a fork of `https://github.com/mlm335/MoDELib-fullCD`, which is the
 cluster-dynamics-complete upstream; `mlm335/MoDELib2-NNL` has `iSize=0` and no
 immobile machinery at all, and is NOT the right baseline for CD comparisons). Its location is resolved
-by `ZrMicro/py_utils/paths.py` (`paths.MODELIB_ROOT`); never hard-code it.
+by `dislocluster_code/paths.py` (`paths.MODELIB_ROOT`); never hard-code it.
 
 ---
 
@@ -23,7 +23,7 @@ final build must happen on **Linux or macOS**, or after installing a GCC/Clang
 toolchain here and adapting CMake. A `c:/vcpkg` exists and can supply the
 libraries, but a compatible compiler is still required.
 
-Until then, `ZrMicro/py_utils/modelib_fem.py::MoDELibFEMSolver.available()`
+Until then, `dislocluster_code/legacy/modelib_fem.py::MoDELibFEMSolver.available()`
 returns `False` and the notebook runs the analytic placeholder.
 
 ---
@@ -94,7 +94,7 @@ Python cannot exec it directly, and a Linux `pyMoDELib.so` cannot be imported by
 Windows Python at all. So use the **DDomp + `wsl_exec=True`** path:
 
 ```python
-from py_utils import paths
+from dislocluster_code import paths
 femsolver = MoDELibFEMSolver(sim_dir=...,
                              modelib_root=str(paths.MODELIB_ROOT),
                              modelib_build_dir=str(paths.MODELIB_BUILD),
@@ -149,9 +149,9 @@ run.
    `<repo>/build`.
 2. Seed a simulation directory and generate its `inputFiles/` once:
    ```python
-   from py_utils.modelib_fem import MoDELibFEMSolver
-   from py_utils.modelib_fem import seed_sim_dir_from_tutorial
-   from py_utils import paths
+   from dislocluster_code.legacy.modelib_fem import MoDELibFEMSolver
+   from dislocluster_code.legacy.modelib_fem import seed_sim_dir_from_tutorial
+   from dislocluster_code import paths
    seed_sim_dir_from_tutorial(paths.MODELIB_ROOT,
                               paths.OUTPUT_DIR / "modelib_sim")
    # then run output/modelib_sim/generateInputFiles.py once (needs the build)
@@ -192,4 +192,4 @@ run.
 | Meshes | `MoDELib3/Library/Meshes/unitCube_15K.msh` |
 | CD tutorial | `MoDELib3/tutorials/irradiation_singlecrystal/generateInputFiles.py` |
 | Python utils | `MoDELib3/python/modlibUtils.py` (`setInputVariable`, `setInputVector`, `PolyCrystalFile`) |
-| **Coupling bridge** | `ZrMicro/py_utils/modelib_fem.py` |
+| **Coupling bridge** | `dislocluster_code/legacy/modelib_fem.py` |

@@ -149,7 +149,7 @@ The repository contains two codes that realize this physics at different
 levels of spatial resolution, plus the coupling layer between them:
 
 \begin{itemize}
-\item \textbf{\ZrM{}} (\file{ZrClusterDynamics/ZrMicro/}) --- the 0-D reduced
+\item \textbf{\ZrM{}} (\file{ZrMicro/}) --- the 0-D reduced
 model: 19 coupled ODEs (12 physical species, 6 conservation accumulators, and
 the evolving network dislocation density $\rho_N$), integrated with SUNDIALS
 CVODE through a compiled C++ solver, orchestrated and post-processed in
@@ -158,10 +158,10 @@ Python.
 cluster-dynamics / dislocation-dynamics code: a finite-element solver for the
 steady mobile boundary-value problem and a pointwise dose march for the four
 loop families, run by the \code{DDomp} executable.
-\item \textbf{The coupling layer} (\file{ZrMicro/py\_utils/modelib\_*.py} and
-the notebook \file{coupled\_0d\_3d\_ZrMicro.ipynb}) --- exchanges the loop
-sink field and the steady mobile field between the two codes over a shared
-dose schedule.
+\item \textbf{The coupling layer} (\file{dislocluster\_code/coupling/} and
+the notebook \file{Simulations/run\_simulation.ipynb}) --- exchanges the
+per-node immobile field and the steady mobile field between the two codes
+over a shared dose schedule.
 \end{itemize}
 
 \subsection{The three ways to run it}
@@ -182,10 +182,23 @@ model alone, driven by the notebook \file{ZrMicro.ipynb}. Fast (minutes), and
 the source of the fitted parameter set.
 \item \textbf{The coupled 0-D$\,\leftrightarrow\,$3-D march}
 (Section~\ref{sec:coupled}) --- the operator-split coupling, driven by the
-notebook \file{coupled\_0d\_3d\_ZrMicro.ipynb}. Python owns the dose loop,
+notebook \file{Simulations/run\_simulation.ipynb}. Python owns the dose loop,
 \MoD{} solves the fast mobile field, and the \ZrM{} C++ integrator marches
-the immobile state at every quadrature point.
+the immobile state at every quadrature point. This is the normal entry point
+for new work; the older \file{coupled\_0d\_3d\_ZrMicro.ipynb} carries its own
+inline copy of the march and is kept only for reference.
 \end{enumerate}
+
+\begin{notebox}
+\textbf{Updated (14 August 2026).} The Python was gathered into one installed
+package, \file{dislocluster\_code/}, and simulations moved to
+\file{Simulations/}, which now holds \file{input/} and \file{output/} beside
+the notebooks the way \file{ZrMicro/} used to. \file{ZrMicro/py\_utils/}
+survives as a shim: every former module is an alias for its new home, so
+\code{from py\_utils import paths} and \code{python -m py\_utils.X} still
+work. Runs made before the move stay under \file{ZrMicro/output/} and are
+still found, because \code{paths.find\_runs()} searches every output root.
+\end{notebox}
 
 \subsection{Repository layout}
 \label{sec:layout}
@@ -199,32 +212,46 @@ DisloCluster/                    <- repository root (.dislocluster_root marker)
 |- .DisloClusterVenv/            Python 3.14 environment (you create this)
 |- Libraries/                    SUNDIALS install location (you create this)
 |  \- sundials-7.1.1/
-|- requirements.txt              pinned Python dependencies
+|- requirements.txt              pinned environment lock
+|- pyproject.toml                the package (pip install -e .)
+|- dislocluster_code/            ALL Python lives here
+|  |- paths.py                   single source of truth for every location
+|  |- config.py                  SimulationConfig: the notebook's six dicts
+|  |- driver.py                  prepare / march / report
+|  |- build.py                   ensure_zrmicro_solver, ensure_modelib
+|  |- zerod/                     the 0-D model chain
+|  |- staging/                   mesh, input files, seed, bootstrap
+|  |- coupling/                  the operator split, checkpoint, progress
+|  |- post/                      figures, movies, discrete loops, reports
+|  \- studies/ fitting/ legacy/  comparison drivers, fits, superseded code
+|- Simulations/                  WHERE SIMULATIONS ARE RUN
+|  |- run_simulation.ipynb       <- the normal entry point
+|  |- postprocess.ipynb          re-render an existing run
+|  |- input/                     the Excel parameter workbooks
+|  \- output/                    timestamped run directories
+|- Gmsh/                         generate_mesh.py + meshes/ cache
 |- Docs/
 |  |- DisloCluster Manual/       this manual
 |  \- Formulation/               formulation documents + build_modelib_wsl.sh
-|- ZrClusterDynamics/            0-D side
-|  |- Gmsh/                      mesh generator (generate_mesh.py) + meshes/
-|  \- ZrMicro/
-|     |- code/                   notebooks + solver.cpp
-|     |  |- coupled_0d_3d_ZrMicro.ipynb   <- coupled 0-D <-> 3-D driver
-|     |  |- ZrMicro.ipynb                 0-D run + parameter identification
-|     |  \- coupling_demo.ipynb           minimal coupling walk-through
-|     |- cpp_utils/              C++ RHS + CMake build (SUNDIALS CVODE)
-|     |- py_utils/               Python model chain; paths.py lives here
-|     |- input/                  Excel parameter workbook
-|     |- build/                  compiled solver.exe (created by the build)
-|     \- output/                 timestamped run directories
+|- ZrMicro/                      0-D side, C++ only now
+|  |- code/                      solver.cpp + the older notebooks
+|  |  |- ZrMicro.ipynb           0-D run + parameter identification
+|  |  \- coupled_0d_3d_ZrMicro.ipynb   superseded by Simulations/
+|  |- cpp_utils/                 C++ RHS + CMake build (SUNDIALS CVODE)
+|  |- py_utils/                  compatibility shim -> dislocluster_code
+|  |- input/                     older workbook copies (not read)
+|  |- build/                     compiled solver.exe (created by the build)
+|  \- output/                    runs made before Simulations/output/ existed
 \- MoDELib3/                     3-D side (fork of MoDELib-fullCD)
    |- Library/Materials/         Zr3d_ghoniem.txt is the coupled material
-   |- tutorials/zrmicro_coupled/ the single-crystal verification case
+   |- tutorials/                 staged simulation cases + the reference case
    \- build/                     DDomp + pyMoDELib (built inside WSL)
 \end{lstlisting}
 
 Nothing in the repository hard-codes an absolute path. The single source of
 truth for every location is the module
 \begin{center}
-\file{ZrClusterDynamics/ZrMicro/py\_utils/paths.py}
+\file{dislocluster\_code/paths.py}
 \end{center}
 which finds the repository root by walking up to the
 \file{.dislocluster\_root} marker, so the repository can be cloned or moved
@@ -235,13 +262,13 @@ checkout outside the tree), and \code{MODELIB\_BUILD} (its build directory).
 \begin{notebox}
 \textbf{Resolved (8 August 2026).} \file{README.md}, the \file{CLAUDE.md}
 files and \file{paths.py} used to refer to the formulation documents and the
-WSL build script as living under \file{ZrClusterDynamics/Docs/}. No such
+WSL build script as living under \file{Docs/}. No such
 folder exists --- all documents are under \file{Docs/} at the
 \emph{repository root} --- and the stale references had produced two live
 faults, both now fixed:
 \begin{itemize}
   \item \file{paths.py} defined \code{DOCS\_DIR} as
-        \file{ZrClusterDynamics/Docs/Formulation}, so
+        \file{Docs/Formulation}, so
         \code{MODELIB\_BUILD\_SCRIPT} pointed at a non-existent file and the
         coupling notebook's automatic \MoD{} build silently declined to run
         (it tests \code{is\_file()} and returns without comment).
@@ -347,13 +374,13 @@ All subsequent commands in this manual are issued \emph{from the repository
 root} unless stated otherwise.
 
 \begin{notebox}
-\DC{} was assembled from two previously separate repositories, and
-\file{ZrClusterDynamics/} and \file{MoDELib3/} may still carry their own
-\file{.git} directories in some checkouts. The root marker file
+\DC{} was assembled from two previously separate repositories, which were
+submodules until commit \code{859af47} converted them to plain directories.
+It is now a single git checkout. The root marker file
 \file{.dislocluster\_root} --- not any \file{.git} --- is what identifies the
-repository root to \file{paths.py}, and \code{paths.git\_hash()} falls back
-through root $\rightarrow$ \file{ZrClusterDynamics} $\rightarrow$
-\file{MoDELib3} so that provenance tags stay meaningful either way.
+repository root to \file{paths.py}, and \code{paths.git\_hash()} still falls
+back through root $\rightarrow$ \file{ZrMicro} $\rightarrow$ \file{MoDELib3}
+so that a split checkout would keep producing meaningful provenance tags.
 \end{notebox}
 
 \subsection{Step 3: WSL and Ubuntu}
@@ -443,7 +470,7 @@ Before building anything, confirm that the path-resolution layer sees your
 checkout correctly:
 
 \begin{lstlisting}[style=ps]
-PS> .DisloClusterVenv\Scripts\python.exe ZrClusterDynamics\ZrMicro\py_utils\paths.py
+PS> .DisloClusterVenv\Scripts\python.exe dislocluster_code\paths.py
 \end{lstlisting}
 
 This prints one \code{OK}/\code{MISS} line per resolved location (repository
@@ -463,13 +490,13 @@ found; it is the fastest diagnostic in the repository.
 From the repository root:
 
 \begin{lstlisting}[style=ps]
-PS> cmake -S ZrClusterDynamics\ZrMicro\cpp_utils -B ZrClusterDynamics\ZrMicro\build `
+PS> cmake -S ZrMicro\cpp_utils -B ZrMicro\build `
       -DCMAKE_BUILD_TYPE=Release
-PS> cmake --build ZrClusterDynamics\ZrMicro\build --config Release
+PS> cmake --build ZrMicro\build --config Release
 \end{lstlisting}
 
-This produces \file{ZrClusterDynamics\textbackslash ZrMicro\textbackslash
-build\textbackslash Release\textbackslash solver.exe}. Use \code{Release}:
+This produces \file{ZrMicro\textbackslash build\textbackslash
+Release\textbackslash solver.exe}. Use \code{Release}:
 the parameter-identification utilities call the solver thousands of times,
 and the OpenMP batch mode --- which the Adaptive march relies on --- is only
 worth having when optimized. OpenMP is detected automatically by CMake; the
@@ -499,7 +526,7 @@ PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh MoDELib3
 \begin{notebox}
 \textbf{Fixed (8 August 2026).} The script's no-argument default used to walk
 up \emph{three} directories from its own location, which was correct only
-while it sat at \file{ZrClusterDynamics/Docs/Formulation/}. From
+while it sat at \file{Docs/Formulation/}. From
 \file{Docs/Formulation/} --- two levels below the root --- that resolved one
 directory \emph{above} the checkout, and the script stopped with
 ``\code{CMakeLists.txt not found}''. Only the explicit-argument path, which
@@ -547,7 +574,7 @@ Python bindings).
 Re-run the resolution report of Section~\ref{sec:pathsverify}:
 
 \begin{lstlisting}[style=ps]
-PS> .DisloClusterVenv\Scripts\python.exe ZrClusterDynamics\ZrMicro\py_utils\paths.py
+PS> .DisloClusterVenv\Scripts\python.exe dislocluster_code\paths.py
 \end{lstlisting}
 
 The rows \code{0-D solver} and \code{MoDELib DDomp} should now read
@@ -591,13 +618,13 @@ so post-processing can be run \emph{immediately} --- no solve required:
 
 \begin{lstlisting}[style=ps]
 PS> .DisloClusterVenv\Scripts\python.exe `
-      ZrClusterDynamics\ZrMicro\py_utils\run_zr3d_singlecrystal.py `
+      dislocluster_code\studies\run_zr3d_singlecrystal.py `
       --doses 1 5 10 30 --max-nm 150
 \end{lstlisting}
 
 This reads \file{evl/} only --- it never runs a solve --- and writes a
 timestamped run directory
-\file{ZrClusterDynamics/ZrMicro/output/$\langle$stamp$\rangle$\_$\langle$hash$\rangle$\_zr3d\_ghoniem/}
+\file{Simulations/output/$\langle$stamp$\rangle$\_$\langle$hash$\rangle$\_zr3d\_ghoniem/}
 containing the figure sets of Table~\ref{tab:firstout}. The command-line
 options are \code{--doses} (which snapshots to render), \code{--max-nm}
 (depth of the grain-boundary profiles), \code{--tag} (suffix for the run
@@ -701,7 +728,7 @@ unaffected.
 
 \subsection{Running it}
 
-Open \file{ZrClusterDynamics/ZrMicro/code/ZrMicro.ipynb} in JupyterLab or
+Open \file{ZrMicro/code/ZrMicro.ipynb} in JupyterLab or
 VS~Code, select the kernel ``Python 3.14 (DisloCluster)'', and run all cells.
 The full integration and figure suite takes minutes. Headless execution is a
 one-liner:
@@ -709,8 +736,8 @@ one-liner:
 \begin{lstlisting}[style=ps]
 PS> .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
       --ExecutePreprocessor.kernel_name=dislocluster `
-      --output-dir ZrClusterDynamics\ZrMicro\output `
-      ZrClusterDynamics\ZrMicro\code\ZrMicro.ipynb
+      --output-dir Simulations\output `
+      ZrMicro\code\ZrMicro.ipynb
 \end{lstlisting}
 
 The notebook builds the model chain (\code{InputData} $\rightarrow$
@@ -724,7 +751,7 @@ Section~\ref{sec:solvercfg}), and writes the figure suite plus
 \subsection{Inputs: the Excel workbook}
 
 All 0-D physical input lives in
-\file{ZrClusterDynamics/ZrMicro/input/Zr\_input\_parameters.xlsx}. Three
+\file{Simulations/input/Zr\_input\_parameters.xlsx}. Three
 sheets are read by the solver:
 
 \begin{itemize}
@@ -741,7 +768,7 @@ strengths.
 
 The remaining sheets hold digitized experimental data (Northwood, Gilbert,
 Jostsons, Cockeram, Tournadre, Harte and others) used only by the offline
-fitting utilities (\file{py\_utils/fit\_*.py}), never by the solver.
+fitting utilities (\file{dislocluster\_code/fitting/}), never by the solver.
 
 Fitted parameters are applied \emph{on top of} the workbook through the
 \code{PARAMETER\_OVERRIDES} dictionary in the notebooks; the override always
@@ -890,7 +917,7 @@ is how the \emph{slow} step is integrated.
   mobile species frozen. Order and step size both follow a local error
   estimate against \code{rtol}/\code{atol}, so accuracy is requested rather
   than inferred. Driven from Python by
-  \code{py\_utils/run\_seeded\_march.py}. \\
+  \code{dislocluster\_code/coupling/seeded\_march.py}. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -907,7 +934,7 @@ described how each was driven rather than what it is, and ``coupled'' was
 misleading, since both are coupled 0-D~$\leftrightarrow$~3-D in the sense that
 matters. The word is kept for the \emph{architecture} --- the field handoff of
 Table~\ref{tab:coupling} --- and retired as a route name. The canonical
-spellings are in \code{py\_utils/integration\_options.py}, which every driver
+spellings are in \code{dislocluster\_code/integration.py}, which every driver
 imports so that directory names, table columns and plot legends cannot drift
 apart.
 
@@ -947,11 +974,11 @@ Section ``Removing the 0-D seed entirely''.
 
 \begin{lstlisting}
 # stage a fresh domain and let MoDELib write its own CD node set
-python -m py_utils.setup_domain --size-nm 500 --layer-nm 150
+python -m dislocluster_code.staging.domain --size-nm 500 --layer-nm 150
     --layers-across 5 --interior-lc-nm 120 --name zr3d_500nm
 
 # march it from pristine material on a logarithmic dose grid
-python -m py_utils.run_seeded_march --doses 0 1e-3 1e-2 0.1 1 6
+python -m dislocluster_code.coupling.seeded_march --doses 0 1e-3 1e-2 0.1 1 6
     --substeps 1 --fem-every 2 --tag Adaptive_pristine
     --template ../../MoDELib3/tutorials/zr3d_500nm
 \end{lstlisting}
@@ -1003,7 +1030,7 @@ batch subprocesses.
 \subsection{Meshing, and the materialized simulation directory}
 
 Cell~6a writes the finite-element mesh through
-\file{ZrClusterDynamics/Gmsh/generate\_mesh.py} (cubic or hexagonal domains,
+\file{Gmsh/generate\_mesh.py} (cubic or hexagonal domains,
 optional boundary-layer refinement); generated \file{.msh} files are cached
 under \file{Gmsh/meshes/} and are reproducible from the spec, so they are not
 committed.
@@ -1050,8 +1077,8 @@ profile is an artifact and must not be read physically. The notebook states
 loudly in its output which backend is active --- read that message every
 time. To activate the real backend, seed a simulation directory once:
 \begin{lstlisting}[style=py]
-from py_utils.modelib_fem import seed_sim_dir_from_tutorial
-from py_utils import paths
+from dislocluster_code.legacy.modelib_fem import seed_sim_dir_from_tutorial
+from dislocluster_code import paths
 seed_sim_dir_from_tutorial(paths.MODELIB_ROOT, paths.OUTPUT_DIR / "modelib_sim")
 \end{lstlisting}
 then run its \file{generateInputFiles.py} with \MoD{}'s
@@ -1067,8 +1094,8 @@ Interactively: open \file{coupled\_0d\_3d\_ZrMicro.ipynb} on the
 \begin{lstlisting}[style=ps]
 PS> .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
       --ExecutePreprocessor.kernel_name=dislocluster `
-      --output-dir ZrClusterDynamics\ZrMicro\output `
-      ZrClusterDynamics\ZrMicro\code\coupled_0d_3d_ZrMicro.ipynb
+      --output-dir Simulations\output `
+      ZrMicro\code\coupled_0d_3d_ZrMicro.ipynb
 \end{lstlisting}
 
 Before the march begins, the notebook (i) ensures both builds ---
@@ -1270,17 +1297,16 @@ Every run --- 0-D, 3-D post-processing, or coupled --- writes a timestamped,
 git-tagged directory
 
 \begin{center}
-\file{ZrClusterDynamics/ZrMicro/output/$\langle$YYYYMMDD\_HHMMSS$\rangle$\_$\langle$git-hash$\rangle$[\_$\langle$tag$\rangle$]/}
+\file{Simulations/output/$\langle$YYYYMMDD\_HHMMSS$\rangle$\_$\langle$git-hash$\rangle$[\_$\langle$tag$\rangle$]/}
 \end{center}
 
 containing the figures and \file{provenance.md}, which records the resolved
 repository layout, every input parameter, the active fast-solve backend
 (for coupled runs), the software environment, and the solver statistics ---
-so every figure and every number is traceable to a commit. Because the
-repository root may not itself be a git repository,
+so every figure and every number is traceable to a commit.
 \code{paths.git\_hash()} falls back through root $\rightarrow$
-\file{ZrClusterDynamics} $\rightarrow$ \file{MoDELib3}, so the tag stays
-meaningful.
+\file{ZrMicro} $\rightarrow$ \file{MoDELib3}, so the tag stays meaningful even
+in a split checkout.
 
 \begin{warnbox}
 \file{provenance.md} stores values to four significant figures only, so
@@ -1336,25 +1362,25 @@ post-processing.}
 \toprule
 component & route & role \\
 \midrule
-\file{py\_utils/paths.py} & A,B,P & canonical path resolution
+\file{dislocluster\_code/paths.py} & A,B,P & canonical path resolution
 (Section~\ref{sec:layout}) \\
-\file{py\_utils/input\_data.py} & A & reads the workbook, computes every
+\file{dislocluster\_code/zerod/input\_data.py} & A & reads the workbook, computes every
 derived quantity \\
-\file{py\_utils/reaction\_rates.py}, \file{rate\_equations.py} & A & the
+\file{dislocluster\_code/zerod/reaction\_rates.py}, \file{rate\_equations.py} & A & the
 0-D physics; deliberate mirror of the C++ RHS \\
-\file{py\_utils/cpp\_bridge.py} & A & flattens parameters to the
+\file{dislocluster\_code/zerod/cpp\_bridge.py} & A & flattens parameters to the
 \code{--key=value} CLI, launches \file{solver.exe}, parses stdout \\
-\file{py\_utils/modelib\_coupling.py} & A & the operator-split driver
+\file{dislocluster\_code/coupling/immobile.py} & A & the operator-split driver
 (\code{pack\_y0}, \code{run\_immobile\_step}) \\
-\file{py\_utils/modelib\_fem.py} & A & adapter to \MoD{}: writes the sink
+\file{dislocluster\_code/legacy/modelib\_fem.py} & A & adapter to \MoD{}: writes the sink
 field, invokes \code{DDomp} (through \code{wsl.exe} when required), reads
 the mobile field back \\
-\file{py\_utils/modelib\_export.py} & A & maps the lumped 0-D loop families
+\file{dislocluster\_code/coupling/export.py} & A & maps the lumped 0-D loop families
 onto the three \aloop{} prismatic variants \\
-\file{py\_utils/modelib\_report.py}, \file{modelib\_fields.py},
+\file{dislocluster\_code/post/report.py}, \file{modelib\_fields.py},
 \file{modelib\_gb.py} & B,P & read \file{evl/}, render field panels,
 overlays and grain-boundary profiles \\
-\file{py\_utils/run\_zr3d\_singlecrystal.py} & B,P & the single-crystal
+\file{dislocluster\_code/studies/run\_zr3d\_singlecrystal.py} & B,P & the single-crystal
 post-processing driver (Section~\ref{sec:first}) \\
 \file{code/solver.cpp} + \file{cpp\_utils/} & A & the 0-D integrator:
 CVODE/ARKODE, OpenMP batch mode, one \code{SUNContext} per thread \\
@@ -1630,19 +1656,19 @@ PS> .DisloClusterVenv\Scripts\python.exe -m ipykernel install --user `
       --name dislocluster --display-name "Python 3.14 (DisloCluster)"
 
 # 3. verify path resolution (repeat after each build)
-PS> .DisloClusterVenv\Scripts\python.exe ZrClusterDynamics\ZrMicro\py_utils\paths.py
+PS> .DisloClusterVenv\Scripts\python.exe dislocluster_code\paths.py
 
 # 4. build the 0-D solver (native Windows)
-PS> cmake -S ZrClusterDynamics\ZrMicro\cpp_utils -B ZrClusterDynamics\ZrMicro\build `
+PS> cmake -S ZrMicro\cpp_utils -B ZrMicro\build `
       -DCMAKE_BUILD_TYPE=Release
-PS> cmake --build ZrClusterDynamics\ZrMicro\build --config Release
+PS> cmake --build ZrMicro\build --config Release
 
 # 5. build the 3-D code (inside WSL; note the explicit MoDELib3 argument)
 PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh MoDELib3
 
 # 6. first test: figures from the shipped 3-D results (minutes)
 PS> .DisloClusterVenv\Scripts\python.exe `
-      ZrClusterDynamics\ZrMicro\py_utils\run_zr3d_singlecrystal.py `
+      dislocluster_code\studies\run_zr3d_singlecrystal.py `
       --doses 1 5 10 30 --max-nm 150
 
 # 7. the full 3-D solve (hours) -- then rerun step 6
@@ -1651,14 +1677,14 @@ PS> wsl -e bash MoDELib3/tutorials/zrmicro_coupled/clean_run.sh
 # 8. the 0-D model (minutes)
 PS> .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
       --ExecutePreprocessor.kernel_name=dislocluster `
-      --output-dir ZrClusterDynamics\ZrMicro\output `
-      ZrClusterDynamics\ZrMicro\code\ZrMicro.ipynb
+      --output-dir Simulations\output `
+      ZrMicro\code\ZrMicro.ipynb
 
 # 9. the coupled 0-D <-> 3-D march (open interactively, or:)
 PS> .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
       --ExecutePreprocessor.kernel_name=dislocluster `
-      --output-dir ZrClusterDynamics\ZrMicro\output `
-      ZrClusterDynamics\ZrMicro\code\coupled_0d_3d_ZrMicro.ipynb
+      --output-dir Simulations\output `
+      ZrMicro\code\coupled_0d_3d_ZrMicro.ipynb
 \end{lstlisting}
 
 \noindent Key locations:
@@ -1669,11 +1695,11 @@ PS> .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
 \toprule
 what & where \\
 \midrule
-path resolution (run it!) & \file{ZrClusterDynamics/ZrMicro/py\_utils/paths.py} \\
-0-D inputs & \file{ZrClusterDynamics/ZrMicro/input/Zr\_input\_parameters.xlsx} \\
+path resolution (run it!) & \file{dislocluster\_code/paths.py} \\
+0-D inputs & \file{Simulations/input/Zr\_input\_parameters.xlsx} \\
 3-D material file & \file{MoDELib3/Library/Materials/Zr3d\_ghoniem.txt} \\
 3-D case inputs & \file{MoDELib3/tutorials/zrmicro\_coupled/inputFiles/} \\
-all outputs & \file{ZrClusterDynamics/ZrMicro/output/} \\
+all outputs & \file{Simulations/output/} \\
 env overrides & \code{DISLOCLUSTER\_ROOT}, \code{MODELIB\_ROOT}, \code{MODELIB\_BUILD} \\
 \bottomrule
 \end{tabular}

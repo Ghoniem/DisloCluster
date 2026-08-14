@@ -5,7 +5,7 @@ content per family per node — become an explicit set of dislocation loops with
 positions, radii, habit-plane normals and Burgers vectors, in the form MoDELib3's
 own microstructure generator reads.
 
-Implementation: [`ZrClusterDynamics/ZrMicro/py_utils/discrete_loops.py`](../../ZrClusterDynamics/ZrMicro/py_utils/discrete_loops.py).
+Implementation: [`dislocluster_code/post/discrete_loops.py`](../../dislocluster_code/post/discrete_loops.py).
 
 ---
 
@@ -212,7 +212,7 @@ measured rather than argued.
 ## Output
 
 ```
-python -m py_utils.discrete_loops <run_dir> [--doses 1e-4 0.01 1 10]
+python -m dislocluster_code.post.discrete_loops <run_dir> [--doses 1e-4 0.01 1 10]
                                   [--region interior|domain]
                                   [--no-coalesce] [--coplanar-tol B]
 ```

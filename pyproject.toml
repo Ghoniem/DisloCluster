@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dislocluster_code"
+version = "0.1.0"
+description = "Coupled cluster dynamics and dislocation dynamics for irradiated zirconium"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Nasr Ghoniem", email = "ghoniem@ucla.edu" }]
+
+# Loose bounds on the packages actually imported. `requirements.txt` stays the
+# pinned lock for `.DisloClusterVenv` -- it is a 109-line freeze of the whole
+# environment (Jupyter included), which is the wrong thing to impose on anyone
+# importing this package.
+dependencies = [
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "pandas>=2.2",
+    "matplotlib>=3.9",
+    "openpyxl>=3.1",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+mesh = ["gmsh>=4.12"]        # only Gmsh/generate_mesh.py needs it
+notebook = ["jupyterlab>=4.0", "ipykernel>=6.29"]
+
+[project.scripts]
+dislocluster-paths = "dislocluster_code.paths:_main"
+
+[tool.setuptools.packages.find]
+include = ["dislocluster_code*"]
+namespaces = false

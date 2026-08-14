@@ -9,25 +9,33 @@ Python interpreter, SUNDIALS, and (on Windows) WSL.
 
 | Directory | Role | Language |
 |---|---|---|
-| `ZrClusterDynamics/ZrMicro/` | 0-D reduced cluster dynamics — 19 ODEs (12 physical species, 6 conservation accumulators, ρ_N) | Python + C++/SUNDIALS |
-| `ZrClusterDynamics/Gmsh/` | simulation-domain meshing (cubic / hexagonal) | Python + Gmsh SDK |
+| `dislocluster_code/` | **the Python package** — everything importable | Python |
+| `Simulations/` | **where simulations are run** — notebooks, `input/`, `output/` | Jupyter |
+| `ZrMicro/` | 0-D reduced cluster dynamics — 19 ODEs (12 physical species, 6 conservation accumulators, ρ_N); C++ solver, workbook, run output | C++/SUNDIALS |
+| `Gmsh/` | simulation-domain meshing (cubic / hexagonal) | Python + Gmsh SDK |
 | `MoDELib3/` | 3-D spatially-resolved cluster dynamics / dislocation dynamics (fork of MoDELib-fullCD) | C++20 |
 | `Docs/` | **All documents** — see the table below | — |
 
-Two drivers:
+**To run a simulation, open [`Simulations/run_simulation.ipynb`](Simulations/run_simulation.ipynb).**
+Six dicts at the top set the material, geometry, mesh, boundary conditions,
+coupling and output; the rest of the notebook stages the case and runs the
+march. See [`Simulations/README.md`](Simulations/README.md).
 
 | Driver | What it runs |
 |---|---|
-| [`ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb`](ZrClusterDynamics/ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb) | the operator-split 0-D ↔ 3-D dose march |
-| [`ZrMicro/py_utils/run_zr3d_singlecrystal.py`](ZrClusterDynamics/ZrMicro/py_utils/run_zr3d_singlecrystal.py) | post-processes the standalone 3-D **single cubic crystal** run |
+| [`Simulations/run_simulation.ipynb`](Simulations/run_simulation.ipynb) | **the normal entry point** — configure, stage, march, report |
+| [`Simulations/postprocess.ipynb`](Simulations/postprocess.ipynb) | re-render an existing run; never re-solves |
+| `python -m dislocluster_code.coupling.seeded_march` | the march as a CLI, on an explicit dose list |
+| `python -m dislocluster_code.studies.run_zr3d_singlecrystal` | post-processes the standalone 3-D **single cubic crystal** run |
+| [`ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb`](ZrMicro/code/coupled_0d_3d_ZrMicro.ipynb) | the original coupling notebook; superseded by `Simulations/`, kept for reference |
 
 ---
 
 ## Documents
 
 **Every document lives under the repository-root [`Docs/`](Docs/).** There is no
-`ZrClusterDynamics/Docs/` — earlier revisions of this file claimed one, which
-led to documents being written into a stray tree.
+`Docs/` under any of the sub-codes — earlier revisions of this file claimed one,
+which led to documents being written into a stray tree.
 
 | Directory | Contents |
 |---|---|
@@ -45,30 +53,73 @@ adverb).
 ## Path resolution — read this before touching any path
 
 **Never hard-code an absolute path.** All locations come from
-[`ZrClusterDynamics/ZrMicro/py_utils/paths.py`](ZrClusterDynamics/ZrMicro/py_utils/paths.py),
-which walks up to the `.dislocluster_root` marker at the repository root.
+[`dislocluster_code/paths.py`](dislocluster_code/paths.py), which walks up to the
+`.dislocluster_root` marker at the repository root.
 
 ```python
-from py_utils import paths
+from dislocluster_code import paths
 paths.REPO_ROOT      paths.ZR_ROOT        paths.ZRMICRO_DIR
 paths.INPUT_DIR      paths.OUTPUT_DIR     paths.CPP_UTILS / BUILD_DIR
+paths.OUTPUT_DIRS    # every root a run may be FOUND in, newest home first
 paths.MODELIB_ROOT   paths.MODELIB_BUILD  paths.MODELIB_MATERIAL
+paths.SIM_ROOT       paths.SIMULATIONS_DIR
 paths.zrmicro_solver_exe()   paths.modelib_ddomp()   paths.venv_python()
 paths.git_hash()             paths.windows_to_wsl()  paths.use_wsl()
+paths.run_dir(tag)           # <output>/<stamp>_<hash>_<tag>, created
+paths.find_runs()            # every run, across all output roots, oldest first
+paths.latest_run()           # the newest one
+paths.workbook_drift()       # workbooks that differ between the two input dirs
 print(paths.describe())      # resolution report, OK/MISS per location
 ```
 
-Overrides: `DISLOCLUSTER_ROOT`, `MODELIB_ROOT`, `MODELIB_BUILD`.
+Overrides: `DISLOCLUSTER_ROOT`, `DISLOCLUSTER_SIM_ROOT`, `MODELIB_ROOT`,
+`MODELIB_BUILD`.
 
 If a new module needs a repository location, add it to `paths.py` — do not
-re-derive it with `Path(__file__).parent.parent`.
+re-derive it with `Path(__file__).parent.parent`. That idiom broke silently in
+four modules when the package moved: `cpp_bridge` resolved its default
+`base_dir` that way and stopped finding `solver.exe` at all.
+
+---
+
+## The `dislocluster_code` package
+
+Everything importable lives in `dislocluster_code/` at the repository root, installed
+editable into the venv (`pip install -e .`).
+
+| Subpackage | Holds |
+|---|---|
+| `dislocluster_code.paths` | every repository location (above) |
+| `dislocluster_code.config` | `SimulationConfig` — the notebook's six dicts, validated |
+| `dislocluster_code.driver` | `prepare` / `march` / `report`, one call per notebook stage |
+| `dislocluster_code.build` | `ensure_zrmicro_solver`, `ensure_modelib` |
+| `dislocluster_code.zerod` | the 0-D chain: `input_data`, `reaction_rates`, `rate_equations`, `calibration`, `cpp_bridge`, `post_process` |
+| `dislocluster_code.staging` | `case` (mesh, stage, bootstrap), `inputs` (DD/polycrystal/ElasticDeformation), `seed` |
+| `dislocluster_code.coupling` | `march` (the operator split), `config` (`MarchConfig`), `qssa`, `field`, `immobile`, `checkpoint`, `progress` |
+| `dislocluster_code.post` | figures, movies, discrete loops, TEM slices, reports |
+| `dislocluster_code.studies`, `.fitting`, `.legacy` | comparison drivers, parameter fits, superseded modules |
+
+**`ZrMicro/py_utils/` still exists as a compatibility shim.**
+Each old module aliases `sys.modules[__name__]` to its new home, so
+`from py_utils import paths`, `python -m py_utils.X` and the old notebooks all
+keep working, and `py_utils.X is dislocluster_code....` is true. New code should
+import from `dislocluster_code` directly.
+
+Configuration is a value, not module state. `coupling.march` still carries
+`DOSE_SEED`, `SUBSTEPS_PER_INTERVAL` and friends as globals, but only so that
+`default_config()` can read them **at call time** for callers that still
+monkey-patch. Do not turn those into dataclass field defaults: they would bind
+at import and a later `rcs.SUBSTEPS_PER_INTERVAL = 5` would become a silent
+no-op.
 
 ---
 
 ## Python environment
 
 - **Venv:** `.DisloClusterVenv/` at the repository root (Python 3.14)
+- **Package:** `pip install -e .` from the repository root (`pyproject.toml`)
 - **Jupyter kernel:** `dislocluster` — "Python 3.14 (DisloCluster)"
+  (the kernel keeps its original name; only the Python package was renamed)
 - **Dependencies:** `requirements.txt` at the repository root
 - **Do not use Anaconda Python** — NumPy 1.x/2.x conflict with SciPy
 
@@ -84,8 +135,8 @@ re-derive it with `Path(__file__).parent.parent`.
 ### 0-D solver (CMake + SUNDIALS 7.1.1)
 
 ```powershell
-cmake -S ZrClusterDynamics\ZrMicro\cpp_utils -B ZrClusterDynamics\ZrMicro\build -DCMAKE_BUILD_TYPE=Release
-cmake --build ZrClusterDynamics\ZrMicro\build --config Release
+cmake -S ZrMicro\cpp_utils -B ZrMicro\build -DCMAKE_BUILD_TYPE=Release
+cmake --build ZrMicro\build --config Release
 ```
 
 SUNDIALS is found either at `<repo>/Libraries/sundials-7.1.1/` or from the
@@ -103,25 +154,66 @@ Defaults to `<repo>/MoDELib3`. The script detects and discards a CMake cache
 configured under a different absolute path, so a relocated checkout rebuilds
 cleanly.
 
+**No build tree is in git, and none should be.** `MoDELib3/build_dc/`
+(`libMoDELib.so`, `DDomp`, and a `build.ninja` carrying 374 absolute
+`/mnt/d/...` paths) used to be committed. A clone on another machine got that
+Linux ELF, `paths.modelib_ddomp()` reported MoDELib as built, `ensure_modelib`
+skipped the build, and the first DDomp call failed. Both build trees are now
+ignored, and `build.preflight()` *runs* each binary rather than trusting its
+presence.
+
 **Moving or renaming the repository invalidates both build trees** — a CMake
 cache stores absolute paths, so a reconfigure hard-errors with "the current
-CMakeCache.txt directory ... is different". Both sides now detect this and
-discard the stale cache themselves: `build_modelib_wsl.sh` for the 3-D tree,
-`ensure_zrmicro_solver` in the coupling notebook for the 0-D tree. To do it by
-hand, delete `ZrClusterDynamics/ZrMicro/build/` and reconfigure.
+CMakeCache.txt directory ... is different". Both sides detect this and discard
+the stale cache themselves: `build_modelib_wsl.sh` for the 3-D tree,
+`dislocluster_code.build.ensure_zrmicro_solver` for the 0-D tree.
+
+The failure is quiet, which is what makes it easy to miss: **the already-built
+binary keeps working**, so nothing breaks until the next reconfigure, possibly
+months later. `build.stale_cache_home()` reports it and `build.describe()`
+flags it; `ensure_zrmicro_solver()` discards and rebuilds. That check runs
+*before* the "already built" shortcut — putting it after, as an earlier
+revision did, made it unreachable in exactly the situation it exists for.
+
+By hand: delete `ZrMicro/build/CMakeCache.txt` and reconfigure.
 
 ---
 
-## The coupling notebook's control blocks
+## The control blocks
 
-`coupled_0d_3d_ZrMicro.ipynb` is driven entirely from three dicts. Nothing else
-in the notebook should need editing for a normal run.
+`Simulations/run_simulation.ipynb` is driven entirely from six dicts in §2, all
+defaulted and validated in [`dislocluster_code/config.py`](dislocluster_code/config.py).
+Nothing else in the notebook should need editing for a normal run.
 
-| Cell | Dict | Controls |
-|---|---|---|
-| 6a | `GEOMETRY`, `MESH` | domain type (`cubic` / `hexagonal`), dimensions, element size and order, boundary-layer refinement |
-| 6b | `RUN` | temperature, dose rate, stress, dose schedule, tolerances, substeps, march grid |
-| 6c | `PARAMETER_OVERRIDES` | 0-D parameters applied on top of the Excel workbook |
+| Dict | Controls |
+|---|---|
+| `MATERIAL` | material file, temperature, dose rate, 0-D parameter overrides |
+| `GEOMETRY` | domain type (`cubic` / `hexagonal`), dimensions |
+| `MESH` | element size and order, boundary-layer refinement |
+| `BOUNDARY` | periodic faces (empty ⇒ Dirichlet everywhere), applied stress and strain |
+| `COUPLING` | route, seed dose, snapshot doses, substeps, fast-solve cadence, failure tolerances |
+| `SOLVER`, `OUTPUT` | tolerances and backend; tag, figures, movies, checkpoint, resume |
+
+`SimulationConfig.from_dicts` rejects an unknown key rather than ignoring it,
+and validates before anything expensive runs: a dose grid that does not
+increase strictly, a seed past the first snapshot, a boundary layer thicker
+than half the domain, an `element_order` outside {1, 2} (MoDELib's
+`SimplexReader` consumes only msh element types 4 and 11).
+
+**`BOUNDARY` is a real boundary-condition channel.** `periodic_face_ids` goes
+into `polycrystal.txt`; the load goes into `ElasticDeformation.txt`. Stress is
+given in **MPa** and converted on staging: MoDELib normalizes stress by
+`mu_SI`, so the numbers in that file are multiples of the shear modulus, and
+writing MPa straight in would overstate the load by ~33 000× for Zr.
+
+**Staging is keyed on the domain, not the run.** `cfg.domain_key` hashes the
+geometry, mesh, boundary conditions, material and temperature — but not the
+dose grid — so changing only the doses reuses the staged case, its CD node set
+and its bootstrap. `domain.json` in the case directory records what is there.
+
+The older `coupled_0d_3d_ZrMicro.ipynb` is driven from three dicts
+(`GEOMETRY`/`MESH`, `RUN`, `PARAMETER_OVERRIDES`) and carries its own inline
+copy of the march. It is superseded and kept only for reference.
 
 The dose schedule is `n_intervals` equal steps from `dose_seed` to `dose_max`;
 the defaults (1 → 26 dpa, 5 intervals) give snapshots at 1, 6, 11, 16, 21, 26 dpa.
@@ -129,7 +221,8 @@ the defaults (1 → 26 dpa, 5 intervals) give snapshots at 1, 6, 11, 16, 21, 26 
 rather than by a wall-clock cap — a 5 dpa step at 1e-7 dpa/s is 5×10⁷ s, which a
 fixed 5×10⁴ s cap would have split into a thousand batch subprocesses.
 
-Section 6a writes the mesh through `Gmsh/generate_mesh.py`; the cell after the
+Section 6a writes the mesh through `Gmsh/generate_mesh.py` (repository root);
+the cell after the
 run directory materialises a complete MoDELib sim dir (`<run>/sim/`) with that
 mesh, an `F` restoring the physical size, and a `DD.txt` dose schedule matching
 the snapshots. **The 3-D solve is not launched** — the notebook prints the
@@ -161,7 +254,7 @@ boundary shell, large sparse ones in the interior). Nodes are weighted as
 equal-volume, which over-weights a refined region: `evl/cdNodes.txt` carries
 positions only, with no connectivity from which nodal volumes could be formed.
 
-Rendering lives in `py_utils/modelib_report.py`; it reads `evl/cdNodes.txt` +
+Rendering lives in `dislocluster_code/post/report.py`; it reads `evl/cdNodes.txt` +
 `evl/evl_<N>.txt` and never runs a solve.
 
 ---
@@ -197,8 +290,10 @@ Splitting error is first order in the interval between fast solves
 | 0-D → 3-D | dose-indexed closure table | `modelib_export` |
 | both | material constants | `MoDELib3/Library/Materials/Zr3d_ghoniem.txt` (`paths.MODELIB_MATERIAL`) |
 
-`modelib_fem.py` predates this: it wrote four scalars per dose step into the
-microstructure-generator inputs. It is superseded by the field channel above.
+`legacy/modelib_fem.py` predates this: it wrote four scalars per dose step
+into the microstructure-generator inputs, discarding all spatial structure. It
+is superseded by the field channel above and is kept only so older results stay
+reproducible.
 
 State vector (19): `[Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i,
 CvL_v, CavL_v, 6 accumulators, rho_N]`.
@@ -267,7 +362,7 @@ wsl -e bash MoDELib3/tutorials/zrmicro_coupled/clean_run.sh    # the solve (hour
 ```
 ```powershell
 .DisloClusterVenv\Scripts\python.exe `
-    ZrClusterDynamics\ZrMicro\py_utils\run_zr3d_singlecrystal.py    # the figures
+    -m dislocluster_code.studies.run_zr3d_singlecrystal    # the figures
 ```
 
 The Python step only reads `evl/`; it never re-runs the solve. It writes a
@@ -302,13 +397,32 @@ ZrMicro's CVODE march advances the immobile population.
 ## Output reproducibility
 
 Every run creates
-`ZrClusterDynamics/ZrMicro/output/<YYYYMMDD_HHMMSS>_<git-hash>[_<tag>]/` with figures and
+`Simulations/output/<YYYYMMDD_HHMMSS>_<git-hash>[_<tag>]/` with figures and
 `provenance.md`. The coupled driver adds `0d/`, `3d/`, `gb/` subdirectories and
 `march_state.npz`.
 
-Because the DisloCluster root is not itself a git repository (`ZrClusterDynamics/` and
-`MoDELib3/` carry their own `.git`), `paths.git_hash()` falls back root →
-`ZrClusterDynamics` → `MoDELib3`.
+**Simulations read and write under `Simulations/`.** `input/` holds the Excel
+workbooks and `output/` the run directories, the way `ZrMicro/` was used before.
+Two consequences worth knowing:
+
+- The 1.4 GB already under `ZrClusterDynamics/ZrMicro/output/` was **not**
+  moved, so `OUTPUT_DIR` (writes) and `OUTPUT_DIRS` (reads) differ. Anything
+  looking for a run must go through `paths.find_runs()` / `paths.latest_run()`,
+  never `OUTPUT_DIR.iterdir()`.
+- The workbooks were **copied**, so `ZrMicro/input/` still has its own set and
+  only `Simulations/input/` is read. `paths.describe()` hashes both and warns
+  when they diverge; `paths.workbook_drift()` names them. Reconcile rather than
+  ignore — this is the same failure mode that put the 0-D calibration five
+  orders of magnitude off.
+
+The repository is a single git checkout: the 0-D tree and `MoDELib3/` were
+submodules once but became plain directories in `859af47`, and neither carries
+its own `.git` any more. `paths.git_hash()` still falls back root → `ZR_ROOT` →
+`MODELIB_ROOT` so a split checkout would keep working.
+
+A run driven from `Simulations/` also writes `config.json` (the resolved
+control dicts) and `checkpoint/`, and reuses the staged case under
+`paths.SIM_ROOT` described by that case's `domain.json`.
 
 ---
 
@@ -355,6 +469,5 @@ These are physics, not bugs — do not "fix" them silently:
 ## See also
 
 - [`README.md`](README.md) — setup and run instructions
-- [`ZrClusterDynamics/CLAUDE.md`](ZrClusterDynamics/CLAUDE.md) — 0-D side details
-- [`ZrClusterDynamics/ZrMicro/CLAUDE.md`](ZrClusterDynamics/ZrMicro/CLAUDE.md) — model equations, file map
+- [`ZrMicro/CLAUDE.md`](ZrMicro/CLAUDE.md) — model equations, state vector, file map
 - [`MoDELib3/ZR3D_GHONIEM_CHANGES.md`](MoDELib3/ZR3D_GHONIEM_CHANGES.md) — 3-D side changes

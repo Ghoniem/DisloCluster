@@ -290,7 +290,7 @@ cluster-dynamics upstream is \file{mlm335/MoDELib-fullCD}, \emph{not}
 material definition \file{Zr4.txt} is left untouched --- the reconciled
 definition is the separate file \file{Zr3d\_ghoniem.txt}.
 
-\subsection{Python components (\file{Fluor\_Zr/ZrMicro/py\_utils/})}
+\subsection{Python components (\file{Fluor\_Zr/dislocluster\_code/})}
 
 Table~\ref{tab:python} lists the Python layer. It carries no physics that the
 C++ layer does not also carry: its role is to read the inputs, derive the
@@ -1581,8 +1581,8 @@ figure suite plus \file{provenance.md} in a timestamped output directory.
 \subsection{Post-processing}
 
 \begin{lstlisting}
-from py_utils.modelib_fields import plot_field_panels
-from py_utils import modelib_gb as gb
+from dislocluster_code.post.fields import plot_field_panels
+from dislocluster_code import modelib_gb as gb
 
 plot_field_panels(EVL, steps=[0,4,9,29], doses=[1,5,10,30],
                   species=("Cv","Ci","C2i","C3i"), out_file=...)

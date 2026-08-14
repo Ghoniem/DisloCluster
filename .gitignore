@@ -3,13 +3,24 @@
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+.ipynb_checkpoints/
 
 # ── Build trees ──────────────────────────────────────────────────────────────
-ZrClusterDynamics/ZrMicro/build/
+ZrMicro/build/
 MoDELib3/build/
+MoDELib3/build_dc/
+ZrMicro/.vscode/c_cpp_properties.json
 
 # ── Run output ───────────────────────────────────────────────────────────────
-ZrClusterDynamics/ZrMicro/output/
+# Run directories are large and fully reproducible from the config.json each
+# one carries, so only the directory's README is tracked.
+Simulations/output/*
+!Simulations/output/README.md
+# Runs made before Simulations/output/ existed. ZrMicro moved to the repository
+# root, so this path lost its ZrClusterDynamics/ prefix -- leaving the old one
+# in place silently un-ignored 1.4 GB of run output.
+ZrMicro/output/
 
 # ── Editor / OS ──────────────────────────────────────────────────────────────
 .DS_Store

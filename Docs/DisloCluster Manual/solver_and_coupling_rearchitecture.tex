@@ -1407,7 +1407,7 @@ and ``coupled'' was actively misleading: both options are coupled
 mobile field against the evolving immobile state. The word ``coupled'' is
 therefore still correct for the \emph{architecture} --- the field handoff of
 Section~\ref{sec:fieldcost} --- and is kept there. It is no longer a route name.
-The canonical spellings live in \code{py\_utils/integration\_options.py}, which
+The canonical spellings live in \code{dislocluster\_code/integration.py}, which
 every driver imports, so that directory names, table columns and plot legends
 cannot drift apart.
 
@@ -1457,7 +1457,7 @@ the \code{evl} CD block, run one DDomp step to obtain $\mathbf C_M^*(x)$
 Because \code{runSingleStep} writes output \emph{before} incrementing
 \code{runID}, a run with \code{startAtTimeStep=0} and \code{Nsteps=1} reads
 \code{evl\_0.txt} and overwrites the same file, which makes the exchange an
-in-place round trip. \code{py\_utils/modelib\_qssa.py} drives it and asserts on
+in-place round trip. \code{dislocluster\_code/coupling/qssa.py} drives it and asserts on
 DDomp's \code{immobile solver SKIPPED} line, so a binary predating the flag
 fails loudly rather than advancing the immobile field twice.
 
@@ -1650,7 +1650,7 @@ Five orders of magnitude in loop density. $c_a$ is an atom fraction, so the
 uncalibrated $8.77$ is impossible on its face; the calibrated $N_a$ is
 $6.7\times10^{21}$~m$^{-3}$ with a mean radius of 4.4~nm, which is where
 irradiated Zr should be. The fitted set is now carried by
-\code{py\_utils/calibration.py} and both drivers build through it.
+\code{dislocluster\_code/zerod/calibration.py} and both drivers build through it.
 
 Two conclusions that were drawn from the uncalibrated runs are withdrawn. The
 \aloop\ content was reported as reaching a value greater than unit atom
@@ -2282,7 +2282,7 @@ list of loops, each with a position, a radius, a habit-plane normal and a
 Burgers vector. This section sets out the conversion, why it differs from the
 one in \code{MoDELib-fullCD}, and how its output enters a DD simulation.
 
-Implementation: \code{py\_utils/discrete\_loops.py}.
+Implementation: \code{dislocluster\_code/post/discrete\_loops.py}.
 
 \subsection{What the earlier figures were, and were not}
 
@@ -2631,9 +2631,9 @@ $4.9\times10^{21}$~m$^{-3}$, squarely within the range reported for irradiated
 Zr at that dose.
 
 \paragraph{Files.}
-\code{py\_utils/discrete\_loops.py} (new),
-\code{py\_utils/volume\_average.py} (Voronoi weights),
-\code{py\_utils/modelib\_gb.py} (face distances),
+\code{dislocluster\_code/post/discrete\_loops.py} (new),
+\code{dislocluster\_code/post/volume\_average.py} (Voronoi weights),
+\code{dislocluster\_code/post/gb.py} (face distances),
 \code{Docs/DisloCluster Manual/continuum\_to\_discrete\_loops.md}.
 Output per run directory: \code{discrete\_loops/} with
 \code{aLoops\_<dose>.txt}, \code{loops\_<dose>.csv},
@@ -2710,10 +2710,10 @@ return.
 \code{cpp\_utils/jac\_check.cpp},
 \code{cpp\_utils/parameters.h},
 \code{code/solver.cpp},
-\code{py\_utils/cpp\_bridge.py},
-\code{py\_utils/modelib\_coupling.py},
-\code{py\_utils/modelib\_field.py} (new),
-\code{py\_utils/run\_coupled\_vs\_standalone.py} (new),
+\code{dislocluster\_code/zerod/cpp\_bridge.py},
+\code{dislocluster\_code/coupling/immobile.py},
+\code{dislocluster\_code/coupling/field.py} (new),
+\code{dislocluster\_code/coupling/march.py} (new),
 \code{code/coupled\_0d\_3d\_ZrMicro.ipynb}.
 The build now links \code{SUNDIALS::cvodes} rather than \code{SUNDIALS::cvode},
 because \code{CVodeQuadInit} and its companions exist only in CVODES; the

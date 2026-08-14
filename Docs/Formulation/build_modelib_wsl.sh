@@ -17,7 +17,7 @@ set -euo pipefail
 
 # <script>/../..  ==  Docs/Formulation -> Docs -> DisloCluster
 # (This walked up three levels when the script lived under
-#  ZrClusterDynamics/Docs/Formulation. It is two levels below the repo root at
+#  Docs/Formulation. It is two levels below the repo root at
 #  Docs/Formulation, so three put _REPO_ROOT one directory ABOVE the checkout
 #  and the default REPO pointed at a non-existent <parent>/MoDELib3. Only the
 #  explicit-argument path used by the coupling notebook still worked.)
@@ -84,6 +84,6 @@ cmake --build build -j"$(nproc)"
 echo "==> Done. Artifacts:"
 ls -la build/tools/DDomp/DDomp 2>/dev/null && echo "  DDomp OK" || echo "  WARN: DDomp not found"
 ls -la build/tools/pyMoDELib/pyMoDELib*.so 2>/dev/null && echo "  pyMoDELib OK" || echo "  (pyMoDELib optional)"
-echo "==> py_utils/paths.py resolves MODELIB_BUILD = $REPO/build automatically."
+echo "==> dislocluster_code/paths.py resolves MODELIB_BUILD = $REPO/build automatically."
 echo "    Override with the MODELIB_ROOT / MODELIB_BUILD environment variables."
 echo "    From Windows Python, run DDomp via WSL: pass wsl_exec=True to MoDELibFEMSolver."

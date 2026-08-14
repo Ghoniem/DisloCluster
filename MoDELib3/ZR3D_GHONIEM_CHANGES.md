@@ -2,9 +2,17 @@
 
 **Branch:** `zr3d_ghoniem`  ·  **Status:** in progress, see §6
 
+This tree entered DisloCluster as a git submodule pointing at
+`https://github.com/Ghoniem/MoDELib2-NNL.git`, branch `zr3d_ghoniem`. Commit
+`859af47` converted it to a plain directory, so that `.gitmodules` is gone and
+this line is the only remaining record of where the checkout came from. Note
+that the fork's *name* says MoDELib2-NNL; the correct baseline to compare
+against is nevertheless **MoDELib-fullCD**, for the reasons below.
+
 Zr3d_ghoniem is a variant of MoDELib whose cluster-dynamics equations and parameters
-are taken from the **ZrMicro 0-D code** (`d:/GitHub/ZrClusterDynamics/ZrMicro`), so that the
-3-D spatially-resolved solve reduces to the 0-D result in the well-mixed limit.
+are taken from the **ZrMicro 0-D code** (`ZrClusterDynamics/ZrMicro`, relative to
+the DisloCluster repository root), so that the 3-D spatially-resolved solve
+reduces to the 0-D result in the well-mixed limit.
 
 The governing equations are those of Po & Ghoniem, Deliverable D1/M1
 (`Docs/Formulation/GW_Phase4_D1M1_NG.pdf`), §2.2 in particular.
