@@ -41,6 +41,7 @@ USAGE
 from __future__ import annotations
 
 import argparse
+import json
 import time
 from pathlib import Path
 
@@ -155,6 +156,141 @@ def write_gb(doses, frames, idx, out_dir, max_nm=150.0, n_bins=60,
     return written
 
 
+def _hms(s):
+    s = float(s)
+    h, rem = divmod(s, 3600.0)
+    m, sec = divmod(rem, 60.0)
+    if h >= 1:
+        return f"{int(h)} h {int(m):02d} m {int(sec):02d} s"
+    if m >= 1:
+        return f"{int(m)} m {int(sec):02d} s"
+    return f"{sec:.1f} s"
+
+
+def computational_stats(run, nodes):
+    """The cost of the run, as markdown lines, from what the march recorded.
+
+    Everything here comes out of ``summary.json``; nothing is re-measured and
+    nothing is re-solved, so this is as true of a re-render as of the original
+    run. Returns an empty list when there is no summary to read -- a run made
+    before the file existed still renders, just without this section.
+
+    The two solves are counted in DIFFERENT units on purpose, because they are
+    different kinds of problem:
+
+      * the FAST solve is not an ODE system at all. MoDELib's
+        ``solveMobileClusters`` has no time derivative -- it is the steady
+        mobile field for the immobile state currently held, so what it solves
+        is a nonlinear ALGEBRAIC system of ``M_SIZE * n_cd`` unknowns, by
+        Newton iteration;
+      * the SLOW solve is ``N_EQ = 19`` coupled ODEs per quadrature point,
+        integrated independently, so the count that matters is
+        (unique points) x 19 per substep.
+
+    Reporting both as "number of equations" without that distinction is how a
+    reader ends up thinking the fast step integrates something.
+    """
+    from dislocluster_code.coupling.field import M_SIZE, I_SIZE
+    from dislocluster_code.coupling.immobile import N_EQ
+
+    try:
+        s = json.loads((Path(run) / "summary.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+    n_cd = int(nodes.shape[0])
+    timing = s.get("timing") or []
+    diag = s.get("diagnostics") or {}
+    fast = diag.get("fast_solver") or {}
+    ckpt = diag.get("checkpoint") or {}
+    cpl = (s.get("config") or {}).get("coupling") or {}
+    march_s = float(s.get("wall_s") or 0.0)
+
+    n_sub = sum(int(t.get("substeps", 0)) for t in timing)
+    n_int = sum(int(t.get("integrations", 0)) for t in timing)
+    slow_s = sum(float(t.get("slow_s", 0.0)) for t in timing)
+    fast_s = sum(float(t.get("fast_s", 0.0)) for t in timing)
+    # The seed relaxation is a fast solve that happens BEFORE the first
+    # interval, so it is in `fast_solver` but in no interval's `fast_s`.
+    n_fast = int(fast.get("calls", 0))
+    fast_total_s = float(fast.get("wall_s", fast_s))
+    dedup = (n_sub * n_cd / n_int) if n_int else 1.0
+
+    L = ["## Computational statistics", "",
+         "### Problem size", "",
+         "| quantity | value |", "|---|---:|",
+         f"| CD nodes (2nd-order trial functions) | {n_cd:,} |",
+         f"| mobile field `m` — {M_SIZE} species | {M_SIZE * n_cd:,} dof |",
+         f"| immobile field `i` — {I_SIZE} (number, content) | "
+         f"{I_SIZE * n_cd:,} dof |",
+         f"| elastic displacement `u` | {3 * n_cd:,} dof |", ""]
+
+    L += ["### What each solve actually solves", "",
+          f"**Fast step** — steady mobile field for the immobile state held. "
+          f"No time derivative: a nonlinear **algebraic** system of "
+          f"**{M_SIZE * n_cd:,} unknowns** ({M_SIZE} species x {n_cd:,} nodes), "
+          f"by Newton iteration, one DDomp call each.", "",
+          f"**Slow step** — the immobile ODEs at every quadrature point with "
+          f"the mobile species frozen: **{N_EQ} coupled ODEs per point** "
+          f"({M_SIZE} mobile held fixed, {I_SIZE} immobile, 6 conservation "
+          f"accumulators, rho_N).", ""]
+
+    if n_int:
+        per_sub = n_int / max(n_sub, 1)
+        L += ["| ODE count | value |", "|---|---:|",
+              f"| equations per point | {N_EQ} |",
+              f"| points integrated per substep (after dedup) | "
+              f"{per_sub:,.0f} of {n_cd:,} |",
+              f"| scalar ODEs per substep | {per_sub * N_EQ:,.0f} |",
+              f"| substeps | {n_sub} |",
+              f"| **point-integrations over the march** | {n_int:,} |",
+              f"| **scalar ODEs integrated over the march** | "
+              f"{n_int * N_EQ:,} |",
+              f"| dedup factor (identical states solved once) | x{dedup:.2f} |",
+              ""]
+
+    L += ["### Wall clock", "", "| stage | time | share |", "|---|---:|---:|"]
+    if march_s > 0:
+        L += [f"| fast solves ({n_fast} x DDomp) | {_hms(fast_total_s)} | "
+              f"{100 * fast_total_s / march_s:.0f}% |",
+              f"| slow substeps ({n_sub}) | {_hms(slow_s)} | "
+              f"{100 * slow_s / march_s:.0f}% |"]
+        if ckpt.get("write_s"):
+            L += [f"| checkpoint writes ({ckpt.get('writes', 0)}) | "
+                  f"{_hms(ckpt['write_s'])} | "
+                  f"{100 * float(ckpt['write_s']) / march_s:.1f}% |"]
+        L += [f"| **march total** | **{_hms(march_s)}** | 100% |", ""]
+
+    L += ["| per-call cost | value |", "|---|---:|"]
+    if n_fast:
+        L += [f"| one fast solve | {_hms(fast_total_s / n_fast)} |"]
+    if n_sub:
+        L += [f"| one slow substep | {_hms(slow_s / n_sub)} |"]
+    if n_int and slow_s:
+        L += [f"| one point-integration | {1e6 * slow_s / n_int:,.0f} us |",
+              f"| ODE throughput | {n_int * N_EQ / slow_s:,.0f} scalar ODE/s |"]
+    if cpl:
+        L += [f"| substeps per interval | {cpl.get('substeps_per_interval')} |",
+              f"| fast solve every | {cpl.get('fem_every')} substeps |"]
+    L += [""]
+
+    if timing:
+        L += ["### Per interval", "",
+              "| dose from | dose to | wall | fast | slow | FEM | dedup |",
+              "|---:|---:|---:|---:|---:|---:|---:|"]
+        for t in timing:
+            L += [f"| {t['dose_from']:.4g} | {t['dose_to']:.4g} | "
+                  f"{_hms(t['wall_s'])} | {_hms(t['fast_s'])} | "
+                  f"{_hms(t['slow_s'])} | {t.get('fast_solves', 0)} | "
+                  f"x{t.get('dedup_ratio', 1.0):.2f} |"]
+        L += [""]
+
+    if ckpt.get("resumed"):
+        L += ["This run **resumed** from a checkpoint, so the wall clock above "
+              "is the total across sessions.", ""]
+    return L
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_dir")
@@ -201,6 +337,7 @@ def main(argv=None):
         f"- CD nodes   : {nodes.shape[0]}",
         f"- generated  : {time.strftime('%Y-%m-%d %H:%M:%S')}",
         f"- git hash   : {paths.git_hash()}", "",
+    ] + computational_stats(run, nodes) + [
         "## Directories", "",
         "| directory | contents |",
         "|---|---|",
