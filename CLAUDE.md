@@ -708,38 +708,50 @@ A surface integral inside MoDELib, where the FE gradients already exist, would
 be the gold standard. This needs no C++ change and works on runs that already
 exist, which is why it came first.
 
-### Ω is wrong by 1.94×, and correcting it is a recalibration
+### Ω was corrected — the fit has NOT been redone
 
-**Ω = 1.2e-29 m³** in both the workbook and `Zr3d_ghoniem.txt`. The correct hcp
-Zr value is derivable from data already in those files, two independent ways
-that agree to **0.14%**:
+Ω used to read **1.2e-29 m³**, which is `V_cell/4`: four atoms in an hcp
+primitive cell that holds two. It is now the hcp Zr value, which the input
+files already determined twice over, agreeing to **0.14%**:
 
 | route | value |
 |---|---:|
-| lattice: `(√3/2)a²c / 2`, a = b_a = 3.23 Å, c = b_c = 5.15 Å | 2.3266e-29 m³ |
+| lattice: `(√3/2)a²c / 2`, a = b_a = 3.23 Å, c = b_c = 5.15 Å | **2.326553e-29 m³** |
 | mass density: `M_Zr /(ρ·N_A)`, ρ = `rho_SI` = 6520 kg/m³ | 2.3233e-29 m³ |
-| **stored** | **1.2e-29 m³** |
+| former value (`V_cell/4`) | 1.2e-29 m³ |
 
-The stored value is `V_cell/4` — four atoms in a primitive cell that holds two.
-(`input_data.py`'s fallback default is 1.4e-29, a third value again.)
+Changed in **four** places, which must stay equal:
 
-**This is not a reporting factor.** Every number density is `C/Ω`, loop line
-density is `2πr·C/Ω`, the loop-radius prefactors are `√(Ω/πb)`, and stress-biased
-emission carries `exp(σΩ/kT)`. Measured on the calibrated set at 10 dpa:
+| where | what |
+|---|---|
+| `Simulations/input/Zr_input_parameters.xlsx` | `Physical_Properties!D5` |
+| `ZrMicro/input/Zr_input_parameters.xlsx` | same cell; copied byte-for-byte, so `paths.workbook_drift()` is clean |
+| `MoDELib3/Library/Materials/Zr3d_ghoniem.txt` | `atomicVolume_SI` — the 0-D ↔ 3-D bridge converts through this key |
+| `zerod/input_data.py` | the fallback default, which read 1.4e-29 — a *third* number for one lattice constant |
+
+The lattice route is the one used, so Ω stays consistent with the same `b_a`
+and `b_c` that the loop-radius prefactors `√(Ω/πb)` use.
+
+**THE 28-PARAMETER FIT IS NOW STALE.** Ω is not a reporting factor: every
+number density is `C/Ω`, line density is `2πr·C/Ω`, and emission carries
+`exp(σΩ/kT)`. Measured on the fitted set at 10 dpa:
 
 ```
 N_a 0.483x   N_c 0.516x   c_a 0.522x   Cv 1.047x   Ci 1.059x
 ```
 
-**The loop densities halve.** The 28-parameter set was fitted against
-experimental loop densities at the old Ω, so correcting it without refitting
-trades a lattice-constant error for a calibration error.
+The loop densities **halve**, and those parameters were fitted against
+experimental loop densities at the old Ω. The model now has the right lattice
+constant and a fit that no longer matches experiment. **Refit before comparing
+to data** — a refit is planned separately.
 
-`InputData.check_atomic_volume()` reports the discrepancy and `build_sim` warns
-on every call. `build_sim(physical_omega=True)` opts in — **default False**,
-deliberately. Flipping it requires refitting the 28 parameters, and it must be
-flipped on **both** sides at once: `atomicVolume_SI` in the MoDELib material
-file is the same quantity and the 0-D ↔ 3-D bridge converts through it.
+`calibration.LEGACY_OMEGA = 1.2e-29` reproduces a pre-correction run:
+`build_sim(extra={"Omega": LEGACY_OMEGA})`, with `atomicVolume_SI` set back
+too. `physical_omega=True` is now a no-op, kept so existing callers do not
+break. `InputData.check_atomic_volume()` still runs on every `build_sim`; it is
+silent now, and is what would catch a regression.
+
+**Runs made before this correction are not comparable to runs made after.**
 
 ---
 

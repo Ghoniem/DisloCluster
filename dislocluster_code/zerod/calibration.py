@@ -116,6 +116,13 @@ def apply_overrides(idata, overrides=None, verbose=False):
     return applied
 
 
+# The atomic volume this model carried before the hcp correction: V_cell/4,
+# i.e. four atoms in a primitive cell that holds two. Kept so a pre-correction
+# run can be reproduced exactly -- build_sim(extra={"Omega": LEGACY_OMEGA}) --
+# and so the wrong number appears in exactly one place, named.
+LEGACY_OMEGA = 1.2e-29   # [m^3]
+
+
 def build_sim(input_file=None, T=None, G=None, extra=None, verbose=False,
               physical_omega=False, check_omega=True):
     """The calibrated 0-D model chain.
@@ -123,23 +130,35 @@ def build_sim(input_file=None, T=None, G=None, extra=None, verbose=False,
     ``T`` and ``G`` are pinned last so a caller can set the irradiation
     condition without editing the fitted set.
 
-    ``physical_omega`` replaces the stored atomic volume with the hcp Zr value
-    derived from the lattice parameters, ``(sqrt(3)/2) a^2 c / 2`` = 2.33e-29
-    m^3 -- 1.94x the stored 1.2e-29, which is V_cell/4 and so counts four atoms
-    in a primitive cell that holds two. See
-    `InputData.check_atomic_volume` for the two independent derivations.
+    THE ATOMIC VOLUME WAS CORRECTED. The workbook and ``atomicVolume_SI`` in
+    the MoDELib material file both now carry the hcp Zr value,
+    ``(sqrt(3)/2) a^2 c / 2 = 2.326553e-29 m^3`` with a = b_a and c = b_c and
+    TWO atoms per primitive cell, cross-checked against ``M_Zr/(rho_SI*N_A) =
+    2.3233e-29`` to 0.14%. It previously read ``1.2e-29`` -- ``V_cell/4``,
+    counting four atoms in a cell that holds two, 0.516x the physical value --
+    and ``input_data``'s fallback default read 1.4e-29, a third number for one
+    lattice constant.
 
-    IT DEFAULTS TO FALSE, AND THAT IS DELIBERATE. Omega is not a reporting
-    factor: every number density is C/Omega, so correcting it halves the
-    predicted loop densities (N_a 0.483x, N_c 0.516x, c_a 0.522x at 10 dpa),
-    and the 28-parameter set was fitted against experimental loop densities at
-    the old value. Turning this on without refitting swaps a lattice-constant
-    error for a calibration error. It also has to be turned on for BOTH sides
-    of the coupling at once -- ``atomicVolume_SI`` in the MoDELib material file
-    is the same quantity, and the 0-D <-> 3-D bridge converts through it.
+    ``physical_omega`` is therefore a no-op now, kept so callers that set it do
+    not break. To reproduce a run made BEFORE the correction, pass the old
+    value explicitly:
 
-    ``check_omega`` prints a warning when the stored value disagrees with the
-    lattice-derived one, which it currently does.
+        build_sim(extra={"Omega": LEGACY_OMEGA})
+
+    and set ``atomicVolume_SI`` back on the 3-D side too -- the two must always
+    match, because the 0-D <-> 3-D bridge converts through that key.
+
+    **THE CALIBRATION HAS NOT BEEN REFITTED.** Omega is not a reporting factor:
+    every number density is C/Omega, line density is 2*pi*r*C/Omega, the
+    radius prefactors are sqrt(Omega/(pi*b)) and emission carries
+    exp(sigma*Omega/kT). Measured on the fitted set at 10 dpa, the correction
+    gives N_a 0.483x, N_c 0.516x, c_a 0.522x, Cv 1.047x, Ci 1.059x -- the loop
+    densities HALVE. Those 28 parameters were fitted against experimental loop
+    densities at the old Omega, so the model now carries the right lattice
+    constant and a stale fit. Refit before comparing to experiment.
+
+    ``check_omega`` warns when the workbook disagrees with the lattice-derived
+    value. It is silent now, and is what would catch a regression.
     """
     input_file = str(input_file or default_input_file())
     idata = InputData(input_file)

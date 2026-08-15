@@ -92,7 +92,12 @@ doseRate_dpaPerSec=1.0e-7; 		# [dpa/s] irradiation dose rate
 # code falls back to det(latticeBasis)*b^3 = 1.41421*b^3 = 4.779e-29 m^3, which is
 # the HEX CELL volume (two atoms), ~4x the value the 0-D model uses. Set here to
 # the 0-D value so content <-> radius <-> density conversions agree.
-atomicVolume_SI=1.2e-29;        # [m^3] ZrMicro physical_props['Omega']
+atomicVolume_SI=2.326553e-29;   # [m^3] ZrMicro physical_props['Omega'].
+# hcp Zr: (sqrt(3)/2)*a^2*c/2 with a=b_a=3.23e-10, c=b_c=5.15e-10 and TWO
+# atoms per primitive cell. Cross-checks against M_Zr/(rho_SI*N_A) =
+# 2.3233e-29 to 0.14%. Was 1.2e-29 = V_cell/4, i.e. four atoms in a cell
+# that holds two -- 0.516x the physical value. MUST stay equal to the
+# workbook's Omega: the 0-D <-> 3-D bridge converts through this key.
 # ===========================================================================
 #  MOBILE SPECIES -- RECONCILED WITH THE ZrMicro 0-D MODEL (T = 573 K)
 #

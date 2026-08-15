@@ -137,7 +137,11 @@ class InputData:
             # vacancy loops could not grow. Keep both at Debye scale. [[dad-loop-bias]]
             'nu_i': 5e12,       # interstitial vibration frequency [s^-1]
             'nu_v': 5e12,       # vacancy vibration frequency [s^-1]
-            'Omega': 1.4e-29,   # atomic volume [m^3]
+            # hcp Zr, (sqrt(3)/2)*a^2*c/2 with two atoms per primitive
+            # cell. This fallback used to read 1.4e-29 while the workbook
+            # carried 1.2e-29 and the physical value is 2.33e-29 -- three
+            # different numbers for one lattice constant.
+            'Omega': 2.326553e-29,  # atomic volume [m^3]
             'z_c': 48,          # Number of unstable sites around vacancy
             'epsilon_vL': 0.1,  # Vacancy loop cascade efficiency
             'epsilon_iL': 0.1,  # Interstitial (a-)loop cascade efficiency
