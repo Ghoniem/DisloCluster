@@ -116,11 +116,30 @@ def apply_overrides(idata, overrides=None, verbose=False):
     return applied
 
 
-def build_sim(input_file=None, T=None, G=None, extra=None, verbose=False):
+def build_sim(input_file=None, T=None, G=None, extra=None, verbose=False,
+              physical_omega=False, check_omega=True):
     """The calibrated 0-D model chain.
 
     ``T`` and ``G`` are pinned last so a caller can set the irradiation
     condition without editing the fitted set.
+
+    ``physical_omega`` replaces the stored atomic volume with the hcp Zr value
+    derived from the lattice parameters, ``(sqrt(3)/2) a^2 c / 2`` = 2.33e-29
+    m^3 -- 1.94x the stored 1.2e-29, which is V_cell/4 and so counts four atoms
+    in a primitive cell that holds two. See
+    `InputData.check_atomic_volume` for the two independent derivations.
+
+    IT DEFAULTS TO FALSE, AND THAT IS DELIBERATE. Omega is not a reporting
+    factor: every number density is C/Omega, so correcting it halves the
+    predicted loop densities (N_a 0.483x, N_c 0.516x, c_a 0.522x at 10 dpa),
+    and the 28-parameter set was fitted against experimental loop densities at
+    the old value. Turning this on without refitting swaps a lattice-constant
+    error for a calibration error. It also has to be turned on for BOTH sides
+    of the coupling at once -- ``atomicVolume_SI`` in the MoDELib material file
+    is the same quantity, and the 0-D <-> 3-D bridge converts through it.
+
+    ``check_omega`` prints a warning when the stored value disagrees with the
+    lattice-derived one, which it currently does.
     """
     input_file = str(input_file or default_input_file())
     idata = InputData(input_file)
@@ -130,9 +149,13 @@ def build_sim(input_file=None, T=None, G=None, extra=None, verbose=False):
         ov["T"] = float(T)
     if G is not None:
         ov["G"] = float(G)
+    if physical_omega:
+        _, ov["Omega"], _ = idata.check_atomic_volume(verbose=False)
     if extra:
         ov.update(extra)
     applied = apply_overrides(idata, ov, verbose=verbose)
+    if check_omega and not physical_omega:
+        idata.check_atomic_volume(verbose=verbose)
 
     rr = ReactionRates(idata)
     req = RateEquations(idata, rr)

@@ -337,6 +337,7 @@ def main(argv=None):
                     help="snapshots to draw as static 3-D panels and GB curves")
     ap.add_argument("--no-movies", action="store_true")
     ap.add_argument("--no-volume-average", action="store_true")
+    ap.add_argument("--no-boundary-flux", action="store_true")
     ap.add_argument("--fps", type=int, default=12)
     ap.add_argument("--interp", type=int, default=movies_mod.DEFAULT_INTERP,
                     help="movie frames per output interval (1 = solved "
@@ -367,6 +368,20 @@ def main(argv=None):
         print("\nvolume average:")
         va.main([str(run), "--out", str(run / "volume_average"),
                  "--samples", str(args.mc_samples)])
+
+    if not args.no_boundary_flux:
+        # The INDEPENDENT check on the grain-boundary channel: the accumulator
+        # version of it is closure by difference and cannot disagree with
+        # itself. Guarded, because a diagnostic must never cost a report that
+        # took a march of several hours to earn -- and it can be re-run alone
+        # with `python -m dislocluster_code.post.boundary_flux <run>`.
+        print("\nboundary flux (independent of the accumulators):")
+        try:
+            from dislocluster_code.post import boundary_flux
+            boundary_flux.main([str(run), "--samples",
+                                str(min(args.mc_samples, 1_000_000))])
+        except Exception as exc:
+            print(f"  skipped: {type(exc).__name__}: {exc}")
 
     (run / "report.md").write_text("\n".join([
         f"# {run.name}", "",

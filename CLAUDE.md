@@ -672,12 +672,74 @@ asymmetry (4.7e6 vs 1.3e6) is the bias-driven excess that drives growth.
 The `*_fractions` figures now include the boundary channel, so their "Sum (=1)"
 line is true again — it was reaching ~0.3.
 
-**Ω = 1.2e-29 m³ is the model's atomic volume**, in both the workbook and
-`Zr3d_ghoniem.txt`. That is 0.52× the true hcp Zr atomic volume (2.33e-29 m³
-from a = 3.232 Å, c = 5.147 Å, 2 atoms/cell). Every concentration here is
-defined as `C = n·Ω`, so counts are internally consistent whatever Ω is — but
-an *absolute* count inherits that factor, so quote it with the caveat until the
-discrepancy is resolved.
+### The boundary channel is measured independently
+
+`post.boundary_flux` gets the same number a second way and never touches the
+accumulators. The fast solve returns a **steady** mobile field, so for each
+mobile species `0 = ∇·(D∇C) + R`, and by the divergence theorem
+
+```
+∫_Ω R dV  =  ∮_∂Ω (−D∇C)·n dA   =  net outward flux
+```
+
+`R` is exactly the 0-D right-hand side for the mobile components — that model
+has no diffusion, so its mobile equations *are* the reaction terms, and the
+grain boundary appears nowhere in it. That is why the volume integral of its
+mobile RHS measures the flux to the boundary. Atom weights are (1, 2, 3) for
+(Ci, C2i, C3i) and 1 for Cv, matching `I_stored`/`V_stored`.
+
+Measured against closure on the 200 nm march:
+
+| dose | measured | closure | ratio |
+|---:|---:|---:|---:|
+| 0.01 | 5 666 311 | 5 106 945 | 1.110 |
+| 0.1 | 44 999 294 | 44 632 725 | 1.008 |
+| 1 | 431 455 063 | 444 694 897 | 0.970 |
+| 10 | 4 287 277 443 | 4 450 899 303 | **0.963** |
+
+**Agreement to 3.7% at 10 dpa** — an independent confirmation, not an identity.
+The 11% at 0.01 dpa is the trapezoid over a coarse log grid where the rate
+falls 36% across the first interval, not a physics discrepancy. Run it alone
+with `python -m dislocluster_code.post.boundary_flux <run>`; `march_report`
+calls it guarded, so a diagnostic can never cost a report a multi-hour march
+earned.
+
+A surface integral inside MoDELib, where the FE gradients already exist, would
+be the gold standard. This needs no C++ change and works on runs that already
+exist, which is why it came first.
+
+### Ω is wrong by 1.94×, and correcting it is a recalibration
+
+**Ω = 1.2e-29 m³** in both the workbook and `Zr3d_ghoniem.txt`. The correct hcp
+Zr value is derivable from data already in those files, two independent ways
+that agree to **0.14%**:
+
+| route | value |
+|---|---:|
+| lattice: `(√3/2)a²c / 2`, a = b_a = 3.23 Å, c = b_c = 5.15 Å | 2.3266e-29 m³ |
+| mass density: `M_Zr /(ρ·N_A)`, ρ = `rho_SI` = 6520 kg/m³ | 2.3233e-29 m³ |
+| **stored** | **1.2e-29 m³** |
+
+The stored value is `V_cell/4` — four atoms in a primitive cell that holds two.
+(`input_data.py`'s fallback default is 1.4e-29, a third value again.)
+
+**This is not a reporting factor.** Every number density is `C/Ω`, loop line
+density is `2πr·C/Ω`, the loop-radius prefactors are `√(Ω/πb)`, and stress-biased
+emission carries `exp(σΩ/kT)`. Measured on the calibrated set at 10 dpa:
+
+```
+N_a 0.483x   N_c 0.516x   c_a 0.522x   Cv 1.047x   Ci 1.059x
+```
+
+**The loop densities halve.** The 28-parameter set was fitted against
+experimental loop densities at the old Ω, so correcting it without refitting
+trades a lattice-constant error for a calibration error.
+
+`InputData.check_atomic_volume()` reports the discrepancy and `build_sim` warns
+on every call. `build_sim(physical_omega=True)` opts in — **default False**,
+deliberately. Flipping it requires refitting the 28 parameters, and it must be
+flipped on **both** sides at once: `atomicVolume_SI` in the MoDELib material
+file is the same quantity and the 0-D ↔ 3-D bridge converts through it.
 
 ---
 

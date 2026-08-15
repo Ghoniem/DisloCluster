@@ -256,6 +256,52 @@ class InputData:
             'w_rmin': 0.3,      # smoothstep ramp width (fraction of r_min_a)
         }
     
+    def check_atomic_volume(self, rtol=0.05, verbose=True):
+        """Compare ``physical_props['Omega']`` against hcp Zr, two ways.
+
+        Omega is not a fitting parameter -- it is a lattice constant, and this
+        file already carries the data to determine it twice over:
+
+            from the lattice     V_cell = (sqrt(3)/2) a^2 c, TWO atoms per hcp
+                                 primitive cell, with a = b_a and c = b_c
+            from the mass        Omega = M_Zr / (rho * N_A), with rho = 6520
+                                 kg/m^3 (rho_SI in Zr3d_ghoniem.txt)
+
+        Both give 2.32e-29 m^3 and agree to 0.14%. The stored value is
+        1.2e-29, which is 0.516x that -- almost exactly V_cell/4, i.e. four
+        atoms per hcp primitive cell, which hcp does not have.
+
+        THIS IS NOT A REPORTING BUG. Omega appears throughout the model: every
+        number density is C/Omega, loop line density is 2*pi*r*C/Omega, the
+        loop-radius prefactors are sqrt(Omega/(pi*b)), and the stress-biased
+        emission carries exp(sigma*Omega/kT). Correcting it moves the
+        predictions -- measured on the calibrated set at 10 dpa:
+
+            N_a  0.483x     N_c  0.516x     c_a  0.522x
+            Cv   1.047x     Ci   1.059x
+
+        The loop number densities HALVE. Since the 28-parameter set was fitted
+        against experimental loop densities at the old Omega, correcting it
+        without refitting trades one error for another. Hence a check that
+        reports, and `calibration.build_sim(physical_omega=True)` to opt in --
+        not a silent default.
+
+        Returns ``(stored, physical, agrees)``.
+        """
+        pp = self.physical_props
+        stored = float(pp['Omega'])
+        a = float(pp.get('b_a', 3.23e-10))       # hcp a  [m]
+        c = float(pp.get('b_c', 5.15e-10))       # hcp c  [m]
+        physical = np.sqrt(3.0) / 2.0 * a * a * c / 2.0
+        agrees = abs(stored - physical) <= rtol * physical
+        if verbose and not agrees:
+            print(f"  WARNING: Omega = {stored:.4e} m^3 is {stored / physical:.3f}x "
+                  f"the hcp value {physical:.4e} m^3 "
+                  f"(a={a:.3e}, c={c:.3e}, 2 atoms/cell)")
+            print(f"           number densities are C/Omega, so they are off by "
+                  f"{physical / stored:.2f}x. See InputData.check_atomic_volume.")
+        return stored, physical, agrees
+
     def calculate_derived_parameters(self):
         """
         Calculate derived parameters from input data
