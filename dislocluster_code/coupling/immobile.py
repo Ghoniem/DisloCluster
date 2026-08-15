@@ -14,6 +14,51 @@ solver with ``freeze_mobile=1``: each quadrature point becomes one case of the
 OpenMP ``--batch_file`` mode, integrated concurrently in a single subprocess,
 with its mobile species pinned to the supplied C_M*.
 
+WHY A MILLION ODEs PER SUBSTEP IS NOT A MILLION-EQUATION SYSTEM
+---------------------------------------------------------------
+Read the totals carelessly and this looks impossible. A 500 nm case advances
+90617 points x 15 integrated equations = ~1.09e6 scalar ODEs per substep, and a
+tightly coupled stiff system of that size would be hopeless. It is not one
+system: it is 72494 INDEPENDENT 15-dimensional systems (after dedup), and
+`rate_equations.ode_system(t, y)` takes a single point's state vector with no
+neighbor state in it anywhere.
+
+That decoupling is real, not an approximation bolted on for speed. The only
+thing coupling neighboring points is DIFFUSION of the mobile species, and this
+step freezes those (`freeze_mobile=1`). With the mobile field held, a point's
+immobile ODEs depend only on its own loop populations and the four mobile
+values pinned into y[0:4]. The split is what earns the decoupling; the batch
+mode just harvests it.
+
+One implicit factorization, split against coupled:
+
+    split      72494 x 15^3        2.4e8  flops
+    coupled    (1359255)^3         2.5e18 flops       ratio 1.0e10
+
+Sparsity softens the coupled number but does not rescue it: a 3-D FE Jacobian
+still factorizes at ~O(N^2) with fill ~O(N^(4/3)). Stiffness localizes the same
+way -- each point takes ~100 CVODE internal steps per substep, but stiffness
+cost scales with the dimension of the COUPLED BLOCK, and a 15x15 dense LU is
+~1100 flops.
+
+The coupling has not disappeared, it has moved to where it is affordable. The
+tightly coupled problem is the FAST solve: 362468 unknowns, 925 s measured,
+against 28.3 s for this module's entire sweep over 90617 points. What the split
+buys is frequency -- `solveMobileClusters` has no time derivative, so the
+coupled problem is solved 8 times over a march instead of at every timestep. At
+the measured 185 s per linear solve (925 s / 5 Newton iterations), integrating
+that block implicitly in time instead would cost roughly
+
+    ~100 steps x 24 substeps / 5 steps per refactorization = 480 factorizations
+    480 x 185 s = 25 h        <- the 4-species mobile block alone, not all 19
+
+against the 11.3 min this module actually takes. The price is splitting error,
+first order in the fast-solve spacing (`fem_every`).
+
+The structure predicts linear scaling in node count, and that is what is
+measured: 9.3 s per substep at 27720 nodes, 28.3 s at 90617 -- 3.35e-4 against
+3.12e-4 s per node.
+
 Native state layout (what the ZrMicro solver integrates), length N_EQ = 19:
     y[0:4]   mobile        Cv, Ci, C2i, C3i              <- frozen at C_M*
     y[4:8]   loop numbers  CiL, CaiL, CvL, CavL

@@ -401,6 +401,67 @@ reproducible.
 State vector (19): `[Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i,
 CvL_v, CavL_v, 6 accumulators, rho_N]`.
 
+### Why ~1.1 M ODEs per substep are tractable at all
+
+This is the load-bearing design point of the whole scheme, and it is easy to
+misread the numbers as claiming something impossible. **A tightly coupled
+million-equation stiff system would be hopeless.** This is not one.
+
+**It is 72 494 independent 15-dimensional systems**, not one 1 087 404-dimensional
+one (500 nm case: 90 617 nodes, dedup ×1.25). `rate_equations.ode_system(t, y)`
+takes a single point's state vector; no neighbor state enters it. Each point is
+one case of the OpenMP `--batch_file` mode, dynamically scheduled over 24
+threads with a private CVODE workspace each.
+
+That decoupling is legitimate rather than a cheat because **the only thing
+coupling neighboring points is diffusion of the mobile species**, and the slow
+step freezes those (`freeze_mobile=1`). Freeze the mobile field and the spatial
+coupling is gone by construction: a point's immobile ODEs depend only on its
+own loop populations and the mobile values pinned into `y[0:4]`.
+
+The cost consequence, for one implicit factorization:
+
+| | flops |
+|---|---:|
+| split: 72 494 × 15³ | 2.4×10⁸ |
+| coupled: (1 359 255)³ | 2.5×10¹⁸ |
+| **ratio** | **1.0×10¹⁰** |
+
+Sparsity softens the coupled figure but does not rescue it — a 3-D FE Jacobian
+still factorizes at ~O(N²) with fill growing as O(N^4/3).
+
+Stiffness localizes the same way. Each point's system genuinely is stiff (~100
+CVODE internal steps per point per substep, which is why BDF), but stiffness
+cost scales with the **dimension of the coupled block**, not with how many
+independent blocks there are. A 15×15 dense LU is ~1100 flops.
+
+**The coupling did not vanish — it moved to where it is affordable.** The
+tightly coupled problem still exists: it is the fast solve, 362 468 unknowns,
+**925 s** measured, against 28.3 s for an entire slow sweep over 90 617 points.
+What the split buys is *frequency*: `solveMobileClusters` has no time
+derivative, so the coupled problem is solved **8 times over the march** instead
+of at every timestep. The counterfactual, from the same measurements —
+925 s / 5 Newton iterations = 185 s per linear solve:
+
+```
+~100 internal steps × 24 substeps ÷ 5 steps per refactorization ≈ 480 factorizations
+480 × 185 s ≈ 25 h        ← the 4-species mobile block ALONE, not all 19
+measured slow side, all 24 substeps:  11.3 min
+```
+
+Three things stacked, then: freezing the mobile field removes the spatial
+coupling; the coupled part has no time derivative so it is solved 8 times, not
+thousands; and batch OpenMP plus dedup (identical states solved once — ×1.25
+here, higher early on when much of the domain shares a state) spreads what is
+left over 24 cores.
+
+The bill arrives as **splitting error, first order in the fast-solve spacing**,
+which is why `fem_every` is the accuracy dial and why it mattered that a value
+not dividing `substeps_per_interval` was skipping whole intervals.
+
+The slow side is linear in node count, as this structure predicts: 9.3 s per
+substep at 27 720 nodes and 28.3 s at 90 617 — 3.35×10⁻⁴ vs 3.12×10⁻⁴ s/node.
+
 ### Study drivers
 
 | Module | Role |
