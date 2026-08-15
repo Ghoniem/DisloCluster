@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  9 AUG 2026 17:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  15 AUG 2026 15:25
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -563,8 +563,8 @@ LaTeX Font Info:    External font `lmex10' loaded for size
 \tf@toc=\write4
 \openout4 = `solver_and_coupling_rearchitecture.toc'.
 
- [3{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.e
-nc}] [4] [5] [6]
+ [3] [4{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-math
+ex.enc}] [5] [6]
 Overfull \hbox (5.89893pt too wide) in paragraph at lines 455--462
 []\T1/lmr/bx/n/10.95 The AD Ja-co-bian de-liv-ers its tar-get met-ric: \T1/lmr/
 m/n/10.95 resid-ual eval-u-a-tions fall by 33% ($\OT1/lmr/m/n/10.95 366 170 \OM
@@ -616,14 +616,14 @@ Overfull \hbox (44.15575pt too wide) in paragraph at lines 866--878
  [][] 
  []
 
-[12]
+[12] [13]
 Overfull \hbox (5.65608pt too wide) in paragraph at lines 931--940
 \T1/lmr/m/n/10.95 listed in \T1/lmtt/m/n/10 CLAUDE.md \T1/lmr/m/n/10.95 (the DA
 D bias rec-on-cil-i-a-tion, the bi-pyramid va-cancy fam-ily, and size-dependent
 
  []
 
-[13]
+
 Overfull \hbox (80.40662pt too wide) in paragraph at lines 967--970
 []\T1/lmr/m/n/10.95 The lin-eage is check-able in the pa-ram-e-ter set. Of the 
 cluster-dynamics keys read by \T1/lmtt/m/n/10 ClusterDynamicsParameters\T1/lmr/
@@ -637,7 +637,7 @@ sterDiscretizationFactor \T1/lmr/m/n/10.95 and with them \T1/lmtt/m/n/10 initia
 lizeDiscreteClimbLoops()\T1/lmr/m/n/10.95 :
  []
 
-
+[14]
 Underfull \hbox (badness 4543) in paragraph at lines 1007--1008
 []|\T1/lmr/m/n/10.95 ZrMicro cou-pled
  []
@@ -677,13 +677,11 @@ Overfull \hbox (8.31474pt too wide) in paragraph at lines 1005--1020
  [][] 
  []
 
-[14]
 LaTeX Font Info:    Trying to load font information for OT1+lmss on input line 
 1031.
- (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd
+(C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd
 File: ot1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
-[15]
+) [15]
 Overfull \hbox (19.0958pt too wide) in paragraph at lines 1083--1087
 \T1/lmr/m/n/10.95 implicit up-date through four doc-u-mented cor-rec-tions, rec
 orded in \T1/lmtt/m/n/10 MoDELib3/ZR3D_GHONIEM_CHANGES.md\T1/lmr/m/n/10.95 : 
@@ -727,11 +725,12 @@ n/10.95 con-tent $\OT1/lmr/m/n/10.95 350\OMS/lmsy/m/n/10.95 ^^B$ \T1/lmr/m/n/10
 .95 be-
  []
 
+[16]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10.95> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1141.
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1141.
-[16]
+
 Overfull \hbox (55.02492pt too wide) in paragraph at lines 1200--1211
 []\T1/lmr/m/n/10.95 One ear-lier piece of ev-i-dence should be re-tired rather 
 than re-peated. \T1/lmtt/m/n/10 MoDELib3/Library/Materials/Zr4.txt
@@ -742,196 +741,222 @@ Overfull \hbox (15.88824pt too wide) in paragraph at lines 1248--1257
  [][] 
  []
 
-
-Overfull \hbox (33.05818pt too wide) in paragraph at lines 1309--1315
+[18]
+Overfull \hbox (33.05818pt too wide) in paragraph at lines 1310--1316
 \T1/lmr/m/n/10.95 Neighbouring nodes in a smooth field in-te-grate nearly iden-
 ti-cal initial-value prob-lems. \T1/lmtt/m/n/10 run_immobile_step
  []
 
-[18] [19]
-Overfull \hbox (14.0325pt too wide) in paragraph at lines 1437--1437
+[19] [20]
+Overfull \hbox (14.0325pt too wide) in paragraph at lines 1438--1438
 []\T1/lmtt/m/n/10.95 solveMobileClusters();      // FAST -- steady C_M*(x). No 
 time derivative[] 
  []
 
 
-Overfull \hbox (31.2787pt too wide) in paragraph at lines 1437--1437
+Overfull \hbox (31.2787pt too wide) in paragraph at lines 1438--1438
 []                            \T1/lmtt/m/n/10.95 // anywhere; the immobile popu
 lation enters only[] 
  []
 
 
-Overfull \hbox (8.28377pt too wide) in paragraph at lines 1437--1437
+Overfull \hbox (8.28377pt too wide) in paragraph at lines 1438--1438
 []                            \T1/lmtt/m/n/10.95 // through ImmobileSinks, eval
 uated at every[] 
  []
 
-[20]
+[21]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 1524.
- [21]
-Overfull \hbox (43.96764pt too wide) in paragraph at lines 1557--1568
+(Font)              <9> on input line 1525.
+
+Overfull \hbox (43.96764pt too wide) in paragraph at lines 1558--1569
  []\T1/lmr/bx/n/10.95 What was changed.[] \T1/lmr/m/n/10.95 Five op-tional DD.t
 xt scalars (\T1/lmtt/m/n/10 mobileSolverTolerance\T1/lmr/m/n/10.95 , \T1/lmtt/m
 /n/10 mobileSolverMaxIterations\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (0.26436pt too wide) in paragraph at lines 1557--1568
+Overfull \hbox (0.26436pt too wide) in paragraph at lines 1558--1569
 \T1/lmr/m/n/10.95 hang into a bounded, re-pro-ducible re-sult. The Adap-tive fa
 st solve sets \T1/lmtt/m/n/10 mobileSolverClampInLoop=0
  []
 
 [22]
-Overfull \hbox (17.35272pt too wide) in paragraph at lines 1629--1636
+Overfull \hbox (17.35272pt too wide) in paragraph at lines 1630--1637
 \T1/lmr/m/n/10.95 en-tirely --- and pins ev-ery fit-ted value be-fore build-ing
  the model chain. \T1/lmtt/m/n/10 run_coupled_vs_standalone.py
  []
 
 [23] [24] [25] [26] [27]
-Overfull \hbox (44.10356pt too wide) in paragraph at lines 1991--1997
+Overfull \hbox (44.10356pt too wide) in paragraph at lines 1992--1998
 []\T1/lmr/m/n/10.95 This also cor-rects a nat-u-ral mis-read-ing of the fast st
 ep. It has no time deriva-tive --- \T1/lmtt/m/n/10 solveMobileClusters
  []
 
 [28] [29]
-Overfull \hbox (19.46765pt too wide) in paragraph at lines 2169--2178
+Overfull \hbox (19.46765pt too wide) in paragraph at lines 2170--2179
  [][] 
  []
 
 [30]
-Overfull \hbox (56.8266pt too wide) in paragraph at lines 2266--2273
+Overfull \hbox (56.8266pt too wide) in paragraph at lines 2267--2274
 \T1/lmr/m/n/10.95 ELib con-fig-u-ra-tions. \T1/lmtt/m/n/10 run_coupled_vs_stand
 alone.py \T1/lmr/m/n/10.95 drives it, and Sec-tion 14 of \T1/lmtt/m/n/10 couple
 d_0d_3d_ZrMicro.ipynb
  []
 
-[31]
-Overfull \hbox (33.73196pt too wide) in paragraph at lines 2323--2326
+[31] [32]
+Overfull \hbox (29.74821pt too wide) in paragraph at lines 2362--2369
+\OT1/lmr/m/n/10.95 362 468$ \T1/lmr/m/n/10.95 un-knowns, solved by New-ton it-e
+r-a-tion with a sparse di-rect fac-tor-iza-tion (\T1/lmtt/m/n/10 Eigen::Simplic
+ialLLT\T1/lmr/m/n/10.95 ).
+ []
+
+[33]
+Overfull \hbox (33.73196pt too wide) in paragraph at lines 2473--2476
 \T1/lmr/m/n/10.95 This is defect-count con-ser-va-tion, and it is the same rule
  \T1/lmtt/m/n/10 fullCD \T1/lmr/m/n/10.95 ap-plies in \T1/lmtt/m/n/10 initializ
 eDiscreteClimbLoops\T1/lmr/m/n/10.95 . 
  []
 
 
-Underfull \hbox (badness 1132) in paragraph at lines 2336--2336
-[]\T1/lmr/m/n/10.95 Table 24: []Discrete loop fam-i-lies. \T1/lmtt/m/n/10 plane
+Underfull \hbox (badness 1132) in paragraph at lines 2486--2486
+[]\T1/lmr/m/n/10.95 Table 26: []Discrete loop fam-i-lies. \T1/lmtt/m/n/10 plane
 ID \T1/lmr/m/n/10.95 in-dexes \T1/lmtt/m/n/10 singleCrystal->slipSystems()\T1/l
 mr/m/n/10.95 ; with
  []
 
-[32]
-Overfull \hbox (140.59517pt too wide) in paragraph at lines 2418--2425
+[34]
+Overfull \hbox (140.59517pt too wide) in paragraph at lines 2568--2575
 \T1/lmtt/m/n/10 fullCD \T1/lmr/m/n/10.95 per-forms the con-ver-sion once, at \T
 1/lmtt/m/n/10 clusterDiscretizationTime\T1/lmr/m/n/10.95 , in \T1/lmtt/m/n/10 C
 lusterDynamics<dim>::initializeDiscreteClimbLoops\T1/lmr/m/n/10.95 .
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2441--2441
+Underfull \hbox (badness 10000) in paragraph at lines 2591--2591
 []|\T1/lmr/m/n/10 Greedy FE vertex-neighbour
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2467--2469
+Underfull \hbox (badness 10000) in paragraph at lines 2617--2619
 []|$\OML/lmm/m/it/10 O\OT1/lmr/m/n/10 (\OML/lmm/m/it/10 N[]\OT1/lmr/m/n/10 )$ \
 T1/lmr/m/n/10 for the count, then
  []
 
-[33]
-Overfull \hbox (154.20325pt too wide) in paragraph at lines 2504--2508
+[35]
+Overfull \hbox (154.20325pt too wide) in paragraph at lines 2654--2658
 \T1/lmr/m/n/10.95 A MoD-ELib3 DD sim-u-la-tion reads a sin-gle \T1/lmtt/m/n/10 
 inputFiles/ \T1/lmr/m/n/10.95 di-rec-tory. Re-view-ing \T1/lmtt/m/n/10 tutorial
 s/periodic_density/generateInputFiles.py
  []
 
 
-Underfull \hbox (badness 1735) in paragraph at lines 2520--2524
+Underfull \hbox (badness 1735) in paragraph at lines 2670--2674
 []|\T1/lmr/m/n/10 Solver con-trols: \T1/lmtt/m/n/10 useDislocations=1\T1/lmr/m/
 n/10 , \T1/lmtt/m/n/10 useClusterDynamics=0
  []
 
 
-Underfull \hbox (badness 4181) in paragraph at lines 2520--2524
+Underfull \hbox (badness 4181) in paragraph at lines 2670--2674
 \T1/lmr/m/n/10 for a pure DD run, \T1/lmtt/m/n/10 glideSolverType\T1/lmr/m/n/10
  , \T1/lmtt/m/n/10 climbSolverType\T1/lmr/m/n/10 ,
  []
 
 
-Underfull \hbox (badness 2134) in paragraph at lines 2520--2524
+Underfull \hbox (badness 2134) in paragraph at lines 2670--2674
 \T1/lmtt/m/n/10 timeSteppingMethod\T1/lmr/m/n/10 , \T1/lmtt/m/n/10 Nsteps\T1/lm
 r/m/n/10 , \T1/lmtt/m/n/10 Lmin\T1/lmr/m/n/10 /\T1/lmtt/m/n/10 Lmax\T1/lmr/m/n/
 10 , \T1/lmtt/m/n/10 remeshFrequency\T1/lmr/m/n/10 ,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 2525--2528
+Underfull \hbox (badness 10000) in paragraph at lines 2675--2678
 []|\T1/lmtt/m/n/10 Zr3d_ghoniem.txt\T1/lmr/m/n/10 , with \T1/lmtt/m/n/10 enable
 dSlipSystems=fullBasal
  []
 
 
-Underfull \hbox (badness 2512) in paragraph at lines 2532--2535
+Underfull \hbox (badness 2512) in paragraph at lines 2682--2685
 []|\T1/lmr/m/n/10 Written by \T1/lmtt/m/n/10 PolyCrystalFile\T1/lmr/m/n/10 : me
 sh file, \T1/lmtt/m/n/10 boxScaling\T1/lmr/m/n/10 , \T1/lmtt/m/n/10 X0\T1/lmr/m
 /n/10 ,
  []
 
 
-Overfull \hbox (53.6843pt too wide) in paragraph at lines 2554--2558
+Overfull \hbox (53.6843pt too wide) in paragraph at lines 2704--2708
 \T1/lmtt/m/n/10 planeIDs=...;  loopRadii_SI=...;  loopSides=...;  loopCenters=.
 ..;  isVacancyLoop=...; 
  []
 
-[34]
-Overfull \hbox (6.0055pt too wide) in paragraph at lines 2589--2591
+[36]
+Overfull \hbox (6.0055pt too wide) in paragraph at lines 2739--2741
  []\T1/lmr/bx/n/10.95 Workflow.[] \T1/lmr/m/n/10.95 Copy \T1/lmtt/m/n/10 aLoops
 _<dose>.txt \T1/lmr/m/n/10.95 into \T1/lmtt/m/n/10 inputFiles/\T1/lmr/m/n/10.95
  , name it from \T1/lmtt/m/n/10 initialMicrostructure.txt\T1/lmr/m/n/10.95 ,
  []
 
-[35]
-Overfull \hbox (94.7809pt too wide) in paragraph at lines 2634--2644
- []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 py_utils/discrete_loops.py \T1/l
-mr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/volume_average.py \T1/lmr/m/n/10.9
-5 (Voronoi weights), \T1/lmtt/m/n/10 py_utils/modelib_gb.py
+
+Overfull \hbox (34.69633pt too wide) in paragraph at lines 2784--2794
+ []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 dislocluster_code/post/discrete_
+loops.py \T1/lmr/m/n/10.95 (new), \T1/lmtt/m/n/10 dislocluster_code/post/volume
+_average.py
  []
 
-[36]
-Overfull \hbox (8.398pt too wide) in paragraph at lines 2707--2721
+
+Overfull \hbox (147.97609pt too wide) in paragraph at lines 2784--2794
+\T1/lmr/m/n/10.95 (Voronoi weights), \T1/lmtt/m/n/10 dislocluster_code/post/gb.
+py \T1/lmr/m/n/10.95 (face dis-tances), \T1/lmtt/m/n/10 Docs/DisloCluster Manua
+l/continuum_to_discrete_loops.md\T1/lmr/m/n/10.95 .
+ []
+
+
+Overfull \hbox (37.56816pt too wide) in paragraph at lines 2784--2794
+\T1/lmr/m/n/10.95 Out-put per run di-rec-tory: \T1/lmtt/m/n/10 discrete_loops/ 
+\T1/lmr/m/n/10.95 with \T1/lmtt/m/n/10 aLoops_<dose>.txt\T1/lmr/m/n/10.95 , \T1
+/lmtt/m/n/10 loops_<dose>.csv\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 loops_<dose>.p
+ng
+ []
+
+[37] [38]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 2857--2871
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (52.80855pt too wide) in paragraph at lines 2707--2721
-\T1/lmtt/m/n/10 py_utils/modelib_coupling.py\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10
- py_utils/modelib_field.py \T1/lmr/m/n/10.95 (new), \T1/lmtt/m/n/10 py_utils/ru
-n_coupled_vs_standalone.py
+Overfull \hbox (68.51009pt too wide) in paragraph at lines 2857--2871
+\T1/lmtt/m/n/10 cpp_utils/jac_check.cpp\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 cpp_
+utils/parameters.h\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 code/solver.cpp\T1/lmr/m/
+n/10.95 , \T1/lmtt/m/n/10 dislocluster_code/zerod/cpp_bridge.py\T1/lmr/m/n/10.9
+5 ,
  []
 
-[37] (solver_and_coupling_rearchitecture.aux)
+
+Overfull \hbox (147.30827pt too wide) in paragraph at lines 2857--2871
+\T1/lmtt/m/n/10 dislocluster_code/coupling/immobile.py\T1/lmr/m/n/10.95 , \T1/l
+mtt/m/n/10 dislocluster_code/coupling/field.py \T1/lmr/m/n/10.95 (new), \T1/lmt
+t/m/n/10 dislocluster_code/coupling/march.py
+ []
+
+[39] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
-
-
-LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
-
 Package rerunfilecheck Info: File `solver_and_coupling_rearchitecture.out' has 
 not changed.
-(rerunfilecheck)             Checksum: 79FB55576143B30F31F4EB44F91A4E35;14288.
+(rerunfilecheck)             Checksum: 742A693FF5182217B66A0EF87D0108AF;15512.
  ) 
 Here is how much of TeX's memory you used:
- 11776 strings out of 467691
- 180940 string characters out of 5414988
- 615044 words of memory out of 5000000
- 40433 multiletter control sequences out of 15000+600000
+ 11794 strings out of 467691
+ 181184 string characters out of 5414988
+ 620739 words of memory out of 5000000
+ 40442 multiletter control sequences out of 15000+600000
  767842 words of font info for 133 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,15n,79p,539b,573s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,15n,79p,539b,577s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
@@ -954,10 +979,10 @@ ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pf
 b>
-Output written on solver_and_coupling_rearchitecture.pdf (37 pages, 615772 byte
+Output written on solver_and_coupling_rearchitecture.pdf (39 pages, 628282 byte
 s).
 PDF statistics:
- 788 PDF objects out of 1000 (max. 8388607)
- 198 named destinations out of 1000 (max. 500000)
- 489 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 828 PDF objects out of 1000 (max. 8388607)
+ 207 named destinations out of 1000 (max. 500000)
+ 529 words of extra memory for PDF output out of 10000 (max. 10000000)
 

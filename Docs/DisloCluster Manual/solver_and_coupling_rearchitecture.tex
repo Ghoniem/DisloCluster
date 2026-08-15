@@ -1305,6 +1305,7 @@ the general result would overstate the gain, since after the first substep the
 immobile state varies node to node and thirteen values differ.
 
 \subsection{Recommendation 3: deduplicating points before dispatch}
+\label{sec:dedup}
 
 Neighbouring nodes in a smooth field integrate nearly identical initial-value
 problems. \code{run\_immobile\_step} now optionally groups points whose
@@ -2270,6 +2271,155 @@ The run writes the reference layout under
 \code{evl\_coupled/} holding the marched CD fields as complete, restartable
 MoDELib configurations. \code{run\_coupled\_vs\_standalone.py} drives it, and
 Section 14 of \code{coupled\_0d\_3d\_ZrMicro.ipynb} calls that driver.
+
+% ============================================================================
+\section{Why the slow step is tractable}
+\label{sec:tractability}
+% ============================================================================
+
+A 500~nm hexagonal case advances $90\,617$ quadrature points, each carrying
+$N_{\mathrm{eq}}-N_{\mathrm{mob}} = 15$ integrated equations, over every
+substep. Read as a total that is $\sim\!1.09\times10^{6}$ scalar ODEs per
+substep and $\sim\!2.6\times10^{7}$ over a 24-substep march. Stated that way it
+invites the obvious objection: a tightly coupled stiff system of that size is
+not integrable in any reasonable time, and experience with tightly coupled
+reaction--diffusion systems says so plainly.
+
+The objection is correct, and it does not apply, because this is not one system
+of $1.09\times10^{6}$ equations. It is $72\,494$ \emph{independent} systems of
+15 equations each (after deduplication, Section~\ref{sec:dedup}). This section
+sets out why the decoupling is exact rather than an approximation adopted for
+speed, what it is worth arithmetically, and --- the part most easily lost ---
+where the tight coupling actually went, since it certainly did not disappear.
+
+\subsection{The decoupling is a property of the split, not of the solver}
+
+\code{RateEquations.ode\_system}$(t, y)$ takes a single point's state vector.
+No neighbouring state appears in it anywhere; there is no stencil, no gradient,
+no exchange term. The batch driver
+(\code{coupling.immobile.run\_immobile\_step}) therefore dispatches each point
+as an independent case of the OpenMP \code{--batch\_file} mode, dynamically
+scheduled across the available cores with one reusable CVODE workspace per
+thread (Section~\ref{sec:workspace}).
+
+That is legitimate for one reason only: \emph{the sole mechanism coupling
+neighbouring points is diffusion of the mobile species}, and the slow step
+freezes them. With \code{freeze\_mobile=1} the four mobile concentrations are
+held at the $C_M^*(x)$ delivered by the preceding fast solve, and a point's
+immobile equations then depend on nothing but its own loop populations, its own
+$\rho_N$, and those four pinned values. The spatial operator is absent from the
+slow step by construction.
+
+So the decoupling is earned by the operator split. The batch mode does not
+create it; it harvests it. Any change that let the immobile equations see a
+neighbour --- a gradient term, a non-local sink --- would destroy the property
+and with it the entire cost argument below.
+
+\subsection{What the decoupling is worth}
+
+An implicit integrator applied to a coupled system of dimension $N$ pays an
+$N \times N$ factorization. For a dense factorization the cost is
+$\mathcal{O}(N^3)$, and the two arrangements differ by ten orders of magnitude:
+
+\begin{table}[htb]
+\centering
+\caption{Cost of one implicit factorization, 500~nm case
+($q = 90\,617$ points, dedup $\times 1.25$, 15 equations per point).}
+\label{tab:tractability}
+\begin{tabular}{llr}
+\toprule
+Arrangement & Factorization & flops \\
+\midrule
+Split (this scheme)   & $72\,494 \times 15^3$      & $2.4\times10^{8}$ \\
+Fully coupled         & $(1\,359\,255)^3$          & $2.5\times10^{18}$ \\
+\midrule
+\multicolumn{2}{l}{Ratio}                          & $1.0\times10^{10}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Sparsity softens the coupled entry without rescuing it. A three-dimensional
+finite-element Jacobian factorizes at roughly $\mathcal{O}(N^2)$ with fill
+growing as $\mathcal{O}(N^{4/3})$, so the coupled arrangement remains
+unreachable in both time and memory --- and it would be paid at every Newton
+iteration of every time step, not once.
+
+Stiffness localizes in the same way, and this is worth stating separately
+because it is the point at which intuition from tightly coupled systems
+misleads. Each point's system \emph{is} genuinely stiff: the reaction rates
+span decades, and CVODE takes $\sim\!100$ internal steps per point per substep,
+which is why BDF is used rather than an explicit method. But the cost of
+stiffness scales with the dimension of the \emph{coupled block}, not with how
+many independent blocks exist. A $15 \times 15$ dense LU is $\sim\!1100$ flops.
+Paying that $72\,494$ times is free; paying it once at $N = 1.36\times10^{6}$ is
+not.
+
+\subsection{Where the tight coupling went}
+
+The coupling has not been removed from the physics. It has been moved to the
+one place where its cost is bearable.
+
+The tightly coupled problem is the \emph{fast} step: a nonlinear algebraic
+system in $N_{\mathrm{mob}} \times q = 362\,468$ unknowns, solved by Newton
+iteration with a sparse direct factorization
+(\code{Eigen::SimplicialLLT}). It is expensive exactly as the objection
+predicts --- $925$~s measured on the 500~nm case, against $28.3$~s for a
+complete slow sweep over all $90\,617$ points. Tight coupling costs what tight
+coupling costs.
+
+What the split buys is not a cheaper coupled solve but a \emph{rarer} one.
+\code{solveMobileClusters} has no time derivative: it returns the steady mobile
+field for the immobile state currently held. A steady problem need not be
+re-solved as time advances --- only when the state it was solved against has
+moved enough to matter. The coupled problem is therefore solved $8$ times over
+a march instead of at every internal time step.
+
+The counterfactual follows from the same measurements. At $925$~s for $5$
+Newton iterations, one linear solve costs $\sim\!185$~s. Integrating the mobile
+block implicitly in time, with a refactorization every fifth step, would need
+
+\[
+  \frac{100 \ \text{steps} \times 24 \ \text{substeps}}{5}
+  \;\approx\; 480 \ \text{factorizations},
+  \qquad
+  480 \times 185\ \mathrm{s} \;\approx\; 25\ \mathrm{h},
+\]
+
+and that is the four-species mobile block alone, not the full nineteen-variable
+system. The measured slow side of the same march is $11.3$~minutes.
+
+\subsection{The price, and the check}
+
+The bill arrives as splitting error, first order in the interval between fast
+solves --- \code{fem\_every} substeps, not the dose-snapshot spacing
+(Section~\ref{sec:tworoute}). That is why \code{fem\_every} is the
+accuracy-versus-wall-clock dial of the whole scheme, and why a value which does
+not divide \code{substeps\_per\_interval} is a defect rather than a preference:
+the cadence counts substeps over the whole march, so a non-dividing value drifts
+and can leave entire dose intervals with no fast solve at all, freezing the
+mobile field across a full interval.
+
+The structure makes a falsifiable prediction: with the points independent, the
+slow step must scale \emph{linearly} in their number. It does.
+
+\begin{table}[htb]
+\centering
+\caption{Slow-step cost against problem size, measured.}
+\label{tab:slowscaling}
+\begin{tabular}{lrrr}
+\toprule
+Case & CD points & per substep [s] & per point [s] \\
+\midrule
+200~nm prism & $27\,720$ & 9.3  & $3.35\times10^{-4}$ \\
+500~nm prism & $90\,617$ & 28.3 & $3.12\times10^{-4}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A $3.27\times$ increase in points costs $3.04\times$ the time. Superlinear
+growth in this table would be the signature of neighbour coupling having leaked
+back into the slow step, and would show up in the wall clock before it showed
+up in the physics.
 
 % ============================================================================
 \section{Construction of Discrete Loops}
