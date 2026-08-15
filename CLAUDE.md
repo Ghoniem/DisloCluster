@@ -625,6 +625,62 @@ carries the full set.
 
 ---
 
+## Conservation is an OPEN-system balance in 3-D
+
+The six accumulators integrate a 0-D atom balance with **no transport term**:
+
+```
+d(stored)/dt = production − recombination − sink_absorption
+```
+
+On a spatially-resolved march that cannot close, and the residual is not solver
+error — it is the atoms that left through the Dirichlet surface. Two things
+force it: the domains here are Dirichlet over their whole surface unless faces
+are made periodic, and the slow step **freezes** the mobile species while
+production keeps accumulating into them (the mobile pool's own balance is
+closed by the *fast* solve, which is where the flux to the boundary lives).
+
+The magnitude settles it: the 200 nm march reports a residual of **−71% of
+cumulative production**. Nothing in a CVODE run at `rtol=1e-6` is 71% wrong.
+
+So `post_process._calculate_conservation` also publishes `grain_boundary`
+(= −residual, positive when atoms have left), plus `mobile_change` and
+`immobile_change`. `post.volume_average` presents it as a physical channel
+because it knows the surface is absorbing (it reads `periodic_face_ids` from
+`config.json`); a standalone 0-D run leaves it as the numerical residual it
+genuinely is there, and `plot_conservation` falls back to the old
+relative-error figure. **It is closure by difference, not an independent
+measurement** — it inherits every other channel's error, and its credibility
+rests on those being exact solver integrals rather than reconstructions.
+
+**Figures are in defect COUNTS, not atom fractions.** `n_atoms = V / Ω` with
+`V = fields.domain_volume(nodes)` (the crystal, not its bounding box) and
+`Ω = cluster_atomic_volume(...)`, both in b³. The 200 nm prism is 6.93×10⁸
+atoms, and at 10 dpa:
+
+| channel | interstitials | vacancies |
+|---|---:|---:|
+| produced | 6.24e9 | 6.24e9 |
+| recombined | 1.43e9 (22.9%) | 1.43e9 (22.9%) |
+| absorbed at network sinks | 3.51e8 (5.6%) | 3.20e8 (5.1%) |
+| **absorbed at grain boundary** | **4.45e9 (71.4%)** | **4.48e9 (71.9%)** |
+| stored in microstructure | 4.71e6 (0.1%) | 1.33e6 (0.0%) |
+
+Equal Frenkel production and equal recombination are exact; the storage
+asymmetry (4.7e6 vs 1.3e6) is the bias-driven excess that drives growth.
+
+The `*_fractions` figures now include the boundary channel, so their "Sum (=1)"
+line is true again — it was reaching ~0.3.
+
+**Ω = 1.2e-29 m³ is the model's atomic volume**, in both the workbook and
+`Zr3d_ghoniem.txt`. That is 0.52× the true hcp Zr atomic volume (2.33e-29 m³
+from a = 3.232 Å, c = 5.147 Å, 2 atoms/cell). Every concentration here is
+defined as `C = n·Ω`, so counts are internally consistent whatever Ω is — but
+an *absolute* count inherits that factor, so quote it with the caveat until the
+discrepancy is resolved.
+
+---
+
 ## Known non-correspondences between the 0-D and 3-D models
 
 These are physics, not bugs — do not "fix" them silently:

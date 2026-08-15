@@ -204,11 +204,22 @@ class ZrMicroVisualizer:
     """
 
     def __init__(self, simulation, results, output_dir,
-                 use_dpa=True, dpa_range=None, sim_config=None, run_dir=None):
+                 use_dpa=True, dpa_range=None, sim_config=None, run_dir=None,
+                 n_atoms=None, open_system=False):
         self.sim     = simulation
         self.results = results
         self.inp     = simulation.input_data
         self.use_dpa = use_dpa
+        # Number of lattice atoms in the simulation volume. Concentrations here
+        # are atom fractions, so this is the factor that turns any of them into
+        # a COUNT of defects -- "3.4e9 vacancies absorbed at the grain
+        # boundary" rather than "a vacancy atom fraction of 5.1e-5 absorbed",
+        # which is a number nobody can hold. None keeps the fraction axis.
+        self.n_atoms = None if n_atoms is None else float(n_atoms)
+        # True when the domain has an absorbing surface, i.e. when the balance
+        # residual is grain-boundary absorption rather than solver error. See
+        # `zerod.post_process._calculate_conservation`.
+        self.open_system = bool(open_system)
 
         # Locate the repository root for the provenance git tag. Prefer the
         # DisloCluster root resolved by paths.py; fall back to walking up from
@@ -608,17 +619,68 @@ class ZrMicroVisualizer:
         ax.grid(True, alpha=0.3)
         return self._savefig(fig, 'defect_imbalance')
 
+    def _counts(self, arr):
+        """An atom-fraction array as a count of defects, when the volume is known."""
+        return np.asarray(arr) * self.n_atoms if self.n_atoms else np.asarray(arr)
+
+    @property
+    def _count_label(self):
+        return ('Defects in the simulation volume' if self.n_atoms
+                else 'Cumulative atoms (atom fraction)')
+
     def plot_conservation(self):
         """
-        Point-defect conservation: relative error in the atom balance
-        (stored − [production − recombination − sink]) / production, for
-        interstitials and vacancies vs dose/time.
+        Where the produced point defects ended up, as counts over the whole
+        simulation volume: recombined, absorbed at network sinks, absorbed at
+        the grain boundary, or still stored in the microstructure.
+
+        On an open system this is the useful form of the balance. The old
+        version plotted (stored − [production − recombination − sink]) /
+        production and called it a conservation error, which on a domain with
+        an absorbing surface reads ~-70% and looks like a catastrophic bug; it
+        is the boundary channel, and naming it is the whole fix.
 
         Returns None if the run carries no conservation accumulators.
         """
         if not self.cons:
             return None
+        if not self.open_system:
+            return self._plot_conservation_error()
 
+        fig, axes = plt.subplots(1, 2, figsize=(2 * _FIG_SIZE[0], _FIG_SIZE[1]))
+        for ax, (sp, title) in zip(axes, (('interstitial', 'Interstitial'),
+                                          ('vacancy', 'Vacancy'))):
+            c = self.cons[sp]
+            prod = self._counts(c['production'])
+            chans = [
+                ('Recombined', self._counts(c['recombination']), 'g'),
+                ('Absorbed at network sinks', self._counts(c['sink']), 'C1'),
+                ('Absorbed at grain boundary',
+                 self._counts(c['grain_boundary']), 'r'),
+                ('Stored in microstructure',
+                 self._counts(c.get('immobile_change', c['stored_change'])),
+                 'b'),
+            ]
+            ax.loglog(self.x_data, np.abs(prod), 'k-', lw=2, label='Produced')
+            for lab, v, col in chans:
+                ax.loglog(self.x_data, np.abs(v), color=col, ls='--', label=lab)
+            # Drawn so the split can be read against the total, NOT as a check:
+            # the boundary channel is defined as production minus the others,
+            # so this lies on the production curve by construction. It would
+            # only depart from it if a channel were dropped from the sum.
+            tot = sum(np.abs(v) for _, v, _ in chans)
+            ax.loglog(self.x_data, tot, 'w:', lw=1.4,
+                      label='Sum (= produced, by construction)')
+            ax.set_xlabel(self.x_label)
+            ax.set_ylabel(self._count_label)
+            ax.set_title(f'{title} fate')
+            ax.legend(fontsize=8)
+            ax.grid(True, alpha=0.3)
+        fig.tight_layout()
+        return self._savefig(fig, 'conservation_error')
+
+    def _plot_conservation_error(self):
+        """The closed-system form: relative residual, which should be ~0."""
         i_err = self.cons['interstitial']['rel_error']
         v_err = self.cons['vacancy']['rel_error']
 
@@ -649,15 +711,22 @@ class ZrMicroVisualizer:
         for sp, title, tag in (('interstitial', 'Interstitial', 'i'),
                                ('vacancy', 'Vacancy', 'v')):
             c = self.cons[sp]
+            f = self._counts
             fig, ax = plt.subplots(figsize=_FIG_SIZE)
-            ax.loglog(self.x_data, np.abs(c['production']),    'k-',  label='Production ∫P')
-            ax.loglog(self.x_data, np.abs(c['recombination']), 'g--', label='Recombination')
-            ax.loglog(self.x_data, np.abs(c['sink']),          'm-.', label='Sink absorption')
-            ax.loglog(self.x_data, np.abs(c['stored_change']), 'b-',  label='|Δ stored|')
-            ax.loglog(self.x_data, np.abs(c['residual']),      'r:',  label='|Residual|')
+            ax.loglog(self.x_data, np.abs(f(c['production'])),    'k-',  label='Production ∫P')
+            ax.loglog(self.x_data, np.abs(f(c['recombination'])), 'g--', label='Recombination')
+            ax.loglog(self.x_data, np.abs(f(c['sink'])),          'm-.', label='Sink absorption')
+            ax.loglog(self.x_data, np.abs(f(c['stored_change'])), 'b-',  label='|Δ stored|')
+            if self.open_system and 'grain_boundary' in c:
+                ax.loglog(self.x_data, np.abs(f(c['grain_boundary'])), 'r:',
+                          label='Grain-boundary absorption')
+            else:
+                ax.loglog(self.x_data, np.abs(f(c['residual'])), 'r:', label='|Residual|')
             ax.set_xlabel(self.x_label)
-            ax.set_ylabel('Cumulative atoms (atom fraction)')
-            ax.set_ylim(bottom=1e-12)
+            ax.set_ylabel(self._count_label)
+            # A count floor of 1 defect is meaningful; an atom-fraction floor is
+            # the old 1e-12.
+            ax.set_ylim(bottom=1.0 if self.n_atoms else 1e-12)
             ax.set_title(f'{title} Balance Channels')
             ax.legend(fontsize=9)
             ax.grid(True, alpha=0.3)
@@ -691,6 +760,12 @@ class ZrMicroVisualizer:
         f_clus   = (clus - clus[0])   / denom
         f_loop   = (loop - loop[0])   / denom
         f_sum    = f_recomb + f_sink + f_free + f_clus + f_loop
+        # Without the boundary channel this sum is not 1 on an open system --
+        # it was reaching ~0.3 while the legend promised 1.
+        f_gb = None
+        if self.open_system and 'grain_boundary' in c:
+            f_gb = c['grain_boundary'] / denom
+            f_sum = f_sum + f_gb
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
         ax.plot(self.x_data, f_recomb, 'r-',  label='Recombination')
@@ -698,6 +773,8 @@ class ZrMicroVisualizer:
         ax.plot(self.x_data, f_free,   'b-',  label='Free interstitials')
         ax.plot(self.x_data, f_clus,   'g-',  label='Di/tri clusters')
         ax.plot(self.x_data, f_loop,   'm-',  label='Loop content')
+        if f_gb is not None:
+            ax.plot(self.x_data, f_gb, 'k-', lw=1.6, label='Grain boundary')
         ax.plot(self.x_data, f_sum,    'k--', label='Sum (=1)')
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -734,12 +811,18 @@ class ZrMicroVisualizer:
         f_free   = (free - free[0])   / denom
         f_loop   = (loop - loop[0])   / denom
         f_sum    = f_recomb + f_sink + f_free + f_loop
+        f_gb = None
+        if self.open_system and 'grain_boundary' in c:
+            f_gb = c['grain_boundary'] / denom
+            f_sum = f_sum + f_gb
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
         ax.plot(self.x_data, f_recomb, 'r-',  label='Recombination')
         ax.plot(self.x_data, f_sink,   'C1-', label='Network sinks')
         ax.plot(self.x_data, f_free,   'b-',  label='Free vacancies')
         ax.plot(self.x_data, f_loop,   'm-',  label='Loop content')
+        if f_gb is not None:
+            ax.plot(self.x_data, f_gb, 'k-', lw=1.6, label='Grain boundary')
         ax.plot(self.x_data, f_sum,    'k--', label='Sum (=1)')
         ax.set_xscale('log')
         ax.set_yscale('log')

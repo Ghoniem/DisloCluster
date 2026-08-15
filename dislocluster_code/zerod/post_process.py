@@ -217,6 +217,27 @@ def _calculate_conservation(time, concentrations, rate_equations):
     residual measures the model's conservation error; ``rel_error`` normalises it
     by cumulative production.
 
+    THAT READING ONLY HOLDS FOR A CLOSED SYSTEM. The balance above has no
+    transport term, so on a spatially-resolved run it cannot close and the
+    residual is not an error: it is the atoms that left through the Dirichlet
+    surface. Two things guarantee it,
+
+      * the domains this repository meshes are Dirichlet over their whole
+        surface unless faces are made periodic, so the boundary is a sink;
+      * the coupling freezes the mobile species through every slow substep,
+        while production keeps accumulating into them -- the mobile pool's own
+        balance is closed by the FAST solve, which is where the flux to the
+        boundary lives,
+
+    and the size of it settles the argument: the 200 nm march reports a
+    residual of -71% of cumulative production. Nothing in a solver run at
+    rtol=1e-6 is 71% wrong.
+
+    So the residual is also published as ``grain_boundary`` (= -residual),
+    positive when atoms have left. Callers that know the system is open --
+    `post.volume_average` -- present it as a physical channel; a standalone 0-D
+    run leaves it as the numerical residual it is there.
+
     Returns None when the solution carries no accumulator rows (e.g. an old run).
     """
     n_phys   = rate_equations.n_physical
@@ -230,7 +251,15 @@ def _calculate_conservation(time, concentrations, rate_equations):
     I_stored = y[1] + 2.0 * y[2] + 3.0 * y[3] + y[8] + y[9]
     V_stored = y[0] + y[10] + y[11]
 
-    def _balance(stored, prod, recomb, sink):
+    # In a spatially-resolved run the mobile species are NOT part of the local
+    # balance: they are frozen through every slow substep, and what they do
+    # between substeps -- diffuse to the Dirichlet faces and be absorbed there
+    # -- is the fast solve's business, not this one's. Splitting `stored` lets
+    # the open-system balance attribute the difference instead of burying it.
+    I_mobile = y[1] + 2.0 * y[2] + 3.0 * y[3]
+    V_mobile = y[0]
+
+    def _balance(stored, prod, recomb, sink, mobile=None):
         # Reference every cumulative quantity to the first output point. The C++
         # solver starts integrating the accumulators at t_begin, whereas scipy's
         # solve_ivp integrates from t=0; subtracting the first value makes both
@@ -243,7 +272,7 @@ def _calculate_conservation(time, concentrations, rate_equations):
         residual      = stored_change - net_expected
         # Relative error vs cumulative production (0 at the reference point).
         rel_error     = np.where(prod > 0, residual / np.maximum(prod, 1e-300), 0.0)
-        return {
+        out = {
             'production':    prod,
             'recombination': recomb,
             'sink':          sink,
@@ -253,11 +282,27 @@ def _calculate_conservation(time, concentrations, rate_equations):
             'residual':      residual,
             'rel_error':     rel_error,
         }
+        if mobile is not None:
+            mob_change = mobile - mobile[0]
+            out['mobile_change'] = mob_change
+            out['immobile_change'] = stored_change - mob_change
+            # THE named channel. In a closed 0-D system `residual` is numerical
+            # error and this is meaningless; in an open one -- every domain this
+            # repository meshes, whose whole surface is Dirichlet unless faces
+            # are made periodic -- it is the only remaining place for the atoms
+            # to have gone, so it IS the boundary absorption.
+            #
+            # It is closure by difference, not an independent measurement: it
+            # inherits every other channel's error. Its credibility rests on
+            # those channels being exact integrals from the solver rather than
+            # reconstructions, which they are.
+            out['grain_boundary'] = -residual
+        return out
 
-    interstitial = _balance(I_stored, acc['cum_prod_i'],
-                            acc['cum_recomb_i'], acc['cum_sink_i'])
-    vacancy      = _balance(V_stored, acc['cum_prod_v'],
-                            acc['cum_recomb_v'], acc['cum_sink_v'])
+    interstitial = _balance(I_stored, acc['cum_prod_i'], acc['cum_recomb_i'],
+                            acc['cum_sink_i'], mobile=I_mobile)
+    vacancy      = _balance(V_stored, acc['cum_prod_v'], acc['cum_recomb_v'],
+                            acc['cum_sink_v'], mobile=V_mobile)
 
     print(f"  Conservation (final): interstitial rel.err = "
           f"{interstitial['rel_error'][-1]:+.2e}, "

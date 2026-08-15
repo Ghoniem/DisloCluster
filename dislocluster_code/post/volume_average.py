@@ -36,6 +36,7 @@ USAGE
 from __future__ import annotations
 
 import argparse
+import json
 import time
 from pathlib import Path
 
@@ -158,10 +159,40 @@ def main(argv=None):
               f"{y[8] + y[9]:12.4e} {y[10] + y[11]:12.4e}")
 
     res = build_results(doses, Y_avg, sim)
+
+    # Atom fractions become COUNTS once the number of lattice atoms in the
+    # simulated crystal is known: N = V / Omega, with V the convex body the CD
+    # nodes fill (the prism, not its bounding box) and Omega the atomic volume
+    # from the same material file MoDELib reads. Both are in b^3, so the ratio
+    # is dimensionless and exact.
+    n_atoms, open_system = None, False
+    try:
+        from dislocluster_code import paths
+        from dislocluster_code.coupling import field as mfield
+        from dislocluster_code.post.fields import domain_volume
+        v_b3 = float(domain_volume(nodes))
+        omega = float(mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL))
+        n_atoms = v_b3 / omega
+        # The balance residual is boundary absorption only if there IS an
+        # absorbing boundary. Faces made periodic in BOUNDARY are not sinks, so
+        # a fully periodic case is closed and the residual means what it always
+        # meant. config.json records what was staged.
+        cfg = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+        open_system = not cfg["boundary"]["periodic_face_ids"]
+        print(f"  volume {v_b3:.4e} b^3 / Omega {omega:.6g} b^3 "
+              f"= {n_atoms:.4e} atoms"
+              + ("  (Dirichlet surface: an open system)" if open_system
+                 else "  (periodic: closed)"))
+    except Exception as exc:                      # pragma: no cover - diagnostics
+        print(f"  note: defect counts unavailable ({exc}); plotting fractions")
+
     viz = ZrMicroVisualizer(sim, res, out.parent, use_dpa=True, run_dir=out,
+                            n_atoms=n_atoms, open_system=open_system,
                             sim_config={"source": "volume-averaged 3-D march",
                                         "run_dir": str(run_dir),
                                         "n_nodes": int(nodes.shape[0]),
+                                        "n_atoms": n_atoms,
+                                        "open_system": open_system,
                                         "mc_samples": args.samples})
     viz.plot_all()
     np.savez_compressed(out / "volume_average.npz", doses=doses, Y=Y_avg,
