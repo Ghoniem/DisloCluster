@@ -48,6 +48,7 @@ from dislocluster_code import paths                                   # noqa: E4
 from dislocluster_code.zerod.calibration import build_sim                   # noqa: E402
 from dislocluster_code.zerod.post_process import calculate_derived_quantities  # noqa: E402
 from dislocluster_code.post.visualization import ZrMicroVisualizer         # noqa: E402
+from dislocluster_code.coupling.immobile import ACCUMULATOR_SLICE as ACC  # noqa: E402
 
 
 def voronoi_weights(nodes, n_samples=4_000_000, seed=0, verbose=True,
@@ -111,8 +112,44 @@ def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True):
     return np.asarray(doses, dtype=float), Y_avg, w, nodes
 
 
-def build_results(doses, Y_avg, sim):
-    """Run the volume-averaged trajectory through the 0-D post-processing."""
+def cumulate_accumulators(Y):
+    """Turn per-interval conservation accumulators into cumulative ones.
+
+    THE MARCH RESETS y[12:18] AT EVERY INTERVAL START
+    (`coupling.march`, "the accumulator reset is scoped to an interval"), and
+    `march_state.npz` stores a snapshot at every interval END. Each stored
+    accumulator therefore holds ONE interval's production, recombination and
+    sink absorption -- not the running total since dose zero.
+
+    `zerod.post_process._calculate_conservation` was written for a standalone
+    0-D run, where a single integration makes them genuinely cumulative, and
+    differences them as `prod - prod[0]`. Applied to a march that reads the
+    last interval only.
+
+    The error hid on a logarithmic dose grid. With a constant ratio of 10 each
+    interval is 90% of the dose accumulated so far, so every channel came out a
+    uniform 10% low -- inside the noise of everything else. Appending 1, 2, 5,
+    10 dpa to the grid drops that fraction to 0.5-0.6 and the same code is 40-50%
+    wrong. The check that caught it is `post.boundary_flux`, which measures the
+    boundary channel independently and stopped agreeing.
+
+    Verified against the stored data: `accumulator / interval width` is exactly
+    1.0 at every snapshot of both the 200 nm and 500 nm marches.
+    """
+    Y = np.array(Y, dtype=float, copy=True)
+    Y[:, ..., ACC] = np.cumsum(Y[:, ..., ACC], axis=0)
+    return Y
+
+
+def build_results(doses, Y_avg, sim, per_interval_accumulators=True):
+    """Run the volume-averaged trajectory through the 0-D post-processing.
+
+    ``per_interval_accumulators`` reflects how the march stores them; see
+    :func:`cumulate_accumulators`. Pass False only for a trajectory whose
+    accumulators are already cumulative.
+    """
+    if per_interval_accumulators:
+        Y_avg = cumulate_accumulators(Y_avg)
     G = float(sim.input_data.material_params["G"])
     t = doses / G
     # calculate_derived_quantities wants [n_species, n_time].
