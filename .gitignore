@@ -6,6 +6,12 @@ __pycache__/
 *.egg-info/
 .ipynb_checkpoints/
 
+# ── Third-party libraries kept beside the repository ─────────────────────────
+# SUNDIALS for the 0-D solver, and the private Eigen 3.4.0 that
+# Docs/Formulation/build_modelib.sh fetches when the system has only Eigen 5.
+# Sources, not artifacts of this project: reproducible from the build script.
+Libraries/
+
 # ── Build trees ──────────────────────────────────────────────────────────────
 ZrMicro/build/
 MoDELib3/build/

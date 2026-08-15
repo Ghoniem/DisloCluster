@@ -130,6 +130,16 @@ def bootstrap(sim_dir, verbose=True):
                  *minputs.FAST_STEP_SETTINGS.items()):
         minputs.set_dd_scalar(dd, k, v)
 
+    # A run that died before writing anything leaves a ZERO-BYTE F/F_0.txt
+    # behind, and the next DDomp SEGFAULTS reading it: the loader reports
+    # "(0 entries)" and the deformation-gradient row is then indexed anyway. The
+    # first attempt's failure would therefore look like a different, much more
+    # confusing failure on the second. Clear the empty stubs; a real F_0.txt is
+    # never empty.
+    for stub in (sim_dir / "F" / "F_0.txt", sim_dir / "F" / "F_labels.txt"):
+        if stub.is_file() and stub.stat().st_size == 0:
+            stub.unlink()
+
     # in_case_dir: DDomp writes cdNodes.txt to the RELATIVE path
     # "evl/cdNodes.txt", i.e. against its working directory rather than against
     # the simulation folder it was handed. Launched from anywhere else the write
@@ -146,6 +156,27 @@ def bootstrap(sim_dir, verbose=True):
     out = log.read_text(encoding="utf-8", errors="replace")
     if r.returncode != 0:
         raise StagingError(f"DDomp exited {r.returncode}; tail:\n{out[-3000:]}")
+    # DDomp reports a solver failure by printing the exception and exiting 0, so
+    # the returncode above proves nothing. Say what actually happened: the
+    # "did not skip the immobile solver" message below is right only when DDomp
+    # ran to completion, and reading it after a linear-solver breakdown sends
+    # you looking at the binary's age instead of at the solve.
+    solver_failure = next((l.strip() for l in out.splitlines()
+                           if "FixedDirichletSolver failed" in l
+                           or "terminate called" in l), None)
+    if solver_failure:
+        raise StagingError(
+            f"the fast (mobile) solve failed during the bootstrap: "
+            f"{solver_failure}\n"
+            f"  This is the linear solve inside MoDELib's mobile Newton "
+            f"iteration, not the 0-D side.\n"
+            f"  Check first that MoDELib3 was built against Eigen 3: against "
+            f"Eigen 5 this breaks down on the first Newton step "
+            f"(the configure step now refuses it).\n"
+            f"  Otherwise it is the cold start of ZR3D_GHONIEM_CHANGES.md issue "
+            f"12 -- the mobile field must cross nine orders from thermal "
+            f"equilibrium in one solve.\n"
+            f"  Log: {log}")
     if "immobile solver SKIPPED" not in out:
         raise StagingError(
             "DDomp did not skip the immobile solver — the binary predates "

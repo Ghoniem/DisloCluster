@@ -112,6 +112,54 @@ install_dependencies() {
 }
 install_dependencies
 
+# ── Eigen 3, specifically ────────────────────────────────────────────────────
+# MoDELib is written against Eigen 3 and misbehaves on anything newer: built
+# against Eigen 5 it compiles, then the BiCGSTAB solve inside the mobile Newton
+# iteration breaks down on the first step ("Iterative FixedDirichletSolver
+# failed") on a case that converges with 3.4.0. Debian/Fedora/Arch still ship
+# 3.4.x as libeigen3-dev, but Homebrew's `eigen` formula moved to 5.x, so on
+# macOS a private 3.4.0 is fetched into <repo>/Libraries/ -- the same place the
+# 0-D solver's private SUNDIALS lives. CMakeLists.txt prefers it automatically.
+EIGEN_VERSION=3.4.0
+ensure_eigen3() {
+    local m
+    for m in /usr/include/eigen3 /usr/local/include/eigen3 \
+             "$(command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)/include/eigen3" \
+             /opt/local/include/eigen3; do
+        [ -f "$m/Eigen/src/Core/util/Macros.h" ] || continue
+        if grep -q "define EIGEN_WORLD_VERSION 3" "$m/Eigen/src/Core/util/Macros.h"; then
+            echo "==> Eigen 3 found: $m"
+            return 0
+        fi
+    done
+
+    local dest="$_REPO_ROOT/Libraries/eigen-$EIGEN_VERSION"
+    if [ -f "$dest/Eigen/src/Core/util/Macros.h" ]; then
+        echo "==> Eigen 3 found: $dest"
+        return 0
+    fi
+
+    echo "==> No Eigen 3 on this system (Homebrew's eigen is 5.x) — fetching $EIGEN_VERSION"
+    mkdir -p "$_REPO_ROOT/Libraries"
+    local url="https://gitlab.com/libeigen/eigen/-/archive/$EIGEN_VERSION/eigen-$EIGEN_VERSION.tar.gz"
+    local tgz="$_REPO_ROOT/Libraries/eigen-$EIGEN_VERSION.tar.gz"
+    if command -v curl >/dev/null 2>&1; then
+        curl -sSL -o "$tgz" "$url"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -qO "$tgz" "$url"
+    else
+        echo "    neither curl nor wget is available — download $url by hand,"
+        echo "    unpack it into $_REPO_ROOT/Libraries/, and re-run."
+        exit 1
+    fi
+    tar xzf "$tgz" -C "$_REPO_ROOT/Libraries"
+    rm -f "$tgz"
+    test -f "$dest/Eigen/src/Core/util/Macros.h" || {
+        echo "    the download did not unpack into $dest"; exit 1; }
+    echo "==> Eigen $EIGEN_VERSION installed at $dest (headers only, git-ignored)"
+}
+[ "${SKIP_DEPS:-0}" = "1" ] || ensure_eigen3
+
 cd "$REPO"
 
 # ── discard a build cache created under a different absolute path ─────────────

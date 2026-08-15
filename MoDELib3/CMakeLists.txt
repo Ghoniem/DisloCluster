@@ -125,11 +125,67 @@ else()
 endif()
 
 ### Eigen ###
-# Header-only, and the one hard requirement. -DEIGEN3_INCLUDE_DIRS=<dir> still
-# wins; otherwise Eigen3Config.cmake is asked first and a directory search is
-# the fallback. This line used to be a bare `set(... /usr/include/eigen3)`,
+# Header-only, and the one hard requirement. MoDELib is written against Eigen 3
+# and ONLY Eigen 3 -- see the version check below, which is not a formality.
+#
+# -DEIGEN3_INCLUDE_DIRS=<dir> wins; then a copy under <repo>/Libraries/eigen*,
+# the way SUNDIALS is kept for the 0-D solver; then Eigen3Config.cmake; then a
+# directory search. This line used to be a bare `set(... /usr/include/eigen3)`,
 # which is where Debian puts Eigen and nowhere else -- so it both overrode the
 # caller's -D and pointed at a non-existent directory on every other platform.
+#
+# The repository root is found by walking up to the .dislocluster_root marker,
+# the same way dislocluster_code/paths.py and ZrMicro's CMakeLists do.
+set(_dc_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+set(DISLOCLUSTER_ROOT "")
+foreach(_i RANGE 6)
+    if(EXISTS "${_dc_dir}/.dislocluster_root")
+        set(DISLOCLUSTER_ROOT "${_dc_dir}")
+        break()
+    endif()
+    get_filename_component(_dc_dir "${_dc_dir}" DIRECTORY)
+endforeach()
+
+# Eigen states its version in two different places depending on the era:
+# <dir>/Eigen/src/Core/util/Macros.h up to 3.4.x, and <dir>/Eigen/Version from
+# 5.0.0 on. Read both, or a version check written against one of them silently
+# passes on the other -- which is exactly what an earlier revision of this file
+# did: Eigen 5 keeps EIGEN_WORLD_VERSION at 3 ("forever ... for the Eigen3
+# library"), so it reported itself as 3.5.0 and sailed through a `^3\.` test.
+function(dc_eigen_version dir out_var)
+    set(${out_var} "" PARENT_SCOPE)
+    foreach(_f "${dir}/Eigen/Version" "${dir}/Eigen/src/Core/util/Macros.h")
+        if(NOT EXISTS "${_f}")
+            continue()
+        endif()
+        file(STRINGS "${_f}" _lines
+             REGEX "#define EIGEN_(WORLD|MAJOR|MINOR)_VERSION")
+        set(_v "")
+        foreach(_key WORLD MAJOR MINOR)
+            foreach(_l ${_lines})
+                if(_l MATCHES "#define EIGEN_${_key}_VERSION[ \t]+([0-9]+)")
+                    list(APPEND _v ${CMAKE_MATCH_1})
+                endif()
+            endforeach()
+        endforeach()
+        list(LENGTH _v _n)
+        if(_n EQUAL 3)
+            list(JOIN _v "." _joined)
+            set(${out_var} "${_joined}" PARENT_SCOPE)
+            return()
+        endif()
+    endforeach()
+endfunction()
+
+if(NOT EIGEN3_INCLUDE_DIRS AND DISLOCLUSTER_ROOT)
+    file(GLOB _dc_eigen_dirs "${DISLOCLUSTER_ROOT}/Libraries/eigen*")
+    foreach(_d ${_dc_eigen_dirs})
+        if(EXISTS "${_d}/Eigen/src/Core/util/Macros.h")
+            set(EIGEN3_INCLUDE_DIRS "${_d}")
+            break()
+        endif()
+    endforeach()
+endif()
 if(NOT EIGEN3_INCLUDE_DIRS)
     find_package(Eigen3 3.3 QUIET NO_MODULE)
     if(EIGEN3_INCLUDE_DIR)
@@ -147,10 +203,46 @@ endif()
 if(NOT EIGEN3_INCLUDE_DIRS)
     message(FATAL_ERROR
         "Eigen 3 was not found.\n"
-        "  Install it   : brew install eigen | sudo apt-get install libeigen3-dev\n"
+        "  Install it   : sudo apt-get install libeigen3-dev  (3.4.0)\n"
+        "  Or let Docs/Formulation/build_modelib.sh fetch 3.4.0 into "
+        "<repo>/Libraries/\n"
         "  Or point at it: -DEIGEN3_INCLUDE_DIRS=<dir containing the Eigen/ folder>")
 endif()
-message(STATUS "EIGEN3_INCLUDE_DIRS:" ${EIGEN3_INCLUDE_DIRS})
+
+# Eigen 3, not "whatever is installed". Homebrew's `eigen` formula is 5.x now,
+# and MoDELib built against it compiles but does not WORK: the BiCGSTAB solve
+# in ClusterDynamicsFEM's mobile Newton iteration breaks down on the first step
+# ("Iterative FixedDirichletSolver failed") on a case that converges with 3.4.0.
+# A silent numerical regression is worse than a build error, so this is fatal.
+# The bound is on WORLD.MAJOR, i.e. 3.4.x and older: Eigen's own "5.0.1" is
+# spelled 3.5.0 by these macros. -DEIGEN3_ALLOW_UNTESTED=ON overrides, for
+# whoever wants to find out whether a newer Eigen has fixed the breakdown.
+dc_eigen_version("${EIGEN3_INCLUDE_DIRS}" EIGEN3_VERSION_STRING)
+if(EIGEN3_VERSION_STRING MATCHES "^([0-9]+)\\.([0-9]+)\\.")
+    set(_eig_world ${CMAKE_MATCH_1})
+    set(_eig_major ${CMAKE_MATCH_2})
+else()
+    set(_eig_world 0)
+    set(_eig_major 0)
+endif()
+if(NOT EIGEN3_ALLOW_UNTESTED
+   AND EIGEN3_VERSION_STRING
+   AND (NOT _eig_world EQUAL 3 OR _eig_major GREATER 4))
+    message(FATAL_ERROR
+        "Eigen ${EIGEN3_VERSION_STRING} was found at ${EIGEN3_INCLUDE_DIRS}, but "
+        "MoDELib requires 3.4.x or older (3.4.0 is what it is developed "
+        "against).\n"
+        "  Those macros spell the 5.0.1 release '3.5.0': Eigen keeps "
+        "EIGEN_WORLD_VERSION at 3 and moved the release number into "
+        "EIGEN_MAJOR_VERSION.\n"
+        "  Homebrew's `eigen` formula is 5.x: `brew install eigen` is NOT enough "
+        "on macOS.\n"
+        "  Docs/Formulation/build_modelib.sh fetches 3.4.0 into "
+        "<repo>/Libraries/eigen-3.4.0 and this file prefers it automatically.\n"
+        "  Or point at your own copy: -DEIGEN3_INCLUDE_DIRS=<dir>")
+endif()
+message(STATUS "EIGEN3_INCLUDE_DIRS:" ${EIGEN3_INCLUDE_DIRS}
+               " (version ${EIGEN3_VERSION_STRING})")
 
 ### Boost ###
 # Headers only, and only for the glide-plane noise generator. CMake 3.30

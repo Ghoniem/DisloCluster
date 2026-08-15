@@ -689,7 +689,20 @@ them, in order of appearance:
    member is unused and is now zero-initialized. This is an Eigen-version
    dependency, not a platform one — a new enough Eigen breaks it on Linux too.
 
-A fifth was a genuine overload-resolution difference:
+**And one that was not a build failure at all.** With those four fixed the tree
+built clean against Homebrew's Eigen — which is 5.x — and then the mobile
+Newton iteration failed at its first step with `Iterative FixedDirichletSolver
+failed`, the BiCGSTAB solve breaking down on a 500 nm case that had staged
+successfully on Linux/Eigen 3.4.0 two months earlier. Rebuilding the same
+source against Eigen 3.4.0 and re-running the same case bootstraps in 138 s.
+The build now refuses Eigen newer than 3.4.x rather than producing a binary
+that compiles and does not work; `build_modelib.sh` fetches 3.4.0 into
+`<repo>/Libraries/` where the system has only Eigen 5. Watch the version test
+itself: Eigen 5.0.1 keeps `EIGEN_WORLD_VERSION` at 3 and reports `3.5.0`, in
+`Eigen/Version` rather than the `Macros.h` that 3.4.x uses, so the obvious
+check passes it on both counts.
+
+A fifth compile error was a genuine overload-resolution difference:
 `RationalLatticeDirection::operator+(const LatticeVector&)` called
 `this->operator+(RationalLatticeDirection<dim>(...))`, and clang resolves that
 dependent call against the `LatticeVector` overload alone — the one being

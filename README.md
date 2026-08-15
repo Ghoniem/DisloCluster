@@ -130,7 +130,11 @@ argument it builds `<repo>/MoDELib3`, producing
 `MoDELib3/build/tools/DDomp/DDomp` and, when pybind11 is installed,
 `MoDELib3/build/tools/pyMoDELib/pyMoDELib*.so`.
 
-A C++20 compiler, CMake ≥ 3.16 and Eigen 3 are required. FFTW3, Boost,
+A C++20 compiler, CMake ≥ 3.16 and **Eigen 3.4.x** are required — not a newer
+Eigen. Against Eigen 5 the tree compiles and then fails in the mobile Newton
+solve, so the configure step rejects it; where the system package manager has
+only Eigen 5 (Homebrew does), the script fetches 3.4.0 into `Libraries/` and
+CMake prefers that copy. FFTW3, Boost,
 SuiteSparse, OpenMP and pybind11 are optional — CMake reports which of them were
 found in a configuration summary, and builds without those that are absent. On
 Windows the binary is a Linux ELF and everything invokes it through `wsl.exe`;

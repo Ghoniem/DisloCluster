@@ -172,7 +172,22 @@ everything optional degrades to a status line. `-DUSE_SUITESPARSE=OFF`,
 `-DUSE_FAST_MATH=OFF`, `-DUSE_NATIVE_ARCH=OFF` and `-DUSE_PYBIND11=OFF` turn off
 what a comparison across machines might not want.
 
-The macOS build needed four things Linux never exposed:
+**MoDELib requires Eigen 3.4.x, and the build now refuses anything newer.**
+Homebrew's `eigen` formula is 5.x, and MoDELib built against it *compiles* —
+then the BiCGSTAB solve inside the mobile Newton iteration breaks down on the
+first step (`Iterative FixedDirichletSolver failed`) on a case that converges
+with 3.4.0. That is the worst kind of portability failure: a clean build and a
+wrong answer, reported as a solver problem. `build_modelib.sh` fetches 3.4.0
+into `Libraries/eigen-3.4.0` (git-ignored, beside the private SUNDIALS) when
+the system has only Eigen 5, `CMakeLists.txt` prefers that copy, and the
+version check is fatal — `-DEIGEN3_ALLOW_UNTESTED=ON` overrides it for whoever
+wants to re-test a newer Eigen. Debian/Fedora/Arch still ship 3.4.x, so Linux
+never had to notice. Note the version test reads *both* places Eigen states
+its version: 3.4.x puts the macros in `Eigen/src/Core/util/Macros.h`, 5.x in
+`Eigen/Version`, and 5.0.1 spells itself `3.5.0` there (`EIGEN_WORLD_VERSION`
+stays 3 forever), so a naive `^3\.` test passes it.
+
+The macOS build needed four more things Linux never exposed:
 
 | Symptom | Cause |
 |---|---|
