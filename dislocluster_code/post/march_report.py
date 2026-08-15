@@ -190,28 +190,38 @@ def computational_stats(run, nodes):
     Reporting both as "number of equations" without that distinction is how a
     reader ends up thinking the fast step integrates something.
 
-    THREE different counts describe the slow system, and quoting the wrong one
-    overstates the work by 50%. The march runs ``freeze_mobile=1`` and
-    ``acc_mode=2`` (see `coupling.immobile.build_cases`), so per point:
+    The state vector is 19 long but a substep does not integrate 19 of
+    anything. The march runs ``freeze_mobile=1`` and ``acc_mode=2``
+    (`coupling.immobile.build_cases`), which is ``ACC_STATE_RELAX`` in
+    `ZrMicro/cpp_utils/parameters.h`, so per point:
 
-      * ``N_EQ`` = 19 values are CARRIED in the state vector;
-      * ``N_EQ - M_SIZE`` = 15 are INTEGRATED -- the four mobile species are
-        held fixed over the substep by construction of the operator split;
-      * ``N_EQ - M_SIZE - 6`` = 9 form the implicit block the Newton iteration
-        and the dense LU actually touch, because ``acc_mode=2`` keeps the six
-        conservation accumulators in the state but takes them out of the error
-        test.
+      * ``N_EQ`` = 19 values are CARRIED;
+      * ``N_EQ - M_SIZE`` = 15 are INTEGRATED, and 15 is also the width of the
+        implicit block -- ``N_RLX_FROZEN = N_RED_FROZEN + N_ACC``, what
+        ``red_dim()`` returns for this mode. The four mobile species are held
+        fixed by construction of the operator split; the six accumulators stay
+        in the state and are integrated, they are merely given
+        ``atol = 1e300`` so their error weights underflow and they stop
+        driving the step size.
 
-    The middle one is the honest answer to "how many ODEs does a substep
-    solve"; all three are reported because they are what the cost is made of.
+    It is tempting to subtract the accumulators as well and call it 9. That is
+    ``N_RED_FROZEN``, the block under ``acc_mode=1`` (``ACC_QUADRATURE``),
+    where they really do leave the ODE system and become CVODES quadrature
+    variables. The march does not use that mode: the quadrature right-hand side
+    needs its own core evaluation at each accepted step and its memo almost
+    never hits (1 in 2565), costing about one extra core sweep per step, which
+    measured slower overall despite the smaller Newton block.
     """
     from dislocluster_code.coupling.field import M_SIZE, I_SIZE
     from dislocluster_code.coupling.immobile import (
         N_EQ, ACCUMULATOR_SLICE)
 
     n_acc = ACCUMULATOR_SLICE.stop - ACCUMULATOR_SLICE.start
-    n_ode = N_EQ - M_SIZE                 # integrated: mobile is frozen
-    n_implicit = n_ode - n_acc            # what Newton/LU sees under acc_mode=2
+    # acc_mode=2 with freeze_mobile=1: N_RLX_FROZEN = (N_EQ - N_ACC - N_MOB)
+    # + N_ACC, which is just N_EQ - N_MOB. Integrated count and Newton block
+    # are the same number here.
+    n_ode = N_EQ - M_SIZE
+    n_quad_block = n_ode - n_acc          # acc_mode=1's block; NOT what runs
 
     try:
         s = json.loads((Path(run) / "summary.json").read_text(encoding="utf-8"))
@@ -251,13 +261,15 @@ def computational_stats(run, nodes):
           f"**{M_SIZE * n_cd:,} unknowns** ({M_SIZE} species x {n_cd:,} nodes), "
           f"by Newton iteration, one DDomp call each.", "",
           f"**Slow step** — the immobile ODEs at every quadrature point with "
-          f"the mobile species frozen: **{n_ode} coupled ODEs per point**. The "
-          f"state vector carries {N_EQ} ({M_SIZE} mobile, {I_SIZE} immobile, "
-          f"{n_acc} conservation accumulators, rho_N); the {M_SIZE} mobile are "
-          f"held fixed over the substep, and `acc_mode=2` takes the {n_acc} "
-          f"accumulators out of the error test, leaving a {n_implicit}x"
-          f"{n_implicit} implicit block for the Newton iteration and the dense "
-          f"LU.", ""]
+          f"the mobile species frozen: **{n_ode} coupled ODEs per point**, "
+          f"which is also the width of the implicit block Newton and the dense "
+          f"LU factor. The state vector carries {N_EQ} ({M_SIZE} mobile, "
+          f"{I_SIZE} immobile, {n_acc} conservation accumulators, rho_N); the "
+          f"{M_SIZE} mobile are held fixed over the substep. The {n_acc} "
+          f"accumulators ARE integrated — `acc_mode=2` only relaxes their "
+          f"`atol` so they stop driving the step size. Dropping them from the "
+          f"system too would give {n_quad_block}, but that is `acc_mode=1`, "
+          f"which costs an extra core sweep per step and is not used.", ""]
 
     if n_int:
         per_sub = n_int / max(n_sub, 1)
@@ -265,10 +277,8 @@ def computational_stats(run, nodes):
               "|---|---:|---:|---:|",
               f"| state carried | {N_EQ} | {per_sub * N_EQ:,.0f} | "
               f"{n_int * N_EQ:,} |",
-              f"| **integrated** (mobile frozen) | **{n_ode}** | "
-              f"**{per_sub * n_ode:,.0f}** | **{n_int * n_ode:,}** |",
-              f"| implicit block (Newton/LU) | {n_implicit} | "
-              f"{per_sub * n_implicit:,.0f} | {n_int * n_implicit:,} |", "",
+              f"| **integrated** (= Newton block) | **{n_ode}** | "
+              f"**{per_sub * n_ode:,.0f}** | **{n_int * n_ode:,}** |", "",
               "| | value |", "|---|---:|",
               f"| points integrated per substep (after dedup) | "
               f"{per_sub:,.0f} of {n_cd:,} |",
