@@ -62,7 +62,7 @@ class QSSASolveError(RuntimeError):
 # These live with the other input-file writers now. Re-exported because
 # staging.domain, staging.standalone and the notebooks import them from here.
 from dislocluster_code.staging.inputs import (  # noqa: E402,F401
-    set_dd_scalar, get_dd_scalar, FAST_STEP_SETTINGS)
+    set_dd_scalar, get_dd_scalar, FAST_STEP_SETTINGS, elastic_is_trivial)
 
 
 class MobileQSSASolver:
@@ -93,10 +93,13 @@ class MobileQSSASolver:
 
     def __init__(self, sim_dir, material_file=None, seed_evl=None,
                  ddomp=None, use_wsl=None, verbose=True,
-                 on_unconverged="warn"):
+                 on_unconverged="warn", elastic=None):
         if on_unconverged not in ("warn", "raise"):
             raise ValueError("on_unconverged must be 'warn' or 'raise'")
         self.on_unconverged = on_unconverged
+        # None -> decide from the staged case (see `_configure`); True or
+        # False forces the elastic solve on or off.
+        self.elastic = elastic
         self.sim_dir = Path(sim_dir)
         self.evl_dir = self.sim_dir / "evl"
         self.dd_file = self.sim_dir / "inputFiles" / "DD.txt"
@@ -160,13 +163,28 @@ class MobileQSSASolver:
                          for k in ("useImmobileSolver", "Nsteps",
                                    "startAtTimeStep", "outputFrequency",
                                    "mobileSolverClampInLoop",
-                                   "mobileSolverMaxIterations")}
+                                   "mobileSolverMaxIterations",
+                                   "useElasticDeformation",
+                                   "useElasticDeformationFEM")}
         set_dd_scalar(self.dd_file, "useImmobileSolver", "0")
         set_dd_scalar(self.dd_file, "Nsteps", "1")
         set_dd_scalar(self.dd_file, "startAtTimeStep", "0")
         set_dd_scalar(self.dd_file, "outputFrequency", "1")
         set_dd_scalar(self.dd_file, "mobileSolverClampInLoop", "0")
         set_dd_scalar(self.dd_file, "mobileSolverMaxIterations", "50")
+
+        # Skip an elastic solve that can only return zero. `elastic` defaults to
+        # None = decide from the staged case; True or False forces it, so a
+        # comparison against a run made before this existed can be reproduced.
+        if self.elastic is None:
+            trivial, reason = elastic_is_trivial(self.sim_dir)
+        else:
+            trivial = not self.elastic
+            reason = f"elastic={self.elastic} passed explicitly"
+        self.elastic_skipped, self.elastic_reason = trivial, reason
+        if trivial:
+            set_dd_scalar(self.dd_file, "useElasticDeformation", "0")
+            set_dd_scalar(self.dd_file, "useElasticDeformationFEM", "0")
 
     # -- the fast solve -------------------------------------------------------
     def solve(self, Y, variant_weights=(1 / 3, 1 / 3, 1 / 3), warm_start=True):
@@ -272,6 +290,8 @@ class MobileQSSASolver:
             f"omega     : {self.omega:.6g} b^3",
             f"seed      : {self._seed.name}",
             f"DD.txt was: {self.previous}",
+            f"elastic   : " + ("SKIPPED — " if self.elastic_skipped
+                               else "solved — ") + self.elastic_reason,
             f"calls     : {self.n_calls}, {self.wall_s:.1f} s total "
             f"({self.n_converged} converged, {self.n_unconverged} capped)",
         ])

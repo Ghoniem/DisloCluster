@@ -35,7 +35,7 @@ import numpy as np
 
 __all__ = ["set_dd_scalar", "get_dd_scalar", "write_dd", "write_polycrystal",
            "write_elastic_deformation", "read_material_scalar", "material_mu_SI",
-           "copy_lf", "FAST_STEP_SETTINGS", "VOIGT"]
+           "copy_lf", "FAST_STEP_SETTINGS", "VOIGT", "elastic_is_trivial"]
 
 VOIGT = ("11", "22", "33", "12", "23", "13")
 
@@ -49,6 +49,51 @@ FAST_STEP_SETTINGS = {
     "mobileSolverClampInLoop": "0",
     "mobileSolverMaxIterations": "50",
 }
+
+
+def elastic_is_trivial(sim_dir):
+    """True when the elastic solve of this case can only return zero.
+
+    MoDELib solves ElasticDeformation on every DDomp call whether or not there
+    is anything to solve. On the coupled fast step that is pure waste whenever
+
+      * ``useDislocations=0`` -- no dislocation eigenstrain to correct, which
+        is the case for every CD-only run, loops being continuum fields here;
+      * every entry of ElasticDeformation.txt is zero -- no applied stress,
+        stress rate, strain or strain rate.
+
+    Both together mean the displacement field is identically zero, so the
+    solve is a ~3n_cd-dof sparse direct factorization of a problem whose answer
+    is known. It measured 55.6 s of a 149.5 s fast solve on the 200 nm case:
+    37% of the step, and it scales the same way the mobile solve does.
+
+    Returns ``(trivial, reason)`` so a caller can say why it did or did not
+    switch the solve off, rather than silently changing the physics.
+    """
+    sim_dir = Path(sim_dir)
+    dd = sim_dir / "inputFiles" / "DD.txt"
+    ed = sim_dir / "inputFiles" / "ElasticDeformation.txt"
+    if not dd.is_file():
+        return False, f"no {dd}"
+
+    if (get_dd_scalar(dd, "useDislocations") or "1").strip() not in ("0", "0.0"):
+        return False, "useDislocations != 0: there is an eigenstrain to correct"
+    if not ed.is_file():
+        return False, f"no {ed}"
+
+    txt = ed.read_text(encoding="utf-8", errors="replace")
+    nonzero = []
+    for key in ("ExternalStress0", "ExternalStressRate", "ExternalStrain0",
+                "ExternalStrainRate"):
+        m = re.search(rf"^\s*{re.escape(key)}\s*=([^;#\n]*)", txt, re.M)
+        if not m:
+            continue
+        vals = [float(v) for v in m.group(1).split()]
+        if any(v != 0.0 for v in vals):
+            nonzero.append(key)
+    if nonzero:
+        return False, f"nonzero load: {', '.join(nonzero)}"
+    return True, "useDislocations=0 and every applied load is zero"
 
 
 def copy_lf(src, dst):
