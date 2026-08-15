@@ -170,7 +170,9 @@ def report(run, result=None, n_doses=6, verbose=True):
     from dislocluster_code.post import march_report
 
     argv = [str(run.out_dir), "--n-doses", str(n_doses)]
-    if not run.cfg.output.movies:
+    if run.cfg.output.movies:
+        argv += ["--interp", str(run.cfg.output.movie_interp)]
+    else:
         argv.append("--no-movies")
     if verbose:
         print(f"rendering {run.out_dir} ...")
@@ -181,5 +183,10 @@ def report(run, result=None, n_doses=6, verbose=True):
         discrete_loops.main([str(run.out_dir)])
         if run.cfg.output.movies:
             loop_movie.main([str(run.out_dir)])
-        tem_slices.main([str(run.out_dir)])
+        # TOP-LEVEL tem_slices/, not the module default of
+        # discrete_loops/tem_slices/. Nested two deep under a directory holding
+        # hundreds of loop PNGs, the micrographs are effectively unfindable --
+        # they were lost in exactly that way once already.
+        tem_slices.main([str(run.out_dir),
+                         "--out", str(run.out_dir / "tem_slices")])
     return run.out_dir

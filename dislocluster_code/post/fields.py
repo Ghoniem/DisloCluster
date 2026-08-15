@@ -1,9 +1,20 @@
 """Field plots from MoDELib2-NNL (Zr3d_ghoniem) cluster-dynamics output.
 
-Renders the spatially-resolved mobile and immobile fields on a single interior
-cut plane, viewed almost frontally, one row per species and one column per dose
-with a shared colour bar per row. Loop populations can be overlaid one family at
-a time as discrete platelets (visualization only).
+Renders the spatially-resolved mobile and immobile fields on interior cut
+planes, one row per species and one column per dose with a shared color bar per
+row. Loop populations can be overlaid one family at a time as discrete
+platelets (visualization only).
+
+Two orthogonal cuts are drawn into the same axes by default. They are sampled
+into ONE `Poly3DCollection` rather than one `plot_surface` per plane, because
+matplotlib depth-sorts 3-D *artists* by a single scalar each: two intersecting
+surfaces drawn as separate artists cannot interleave, so whichever sorts in
+front hides the other completely -- which is exactly what used to happen, the
+vertical cut covering the horizontal one. Within a single collection the
+individual cells are depth-sorted, so the two planes occlude each other cell by
+cell and both stay visible. The loop platelets go into the same collection for
+the same reason, which additionally makes the cuts read as a cutaway: a loop
+behind a cut plane is hidden by it.
 
 Input files, both written by the `zr3d_ghoniem` branch:
     evl/cdNodes.txt   finite-element node coordinates [b], one row per node
@@ -25,7 +36,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import cKDTree
 
 __all__ = ["load_cd_fields", "plot_field_panels", "SPECIES", "FAMILIES", "B_SI",
-           "OMEGA_SI", "OMEGA_B3"]
+           "OMEGA_SI", "OMEGA_B3", "CRYSTAL_AXES", "domain_faces",
+           "domain_edges", "domain_volume"]
 
 B_SI = 3.233e-10          # Burgers vector magnitude [m]
 OMEGA_SI = 1.2e-29        # atomic volume [m^3]  (ZrMicro physical_props['Omega'])
@@ -55,6 +67,23 @@ FAMILIES = [
     (r"$\langle a\rangle_2$",  6, 10, 1.0,      np.array([0.5, 0.8660254, 0.0]),  "#d84315"),
     (r"$\langle a\rangle_3$",  7, 11, 1.0,      np.array([-0.5, 0.8660254, 0.0]), "#ad1457"),
 ]
+
+# Crystal directions of the Cartesian axes the mesh is built in, drawn as an
+# orientation triad on every panel. x is a prismatic-plane normal: the three
+# <a> habit-plane normals above are 60 deg apart in the xy plane with the first
+# along x, which is the <10-10> set, so y is the <11-20> direction at 90 deg to
+# it and z is the c axis. Same convention as the material file, whose <c> loop
+# normal is [0001] = z.
+#
+# This is a property of the MATERIAL, not of the domain: the mesh is built in
+# the same crystal frame whether GEOMETRY['type'] is 'cubic' or 'hexagonal', so
+# the labels hold for both. Pass a different sequence of (vector, label) pairs
+# as `orientation=` to plot_field_panels for a material that is not hcp Zr.
+CRYSTAL_AXES = (
+    (np.array([1.0, 0.0, 0.0]), r"[10$\bar{1}$0]"),
+    (np.array([0.0, 1.0, 0.0]), r"[2$\bar{1}\bar{1}$0]"),
+    (np.array([0.0, 0.0, 1.0]), r"[0001]"),
+)
 
 _JETISH = LinearSegmentedColormap.from_list(
     "cd_jet",
@@ -94,6 +123,18 @@ def domain_faces(P, tol=1e-6):
     _, keep = np.unique(key, axis=0, return_index=True)
     eq = eq[np.sort(keep)]
     return eq[:, :3], -eq[:, 3]
+
+
+def domain_volume(P):
+    """Volume of the convex body the node cloud fills, in b^3.
+
+    The bounding box is NOT this volume on anything but a box domain: for a
+    hexagonal prism it is 4/3 times larger. Anything that turns a density into a
+    count needs the body, not the box. For the cubic geometry the hull and the
+    box coincide, so this returns exactly `prod(hi - lo)` and nothing changes.
+    """
+    from scipy.spatial import ConvexHull
+    return float(ConvexHull(np.asarray(P, float)).volume)
 
 
 def gb_distance(P, lo=None, hi=None, faces=None):
@@ -163,7 +204,7 @@ def _draw_box(ax, lo, hi, color="0.4", lw=0.6):
         ax.plot(*zip(c[i], c[j]), color=color, lw=lw)
 
 
-def domain_edges(P, tol=1e-6):
+def domain_edges(P, tol=1e-6, return_faces=False):
     """Edges of the convex domain the node cloud fills, as (M, 2, 3) segments.
 
     An edge of a convex polytope is where two faces meet, so the faces are
@@ -171,6 +212,9 @@ def domain_edges(P, tol=1e-6):
     sharing two or more hull vertices contributes the segment between the two
     extreme shared vertices. A cube gives its 12 edges, a hexagonal prism its
     18 — as opposed to the bounding box, which for a prism is not the domain.
+
+    `return_faces` also returns `(N, b)` and, per edge, the indices of the two
+    faces that meet there — which is what decides whether an edge is hidden.
     """
     from scipy.spatial import ConvexHull
     hull = ConvexHull(P)
@@ -179,7 +223,7 @@ def domain_edges(P, tol=1e-6):
     scale = max(np.abs(b).max(), 1e-30)
     on = [np.flatnonzero(np.abs(V @ N[k] - b[k]) < 1e-6 * scale)
           for k in range(len(N))]
-    segs = []
+    segs, pairs = [], []
     for i in range(len(N)):
         for j in range(i + 1, len(N)):
             shared = np.intersect1d(on[i], on[j])
@@ -189,20 +233,94 @@ def domain_edges(P, tol=1e-6):
             d = np.linalg.norm(Q[:, None, :] - Q[None, :, :], axis=-1)
             a, c = np.unravel_index(np.argmax(d), d.shape)
             segs.append(np.stack([Q[a], Q[c]]))
-    return np.asarray(segs) if segs else np.empty((0, 2, 3))
+            pairs.append((i, j))
+    segs = np.asarray(segs) if segs else np.empty((0, 2, 3))
+    if return_faces:
+        return segs, (N, b), np.asarray(pairs, dtype=int).reshape(-1, 2)
+    return segs
 
 
-def _draw_domain(ax, P, lo, hi, color="0.4", lw=0.6):
-    """Outline the actual domain; fall back to the bounding box if degenerate."""
+def camera_direction(view):
+    """Unit vector from the domain toward the camera, for (elev, azim) in deg."""
+    el, az = np.radians(view[0]), np.radians(view[1])
+    return np.array([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az),
+                     np.sin(el)])
+
+
+def draw_domain_wireframe(ax, P, lo, hi, view=None, color="0.35", lw=0.8,
+                          zorder=6, hidden_ls=(0, (1.2, 2.2)), hidden_lw=0.7):
+    """Outline the domain, hidden edges dotted, as a 3-D drawing is conventionally
+    dimensioned.
+
+    An edge of a convex body is hidden exactly when BOTH faces meeting there
+    point away from the camera; if either faces the viewer the edge is on the
+    near surface or on the silhouette. That test needs the face pair per edge,
+    which `domain_edges(return_faces=True)` supplies.
+
+    The whole wireframe is drawn at a zorder ABOVE the cut planes, on an axes
+    built with `computed_zorder=False`. Matplotlib otherwise depth-sorts each
+    edge as a whole artist against the plane collection, so edges behind a cut
+    vanish and the crystal stops reading as a container for the cuts — which is
+    also why the hidden ones have to be marked as hidden explicitly: nothing in
+    the drawing occludes them any more.
+    """
     try:
-        segs = domain_edges(P)
+        segs, (N, _), pairs = domain_edges(P, return_faces=True)
     except Exception:
         segs = np.empty((0, 2, 3))
     if len(segs) == 0:
         _draw_box(ax, lo, hi, color=color, lw=lw)
         return
-    for s in segs:
-        ax.plot(s[:, 0], s[:, 1], s[:, 2], color=color, lw=lw)
+    cam = camera_direction(view) if view is not None else None
+    front = None if cam is None else (N @ cam) > 1e-9
+    for k, s in enumerate(segs):
+        hidden = (front is not None and len(pairs)
+                  and not front[pairs[k, 0]] and not front[pairs[k, 1]])
+        ax.plot(s[:, 0], s[:, 1], s[:, 2], color=color, zorder=zorder,
+                lw=(hidden_lw if hidden else lw),
+                ls=(hidden_ls if hidden else "-"))
+
+
+# Kept as the old name; `view` is what turns on the hidden-line style.
+_draw_domain = draw_domain_wireframe
+
+
+def _cut_intersections(planes, lo, hi, faces):
+    """Segments where the drawn mid-cuts meet, clipped to the domain.
+
+    Each cut is an axis-aligned plane through the centre, so two of them meet
+    along the line through the centre parallel to the third axis. The segment is
+    clipped against the convex domain -- on a hexagonal prism the y/z cuts meet
+    along x, and the crystal ends at the two prism vertices, not at the bounding
+    box.
+    """
+    axis = {"x": 0, "y": 1, "z": 2}
+    mid = 0.5 * (lo + hi)
+    segs = []
+    for i in range(len(planes)):
+        for j in range(i + 1, len(planes)):
+            a, b_ = axis.get(planes[i]), axis.get(planes[j])
+            if a is None or b_ is None or a == b_:
+                continue
+            k = 3 - a - b_                       # the axis both cuts contain
+            e = np.zeros(3); e[k] = 1.0
+            t0, t1 = lo[k] - mid[k], hi[k] - mid[k]
+            if faces is not None:
+                N, bb = faces
+                for dn, nu in zip(N @ e, bb - N @ mid):
+                    if abs(dn) < 1e-12:          # parallel: in or out entirely
+                        if nu < 0.0:
+                            t0, t1 = 0.0, -1.0
+                            break
+                        continue
+                    t = nu / dn
+                    if dn > 0.0:
+                        t1 = min(t1, t)
+                    else:
+                        t0 = max(t0, t)
+            if t1 > t0:
+                segs.append(np.stack([mid + t0 * e, mid + t1 * e]))
+    return segs
 
 
 def _inside(pts, faces, tol_frac=1e-9):
@@ -223,34 +341,50 @@ def _platelet_frame(normal):
     return np.column_stack([e1, e2, nvec])
 
 
-def _platelet_quads(centre, radius, R, n=10, thickness=0.28):
-    """Quads (Q,4,3) for one loop: `radius` in-plane, `thickness` along the normal.
+def _disc_quads(centres, radii, R, n=18, rim=0.84):
+    """Flat circular platelets as quads (Q,4,3): `radii` in-plane, no thickness.
 
-    The thickness is deliberately generous. A true platelet has an aspect ratio of
-    order 1/100, and the prismatic <a> families have their normals in the basal
-    plane, so at any near-horizontal viewing angle at least one family is seen
-    almost exactly edge-on and degenerates to a line. Rendering them as thick
-    discs keeps every family legible from a single shared viewpoint.
+    A loop is a *flat* disc, and that is how it is drawn -- the earlier version
+    gave every platelet a 0.28 aspect ratio so that a family seen edge-on would
+    not collapse to a line, but at the shared two-cut viewpoint no family is
+    within 60 deg of edge-on, and the thick version read as a stack of solid
+    blobs rather than as loops.
 
-    Returns geometry rather than drawing it: filling the domain means thousands
-    of platelets, and one matplotlib artist each (the old plot_surface call) is
-    orders of magnitude slower than a single batched Poly3DCollection. `n` is
-    kept low for the same reason -- matplotlib z-sorts every polygon in the
-    collection, so the quad count per platelet sets the render time.
+    Each disc is a triangle fan emitted as degenerate quads (centre, p_i,
+    p_i+1, centre) so that discs and plane cells share one (Q,4,3) array and can
+    go into a single depth-sorted collection. Fan edges are invisible: the
+    collection is drawn with no edge line and one flat colour per disc.
+
+    The outer `1 - rim` of each disc is returned as a separate band, which the
+    caller shades darker. Without it a field of flat same-coloured discs at
+    different depths merges into one blob wherever two overlap in projection,
+    and the figure stops reading as a population of loops. A drawn edge line
+    would do the same job but matplotlib would then also stroke every internal
+    fan edge.
+
+    Returns `(quads, is_rim)`.
     """
-    u = np.linspace(0, 2 * np.pi, n)
-    v = np.linspace(0, np.pi, n)
-    a, c = radius, radius * thickness
-    x = a * np.outer(np.cos(u), np.sin(v))
-    y = a * np.outer(np.sin(u), np.sin(v))
-    z = c * np.outer(np.ones_like(u), np.cos(v))
-    pts = np.stack([x, y, z], -1) @ R.T + np.asarray(centre, float)
-    return np.stack([pts[:-1, :-1], pts[1:, :-1], pts[1:, 1:], pts[:-1, 1:]],
-                    axis=2).reshape(-1, 4, 3)
+    th = np.linspace(0.0, 2.0 * np.pi, n + 1)
+    ring = np.stack([np.cos(th), np.sin(th), np.zeros_like(th)], -1) @ R.T
+    centres = np.asarray(centres, float)
+    rad = np.asarray(radii, float)[:, None, None]
+    outer = centres[:, None, :] + rad * ring[None]
+    inner = centres[:, None, :] + (rim * rad) * ring[None]
+    c = np.repeat(centres[:, None, :], n, axis=1)
+    face = np.stack([c, inner[:, :-1], inner[:, 1:], c], axis=2).reshape(-1, 4, 3)
+    band = np.stack([inner[:, :-1], outer[:, :-1],
+                     outer[:, 1:], inner[:, 1:]], axis=2).reshape(-1, 4, 3)
+    is_rim = np.concatenate([np.zeros(len(face), bool), np.ones(len(band), bool)])
+    return np.concatenate([face, band]), is_rim
 
 
 def _shaded_facecolors(quads, base_rgb, light=(0.3, -0.8, 0.5)):
-    """Lambert-ish shading so a batched collection still reads as 3-D."""
+    """Lambert-ish shading so a batched collection still reads as 3-D.
+
+    Not used by the cut-plane platelets, which are flat discs of one colour and
+    need no shading; ``discrete_loops.render`` uses it for its tubular
+    dislocation lines, which are genuinely three-dimensional.
+    """
     e1 = quads[:, 1] - quads[:, 0]
     e2 = quads[:, 2] - quads[:, 0]
     nrm = np.cross(e1, e2)
@@ -262,9 +396,126 @@ def _shaded_facecolors(quads, base_rgb, light=(0.3, -0.8, 0.5)):
     return np.clip(np.asarray(base_rgb)[None, :] * s[:, None], 0.0, 1.0)
 
 
-def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
+def _grid_quads(X, Y, Z, S, norm, faces, cmap=None):
+    """Cell quads (Q,4,3) and RGBA (Q,4) for one sampled cut plane.
+
+    Cells outside the convex domain are dropped rather than painted
+    transparent: the plane grid spans the bounding box, so on a hexagonal prism
+    part of it lies outside the crystal. A cell is kept only if all four of its
+    corners are inside. Its colour comes from the mean of its four corner
+    samples, not from the lower corner as `plot_surface` would use.
+    """
+    cmap = _JETISH if cmap is None else cmap
+    V = np.stack([X, Y, Z], -1)
+    quads = np.stack([V[:-1, :-1], V[1:, :-1], V[1:, 1:], V[:-1, 1:]],
+                     axis=2).reshape(-1, 4, 3)
+    Sc = 0.25 * (S[:-1, :-1] + S[1:, :-1] + S[1:, 1:] + S[:-1, 1:])
+    cols = cmap(norm(Sc.ravel()))
+    if faces is not None:
+        ins = _inside(V, faces)
+        keep = (ins[:-1, :-1] & ins[1:, :-1] &
+                ins[:-1, 1:] & ins[1:, 1:]).ravel()
+        quads, cols = quads[keep], cols[keep]
+    return quads, cols
+
+
+def _axes_fraction(ax, pts):
+    """Where `pts` land in the panel, as axes fractions (0..1 is visible).
+
+    Uses matplotlib's own projection matrix, so it reports exactly what will be
+    drawn. No prior ``canvas.draw()`` is needed: ``get_proj`` is built from the
+    limits, the box aspect and the view angles, all of which are already set.
+    """
+    from mpl_toolkits.mplot3d import proj3d
+    pts = np.asarray(pts, float).reshape(-1, 3)
+    u, v, _ = proj3d.proj_transform(pts[:, 0], pts[:, 1], pts[:, 2],
+                                    ax.get_proj())
+    disp = ax.transData.transform(np.column_stack([u, v]))
+    return ax.transAxes.inverted().transform(disp)
+
+
+def _fit_zoom(ax, pts, aspect, zoom, margin=0.005, iters=4):
+    """Shrink `zoom` until `pts` fit inside the panel, and apply it.
+
+    A 3-D axes clips its artists at the axes rectangle, not at the data cube,
+    so a `zoom` that projects the domain taller than the panel silently cuts
+    the top and bottom off the wireframe. The fixed 1.22 this defaults to was
+    chosen against a CUBE, whose projection it fits (0.007..0.960 of the panel);
+    a hexagonal prism of the same box aspect as the 500 nm case projects to
+    -0.068..1.054 and loses both end faces. It is the ASPECT RATIO that decides
+    this, not the size -- a 200 nm and a 500 nm prism of the same proportions
+    overflow identically.
+
+    The projection is very nearly linear in `zoom`, so one correction lands it;
+    the loop refines the residual from perspective foreshortening and stops as
+    soon as the domain fits. `zoom` is only ever reduced, so a domain that
+    already fits -- every cubic case -- renders exactly as it did before.
+    """
+    for _ in range(iters):
+        f = _axes_fraction(ax, pts)
+        half = float(np.abs(f - 0.5).max())      # matplotlib centres the box
+        need = (0.5 - margin) / max(half, 1e-12)
+        if need >= 1.0:
+            break
+        zoom *= need
+        ax.set_box_aspect(aspect, zoom=zoom)
+    return zoom
+
+
+def _draw_orientation_triad(ax, view, axes_dirs=CRYSTAL_AXES,
+                            origin=(0.07, 0.13), length_in=0.30, fontsize=8.0):
+    """Crystal-direction arrows, projected to match the 3-D viewpoint.
+
+    Drawn in axes coordinates rather than as 3-D arrows inside the domain, so
+    the triad keeps a fixed size and a fixed corner of the panel whatever the
+    domain aspect ratio is. The screen directions are the analytic projection of
+    matplotlib's own camera: for (elev, azim) the screen right and up axes are
+
+        r = (-sin a, cos a, 0)
+        u = (-sin e cos a, -sin e sin a, cos e)
+
+    so a crystal direction v lands at (v.r, v.u), which is what `view_init`
+    would put it at. Arrow lengths are equalized in INCHES, since a panel's axes
+    box is not square and equal axes-fraction lengths would shear the triad.
+    """
+    el, az = np.radians(view[0]), np.radians(view[1])
+    right = np.array([-np.sin(az), np.cos(az), 0.0])
+    up = np.array([-np.sin(el) * np.cos(az), -np.sin(el) * np.sin(az),
+                   np.cos(el)])
+    fig = ax.figure
+    bb = ax.get_position()
+    w_in = max(bb.width * fig.get_figwidth(), 1e-6)
+    h_in = max(bb.height * fig.get_figheight(), 1e-6)
+    for v, label in axes_dirs:
+        v = np.asarray(v, float)
+        v = v / np.linalg.norm(v)
+        d = np.array([v @ right, v @ up])
+        n = np.linalg.norm(d)
+        if n < 1e-3:                       # pointing at the camera: no arrow
+            continue
+        d = d / n
+        step = np.array([d[0] * length_in / w_in, d[1] * length_in / h_in])
+        tip = np.asarray(origin, float) + step
+        ax.annotate("", xy=tip, xytext=origin, xycoords="axes fraction",
+                    annotation_clip=False,
+                    arrowprops=dict(arrowstyle="-|>,head_width=0.16,"
+                                              "head_length=0.36",
+                                    color="k", lw=1.5,
+                                    shrinkA=0.0, shrinkB=0.0))
+        lab = tip + 0.18 * step
+        ax.annotate(label, xy=lab, xycoords="axes fraction", fontsize=fontsize,
+                    ha=("left" if d[0] > 0.25 else
+                        "right" if d[0] < -0.25 else "center"),
+                    va=("bottom" if d[1] > 0.25 else
+                        "top" if d[1] < -0.25 else "center"),
+                    annotation_clip=False,
+                    bbox=dict(boxstyle="square,pad=0.12", fc="white",
+                              ec="none", alpha=0.75))
+
+
+def _overlay_family(P, F, rng, fam, n_loops, loop_scale, gap=1.4,
                     max_loops=2500, stop_after_misses=1500, faces=None):
-    """Draw one loop family as platelets sized by the LOCAL mean loop radius.
+    """Geometry for one loop family, platelets sized by the LOCAL mean radius.
 
     Sites are drawn from the WHOLE domain, not from a slab about the cut plane,
     so the population is represented everywhere including the near-boundary
@@ -281,12 +532,19 @@ def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
     filled to capacity without turning into a solid mass. `n_loops=None` fills
     the domain (up to `max_loops`); an integer caps the accepted count.
 
-    The clearance test compares centre distance against the sum of the two drawn
-    radii — the platelets' bounding spheres. That is conservative for discs,
-    which may therefore end up slightly further apart than strictly necessary;
+    The clearance test compares centre distance against `gap` times the sum of
+    the two drawn radii — the platelets' bounding spheres. That is conservative
+    for discs, which may therefore end up further apart than strictly necessary;
     the alternative, exact disc-disc intersection in 3-D, is not worth it here.
+    `gap` above 1 leaves visible space between neighbours: at bare tangency the
+    fill is so dense that the discs merge into a mat in projection and hide the
+    field they are drawn over.
+
+    Returns `(quads, rgba)` instead of drawing, so the platelets can join the
+    cut planes in one depth-sorted collection.
     """
     _, ncol, ccol, bmag, normal, color = fam
+    empty = (np.empty((0, 4, 3)), np.empty((0, 4)))
     # Keep the seed sites off the surface. The margin is a distance from the
     # NEAREST DOMAIN FACE, not from the bounding box: on a hexagonal prism the
     # box test leaves nodes right against the six slanted prism faces, whose
@@ -294,20 +552,20 @@ def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
     d_face = gb_distance(P, faces=faces)
     cand = np.flatnonzero(d_face > 0.02 * d_face.max())
     if cand.size == 0:
-        return
+        return empty
 
     n_k = F[cand, ncol]
     c_k = F[cand, ccol]
     good = (np.isfinite(n_k) & np.isfinite(c_k) & (n_k > 0) & (c_k > 0))
     cand, n_k, c_k = cand[good], n_k[good], c_k[good]
     if cand.size == 0:
-        return
+        return empty
 
     m = c_k / (n_k * OMEGA_B3)                          # defects per loop
     good = m > 1.0
     cand, m = cand[good], m[good]
     if cand.size == 0:
-        return
+        return empty
 
     r_drawn = np.sqrt(m * OMEGA_B3 / (np.pi * bmag)) * loop_scale
     pts = P[cand]
@@ -322,12 +580,12 @@ def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
         if len(accepted) >= cap or misses >= stop_after_misses:
             break
         # Anything that could touch this platelet lies within r_i + r_max.
-        near = tree.query_ball_point(pts[i], r_drawn[i] + r_max)
+        near = tree.query_ball_point(pts[i], gap * (r_drawn[i] + r_max))
         clash = False
         for j in near:
             if acc_set[j]:
                 d = float(np.linalg.norm(pts[i] - pts[j]))
-                if d < r_drawn[i] + r_drawn[j]:
+                if d < gap * (r_drawn[i] + r_drawn[j]):
                     clash = True
                     break
         if clash:
@@ -338,14 +596,14 @@ def _overlay_family(ax, P, F, lo, hi, rng, fam, n_loops, loop_scale, plane,
         accepted.append(i)
 
     if not accepted:
-        return
+        return empty
+    accepted = np.asarray(accepted)
     R = _platelet_frame(normal)
-    quads = np.concatenate([_platelet_quads(pts[i], r_drawn[i], R)
-                            for i in accepted])
+    quads, is_rim = _disc_quads(pts[accepted], r_drawn[accepted], R)
     rgb = np.asarray(to_rgb(color))
-    ax.add_collection3d(Poly3DCollection(
-        quads, facecolors=_shaded_facecolors(quads, rgb), linewidths=0))
-    return len(accepted)
+    rgba = np.tile(np.append(rgb, 1.0), (len(quads), 1))
+    rgba[is_rim, :3] = 0.55 * rgb
+    return quads, rgba
 
 
 _DEFAULT_VIEW = {"x": (10.0, -80.0), "y": (10.0, -80.0), "z": (55.0, -70.0)}
@@ -360,7 +618,8 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                       log=None, floor_decades=5.0, vlims=None,
                       loop_family=None, n_loops=None, loop_scale=45.0, seed=0,
                       figsize_per_panel=(3.3, 3.2), out_file=None, title=None,
-                      column_titles=True, fields=None):
+                      column_titles=True, fields=None, row_labels=None,
+                      orientation=True, cbar_fontsize=7.0, zoom=1.22):
     """Panel figure: one row per species, one column per dose.
 
     Parameters
@@ -390,6 +649,19 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
     column_titles: draw the "<dose> dpa" header above each column. Turn this off
                    for a single-dose figure whose `title` already names the dose,
                    otherwise the two headers overlap.
+    row_labels   : draw the species label down the left of each row. Default
+                   None = only when there is more than one row, since on a
+                   one-quantity figure `title` already names the species and the
+                   two just repeat each other.
+    orientation  : draw the crystal-direction triad in each panel's lower left.
+                   True uses CRYSTAL_AXES (hcp Zr, correct for every geometry
+                   this repository meshes); pass a sequence of (vector, label)
+                   pairs for a different crystal frame, or False for none.
+    cbar_fontsize: colour-bar tick size, in points. Small on purpose: the figure
+                   is saved with `bbox_inches="tight"`, which crops the empty
+                   margin a 3-D axes leaves and so magnifies every font relative
+                   to the image. `zoom` works the same problem from the other
+                   end, filling more of the panel with the domain.
     """
     rng = np.random.default_rng(seed)
     # `plane` may be a single axis or several. Two orthogonal mid-cuts drawn in
@@ -421,9 +693,26 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
     except Exception:
         faces = None
 
+    # The points the panel has to hold: the vertices of the body that is
+    # actually drawn, not the bounding box. For a prism the box corners sit out
+    # in the six empty wedges, and fitting those would shrink the crystal for
+    # nothing; for a cube the two sets coincide.
+    try:
+        from scipy.spatial import ConvexHull
+        fit_pts = P0[ConvexHull(P0).vertices]
+    except Exception:
+        fit_pts = np.array([[x, y, z] for x in (lo[0], hi[0])
+                            for y in (lo[1], hi[1]) for z in (lo[2], hi[2])])
+
     nrow, ncol = len(species), len(steps)
-    fig = plt.figure(figsize=(figsize_per_panel[0] * ncol + 1.7,
+    if row_labels is None:
+        row_labels = nrow > 1
+    # The extra inch is the colour-bar column. It used to be 1.7, most of which
+    # ended up as blank paper between the panel and the bar.
+    fig = plt.figure(figsize=(figsize_per_panel[0] * ncol + 1.0,
                               figsize_per_panel[1] * nrow))
+    cbar_left = 1.0 - 0.62 / fig.get_figwidth()
+    panel_axes = []
 
     for r, sp in enumerate(species):
         col_idx, label = SPECIES[sp]
@@ -440,53 +729,85 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
             norm = Normalize(vmin=vmin, vmax=vmax)
 
         for c, (st, dose) in enumerate(zip(steps, doses)):
-            ax = fig.add_subplot(nrow, ncol, r * ncol + c + 1, projection="3d")
+            # computed_zorder=False: draw order comes from the artists' own
+            # zorder instead of from their projected depth. The cut planes are
+            # one collection that still sorts its own polygons internally; what
+            # this buys is that the domain wireframe and the intersection line
+            # stay on top of it, so the crystal is a visible container and the
+            # cuts read as sitting inside it.
+            ax = fig.add_subplot(nrow, ncol, r * ncol + c + 1, projection="3d",
+                                 computed_zorder=False)
             P, F = data[st]
+            quads, colors = [], []
             for corner, uvec, vvec in grids:
                 X, Y, Z, S = _sample_plane(trees[st], F[:, col_idx],
                                            corner, uvec, vvec, n_slice)
-                fc = _JETISH(norm(S))
-                if faces is not None:
-                    # The plane grid spans the bounding box, so on a non-box
-                    # domain part of it lies outside the crystal. Those cells
-                    # are made transparent instead of being painted with an
-                    # extrapolated value -- plot_surface colours a cell from its
-                    # lower corner, so a cell is dropped if ANY of its four
-                    # corners is outside.
-                    ins = _inside(np.stack([X, Y, Z], -1), faces)
-                    cell = (ins[:-1, :-1] & ins[1:, :-1] &
-                            ins[:-1, 1:] & ins[1:, 1:])
-                    fc[..., 3] = 0.0
-                    fc[:-1, :-1, 3] = cell
-                ax.plot_surface(X, Y, Z, facecolors=fc, shade=False,
-                                rstride=1, cstride=1, linewidth=0,
-                                antialiased=False)
-            _draw_domain(ax, P0, lo, hi)
+                q, fc = _grid_quads(X, Y, Z, S, norm, faces)
+                quads.append(q); colors.append(fc)
             if loop_family is not None:
-                _overlay_family(ax, P, F, lo, hi, rng, FAMILIES[loop_family],
-                                n_loops, loop_scale, planes[0], faces=faces)
+                q, fc = _overlay_family(P, F, rng, FAMILIES[loop_family],
+                                        n_loops, loop_scale, faces=faces)
+                quads.append(q); colors.append(fc)
+            # ONE collection for the cuts and the platelets together, so that
+            # matplotlib depth-sorts them against each other polygon by polygon.
+            # Separate artists get one depth each, which is what made the
+            # vertical cut hide the horizontal one entirely.
+            ax.add_collection3d(Poly3DCollection(
+                np.concatenate(quads), facecolors=np.concatenate(colors),
+                linewidths=0, antialiased=False, zsort="average", zorder=1))
+            _draw_domain(ax, P0, lo, hi, view=view)
+            # Where the two cuts meet. Dotted, over the planes, so the viewer
+            # can see that they are two orthogonal sections of one body rather
+            # than two unrelated images.
+            for s in _cut_intersections(planes, lo, hi, faces):
+                ax.plot(s[:, 0], s[:, 1], s[:, 2], color="k", lw=1.1,
+                        ls=":", zorder=7)
             ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
             # True proportions. A fixed (1,1,1) box renders the 400 x 346 x 653 nm
             # prism as though it were a cube.
             _sp = hi - lo
-            ax.set_box_aspect(tuple(_sp / _sp.max()))
+            _aspect = tuple(_sp / _sp.max())
+            ax.set_box_aspect(_aspect, zoom=zoom)
             ax.set_axis_off()
+            # The view has to be set BEFORE the fit: which way the domain is
+            # tallest on screen is a property of the camera, not of the box.
             ax.view_init(elev=view[0], azim=view[1])
+            _fit_zoom(ax, fit_pts, _aspect, zoom)
             if r == 0 and column_titles:
                 ax.set_title(f"{dose:g} dpa", fontsize=13, pad=-2)
-            if c == 0:
+            if c == 0 and row_labels:
                 ax.text2D(-0.02, 0.5, label, transform=ax.transAxes,
                           rotation=90, va="center", ha="center", fontsize=13)
+            panel_axes.append(ax)
 
-        cax = fig.add_axes([0.925, 0.10 + (nrow - 1 - r) / nrow * 0.82,
-                            0.013, 0.82 / nrow * 0.70])
+        cax = fig.add_axes([cbar_left, 0.12 + (nrow - 1 - r) / nrow * 0.80,
+                            0.10 / fig.get_figwidth(), 0.80 / nrow * 0.66])
         fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=_JETISH), cax=cax)
-        cax.tick_params(labelsize=8)
-        cax.set_title("log" if use_log else "lin", fontsize=7, pad=3)
+        cax.tick_params(labelsize=cbar_fontsize, pad=1.5, length=2.5)
+        # The offset text -- the "1e-12+5.042e-8" a linear scale over a narrow
+        # range puts above the bar -- is NOT covered by tick_params, and stays
+        # at the 10 pt default. On a panel this size it then comes out larger
+        # than the figure title. Size it here and leave the title room above it.
+        offset = cax.yaxis.get_offset_text()
+        offset.set_fontsize(cbar_fontsize)
+        cax.set_title(f"{label}\n{'log' if use_log else 'linear'}",
+                      fontsize=cbar_fontsize,
+                      pad=(4 if use_log else 4 + 1.9 * cbar_fontsize),
+                      linespacing=1.4)
 
     if title:
         fig.suptitle(title, fontsize=12)
-    fig.subplots_adjust(left=0.02, right=0.90, wspace=0.0, hspace=0.02)
+    fig.subplots_adjust(left=0.01, right=cbar_left - 0.02,
+                        wspace=0.0, hspace=0.02)
+    # After the layout, not before: the triad equalizes its arm lengths in
+    # inches from the axes box, which subplots_adjust has just moved. On a grid
+    # every panel shares one viewpoint, so one triad on the bottom-left panel
+    # labels all of them; repeating it in each cell is just clutter.
+    if orientation:
+        axes_dirs = (CRYSTAL_AXES if orientation is True else orientation)
+        for ax in (panel_axes if len(panel_axes) == 1
+                   else panel_axes[(nrow - 1) * ncol:(nrow - 1) * ncol + 1]):
+            _draw_orientation_triad(ax, view, axes_dirs=axes_dirs)
     if out_file:
         fig.savefig(out_file, dpi=250, bbox_inches="tight")
         plt.close(fig)

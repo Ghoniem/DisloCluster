@@ -67,10 +67,10 @@ FAMILY_SLUG = {0: "c", 1: "a1", 2: "a2", 3: "a3"}
 FAMILY_BG = {0: "c_vL", 1: "c_a1", 2: "c_a2", 3: "c_a3"}
 # <c> loops are ~6x larger than <a>, so a single exaggeration factor would leave
 # the <a> platelets invisible. Sizes are therefore comparable within a figure
-# but NOT between the <c> and <a> figures. Halved relative to the deliverable's
-# figures so that the domain can be filled with non-overlapping platelets rather
-# than showing a sparse scatter.
-LOOP_SCALE = {0: 1.5, 1: 7.0, 2: 7.0, 3: 7.0}
+# but NOT between the <c> and <a> figures. About a third of the deliverable's
+# factors: the platelets are drawn as flat discs rather than as thick volumes,
+# and at the old factors those discs covered the cut planes they are drawn over.
+LOOP_SCALE = {0: 0.55, 1: 2.2, 2: 2.2, 3: 2.2}
 
 
 def dose_steps(doses, dose_per_step=1.0, dose_seed=0.1):

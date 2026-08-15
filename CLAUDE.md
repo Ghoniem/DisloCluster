@@ -237,7 +237,7 @@ Nothing else in the notebook should need editing for a normal run.
 | `MESH` | element size and order, boundary-layer refinement |
 | `BOUNDARY` | periodic faces (empty ⇒ Dirichlet everywhere), applied stress and strain |
 | `COUPLING` | route, seed dose, snapshot doses, substeps, fast-solve cadence, failure tolerances |
-| `SOLVER`, `OUTPUT` | tolerances and backend; tag, figures, movies, checkpoint, resume |
+| `SOLVER`, `OUTPUT` | tolerances and backend; tag, figures, movies, `movie_interp`, checkpoint, resume |
 
 `SimulationConfig.from_dicts` rejects an unknown key rather than ignoring it,
 and validates before anything expensive runs: a dose grid that does not
@@ -282,14 +282,72 @@ defaults to the verification case so the figure cells always have data.
 | `3d/` | `fe_mesh.png`, plus Figs 19–23 **one file per quantity per dose**: `Cv_06dpa.png`, `N_c_06dpa.png`, `C_a1_06dpa.png`, `loops_c_06dpa.png`, … |
 | `gb/` | Figs 24–27 **one file per quantity**, all doses overlaid (`gb_Cv.png`, `gb_N_a1.png`, `gb_C_c.png`, `gb_d_c.png`), plus `size_dist_<family>_<dose>.png` |
 
+**Both cut planes go into ONE `Poly3DCollection`.** Every panel draws two
+orthogonal mid-cuts, one vertical (normal to y) and one horizontal (normal to
+z). Matplotlib depth-sorts 3-D *artists* by a single scalar each, so two
+intersecting surfaces drawn as separate `plot_surface` calls cannot interleave
+and whichever sorts in front hides the other completely — which is what used to
+happen, the vertical cut covering the horizontal one entirely. Sampling both
+cuts (and the loop platelets) into one collection sorts them polygon by polygon,
+so both stay visible and the platelets read as a cutaway. Do not split them back
+into separate artists.
+
+**The panel zoom is fitted, not fixed.** A 3-D axes clips its artists at the
+axes rectangle, not at the data cube, so a zoom that projects the domain taller
+than the panel silently cuts the ends off the wireframe. `plot_field_panels`
+still takes `zoom=1.22`, but `fields._fit_zoom` now reduces it until the
+convex hull of the CD nodes fits, measuring through matplotlib's own
+`get_proj`. It is the **aspect ratio** that decides this, not the size: a cube
+fits 1.22 (0.007..0.960 of the panel) and is left exactly as it was, while a
+1 : 0.87 : 1.6 hexagonal prism projects to −0.068..1.054 and loses both end
+faces — identically at 200 nm and at 500 nm. Fit to the hull, not to the
+bounding box, whose corners for a prism sit out in the six empty wedges. This
+applies to `3d/` and to the movie frames, which are the same code;
+`discrete_loops.render` uses the default `zoom=1` and was never affected.
+
+**Every panel carries a crystal-orientation triad** — `[10̄10]` (x), `[2̄1̄10]`
+(y), `[0001]` (z), drawn by `fields._draw_orientation_triad` from the analytic
+projection of matplotlib's own camera, so the arrows always agree with the
+viewpoint. On a multi-panel grid only the bottom-left panel gets one. The
+discrete-loop renders carry the same triad.
+
+**Nothing in the figure code is specific to one geometry.** Every shape
+decision — the outline, the hidden-line test, the volume that turns a density
+into a count, the region loops are placed in, the clip — comes from
+`fields.domain_faces` / `domain_edges` / `domain_volume`, which are the convex
+hull of the CD node cloud. `GEOMETRY['type'] = 'cubic'` gives 6 faces, 12 edges,
+3 hidden and `domain_volume == prod(hi - lo)` to machine precision, so the box
+case is untouched by the prism corrections; `'hexagonal'` gives 8 faces, 18
+edges; a `cubic` case with a non-unit `aspect` follows automatically. Do not
+reintroduce a bounding-box assumption or branch on the geometry name. The one
+thing that is *not* geometry-derived is the orientation triad, which is a
+material property (hcp Zr) and so is the same for every domain shape;
+`plot_field_panels(orientation=...)` takes a different crystal frame if one is
+ever needed.
+
+**The crystal is drawn as a complete wireframe with hidden lines dotted.**
+`fields.draw_domain_wireframe` marks an edge hidden when BOTH faces meeting
+there point away from the camera — `domain_edges(return_faces=True)` supplies
+the face pair, `camera_direction(view)` the camera. Two things make this
+necessary rather than decorative: the axes are built with
+`computed_zorder=False` and the wireframe sits above the cut planes, so nothing
+in the drawing occludes a back edge any more; and the cuts only read as being
+*inside* a body if the body is drawn closed around them. The line where the two
+cuts meet is drawn dotted in black over the planes
+(`fields._cut_intersections`, clipped to the domain).
+
 **Loop overlays** (`loops_*`) fill the domain with as many **non-overlapping**
 platelets as fit: candidates are visited in random order and accepted only if the
 drawn radius clears every platelet already placed. The clearance test uses
-bounding spheres, so it is conservative for discs. Radii are exaggerated ×1.5
-(⟨c⟩) and ×7 (⟨a⟩) — half the deliverable's factors, which is what makes a dense
-non-overlapping fill possible. The two factors differ because ⟨c⟩ loops are ~6×
-larger, so sizes are faithful *within* a figure but not *between* the ⟨c⟩ and
-⟨a⟩ figures. These are the slow figures: ~40 s each, so ~17 min for six doses.
+bounding spheres times a `gap` of 1.4, so neighbours keep visible space between
+them; at bare tangency the fill is dense enough to hide the field underneath.
+Platelets are **flat discs** with a darker rim, not thick volumes — the rim is
+what keeps two overlapping discs from merging into one blob in projection.
+Radii are exaggerated ×0.55 (⟨c⟩) and ×2.2 (⟨a⟩), about a third of the
+deliverable's factors, which is what a flat disc needs to stay smaller than the
+cut plane it sits on. The two factors differ because ⟨c⟩ loops are ~6× larger,
+so sizes are faithful *within* a figure but not *between* the ⟨c⟩ and ⟨a⟩
+figures. These are the slow figures: ~16 s each.
 
 **`size_dist_*`** is the distribution of the **local mean** loop diameter across
 the domain, weighted by local loop density — *not* a per-loop size spectrum. The
@@ -445,6 +503,78 @@ Every run creates
 `Simulations/output/<YYYYMMDD_HHMMSS>_<git-hash>[_<tag>]/` with figures and
 `provenance.md`. The coupled driver adds `0d/`, `3d/`, `gb/` subdirectories and
 `march_state.npz`.
+
+`OUTPUT['movies']` adds `movies/` (continuum-field GIFs) and
+`OUTPUT['discrete_loops']` adds `discrete_loops/` (per-dose PNG, `loops_*.csv`,
+the MoDELib `aLoops_*.txt`, `manifest.json`), `discrete_loops/movies/` and
+**`tem_slices/` at the top level of the run**. The TEM micrographs used to be
+written to `discrete_loops/tem_slices/`, where — under several hundred loop
+PNGs — they were unfindable; `driver.report` now passes `--out
+<run>/tem_slices`. Older runs still have them nested, e.g.
+`ZrMicro/output/20260809_100409_0dea883_Adaptive_500nm_pristine/discrete_loops/tem_slices/`.
+**The march writes ONE snapshot per dose interval**, so `movies/` has as many
+frames as `COUPLING['doses']` has entries plus one — an eight-dose run animates
+as an eight-frame flipbook however high the fps. `OUTPUT['movie_interp']`
+(default 5, `1` disables) subdivides each interval into that many frames,
+turning eight doses into 41. **The extra frames are interpolated, not solved**:
+`movies.subdivide_doses` + `_blend` blend the two snapshots that bracket each
+one, and every synthetic frame is labelled `(interp)` in its title. Two things
+about that blend are load-bearing:
+
+- it is **geometric** wherever both endpoints are positive (linear otherwise —
+  the pristine seed sits at dose 0). The fields grow by decades through the
+  nucleation transient, where a linear interpolant would sit at the upper
+  endpoint for the whole interval, and geometric blending commutes with the
+  power-law reductions the figures draw, so a size `d ~ (c/N)^(1/3)` formed
+  from blended `c` and `N` is the blended `d` to 2e-15;
+- it is taken on the **CD block**, not on the 19-column state it is built from.
+  `immobile_0d_to_modelib` sums species, and a sum of geometric blends is not
+  the geometric blend of the sums, so blending the state first yields frames
+  that are *not* bracketed by their neighbours — visible as a population
+  overshooting and falling back. Blending what the figures draw keeps every
+  interpolant inside its bracket.
+
+`cd_blocks` deliberately keeps `interp=1` as its default: `discrete_loops` and
+the `3d/`/`gb/` panels must see solved states only. Only `movies.render` opts
+in, through `cd_blocks_interpolated`.
+
+All four steps can be re-run on any finished run without re-solving:
+
+```powershell
+.DisloClusterVenv\Scripts\python.exe -m dislocluster_code.post.discrete_loops <run> --doses all
+.DisloClusterVenv\Scripts\python.exe -m dislocluster_code.post.loop_movie     <run> --fps 5
+.DisloClusterVenv\Scripts\python.exe -m dislocluster_code.post.tem_slices     <run> --out <run>\tem_slices
+.DisloClusterVenv\Scripts\python.exe -m dislocluster_code.post.movies         <run> --fps 5 --interp 5
+```
+
+`discrete_loops --doses all` takes every snapshot in `march_state.npz`; the
+module's own default is four fixed doses, which is not enough frames for
+`loop_movie` to produce anything but a flipbook.
+
+**The discrete population lives in the CRYSTAL, not in its bounding box.**
+Three things in `discrete_loops` are keyed on the convex body the CD nodes fill
+(`fields.domain_faces` / `domain_volume` / `domain_edges`), which for a
+`GEOMETRY['type'] = 'hexagonal'` run is the hexagonal prism:
+
+- the volume that turns a density into a count (`domain_volume`, not
+  `prod(bounding box)` — for a prism the box is **4/3** the crystal,
+  so the loop count used to come out a third too high);
+- the nodal volumes, via `voronoi_weights(..., faces=...)`, which rejects the
+  Monte-Carlo samples that land in the six empty wedges — every one of those
+  used to be charged to whichever boundary node was nearest;
+- the region uniform placement draws from, by rejection, so no loop is centred
+  outside the crystal.
+
+`render` then outlines that same body and **clips the drawn line at the crystal
+surface** (`--no-clip` turns this off). The clip is drawing only —
+`loops_*.csv` and `aLoops_*.txt` carry whole loops. It matters at 1–10 dpa on
+the 200 nm case, where the ⟨c⟩ radius reaches 47 nm against a 100 nm prism
+half-width and a loop centred anywhere but the middle overhangs a wall.
+
+`volume_average.averaged_trajectory` still calls `voronoi_weights` **without**
+`faces`, so on a non-box domain its volume weights carry the same bounding-box
+error. That is deliberate — fixing it changes already-published figures — but it
+is wrong for a hexagonal run and should be revisited.
 
 **Simulations read and write under `Simulations/`.** `input/` holds the Excel
 workbooks and `output/` the run directories, the way `ZrMicro/` was used before.

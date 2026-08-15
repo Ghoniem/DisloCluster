@@ -28,6 +28,16 @@ Simulations/output/*
 # in place silently un-ignored 1.4 GB of run output.
 ZrMicro/output/
 
+# Staged MoDELib cases, which `driver.prepare` generates and names
+# <type>_<size>nm_o<order>_<domain-key> (plus a _qssa twin for the fast solve).
+# They hold the mesh, the inputFiles and multi-MB evl blocks -- 152 MB for two
+# domains -- and are fully reproducible from the domain.json each one carries,
+# so they belong with the run output rather than in git. The hand-authored
+# reference cases (zrmicro_coupled, zr3d_500nm, irradiation_*) do not match
+# this pattern and stay tracked.
+MoDELib3/tutorials/cubic_*nm_o[12]_*/
+MoDELib3/tutorials/hexagonal_*nm_o[12]_*/
+
 # ── Editor / OS ──────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

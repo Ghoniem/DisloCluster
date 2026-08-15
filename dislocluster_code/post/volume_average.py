@@ -49,12 +49,21 @@ from dislocluster_code.zerod.post_process import calculate_derived_quantities  #
 from dislocluster_code.post.visualization import ZrMicroVisualizer         # noqa: E402
 
 
-def voronoi_weights(nodes, n_samples=4_000_000, seed=0, verbose=True):
+def voronoi_weights(nodes, n_samples=4_000_000, seed=0, verbose=True,
+                    faces=None):
     """Volume share of each node, by Monte-Carlo nearest-node assignment.
 
     Returns weights summing to 1. Nodes that win no sample get zero weight,
     which is correct: a node with no surrounding volume contributes nothing to
     a volume average.
+
+    `faces` is an optional `(N, b)` half-space description of the domain (from
+    `fields.domain_faces`). Samples are drawn in the bounding box, so on a
+    non-box domain -- a hexagonal prism -- the empty corners are sampled too and
+    every one of those samples is charged to whichever boundary node happens to
+    be nearest. Passing `faces` rejects them. Left at None the old behaviour is
+    kept exactly, which is what `averaged_trajectory` still does; it is exact
+    for the cubic domains that function has always been used on.
     """
     nodes = np.asarray(nodes, dtype=float)
     lo, hi = nodes.min(0), nodes.max(0)
@@ -68,6 +77,12 @@ def voronoi_weights(nodes, n_samples=4_000_000, seed=0, verbose=True):
     while done < n_samples:
         m = min(chunk, n_samples - done)
         pts = lo + (hi - lo) * rng.random((m, 3))
+        if faces is not None:
+            N, b = faces
+            pts = pts[np.all(pts @ N.T <= b[None, :], axis=1)]
+            if not len(pts):
+                done += m
+                continue
         _, idx = tree.query(pts, k=1, workers=-1)
         counts += np.bincount(idx, minlength=nodes.shape[0])
         done += m

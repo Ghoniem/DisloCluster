@@ -124,6 +124,10 @@ OUTPUT = {
     "tag":            None,      # None -> derived from the case name
     "figures":        True,
     "movies":         False,
+    # Movie frames per output interval. The march writes one snapshot per dose
+    # interval, so a short `doses` list animates as a flipbook; the extra frames
+    # are interpolated between solved snapshots and labelled as such. 1 = off.
+    "movie_interp":   5,
     "discrete_loops": False,
     "checkpoint":     True,
     "resume":         "auto",    # "auto" | "never" | "require"
@@ -396,6 +400,7 @@ class Output:
     tag: str | None
     figures: bool
     movies: bool
+    movie_interp: int
     discrete_loops: bool
     checkpoint: bool
     resume: str
@@ -403,6 +408,9 @@ class Output:
     def validate(self):
         if self.resume not in ("auto", "never", "require"):
             raise ConfigError("resume must be 'auto', 'never' or 'require'")
+        if self.movie_interp < 1:
+            raise ConfigError("movie_interp must be >= 1 (1 disables "
+                              "interpolated movie frames)")
 
 
 # ── the whole thing ──────────────────────────────────────────────────────────
@@ -477,6 +485,7 @@ class SimulationConfig:
                           analytic_jac=bool(s["analytic_jac"])),
             output=Output(tag=o["tag"], figures=bool(o["figures"]),
                           movies=bool(o["movies"]),
+                          movie_interp=int(o["movie_interp"]),
                           discrete_loops=bool(o["discrete_loops"]),
                           checkpoint=bool(o["checkpoint"]),
                           resume=o["resume"]),

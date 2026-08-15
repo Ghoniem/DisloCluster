@@ -5,7 +5,8 @@ Produces, under the run directory:
 
     3d/               two orthogonal mid-cuts per quantity per selected dose
     gb/               grain-boundary profiles, selected doses overlaid
-    movies/           animated GIFs over every snapshot
+    movies/           animated GIFs over every snapshot, plus --interp
+                      interpolated frames per interval (labelled, not solved)
     volume_average/   the 0-D figure suite, computed from the volume-averaged
                       trajectory of the 3-D march
     report.md         what was produced and the conventions behind it
@@ -35,6 +36,7 @@ CONVENTIONS
 USAGE
 -----
     python -m py_utils.report_march <run_dir> [--n-doses 6] [--no-movies]
+                                              [--interp 5]
 """
 from __future__ import annotations
 
@@ -161,6 +163,9 @@ def main(argv=None):
     ap.add_argument("--no-movies", action="store_true")
     ap.add_argument("--no-volume-average", action="store_true")
     ap.add_argument("--fps", type=int, default=12)
+    ap.add_argument("--interp", type=int, default=movies_mod.DEFAULT_INTERP,
+                    help="movie frames per output interval (1 = solved "
+                         "snapshots only); interpolated frames are labelled")
     ap.add_argument("--mc-samples", type=int, default=4_000_000)
     args = ap.parse_args(argv)
 
@@ -180,7 +185,8 @@ def main(argv=None):
 
     if not args.no_movies:
         print("\nmovies:")
-        movies_mod.render(run, run / "movies", fps=args.fps)
+        movies_mod.render(run, run / "movies", fps=args.fps,
+                          interp=args.interp)
 
     if not args.no_volume_average:
         print("\nvolume average:")

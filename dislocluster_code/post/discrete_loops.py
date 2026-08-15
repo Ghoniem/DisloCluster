@@ -77,7 +77,10 @@ from scipy.spatial import cKDTree
 
 
 from dislocluster_code import paths                                   # noqa: E402
-from dislocluster_code.post.fields import OMEGA_B3, B_SI           # noqa: E402
+from dislocluster_code.post.fields import (                        # noqa: E402
+    OMEGA_B3, B_SI, domain_faces, domain_edges, domain_volume,
+    draw_domain_wireframe, _draw_orientation_triad,
+)
 from dislocluster_code.post.gb import gb_distance                  # noqa: E402
 from dislocluster_code.post import movies as movies_mod                    # noqa: E402
 from dislocluster_code.post.volume_average import voronoi_weights          # noqa: E402
@@ -190,7 +193,7 @@ class LoopPopulation:
 
 
 def sample_family(nodes, F, weights, box_volume, fam, mask=None, rng=None,
-                  b_source="dd", positions="field", box=None):
+                  b_source="dd", positions="field", box=None, faces=None):
     """Draw the discrete loops of one family from its continuum fields.
 
     The count is not a parameter: it is ``sum_j n_j V_j`` over the selected
@@ -238,13 +241,28 @@ def sample_family(nodes, F, weights, box_volume, fam, mask=None, rng=None,
 
     if positions == "uniform":
         # A homogeneous cell at the region's mean density. The count was scaled
-        # to the FULL box, so the loops have to fill the full box too -- placing
-        # a full-box count inside the sampling region instead would inflate the
-        # density by the inverse of that region's volume fraction. This is the
-        # right mode for a bulk DD cell, where the point is to carry the
-        # interior state without the boundary layer attached to it.
+        # to the FULL domain, so the loops have to fill the full domain too --
+        # placing a full-domain count inside the sampling region instead would
+        # inflate the density by the inverse of that region's volume fraction.
+        # This is the right mode for a bulk DD cell, where the point is to carry
+        # the interior state without the boundary layer attached to it.
+        #
+        # "The full domain" is the CRYSTAL, not its bounding box. With `faces`
+        # given, points are rejected until they lie inside the convex body the
+        # nodes fill, so on a hexagonal prism no loop is placed in the six empty
+        # wedges the bounding box adds -- which is what put loops outside the
+        # drawn outline.
         lo, hi = box
-        centers = lo + (hi - lo) * rng.random((n_draw, 3))
+        if faces is None:
+            centers = lo + (hi - lo) * rng.random((n_draw, 3))
+        else:
+            N, bb = faces
+            centers = np.empty((0, 3))
+            while len(centers) < n_draw:
+                p = lo + (hi - lo) * rng.random((max(n_draw, 64) * 2, 3))
+                p = p[np.all(p @ N.T <= bb[None, :], axis=1)]
+                centers = np.vstack([centers, p]) if len(centers) else p
+            centers = centers[:n_draw]
     else:
         # Scatter inside each node's cell, keeping the spatial variation of the
         # field. The cell size is not known exactly, so use the local node
@@ -487,14 +505,40 @@ def _tube_quads(p0, p1, r_tube, n_facets=6):
     return quads.reshape(-1, 4, 3)
 
 
-def render(pops, box_lo, box_hi, out_file, title="",
-           max_loops=4000, elev=22.0, azim=-58.0, dpi=150, verbose=True):
+def _densify_closed(pts, max_step):
+    """Resample a closed polygon so no edge is longer than ``max_step``.
+
+    Only used before clipping the drawn line at the crystal surface: the tube is
+    built one cylinder per edge and clipped whole cylinders at a time, so on a
+    six-sided <c> hexagon whose side is 47 nm the cut would land up to half a
+    side away from the wall. Adding collinear points along each side does not
+    change the shape and moves the cut onto the surface.
+    """
+    pts = np.asarray(pts, float)
+    closed = np.vstack([pts, pts[:1]])
+    out = []
+    for a, b in zip(closed[:-1], closed[1:]):
+        n = max(int(np.ceil(np.linalg.norm(b - a) / max_step)), 1)
+        out.append(a + np.linspace(0.0, 1.0, n, endpoint=False)[:, None] * (b - a))
+    return np.concatenate(out)
+
+
+def render(pops, box_lo, box_hi, out_file, title="", domain_pts=None,
+           max_loops=4000, elev=22.0, azim=-58.0, dpi=150, verbose=True,
+           orientation=True, clip_to_domain=True):
     """Draw the discrete population as tubular dislocation lines.
 
     Tube width is a drawing choice only -- a dislocation line has no thickness --
     and is set per loop by ``tube_radius_nm``, proportional to the loop's own
     radius so the large <c> hexagons do not read as wire next to the small <a>
     loops.
+
+    ``domain_pts`` is the CD node cloud. Given it, the outline drawn is the
+    actual single crystal -- a hexagonal prism for a `GEOMETRY['type'] =
+    'hexagonal'` run -- and the axes take its true proportions. Without it the
+    outline falls back to the bounding box, which for a prism is a container the
+    crystal does not fill and which shows loops apparently floating in its empty
+    corners.
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -503,7 +547,23 @@ def render(pops, box_lo, box_hi, out_file, title="",
 
     nm = B_SI * 1e9
     fig = plt.figure(figsize=(9.0, 7.2))
-    ax = fig.add_subplot(111, projection="3d")
+    # computed_zorder=False so the crystal outline is drawn OVER the loops
+    # rather than depth-sorted as one artist against them; otherwise the edges
+    # behind a large <c> hexagon disappear and the prism stops closing.
+    ax = fig.add_subplot(111, projection="3d", computed_zorder=False)
+
+    # Loop CENTRES are inside the crystal, but a loop is not a point: at 1 dpa
+    # the <c> radius is 47 nm against a 100 nm prism half-width, so a loop
+    # centred anywhere but the middle overhangs a wall. The drawn line is
+    # therefore clipped at the crystal surface -- which is also what a loop
+    # meeting a grain boundary does. Only the DRAWING is clipped; the full loop
+    # is what goes into loops_*.csv and aLoops_*.txt.
+    clip = None
+    if domain_pts is not None and clip_to_domain:
+        try:
+            clip = domain_faces(np.asarray(domain_pts, float) * nm)
+        except Exception:
+            clip = None
 
     total = 0
     for pop in pops:
@@ -518,22 +578,39 @@ def render(pops, box_lo, box_hi, out_file, title="",
         segs0, segs1, rt = [], [], []
         for k in idx:
             pts = loop_polygon(fam, pop.centers[k], pop.radii[k]) * nm
+            if clip is not None:
+                pts = _densify_closed(pts, 1.5)      # nm
             segs0.append(pts)
             segs1.append(np.roll(pts, -1, axis=0))
             rt.append(np.full(len(pts), tube_radius_nm(pop.radii[k] * nm)))
         p0 = np.concatenate(segs0)
         p1 = np.concatenate(segs1)
         quads = _tube_quads(p0, p1, np.concatenate(rt))
+        if clip is not None:
+            N, b = clip
+            inside = np.all(quads.mean(axis=1) @ N.T <= b[None, :], axis=1)
+            quads = quads[inside]
+        if not len(quads):
+            continue
         rgb = np.asarray(to_rgb(fam["color"]))
         ax.add_collection3d(Poly3DCollection(
-            quads, facecolors=_shaded_facecolors(quads, rgb), linewidths=0))
+            quads, facecolors=_shaded_facecolors(quads, rgb), linewidths=0,
+            zorder=1))
         total += len(idx)
 
     lo, hi = np.asarray(box_lo) * nm, np.asarray(box_hi) * nm
-    for s, e in _box_edges(lo, hi):
-        ax.plot(*zip(s, e), color="0.6", lw=0.6)
+    if domain_pts is not None:
+        # Hidden edges dotted, as in the field figures.
+        draw_domain_wireframe(ax, np.asarray(domain_pts, float) * nm, lo, hi,
+                              view=(elev, azim), color="0.45", lw=0.9)
+    else:
+        for s, e in _box_edges(lo, hi):
+            ax.plot(*zip(s, e), color="0.6", lw=0.6, zorder=6)
     ax.set_xlim(lo[0], hi[0]); ax.set_ylim(lo[1], hi[1]); ax.set_zlim(lo[2], hi[2])
-    ax.set_box_aspect((1, 1, 1))
+    # True proportions: a 200 x 173 x 320 nm prism is not a cube, and a fixed
+    # (1, 1, 1) box aspect draws it as one.
+    span = hi - lo
+    ax.set_box_aspect(tuple(span / span.max()))
     ax.view_init(elev=elev, azim=azim)
     ax.set_axis_off()
     if title:
@@ -544,6 +621,10 @@ def render(pops, box_lo, box_hi, out_file, title="",
                for f, p in ((p.fam, p) for p in pops) if len(p)]
     ax.legend(handles=handles, loc="upper left", frameon=False, fontsize=9)
     fig.tight_layout()
+    # After tight_layout, which moves the axes the triad measures itself from.
+    if orientation:
+        _draw_orientation_triad(ax, (elev, azim), origin=(0.10, 0.12),
+                                length_in=0.42, fontsize=10.0)
     fig.savefig(out_file, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
     if verbose:
@@ -594,14 +675,27 @@ def build(run_dir, dose, region="interior", coalesce_pass=True,
     key = str(run_dir)
     if key not in _cache:
         doses, nodes, frames = movies_mod.cd_blocks(run_dir)
-        w = voronoi_weights(nodes, mc_samples, verbose=False)
-        _cache[key] = (doses, nodes, frames, w)
-    doses, nodes, frames, w = _cache[key]
+        # The domain is whatever convex body the nodes fill: a cube for the
+        # reference case, a hexagonal prism for a `GEOMETRY['type']='hexagonal'`
+        # run. EVERYTHING below is keyed on that rather than on the bounding
+        # box -- the nodal volumes, the total volume that turns a density into
+        # a count, and the region the loops are placed in. On a hexagonal prism
+        # the bounding box is 4/3 = 1.33x the crystal, so using it
+        # over-counted the loops by a third and scattered them through six empty
+        # wedges outside the outline.
+        faces = None
+        try:
+            faces = domain_faces(nodes)
+        except Exception:
+            pass
+        w = voronoi_weights(nodes, mc_samples, verbose=False, faces=faces)
+        _cache[key] = (doses, nodes, frames, w, faces)
+    doses, nodes, frames, w, faces = _cache[key]
 
     i = int(np.argmin(np.abs(np.asarray(doses) - dose)))
     P, F = frames[i]
     L = P.max(0) - P.min(0)
-    box_volume = float(np.prod(L))
+    box_volume = float(np.prod(L)) if faces is None else domain_volume(P)
 
     d_face_nm = gb_distance(nodes) * B_SI * 1e9
     if region == "interior":
@@ -623,7 +717,7 @@ def build(run_dir, dose, region="interior", coalesce_pass=True,
         raw = sample_family(nodes, F, wr, box_volume, fam, mask=mask, rng=rng,
                             positions=("uniform" if region == "interior"
                                        else "field"),
-                            box=(P.min(0), P.max(0)))
+                            box=(P.min(0), P.max(0)), faces=faces)
         n0, r0, a0 = len(raw), float(raw.radii.mean()) if len(raw) else 0.0, raw.total_area
         pop = (coalesce(raw, box_volume, coplanar_tol=coplanar_tol)
                if coalesce_pass else raw)
@@ -655,7 +749,9 @@ def build(run_dir, dose, region="interior", coalesce_pass=True,
                   f"{s['r_before_nm']:>8.2f} {s['r_after_nm']:>8.2f} "
                   f"{s['d_after_nm']:>7.1f} {s['ratio_before']:>7.3f} "
                   f"{s['ratio_after']:>7.3f} {s['max_merged']:>4d}  {flag}")
-    return float(doses[i]), pops, stats, (P.min(0), P.max(0))
+    # P goes back too: the render needs the node cloud to outline the actual
+    # crystal rather than its bounding box.
+    return float(doses[i]), pops, stats, (P.min(0), P.max(0)), P
 
 
 def main(argv=None):
@@ -672,6 +768,10 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--no-figures", action="store_true")
     ap.add_argument("--tube-nm", type=float, default=1.2)
+    ap.add_argument("--no-clip", action="store_true",
+                    help="draw whole loops even where they cross a domain "
+                         "face; the default cuts the drawn line at the crystal "
+                         "surface so nothing is shown outside the outline")
     ap.add_argument("--out", default=None)
     args = ap.parse_args(argv)
 
@@ -691,7 +791,7 @@ def main(argv=None):
     manifest = []
     for n_done, dose in enumerate(dose_list, 1):
         cop = "plane" if args.coplanar_tol is None else args.coplanar_tol
-        d, pops, stats, box = build(run, dose, region=args.region,
+        d, pops, stats, box, P = build(run, dose, region=args.region,
                                     coalesce_pass=not args.no_coalesce,
                                     coplanar_tol=cop, seed=args.seed,
                                     verbose=verbose_fig)
@@ -709,6 +809,7 @@ def main(argv=None):
             render(pops, box[0], box[1], out / f"loops_{tag}.png",
                    title=f"discrete loop population at {d:.4g} dpa "
                          f"({nloops} loops, {args.region})",
+                   domain_pts=P, clip_to_domain=not args.no_clip,
                    verbose=verbose_fig)
             # One figure per family. The combined view is dominated by whichever
             # family is largest -- at 10 dpa the <c> hexagons are 10x the <a>
@@ -719,7 +820,8 @@ def main(argv=None):
                        out / f"loops_{f['key']}_{tag}.png",
                        title=(f"{f['label']} loops at {d:.4g} dpa   "
                               f"b = {f['b_tex']}   ({len(pop)} loops)"),
-                       verbose=verbose_fig)
+                       domain_pts=P, clip_to_domain=not args.no_clip,
+                   verbose=verbose_fig)
         manifest.append(dict(dose=d, tag=tag, n_loops=nloops, stats=stats))
         if verbose_fig:
             print(f"    -> aLoops_{tag}.txt, loops_{tag}.csv "
