@@ -16,7 +16,7 @@ from dislocluster_code import paths
 
 __all__ = ["BuildError", "ensure_zrmicro_solver", "ensure_modelib",
            "solver_runs", "ddomp_runs", "preflight", "stale_cache_home",
-           "describe"]
+           "modelib_build_command", "describe"]
 
 DEFAULT_BUILD_TYPE = "Release"      # the batch mode is called thousands of times
 
@@ -145,6 +145,8 @@ def ddomp_runs():
     exe = paths.modelib_ddomp()
     if exe is None:
         return False, f"no DDomp under {paths.MODELIB_BUILD}"
+    # Not paths.ddomp_cmd: "--version" is an argument, not a case directory, and
+    # the WSL branch of that helper would rewrite it as a path.
     cmd = (["wsl.exe", "-e", paths.windows_to_wsl(exe), "--version"]
            if paths.use_wsl() else [str(exe), "--version"])
     try:
@@ -157,6 +159,24 @@ def ddomp_runs():
     if "error while loading shared libraries" in blob or "No such file" in blob:
         return False, f"{exe} fails to load: {blob.strip()[:200]}"
     return True, str(exe)
+
+
+def modelib_build_command():
+    """The command that builds MoDELib3 on THIS machine, as a string.
+
+    The build itself is one script for every platform; only the way it is
+    launched differs, and only on Windows (where it must run inside WSL). The
+    error paths used to print the WSL form unconditionally, which on a Mac told
+    the user to run a command their machine has no way to execute.
+    """
+    script = paths.MODELIB_BUILD_SCRIPT
+    try:
+        script = script.relative_to(paths.REPO_ROOT)
+    except ValueError:
+        pass
+    posix = script.as_posix()
+    return (f"wsl -u root -e bash {posix}" if paths.use_wsl()
+            else f"bash {posix}")
 
 
 def ensure_modelib(force=False, verbose=True):
@@ -202,9 +222,11 @@ def ensure_modelib(force=False, verbose=True):
     else:
         print("[MoDELib] the build produced no DDomp -- the 3-D backend stays "
               "unavailable.")
-        print("          Common causes: WSL first-run setup not completed; "
-              "libfftw3-dev missing; CMake >= 4 rejecting "
-              "cmake_minimum_required(3.1).")
+        print(f"          Re-run it by hand to see why:\n"
+              f"            {modelib_build_command()}")
+        print("          Common causes: no C++20 compiler (macOS: "
+              "xcode-select --install); Eigen 3 not installed; on Windows, WSL "
+              "first-run setup not completed.")
     return exe
 
 
@@ -267,10 +289,11 @@ def preflight(build_missing=True, require_modelib=True, verbose=True):
     if not ok:
         text = (f"MoDELib3 is not usable: {msg}\n"
                 f"  Build it with:\n"
-                f"    wsl -u root -e bash "
-                f"{paths.MODELIB_BUILD_SCRIPT.relative_to(paths.REPO_ROOT).as_posix()}\n"
-                f"  It takes 10-30 min the first time and needs WSL with a "
-                f"C++20 compiler, Eigen, SuiteSparse and libfftw3-dev.\n"
+                f"    {modelib_build_command()}\n"
+                f"  It takes 10-30 min the first time. The script installs what "
+                f"it needs (apt/dnf/pacman on Linux, Homebrew on macOS): a C++20 "
+                f"compiler, CMake and Eigen 3 are required, FFTW3, Boost, "
+                f"SuiteSparse and OpenMP optional.\n"
                 f"  The 3-D solve, and therefore the coupled march, cannot run "
                 f"without it.")
         if require_modelib:

@@ -19,8 +19,9 @@ documented better elsewhere.
 | 3-D side changes vs upstream | [`../MoDELib3/ZR3D_GHONIEM_CHANGES.md`](../MoDELib3/ZR3D_GHONIEM_CHANGES.md) |
 
 Documents themselves live under this `Docs/` tree: `DisloCluster Manual/`
-(manual + development notes), `Formulation/` (LaTeX/PDF formulation and the
-WSL build script), `Reports/`, `Presentations/`.
+(manual + development notes), `Formulation/` (LaTeX/PDF formulation and
+`build_modelib.sh`, the cross-platform MoDELib build script), `Reports/`,
+`Presentations/`.
 
 ---
 

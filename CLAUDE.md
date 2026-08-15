@@ -40,7 +40,7 @@ which led to documents being written into a stray tree.
 | Directory | Contents |
 |---|---|
 | [`Docs/DisloCluster Manual/`](Docs/DisloCluster%20Manual/) | `DisloCluster_manual`, `MoDELib_manual`, development notes such as `solver_and_coupling_rearchitecture` |
-| [`Docs/Formulation/`](Docs/Formulation/) | formulation LaTeX/PDF, `build_modelib_wsl.sh`, `MoDELib_build_and_coupling_notes.md` |
+| [`Docs/Formulation/`](Docs/Formulation/) | formulation LaTeX/PDF, `build_modelib.sh`, `MoDELib_build_and_coupling_notes.md` |
 | [`Docs/Reports/`](Docs/Reports/) | deliverables |
 | [`Docs/Presentations/`](Docs/Presentations/) | slides |
 
@@ -134,25 +134,55 @@ no-op.
 
 ### 0-D solver (CMake + SUNDIALS 7.1.1)
 
-```powershell
-cmake -S ZrMicro\cpp_utils -B ZrMicro\build -DCMAKE_BUILD_TYPE=Release
-cmake --build ZrMicro\build --config Release
+```bash
+cmake -S ZrMicro/cpp_utils -B ZrMicro/build -DCMAKE_BUILD_TYPE=Release
+cmake --build ZrMicro/build --config Release
 ```
 
-SUNDIALS is found either at `<repo>/Libraries/sundials-7.1.1/` or from the
-system install (`C:/Program Files (x86)/SUNDIALS`). Modules used: `cvode`,
-`arkode`, `nvecserial`, `sunlinsolband`, `sunlinsolspgmr`. OpenMP is optional
-but enables the parallel `--batch_file` mode the coupling march depends on.
+SUNDIALS is found at `<repo>/Libraries/sundials-7.1.1/`, from the system install
+(`C:/Program Files (x86)/SUNDIALS`, `/usr/local`), or — on macOS — under the
+Homebrew/MacPorts prefix, which CMake does not search by default and which
+differs by architecture (`/opt/homebrew` on Apple silicon, `/usr/local` on
+Intel). `brew --prefix` is asked rather than one of them assumed. Modules used:
+`cvodes`, `arkode`, `nvecserial`, `sunlinsolband`, `sunlinsolspgmr`. OpenMP is
+optional but enables the parallel `--batch_file` mode the coupling march
+depends on.
 
-### 3-D code (WSL)
+### 3-D code (Linux, macOS, or Windows through WSL)
 
 ```bash
-wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
+bash Docs/Formulation/build_modelib.sh                   # Linux, macOS
+wsl -u root -e bash Docs/Formulation/build_modelib.sh    # Windows
 ```
 
 Defaults to `<repo>/MoDELib3`. The script detects and discards a CMake cache
 configured under a different absolute path, so a relocated checkout rebuilds
-cleanly.
+cleanly. `SKIP_DEPS=1` skips the package-manager step.
+
+**One script, one CMakeLists, every platform.** The script used to be
+`build_modelib_wsl.sh` and `sed`-patched `MoDELib3/CMakeLists.txt` on each run —
+rewriting the Eigen path, deleting the Qt lines, commenting out `add_subdirectory
+(DDqt)`. That made the source tree carry whichever platform's edits had been
+applied last, and it was the reason the checked-in CMakeLists hard-coded
+Debian's `/usr/include/eigen3`. The CMake files now do the deciding themselves:
+every dependency is searched for (`Eigen3Config` then a directory search, with
+the Homebrew/MacPorts prefix on `CMAKE_PREFIX_PATH` on macOS), every
+optimization flag is probed with `check_cxx_compiler_flag` before use, and
+everything optional degrades to a status line. `-DUSE_SUITESPARSE=OFF`,
+`-DUSE_FAST_MATH=OFF`, `-DUSE_NATIVE_ARCH=OFF` and `-DUSE_PYBIND11=OFF` turn off
+what a comparison across machines might not want.
+
+The macOS build needed four things Linux never exposed:
+
+| Symptom | Cause |
+|---|---|
+| `clang: error: unsupported option '-fopenmp'` | the flag was hard-coded; Apple clang needs `-Xpreprocessor -fopenmp` and Homebrew's libomp, which `find_package(OpenMP)` now supplies |
+| `use of undeclared identifier 'assert'`, 103 files | those files never included `<cassert>`; libstdc++ leaks it in, libc++ does not. A `-include cassert` on the whole tree substitutes for editing all 103 |
+| `must explicitly initialize the const member 'invTrD'` | Eigen ≥ 3.4.90 declares `Matrix() = default`, so a const member with no initializer is ill-formed. `invTrD` is unused; it is now zero-initialized |
+| `no viable conversion from 'RationalLatticeDirection<3>'` | clang resolves the dependent `this->operator+(RationalLatticeDirection(...))` call against the `LatticeVector` overload alone; naming the temporary fixes it |
+
+`DDqt` is built when Qt6 and VTK ≥ 9.4 are both found and skipped otherwise —
+it is the only target that needs them, and the coupling never uses it.
 
 **No build tree is in git, and none should be.** `MoDELib3/build_dc/`
 (`libMoDELib.so`, `DDomp`, and a `build.ninja` carrying 374 absolute
@@ -165,7 +195,7 @@ presence.
 **Moving or renaming the repository invalidates both build trees** — a CMake
 cache stores absolute paths, so a reconfigure hard-errors with "the current
 CMakeCache.txt directory ... is different". Both sides detect this and discard
-the stale cache themselves: `build_modelib_wsl.sh` for the 3-D tree,
+the stale cache themselves: `build_modelib.sh` for the 3-D tree,
 `dislocluster_code.build.ensure_zrmicro_solver` for the 0-D tree.
 
 The failure is quiet, which is what makes it easy to miss: **the already-built

@@ -232,7 +232,7 @@ DisloCluster/                    <- repository root (.dislocluster_root marker)
 |- Gmsh/                         generate_mesh.py + meshes/ cache
 |- Docs/
 |  |- DisloCluster Manual/       this manual
-|  \- Formulation/               formulation documents + build_modelib_wsl.sh
+|  \- Formulation/               formulation documents + build_modelib.sh
 |- ZrMicro/                      0-D side, C++ only now
 |  |- code/                      solver.cpp + the older notebooks
 |  |  |- ZrMicro.ipynb           0-D run + parameter identification
@@ -274,7 +274,7 @@ faults, both now fixed:
         (it tests \code{is\_file()} and returns without comment).
         \code{DOCS\_DIR} is now the root \file{Docs/}, with
         \code{DOCS\_FORMULATION} and \code{DOCS\_MANUAL} beside it.
-  \item \file{build\_modelib\_wsl.sh} derived the repository root by walking
+  \item \file{build\_modelib\_wsl.sh} (now \file{build\_modelib.sh}) derived the repository root by walking
         up three directories, correct only from the old location
         (Section~\ref{sec:buildmod}).
 \end{itemize}
@@ -510,17 +510,20 @@ Section~\ref{sec:sundials} is exactly
 \file{$\langle$repo$\rangle$/Libraries/sundials-7.1.1/}; that path is the
 first entry on the build's \code{CMAKE\_PREFIX\_PATH}.
 
-\subsection{The 3-D \MoD{} code (inside WSL)}
+\subsection{The 3-D \MoD{} code}
 \label{sec:buildmod}
 
-\MoD{} is built by the script \file{Docs/Formulation/build\_modelib\_wsl.sh},
-which installs the required Ubuntu packages, patches the macOS-specific
-entries in the inherited CMake files, discards any build cache configured
-under a different absolute path (which is what happens when a checkout is
-moved), and builds the headless targets with Ninja. From the repository root:
+\MoD{} is built by the script \file{Docs/Formulation/build\_modelib.sh},
+which installs the dependencies its platform needs, discards any build cache
+configured under a different absolute path (which is what happens when a
+checkout is moved), and builds the headless targets. The same script serves
+Linux, macOS and WSL; only the launcher differs. From the repository root:
 
 \begin{lstlisting}[style=ps]
-PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh MoDELib3
+PS> wsl -u root -e bash Docs/Formulation/build_modelib.sh MoDELib3
+\end{lstlisting}
+\begin{lstlisting}[style=wsl]
+$ bash Docs/Formulation/build_modelib.sh MoDELib3   # Linux, macOS, WSL shell
 \end{lstlisting}
 
 \begin{notebox}
@@ -533,7 +536,7 @@ directory \emph{above} the checkout, and the script stopped with
 the coupling notebook uses, still worked. It now walks up two levels, so the
 no-argument form works again:
 \begin{lstlisting}[style=ps]
-PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
+PS> wsl -u root -e bash Docs/Formulation/build_modelib.sh
 \end{lstlisting}
 Passing \file{MoDELib3} explicitly remains unambiguous from any location.
 (Running as \code{-u root} avoids an interactive \code{sudo} password prompt
@@ -542,32 +545,42 @@ for the package installs.)
 
 The script performs, in order:
 \begin{enumerate}
-\item \code{apt-get install} of the toolchain and libraries:
-\code{build-essential}, \code{cmake}, \code{ninja-build},
-\code{libeigen3-dev}, \code{libomp-dev}, \code{libfftw3-dev},
-\code{python3-dev}, \code{pybind11-dev}, \code{libsuitesparse-dev},
-\code{libboost-all-dev}. FFTW is \emph{not} optional despite the CMake
-message that the noise generator is merely ``disabled'' without it: the
-library is linked unconditionally, and a missing FFTW fails the CMake
-\emph{generate} step even though configuration succeeds.
-\item Idempotent patches to the inherited \file{CMakeLists.txt}: the
-hard-coded MacPorts Eigen path is replaced by
-\file{/usr/include/eigen3}, the macOS Qt prefix path and MacPorts RPATH
-lines are dropped, and the Qt-only \code{DDqt} tool is commented out of
-\file{tools/CMakeLists.txt}.
+\item Dependency installation through whichever package manager the platform
+has --- \code{apt-get}, \code{dnf} or \code{pacman} on Linux, Homebrew on
+macOS --- covering the toolchain, \code{cmake}, \code{ninja}, Eigen, OpenMP,
+FFTW, SuiteSparse, Boost and pybind11. Set \code{SKIP\_DEPS=1} to skip this
+step when the libraries are already in place. Only a C++20 compiler, CMake
+$\ge 3.16$ and Eigen 3 are required; everything else is optional and its
+absence is reported in the configuration summary rather than fatal.
 \item Stale-cache detection: if \file{build/CMakeCache.txt} was configured
 for a different source path (a moved or copied checkout), the build tree is
 removed and reconfigured cleanly.
-\item Configure and build: Ninja, \code{Release}, \code{pybind11} on, with
-\code{-DCMAKE\_POLICY\_VERSION\_MINIMUM=3.5} so that CMake $\ge 4$ accepts
-the repository's legacy \code{cmake\_minimum\_required} declaration.
+\item Configure and build: \code{Release}, Ninja when it is installed and the
+default generator otherwise, with \code{-j} set from the core count
+(\code{nproc} on Linux, \code{sysctl} on macOS).
 \end{enumerate}
 
+\begin{notebox}
+\textbf{Changed.} The script was \file{build\_modelib\_wsl.sh} and, on every
+run, \code{sed}-patched the inherited \file{CMakeLists.txt}: rewriting the
+Eigen include path to Debian's \file{/usr/include/eigen3}, deleting the macOS
+Qt and MacPorts RPATH lines, and commenting \code{add\_subdirectory(DDqt)} out
+of \file{tools/CMakeLists.txt}. The source tree therefore carried whichever
+platform's edits had been applied last, and the committed CMakeLists could
+only build on Linux. The CMake files now make those decisions themselves ---
+each dependency is searched for, each optimization flag is probed against the
+compiler in hand, \code{DDqt} is built when Qt6 and VTK are found --- so one
+script and one CMakeLists serve Linux, WSL and macOS alike. The
+\code{-DCMAKE\_POLICY\_VERSION\_MINIMUM=3.5} workaround is gone with it:
+\code{cmake\_minimum\_required} is now 3.16, which CMake~4 accepts directly.
+\end{notebox}
+
 The build takes 10--30 minutes from clean. Its artifacts are
-\file{MoDELib3/build/tools/\allowbreak DDomp/DDomp} (a Linux ELF executable,
-invoked from Windows through \code{wsl.exe}) and
+\file{MoDELib3/build/tools/\allowbreak DDomp/DDomp} (a native executable ---
+invoked directly on Linux and macOS, and from Windows through \code{wsl.exe},
+which \code{paths.ddomp\_cmd()} decides per platform) and
 \file{MoDELib3/build/tools/\allowbreak pyMoDELib/pyMoDELib*.so} (optional
-Python bindings).
+Python bindings, built only when pybind11 is installed).
 
 \subsection{Verify the builds}
 
@@ -1247,10 +1260,10 @@ it; if building by hand, install it first. \\
 \MoD{} reconfigure hard-errors: ``the current CMakeCache.txt directory
 \ldots{} is different'' &
 The checkout was moved or copied, so the cached absolute paths are stale.
-\file{build\_modelib\_wsl.sh} detects and discards the stale cache; by hand,
+\file{build\_modelib.sh} detects and discards the stale cache; by hand,
 delete the \file{build/} tree and reconfigure. The same applies to
 \file{ZrMicro/build/} on the 0-D side. \\
-\file{build\_modelib\_wsl.sh} stops with ``\code{CMakeLists.txt not found}'' &
+\file{build\_modelib.sh} stops with ``\code{CMakeLists.txt not found}'' &
 The script was run without the explicit \file{MoDELib3} argument
 (Section~\ref{sec:buildmod}). \\
 \code{microstructureGenerator} never terminates &
@@ -1664,7 +1677,7 @@ PS> cmake -S ZrMicro\cpp_utils -B ZrMicro\build `
 PS> cmake --build ZrMicro\build --config Release
 
 # 5. build the 3-D code (inside WSL; note the explicit MoDELib3 argument)
-PS> wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh MoDELib3
+PS> wsl -u root -e bash Docs/Formulation/build_modelib.sh MoDELib3
 
 # 6. first test: figures from the shipped 3-D results (minutes)
 PS> .DisloClusterVenv\Scripts\python.exe `

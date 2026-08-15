@@ -166,17 +166,14 @@ def stage(sim_dir, dose_seed, dose_max, sim=None, scaffold=None, verbose=True):
 
 def run_ddomp(sim_dir, log=None, verbose=True):
     """Launch DDomp on a staged case. Blocks; the run takes tens of minutes."""
-    exe = paths.modelib_ddomp()
-    if exe is None:
-        raise FileNotFoundError(f"no DDomp under {paths.MODELIB_BUILD}")
-    cmd = ["wsl.exe", "-e", paths.windows_to_wsl(exe),
-           paths.windows_to_wsl(Path(sim_dir))]
+    cmd, cwd = paths.ddomp_cmd(sim_dir)
     if verbose:
         print("running: " + " ".join(cmd), flush=True)
     t0 = time.perf_counter()
     with open(log or Path(sim_dir) / "ddomp.log", "w", encoding="utf-8",
               errors="replace") as fh:
-        r = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT, text=True)
+        r = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT, text=True,
+                           cwd=cwd)
     wall = time.perf_counter() - t0
     if verbose:
         print(f"DDomp exit={r.returncode}, {wall:.0f} s", flush=True)
@@ -204,9 +201,8 @@ def main(argv=None):
         (sim_dir / "ddomp_wall_s.txt").write_text(f"{wall:.3f}\n",
                                                   encoding="utf-8")
         return rc
-    print(f"\nrun it with:\n  wsl.exe -e "
-          f"{paths.windows_to_wsl(paths.modelib_ddomp())} "
-          f"{paths.windows_to_wsl(sim_dir)}")
+    cmd, _ = paths.ddomp_cmd(sim_dir)
+    print("\nrun it with:\n  " + " ".join(cmd))
     return 0
 
 

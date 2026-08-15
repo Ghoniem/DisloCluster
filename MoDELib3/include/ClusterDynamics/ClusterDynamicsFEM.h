@@ -115,7 +115,13 @@ namespace model
         const ClusterDynamicsParameters<dim>& cdp;
         const InvDscaling<dim> iDs;
         
-        const Eigen::Matrix<double,mSize,mSize> invTrD;
+        // Explicitly zero-initialized, and unused: nothing in MoDELib reads
+        // invTrD. Eigen >= 3.4.90 declares Matrix's default constructor as
+        // `= default` rather than user-provided, which makes a const member
+        // with no initializer ill-formed -- clang rejects the class outright
+        // ("must explicitly initialize the const member"). Older Eigen left it
+        // user-provided, so the same declaration compiled.
+        const Eigen::Matrix<double,mSize,mSize> invTrD=Eigen::Matrix<double,mSize,mSize>::Zero();
         
         MobileTrialType mobileClusters;
         MobileGradType mobileGrad;

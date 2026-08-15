@@ -16,7 +16,7 @@ Repository layout
         output/                        <- OUTPUT_DIR  (new run directories)
       Gmsh/                            <- GMSH_DIR    (mesh generator + meshes/)
       Docs/                            <- DOCS_DIR    (ALL documents)
-        Formulation/                   <- DOCS_FORMULATION (+ build_modelib_wsl.sh)
+        Formulation/                   <- DOCS_FORMULATION (+ build_modelib.sh)
         DisloCluster Manual/           <- DOCS_MANUAL
       ZrMicro/                         <- ZRMICRO_DIR (0-D code)
           code/  cpp_utils/  py_utils/  build/
@@ -65,7 +65,7 @@ __all__ = [
     "SIMULATIONS_DIR", "SIM_ROOT",
     "ROOT_MARKER", "VENV_NAME", "KERNEL_NAME",
     "find_repo_root", "zrmicro_solver_exe", "modelib_ddomp", "venv_python",
-    "git_hash", "windows_to_wsl", "use_wsl", "run_dir", "find_runs",
+    "ddomp_cmd", "git_hash", "windows_to_wsl", "use_wsl", "run_dir", "find_runs",
     "latest_run", "workbook_drift", "describe",
 ]
 
@@ -232,7 +232,12 @@ MODELIB_MATERIAL = (MODELIB_MATERIAL_COUPLED if MODELIB_MATERIAL_COUPLED.is_file
 
 MODELIB_TUTORIALS    = MODELIB_ROOT / "tutorials"
 COUPLED_SIM_TUTORIAL = MODELIB_TUTORIALS / "zrmicro_coupled"
-MODELIB_BUILD_SCRIPT = DOCS_FORMULATION / "build_modelib_wsl.sh"
+# build_modelib.sh builds on Linux, WSL and macOS alike. The old WSL-only name
+# is still accepted so a checkout that predates the rename keeps building.
+MODELIB_BUILD_SCRIPT = next(
+    (DOCS_FORMULATION / n for n in ("build_modelib.sh", "build_modelib_wsl.sh")
+     if (DOCS_FORMULATION / n).is_file()),
+    DOCS_FORMULATION / "build_modelib.sh")
 
 # ── Simulation cases ─────────────────────────────────────────────────────────
 # (SIMULATIONS_DIR, INPUT_DIR and OUTPUT_DIR are defined above, with the rest
@@ -302,6 +307,37 @@ def modelib_ddomp():
             if c.exists():
                 return c
     return None
+
+
+def ddomp_cmd(sim_dir, exe=None, in_case_dir=False):
+    """``(argv, cwd)`` that runs DDomp on *sim_dir* on THIS machine.
+
+    Windows reaches the ELF binary through ``wsl.exe`` and has to hand it
+    ``/mnt/...`` paths; Linux and macOS exec it directly. Four call sites had
+    grown their own copy of that decision (case.bootstrap, domain.bootstrap,
+    standalone.run_ddomp, qssa._run_ddomp) and only one of them actually
+    branched -- the other three built a ``wsl.exe`` command line unconditionally
+    and so could not run anywhere but Windows.
+
+    *in_case_dir* makes DDomp run with the case as its working directory, which
+    the bootstrap needs: DDomp writes ``evl/cdNodes.txt`` to that relative path,
+    so from anywhere else the file lands outside the case.
+    """
+    exe = Path(exe).resolve() if exe else modelib_ddomp()
+    if exe is None:
+        raise FileNotFoundError(f"no DDomp under {MODELIB_BUILD}")
+    # Absolute, always: *in_case_dir* moves the working directory, so a relative
+    # case path handed to DDomp would resolve against the case itself and it
+    # would report "inputFiles/polycrystal.txt cannot be opened".
+    sim_dir = Path(sim_dir).resolve()
+    if use_wsl():
+        wsl_dir = windows_to_wsl(sim_dir)
+        wsl_exe = windows_to_wsl(exe)
+        if in_case_dir:
+            return (["wsl.exe", "-e", "bash", "-c",
+                     f"cd '{wsl_dir}' && '{wsl_exe}' '{wsl_dir}'"], None)
+        return (["wsl.exe", "-e", wsl_exe, wsl_dir], None)
+    return ([str(exe), str(sim_dir)], str(sim_dir) if in_case_dir else None)
 
 
 def git_hash(path=None):

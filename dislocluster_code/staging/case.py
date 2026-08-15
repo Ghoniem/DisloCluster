@@ -130,24 +130,18 @@ def bootstrap(sim_dir, verbose=True):
                  *minputs.FAST_STEP_SETTINGS.items()):
         minputs.set_dd_scalar(dd, k, v)
 
-    exe = paths.modelib_ddomp()
-    if exe is None:
-        raise FileNotFoundError(f"no DDomp under {paths.MODELIB_BUILD}")
-    # DDomp writes cdNodes.txt to the RELATIVE path "evl/cdNodes.txt", i.e.
-    # against its working directory rather than against the simulation folder
-    # it was handed. Launched from anywhere else the write lands outside the
-    # case, or fails silently when no evl/ exists there.
-    wsl_dir = paths.windows_to_wsl(sim_dir)
-    cmd = ["wsl.exe", "-e", "bash", "-c",
-           f"cd '{wsl_dir}' && '{paths.windows_to_wsl(exe)}' '{wsl_dir}'"] \
-        if paths.use_wsl() else [str(exe), str(sim_dir)]
+    # in_case_dir: DDomp writes cdNodes.txt to the RELATIVE path
+    # "evl/cdNodes.txt", i.e. against its working directory rather than against
+    # the simulation folder it was handed. Launched from anywhere else the write
+    # lands outside the case, or fails silently when no evl/ exists there.
+    cmd, cwd = paths.ddomp_cmd(sim_dir, in_case_dir=True)
     if verbose:
         print(f"bootstrapping the CD node set in {sim_dir}", flush=True)
     t0 = time.perf_counter()
     log = sim_dir / "bootstrap.log"
     with open(log, "w", encoding="utf-8", errors="replace") as fh:
         r = subprocess.run(cmd, stdout=fh, stderr=subprocess.STDOUT, text=True,
-                           cwd=None if paths.use_wsl() else str(sim_dir))
+                           cwd=cwd)
     wall = time.perf_counter() - t0
     out = log.read_text(encoding="utf-8", errors="replace")
     if r.returncode != 0:

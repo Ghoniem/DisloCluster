@@ -110,7 +110,7 @@ class MobileQSSASolver:
         if self.ddomp is None or not Path(self.ddomp).exists():
             raise QSSASolveError(
                 f"DDomp not found ({self.ddomp}); build MoDELib3 first "
-                "(Docs/Formulation/build_modelib_wsl.sh).")
+                "(Docs/Formulation/build_modelib.sh).")
         self.use_wsl = paths.use_wsl() if use_wsl is None else bool(use_wsl)
 
         # Preserve the seed configuration: every solve overwrites evl_0.txt.
@@ -222,13 +222,15 @@ class MobileQSSASolver:
         return C_M
 
     def _run_ddomp(self):
-        if self.use_wsl:
-            cmd = ["wsl.exe", "-e", paths.windows_to_wsl(self.ddomp),
-                   paths.windows_to_wsl(self.sim_dir)]
-        else:
-            cmd = [str(self.ddomp), str(self.sim_dir)]
+        cmd, cwd = paths.ddomp_cmd(self.sim_dir, exe=self.ddomp)
+        if self.use_wsl != paths.use_wsl():
+            # An explicit use_wsl= overrides the platform default; keep honoring
+            # it rather than silently ignoring the argument.
+            cmd = (["wsl.exe", "-e", paths.windows_to_wsl(self.ddomp),
+                    paths.windows_to_wsl(self.sim_dir)] if self.use_wsl
+                   else [str(self.ddomp), str(self.sim_dir)])
         proc = subprocess.run(cmd, capture_output=True, text=True,
-                              errors="replace")
+                              errors="replace", cwd=cwd)
         if proc.returncode != 0:
             raise QSSASolveError(
                 f"DDomp exited {proc.returncode}\n"

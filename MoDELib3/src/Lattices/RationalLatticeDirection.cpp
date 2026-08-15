@@ -92,7 +92,14 @@ namespace model
     {
         assert(&dir.lattice == &other.lattice && "ReciprocalLatticeVectorType belong to different Lattices.");
         const long int gcd(LatticeGCD<dim>::gcd(other));
-        return this->operator+(RationalLatticeDirection<dim>(Rational(gcd, 1), LatticeDirection<dim>(other)));
+        // Named rather than passed as a temporary: with the temporary written
+        // in place, clang resolves this dependent `this->operator+` call
+        // against the LatticeVector overload alone -- the one being defined --
+        // and rejects it, since a RationalLatticeDirection does not convert to
+        // a LatticeVector. The two forms are otherwise identical, and the same
+        // call from outside the class resolves correctly either way.
+        const RationalLatticeDirection<dim> temp(Rational(gcd, 1), LatticeDirection<dim>(other));
+        return this->operator+(temp);
     }
 
     /**********************************************************************/
@@ -101,7 +108,8 @@ namespace model
     {
         assert(&dir.lattice == &other.lattice && "ReciprocalLatticeVectorType belong to different Lattices.");
         const long int gcd(LatticeGCD<dim>::gcd(other));
-        return this->operator-(RationalLatticeDirection<dim>(Rational(gcd, 1), LatticeDirection<dim>(other)));
+        const RationalLatticeDirection<dim> temp(Rational(gcd, 1), LatticeDirection<dim>(other));   // see operator+ above
+        return this->operator-(temp);
     }
 
     /**********************************************************************/

@@ -661,6 +661,56 @@ must remove it from the mobile pool. The reconciling change belongs in ZrMicro �
 add the loop sink to `dC2i_dt`/`dC3i_dt` — but that shifts the 0-D fit that the
 experiments are calibrated against, so it is your call.
 
+### 19. The tree only built on the platform it was last built on
+
+**Symptom:** on macOS the build stopped at the first translation unit with
+`clang: error: unsupported option '-fopenmp'`, and behind that another three
+errors, none of which Linux ever shows.
+
+**Cause:** the build encoded one machine's answers instead of asking. Four of
+them, in order of appearance:
+
+1. `CMAKE_CXX_FLAGS` hard-coded `-march=native -fopenmp -Ofast`. Apple clang
+   rejects `-fopenmp` outright (it wants `-Xpreprocessor -fopenmp` plus
+   Homebrew's libomp), and `-march=native` is rejected on arm64 by older Apple
+   clang. Each flag is now probed with `check_cxx_compiler_flag` before it is
+   used, and OpenMP comes from `find_package(OpenMP)` — with a libomp fallback
+   on macOS — rather than from a raw flag.
+2. `set(EIGEN3_INCLUDE_DIRS /usr/include/eigen3)` — Debian's location, nowhere
+   else's, and it overrode the caller's `-D`. Now `Eigen3Config.cmake` first,
+   then a directory search that includes the Homebrew/MacPorts prefix.
+3. 103 files under `include/` and `src/` call `assert()` without including
+   `<cassert>`. libstdc++ pulls the header in transitively; libc++ does not.
+   A tree-wide `-include cassert` stands in for editing all 103 and keeps the
+   fork mergeable with upstream.
+4. `const Eigen::Matrix<double,mSize,mSize> invTrD;` in `ClusterDynamicsFEM.h`
+   had no initializer. Eigen ≥ 3.4.90 declares `Matrix() = default` rather than
+   user-provided, which makes an uninitialized const member ill-formed; the
+   member is unused and is now zero-initialized. This is an Eigen-version
+   dependency, not a platform one — a new enough Eigen breaks it on Linux too.
+
+A fifth was a genuine overload-resolution difference:
+`RationalLatticeDirection::operator+(const LatticeVector&)` called
+`this->operator+(RationalLatticeDirection<dim>(...))`, and clang resolves that
+dependent call against the `LatticeVector` overload alone — the one being
+defined — then rejects the argument. Naming the temporary resolves it, with no
+change in meaning.
+
+`cmake_minimum_required` also went from 3.1.0 to 3.16: CMake ≥ 4.0 refuses to
+run a project asking for less than 3.5, so the old floor was a time bomb on any
+current toolchain.
+
+`tools/CMakeLists.txt` now decides about `DDqt` from `find_package(Qt6)` +
+`find_package(VTK 9.4)` instead of having the line commented out by a `sed` in
+the build script, and `pyMoDELib` is added only when pybind11 was actually
+found — `find_package(pybind11 CONFIG REQUIRED)` used to turn a missing
+optional dependency into a hard configure failure that took DDomp down with it.
+
+**Effect:** one `Docs/Formulation/build_modelib.sh` builds on Linux, WSL and
+macOS; `DDomp`, `microstructureGenerator` and `libMoDELib.a` all build clean on
+Apple silicon, and the CD Newton iterates reproduce bit-identically between two
+differently configured builds of the same tree.
+
 ---
 
 ## 5b. Verification against the 0-D

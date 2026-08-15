@@ -106,23 +106,40 @@ Do **not** use Anaconda Python — its NumPy 1.x/2.x mix conflicts with SciPy he
 
 ### 2. 0-D solver (C++ / SUNDIALS CVODE 7.1.1)
 
-```powershell
-cmake -S ZrMicro\cpp_utils -B ZrMicro\build -DCMAKE_BUILD_TYPE=Release
-cmake --build ZrMicro\build --config Release
+```bash
+cmake -S ZrMicro/cpp_utils -B ZrMicro/build -DCMAKE_BUILD_TYPE=Release
+cmake --build ZrMicro/build --config Release
 ```
 
-Produces `ZrMicro\build\Release\solver.exe`. OpenMP is detected
-automatically and enables the parallel batch mode the coupling march relies on.
+Produces `ZrMicro/build/solver` (`Release\solver.exe` under MSVC). SUNDIALS is
+found at `<repo>/Libraries/sundials-7.1.1/`, from a system install, or under the
+Homebrew/MacPorts prefix on macOS. OpenMP is detected automatically and enables
+the parallel batch mode the coupling march relies on.
 
-### 3. 3-D code (MoDELib, built inside WSL on Windows)
+### 3. 3-D code (MoDELib)
 
 ```bash
-wsl -u root -e bash Docs/Formulation/build_modelib_wsl.sh
+bash Docs/Formulation/build_modelib.sh          # Linux, macOS
+wsl -u root -e bash Docs/Formulation/build_modelib.sh    # Windows (inside WSL)
 ```
 
-With no argument the script builds `<repo>/MoDELib3`. It produces
-`MoDELib3/build/tools/DDomp/DDomp` (a Linux ELF, invoked through `wsl.exe`) and
+One script for every platform: it installs the dependencies it needs (apt / dnf
+/ pacman on Linux, Homebrew on macOS), discards a build cache configured under a
+different absolute path, and builds with Ninja when it is available. With no
+argument it builds `<repo>/MoDELib3`, producing
+`MoDELib3/build/tools/DDomp/DDomp` and, when pybind11 is installed,
 `MoDELib3/build/tools/pyMoDELib/pyMoDELib*.so`.
+
+A C++20 compiler, CMake ≥ 3.16 and Eigen 3 are required. FFTW3, Boost,
+SuiteSparse, OpenMP and pybind11 are optional — CMake reports which of them were
+found in a configuration summary, and builds without those that are absent. On
+Windows the binary is a Linux ELF and everything invokes it through `wsl.exe`;
+on Linux and macOS it is executed directly. Nothing above chooses that for you:
+`paths.ddomp_cmd()` decides per platform.
+
+`build.preflight()` (the notebook's first cell) builds whatever is missing and
+then *runs* both binaries, so a stale or unusable build is reported rather than
+trusted.
 
 ---
 

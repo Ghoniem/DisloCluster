@@ -80,11 +80,18 @@ wsl --install            # enables WSL + installs Ubuntu; then REBOOT
 Then build (the whole thing is scripted) from a WSL shell:
 
 ```bash
-bash <DisloCluster>/Docs/Formulation/build_modelib_wsl.sh
+bash <DisloCluster>/Docs/Formulation/build_modelib.sh
 # with no argument it builds <DisloCluster>/MoDELib3
-# installs deps, patches the macOS-isms in CMakeLists, skips DDqt, builds
-# build/tools/DDomp/DDomp  (+ build/tools/pyMoDELib/*.so)
+# installs deps, then builds build/tools/DDomp/DDomp
+# (+ build/tools/pyMoDELib/*.so when pybind11 is installed)
 ```
+
+The same script builds on Linux and macOS — `bash Docs/Formulation/build_modelib.sh`,
+no WSL involved. It was `build_modelib_wsl.sh` and used to `sed` the
+macOS-specific entries out of `CMakeLists.txt` and comment out the Qt tool on
+every run; the CMake files detect all of that themselves now, so the source tree
+no longer carries whichever platform was built last. `SKIP_DEPS=1` skips the
+package-manager step when the libraries are already in place.
 
 The script reads the repo from the Windows filesystem via `/mnt/<drive>` so the
 binaries land at `<DisloCluster>/MoDELib3/build/...`, visible to Windows Python.

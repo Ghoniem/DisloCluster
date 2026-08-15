@@ -21,15 +21,17 @@ BIN="${MODELIB_BUILD:-$MODELIB/build}/tools"
 cd "$SIM"
 test -x "$BIN/DDomp/DDomp" || {
     echo "DDomp not built at $BIN/DDomp/DDomp"
-    echo "Build it with: bash $MODELIB/../Docs/Formulation/build_modelib_wsl.sh"
+    echo "Build it with: bash $MODELIB/../Docs/Formulation/build_modelib.sh"
     exit 1
 }
 sed "s/\r$//" "$LIB/Materials/Zr3d_ghoniem.txt" > inputFiles/Zr3d_ghoniem.txt
 sed "s/\r$//" "$LIB/Meshes/unitCube_15K.msh"    > inputFiles/unitCube_15K.msh
 rm -rf evl F
 mkdir -p evl F
+# stat's size flag is spelled -c%s by GNU coreutils and -f%z by BSD/macOS;
+# wc -c is the same number on both and needs no branch.
 "$BIN/MicrostructureGenerator/microstructureGenerator" . > gen.log 2>&1
-echo "GEN_EXIT=$? evl_0 bytes=$(stat -c%s evl/evl_0.txt)"
+echo "GEN_EXIT=$? evl_0 bytes=$(wc -c < evl/evl_0.txt)"
 "$BIN/DDomp/DDomp" . > run.log 2>&1
 echo "DDOMP_EXIT=$?"
 ls evl/ | head
