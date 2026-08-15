@@ -183,15 +183,35 @@ def computational_stats(run, nodes):
         mobile field for the immobile state currently held, so what it solves
         is a nonlinear ALGEBRAIC system of ``M_SIZE * n_cd`` unknowns, by
         Newton iteration;
-      * the SLOW solve is ``N_EQ = 19`` coupled ODEs per quadrature point,
+      * the SLOW solve is a system of coupled ODEs per quadrature point,
         integrated independently, so the count that matters is
-        (unique points) x 19 per substep.
+        (unique points) x (equations) per substep.
 
     Reporting both as "number of equations" without that distinction is how a
     reader ends up thinking the fast step integrates something.
+
+    THREE different counts describe the slow system, and quoting the wrong one
+    overstates the work by 50%. The march runs ``freeze_mobile=1`` and
+    ``acc_mode=2`` (see `coupling.immobile.build_cases`), so per point:
+
+      * ``N_EQ`` = 19 values are CARRIED in the state vector;
+      * ``N_EQ - M_SIZE`` = 15 are INTEGRATED -- the four mobile species are
+        held fixed over the substep by construction of the operator split;
+      * ``N_EQ - M_SIZE - 6`` = 9 form the implicit block the Newton iteration
+        and the dense LU actually touch, because ``acc_mode=2`` keeps the six
+        conservation accumulators in the state but takes them out of the error
+        test.
+
+    The middle one is the honest answer to "how many ODEs does a substep
+    solve"; all three are reported because they are what the cost is made of.
     """
     from dislocluster_code.coupling.field import M_SIZE, I_SIZE
-    from dislocluster_code.coupling.immobile import N_EQ
+    from dislocluster_code.coupling.immobile import (
+        N_EQ, ACCUMULATOR_SLICE)
+
+    n_acc = ACCUMULATOR_SLICE.stop - ACCUMULATOR_SLICE.start
+    n_ode = N_EQ - M_SIZE                 # integrated: mobile is frozen
+    n_implicit = n_ode - n_acc            # what Newton/LU sees under acc_mode=2
 
     try:
         s = json.loads((Path(run) / "summary.json").read_text(encoding="utf-8"))
@@ -231,21 +251,29 @@ def computational_stats(run, nodes):
           f"**{M_SIZE * n_cd:,} unknowns** ({M_SIZE} species x {n_cd:,} nodes), "
           f"by Newton iteration, one DDomp call each.", "",
           f"**Slow step** — the immobile ODEs at every quadrature point with "
-          f"the mobile species frozen: **{N_EQ} coupled ODEs per point** "
-          f"({M_SIZE} mobile held fixed, {I_SIZE} immobile, 6 conservation "
-          f"accumulators, rho_N).", ""]
+          f"the mobile species frozen: **{n_ode} coupled ODEs per point**. The "
+          f"state vector carries {N_EQ} ({M_SIZE} mobile, {I_SIZE} immobile, "
+          f"{n_acc} conservation accumulators, rho_N); the {M_SIZE} mobile are "
+          f"held fixed over the substep, and `acc_mode=2` takes the {n_acc} "
+          f"accumulators out of the error test, leaving a {n_implicit}x"
+          f"{n_implicit} implicit block for the Newton iteration and the dense "
+          f"LU.", ""]
 
     if n_int:
         per_sub = n_int / max(n_sub, 1)
-        L += ["| ODE count | value |", "|---|---:|",
-              f"| equations per point | {N_EQ} |",
+        L += ["| ODE count | per point | per substep | over the march |",
+              "|---|---:|---:|---:|",
+              f"| state carried | {N_EQ} | {per_sub * N_EQ:,.0f} | "
+              f"{n_int * N_EQ:,} |",
+              f"| **integrated** (mobile frozen) | **{n_ode}** | "
+              f"**{per_sub * n_ode:,.0f}** | **{n_int * n_ode:,}** |",
+              f"| implicit block (Newton/LU) | {n_implicit} | "
+              f"{per_sub * n_implicit:,.0f} | {n_int * n_implicit:,} |", "",
+              "| | value |", "|---|---:|",
               f"| points integrated per substep (after dedup) | "
               f"{per_sub:,.0f} of {n_cd:,} |",
-              f"| scalar ODEs per substep | {per_sub * N_EQ:,.0f} |",
               f"| substeps | {n_sub} |",
               f"| **point-integrations over the march** | {n_int:,} |",
-              f"| **scalar ODEs integrated over the march** | "
-              f"{n_int * N_EQ:,} |",
               f"| dedup factor (identical states solved once) | x{dedup:.2f} |",
               ""]
 
@@ -268,7 +296,8 @@ def computational_stats(run, nodes):
         L += [f"| one slow substep | {_hms(slow_s / n_sub)} |"]
     if n_int and slow_s:
         L += [f"| one point-integration | {1e6 * slow_s / n_int:,.0f} us |",
-              f"| ODE throughput | {n_int * N_EQ / slow_s:,.0f} scalar ODE/s |"]
+              f"| ODE throughput (integrated) | "
+              f"{n_int * n_ode / slow_s:,.0f} scalar ODE/s |"]
     if cpl:
         L += [f"| substeps per interval | {cpl.get('substeps_per_interval')} |",
               f"| fast solve every | {cpl.get('fem_every')} substeps |"]
