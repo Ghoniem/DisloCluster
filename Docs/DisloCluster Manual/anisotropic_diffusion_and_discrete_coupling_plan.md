@@ -359,6 +359,30 @@ the only channel the anisotropy enters, so the criterion remains the right instr
 choosing the DAD — but a claim about an observed loop *population* must account for `Gk`
 as well.
 
+**A second limit, learned by predicting wrongly.** An isotropic march is *not* a zero of
+this criterion — it is another point in parameter space with its own `ġ`. So a ratio taken
+against an isotropic reference cannot test a statement about the *sign* of `ġ`. Three
+500 nm marches at `(p_v, p_i, p_2i)` of `(1.1788, 0.9137, 0.9137)`, `(1, 0.9137, 0.9137)`
+and `(1, 1, 0.70)` give interior ⟨a⟩ contents of 0.886, 0.887 and 0.844 relative to
+isotropic — the first two indistinguishable, although the sweep puts one inside the window
+and the other outside it. Nothing is wrong with either result; they answer different
+questions.
+
+**What those marches do corroborate is the structure, and independently of the sweep.**
+Across the three sets the two families move in exactly opposite directions and the product
+of their mean sizes is constant to 0.7%:
+
+| run | `d_c` rel | `d_a` rel | `d_c · d_a` |
+|---|---:|---:|---:|
+| `p_v=1.1788, p̄=0.9137` | 1.070 | 0.927 | 0.992 |
+| `p_v=1, p̄=0.9137` | 1.054 | 0.945 | 0.996 |
+| `p_v=1, p̄≈0.99` | 1.036 | 0.971 | 1.006 |
+
+The anisotropy **redistributes** growth between the families rather than adding to either.
+That is precisely what one shared arrival ratio with two thresholds on it predicts — one
+axis, two families, opposite sides — and it is evidence for the window picture that owes
+nothing to the frozen-state evaluation.
+
 #### Step 7 — the inversion, which is the useful direction
 
 In practice `A/B` is measured and the question is what anisotropy it demands. Inverting
@@ -1174,10 +1198,14 @@ sensitivity sweep. Run as
 python -m dislocluster_code.post.coarsening <run> [--phi 0.2] [--frac 0.10] [--out …]
 ```
 
-It switches nothing. Remaining work for this sub-step: move the same reduction inside the
-immobile substep loop of `coupling/march.py` so the crossing is resolved to a substep
-rather than interpolated across a decade of dose, and record `d_coarsen` with its `φ`
-trajectory in `summary.json`.
+It switches nothing, by design. **The remaining work listed here is now done**:
+`coupling/march.py` builds a `SubstepDetector` after the `FieldBridge` and feeds it inside
+the immobile substep loop, so the crossing is resolved to a substep rather than
+interpolated across a decade of dose, and `summary.json` carries `diagnostics.coarsening`
+with `d_coarsen`, `phi_gate_max`, the substep count and the full `φ` trajectory. Measured
+on three independent 500 nm marches — isotropic reference, and the two anisotropic sets —
+it reports `d_coarsen = 0.4 dpa` for ⟨c⟩ and no crossing for any ⟨a⟩ family, identically.
+`phi*` is a `COUPLING` input, default 0.15.
 
 **4b. A runtime continuum→discrete transition.** Port the logic of
 `dislocluster_code/post/discrete_loops.py` — which already conserves defect count
