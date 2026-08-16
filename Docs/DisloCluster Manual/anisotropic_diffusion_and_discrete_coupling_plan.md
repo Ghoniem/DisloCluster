@@ -159,6 +159,87 @@ need to change.** DisloCluster uses Woo's closed-form capture efficiencies,
 for the same anisotropic absorption problem, valid for a randomly oriented population.
 The critical requirement is **consistency**: see §3.2.
 
+### 1.3.1 What those capture efficiencies imply — the co-growth criterion
+
+Because DisloCluster's continuum families absorb through the two closed forms above,
+the condition for **simultaneous ⟨a⟩ and ⟨c⟩ growth** — the observation the whole DAD
+mechanism exists to explain — can be written down in closed form rather than searched
+for numerically. This is derived and checked in
+[`dislocluster_code/studies/dad_window.py`](../../dislocluster_code/studies/dad_window.py).
+
+Write the arrival rate of mobile species `m` at a loop as `D̄_m c_m |m|`, with
+`D̄_m = (det D_m)^(1/3)`, and split it into the vacancy and interstitial parts:
+
+```
+A = D̄_v c_v                                  vacancy arrival
+B = Σ_{m interstitial} D̄_m c_m |m|           interstitial arrival
+```
+
+A vacancy ⟨c⟩ loop grows when it absorbs more vacancies than interstitials; an
+interstitial ⟨a⟩ loop when it does the reverse. With `Z_c(m) = Z⁰_m p_m` and
+`Z_a(m) = Z⁰_m f(p_m)`, `f(p) ≡ (p + p⁻²)/2`, and one anisotropy `p_I` shared by the
+interstitial species (`Z⁰` is already common to them in `Zr3d_ghoniem.txt`), the two
+conditions are each a bound on the **same single number**:
+
+```
+⟨c⟩ grows   ⟺   A/B  >  (Z⁰_I/Z⁰_v) · p_I / p_v
+⟨a⟩ grows   ⟺   A/B  <  (Z⁰_I/Z⁰_v) · f(p_I) / f(p_v)
+```
+
+so both hold together only inside a window whose width is
+
+```
+W = [f(p_I)/f(p_v)] / [p_I/p_v] = g(p_v) / g(p_I),     g(p) ≡ p/f(p) = 2/(1 + p⁻³)
+```
+
+`g` is strictly increasing, so the window is non-empty exactly when `g(p_I) < g(p_v)`:
+
+> **Simultaneous growth of ⟨a⟩ and ⟨c⟩ loops is possible if and only if `p_I < p_v`** —
+> the interstitial species must be biased into the basal plane *relative to* the
+> vacancies.
+
+That is the entire DAD argument in one inequality, and it is a property of the capture
+efficiencies alone: it does not depend on the dose, the microstructure or the mobile
+field. Those decide only whether the realized `A/B` lands **inside** the window.
+
+Two consequences worth keeping in view:
+
+- **The absolute anisotropy is irrelevant; only the contrast matters.** Making every
+  species equally anisotropic (`p_v = p_I`) gives `W = 1` — a degenerate window that no
+  `A/B` satisfies — however extreme the common `p` is.
+- **`A/B` is not a fixed target.** The anisotropy reshapes the mobile field as well as
+  re-weighting the absorption, so changing `p` moves the ratio and the bounds at once.
+  This is precisely the effect that cannot be captured in 0-D, where the mobile
+  concentrations come from a well-mixed balance with no direction in it.
+
+**When the interstitial species do not share one `p`** — which is Li et al.'s own
+structure, DAD on the di- and tri-interstitial with the single interstitial isotropic —
+each condition still collapses to one number, now an arrival-weighted mean over the
+interstitial species, `p̄ = Σ w_m p_m` and `f̄ = Σ w_m f(p_m)` with
+`w_m = D̄_m c_m |m| / B`. The window is non-empty iff `p_v f̄ > f(p_v) p̄`. Since
+
+```
+f(p) − p = (1 − p³) / (2p²)
+```
+
+vanishes at `p = 1`, **an isotropic species is inert in this criterion**: it enters `p̄`
+and `f̄ ` with the same value. The anisotropic species therefore open the window only in
+proportion to the share of the interstitial arrival they actually deliver — giving the
+DAD to the clusters alone buys `W = 1.03` at a 5% cluster share against `W = 1.96` at
+100%. Whether that structure can work in this model is therefore an empirical question
+about the arrival shares, which `dad_window.run` measures.
+
+The inversion is the practically useful direction. At a **measured** `A/B`, the largest
+`p_I` that still permits ⟨a⟩ growth is the root of `f(p_I) = (A/B)(Z⁰_v/Z⁰_I) f(p_v)`,
+which for `A/B ≫ 1` approaches
+
+```
+p_I  ≲  1 / √(2 · (A/B) · Z⁰_v/Z⁰_I)
+```
+
+— the required anisotropy tightens only as the **square root** of the vacancy excess, so
+a doubling of the vacancy surplus costs a factor 1.41 in `p_I`, not 2.
+
 ### 1.4 The superposition principle
 
 Applied twice, identically in structure:
