@@ -37,14 +37,16 @@ All three are conditions used experimentally on hcp Zr.
     beam. <a>2 and <a>3 are inclined 60 degrees to the beam and image as
     foreshortened ellipses with Burgers vectors of opposite in-plane sign.
 
-``B_0001_t30`` -- the specimen tilted 30 degrees off [0001] about [2-1-10].
+``B_0001_t45`` -- the specimen tilted 45 degrees off [0001] about [2-1-10].
     Neither zone axis shows a <c> loop as an ellipse: down [0001] it is exactly
     face-on, down [01-10] exactly edge-on. A tilted specimen shows it between
     those extremes, and the ELLIPSE is what identifies a basal loop and lets its
     inclination be read off the plate. A circular loop of normal n viewed along
-    B projects to an ellipse of axis ratio |n.B|, so at 30 degrees <c> images at
-    0.866, <a>1 stays edge-on because its habit normal is the tilt axis, and
-    <a>2/<a>3 image at 0.433. See :func:`tilted_view` for any other angle.
+    B projects to an ellipse of axis ratio |n.B|, so at 45 degrees <c> images at
+    0.707, <a>1 stays edge-on because its habit normal is the tilt axis, and
+    <a>2/<a>3 image at 0.612. Shape alone therefore does not separate <c> from
+    <a>2/<a>3 at this angle -- the ellipse ORIENTATION and the Burgers markers
+    do. See :func:`tilted_view` for the trade-off and for any other angle.
 
 WHAT IS AND IS NOT MODELED
 --------------------------
@@ -122,11 +124,21 @@ def tilted_view(deg, about=(1.0, 0.0, 0.0), up=(0.0, 0.0, 1.0)):
     direction. That is the experimentally usual choice and it is the one that
     keeps the picture readable: <a>_1's habit normal IS the tilt axis, so it
     stays exactly edge-on, and <a>_2 and <a>_3 tilt by the same amount as each
-    other. At 30 degrees:
+    other. Measured on the drawn polygons:
 
-        <c>          |n.B| = 0.866     a clear ellipse
-        <a>_1        |n.B| = 0.000     still edge-on, a straight trace
-        <a>_2,3      |n.B| = 0.433     strongly foreshortened ellipses
+        tilt      <c>      <a>_1    <a>_2,3
+        30 deg    0.866    0.000    0.433
+        45 deg    0.707    0.000    0.612     <-- registered below
+        60 deg    0.500    0.000    0.750
+
+    NOTE WHAT THE ANGLE COSTS AS WELL AS WHAT IT BUYS. Tilting makes <c> more
+    elliptical but simultaneously OPENS <a>_2,3, and the two families pass each
+    other: they differ by 0.433 in axis ratio at 30 degrees but only 0.095 at
+    45 and 0.250 (the other way) at 60. At 45 degrees shape alone therefore no
+    longer separates <c> from <a>_2,3 -- what still does is the ellipse
+    ORIENTATION, since the projected minor axis lies along the projection of the
+    habit normal (vertical for <c>, about 50 degrees off horizontal for
+    <a>_2,3), together with the colored Burgers markers.
 
     Verified against `loop_polygon` itself rather than against an assumed frame,
     so it cannot drift if the family definitions change.
@@ -145,7 +157,7 @@ def tilted_view(deg, about=(1.0, 0.0, 0.0), up=(0.0, 0.0, 1.0)):
 
 
 # The tilted condition, rendered by default alongside the two zone axes.
-VIEWS["B_0001_t30"] = tilted_view(30.0)
+VIEWS["B_0001_t45"] = tilted_view(45.0)
 
 # Below this fraction of |b| in the image plane, the Burgers vector is called
 # out-of-plane and drawn as the conventional circled dot instead of an arrow.
