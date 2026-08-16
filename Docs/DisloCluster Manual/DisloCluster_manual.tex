@@ -1591,29 +1591,40 @@ the 0-D uses a constant surrogate.
 \section{Changes relative to upstream MoDELib}
 \label{app:changes}
 
-\paragraph{Which upstream.} There are two, and they are not interchangeable.
-\file{mlm335/MoDELib2-NNL} solves the mobile steady-state PDE of
-Eq.~\eqref{eq:mobile} and nothing else: its immobile species count is zero,
-\code{solveImmobileClusters()} is an empty function body, and there is a literal
-\code{// Missing immobile sinks} placeholder where the loop term would go.
-\file{mlm335/MoDELib-fullCD} is the \emph{cluster-dynamics-complete} upstream:
+\paragraph{Which upstream.} \textbf{The baseline is \file{mlm335/MoDELib2-NNL}},
+at the point the immobile population equations were written into it. That code
+solves the mobile steady-state PDE of Eq.~\eqref{eq:mobile} and nothing else:
+its immobile species count is zero, \code{solveImmobileClusters()} is an empty
+function body, and there is a literal \code{// Missing immobile sinks}
+placeholder where the loop term would go. The loop populations were
+\emph{absent}, not present in a simplified form, and the list below is stated
+against that.
+
+\file{mlm335/MoDELib-fullCD} is a \emph{separate} cluster-dynamics branch:
 \code{iSize} is 8, it has its own immobile integrator
 (\file{ImmobileSinkRate.h}, \file{SpatialODESolver.h}), the loop sink on the
 mobile species (\file{FirstOrderReaction.h}), and a continuum-to-discrete loop
-conversion that \MoD{} does not have.
+conversion that \MoD{} does not have. It is a sibling, not the ancestor.
 
-\textbf{\file{MoDELib-fullCD} is the correct baseline for anything touching
-cluster dynamics}, and the list below is stated against it. Measured against
-fullCD, \MoD{}'s immobile solver is a \emph{re-discretization} of an existing
-scheme rather than a new one: 31 cluster-dynamics parameter keys are shared
-verbatim and most of the rest are renames. The differences are in the
-discretization --- fullCD projects its rate through the consistent mass matrix
-and takes one explicit-Euler step of \code{dtMax} followed by sequential
-implicit loss factors, where \MoD{} evaluates the rate at nodes and takes 20
-sub-steps of a single fused semi-implicit update.
+\paragraph{A correction.} An earlier revision of this manual declared fullCD the
+correct baseline and \MoD{}'s immobile solver a \emph{re-discretization} of its
+scheme, on the evidence that 31 cluster-dynamics parameter keys are shared
+verbatim and most of the rest are systematic renames. \textbf{That inference
+does not follow.} Shared naming across two branches of one code, developed in
+one group from one formulation, is evidence of \emph{convergence} and says
+nothing about which came first. The immobile equations here were written to
+reproduce ZrMicro, not to re-express fullCD. A full numbered history is given in
+the companion note \file{DisloCluster Code History}.
 
-Relative to \file{MoDELib2-NNL} the entire immobile half of the model is new;
-relative to \file{MoDELib-fullCD} the following are re-implemented or added:
+The two schemes remain worth comparing as siblings, and differ in the
+discretization: fullCD projects its rate through the consistent mass matrix and
+takes one explicit-Euler step of \code{dtMax} followed by sequential implicit
+loss factors, where \MoD{} evaluates the rate at nodes and takes 20 sub-steps of
+a single fused semi-implicit update.
+
+Relative to \file{MoDELib2-NNL} the entire immobile half of the model is new.
+The following are the pieces of it, with the sibling comparison noted where one
+exists:
 
 \begin{itemize}
 \item the loop density and content evolution equations

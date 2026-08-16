@@ -1,55 +1,56 @@
 \contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
 \contentsline {subsection}{\numberline {1.1}What \textsf {DisloCluster}{} does}{3}{subsection.1.1}%
 \contentsline {subsection}{\numberline {1.2}The three ways to run it}{3}{subsection.1.2}%
-\contentsline {subsection}{\numberline {1.3}Repository layout}{3}{subsection.1.3}%
-\contentsline {subsection}{\numberline {1.4}Conventions used in this manual}{4}{subsection.1.4}%
+\contentsline {subsection}{\numberline {1.3}Repository layout}{4}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}Conventions used in this manual}{5}{subsection.1.4}%
 \contentsline {section}{\numberline {2}Installation}{5}{section.2}%
 \contentsline {subsection}{\numberline {2.1}Prerequisites}{5}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}Step 1: Windows tools}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.2}Step 1: Windows tools}{6}{subsection.2.2}%
 \contentsline {subsection}{\numberline {2.3}Step 2: clone the repository}{6}{subsection.2.3}%
 \contentsline {subsection}{\numberline {2.4}Step 3: WSL and Ubuntu}{6}{subsection.2.4}%
-\contentsline {subsection}{\numberline {2.5}Step 4: SUNDIALS 7.1.1}{6}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.5}Step 4: SUNDIALS 7.1.1}{7}{subsection.2.5}%
 \contentsline {section}{\numberline {3}The Python virtual environment}{7}{section.3}%
 \contentsline {subsection}{\numberline {3.1}Create the venv and install dependencies}{7}{subsection.3.1}%
 \contentsline {subsection}{\numberline {3.2}Register the Jupyter kernel}{7}{subsection.3.2}%
 \contentsline {subsection}{\numberline {3.3}Verify path resolution}{7}{subsection.3.3}%
-\contentsline {section}{\numberline {4}Building the two codes}{7}{section.4}%
-\contentsline {subsection}{\numberline {4.1}The 0-D \textsf {ZrMicro}{} solver (Windows, native)}{7}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}The 3-D \textsf {MoDELib3}{} code (inside WSL)}{8}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}Verify the builds}{8}{subsection.4.3}%
+\contentsline {section}{\numberline {4}Building the two codes}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The 0-D \textsf {ZrMicro}{} solver (Windows, native)}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}The 3-D \textsf {MoDELib3}{} code}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Verify the builds}{9}{subsection.4.3}%
 \contentsline {section}{\numberline {5}First simulation: the 3-D single-crystal test}{9}{section.5}%
 \contentsline {subsection}{\numberline {5.1}The case}{9}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Quick start: figures in minutes}{9}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Running the solve}{9}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Reading the figures critically}{10}{subsection.5.4}%
-\contentsline {section}{\numberline {6}The 0-D \textsf {ZrMicro}{} simulation}{10}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Running it}{10}{subsection.6.1}%
+\contentsline {subsection}{\numberline {5.2}Quick start: figures in minutes}{10}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}Running the solve}{10}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Reading the figures critically}{11}{subsection.5.4}%
+\contentsline {section}{\numberline {6}The 0-D \textsf {ZrMicro}{} simulation}{11}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Running it}{11}{subsection.6.1}%
 \contentsline {subsection}{\numberline {6.2}Inputs: the Excel workbook}{11}{subsection.6.2}%
-\contentsline {subsection}{\numberline {6.3}The state vector}{11}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Solver configuration}{11}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.3}The state vector}{12}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Solver configuration}{12}{subsection.6.4}%
 \contentsline {section}{\numberline {7}The coupled 0-D$\,\leftrightarrow \,$3-D simulation}{12}{section.7}%
 \contentsline {subsection}{\numberline {7.1}The idea}{12}{subsection.7.1}%
 \contentsline {subsection}{\numberline {7.2}Two options for the slow step}{13}{subsection.7.2}%
 \contentsline {paragraph}{\numberline {7.2.0.1}The names.}{13}{paragraph.7.2.0.1}%
-\contentsline {subsection}{\numberline {7.3}Starting from pristine material}{13}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}The notebook's three control blocks}{14}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.3}Starting from pristine material}{14}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}The notebook's three control blocks}{15}{subsection.7.4}%
 \contentsline {subsection}{\numberline {7.5}Meshing, and the materialized simulation directory}{15}{subsection.7.5}%
 \contentsline {subsection}{\numberline {7.6}Fast-solve backends}{15}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}Running the march}{15}{subsection.7.7}%
+\contentsline {subsection}{\numberline {7.7}Running the march}{16}{subsection.7.7}%
 \contentsline {subsection}{\numberline {7.8}Outputs}{16}{subsection.7.8}%
-\contentsline {section}{\numberline {8}Changing things}{16}{section.8}%
-\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{16}{paragraph.8.0.0.1}%
-\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf {MoDELib3}{} time units.}{16}{paragraph.8.0.0.2}%
-\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt {\small startAtTimeStep} at zero.}{16}{paragraph.8.0.0.3}%
-\contentsline {section}{\numberline {9}Troubleshooting}{17}{section.9}%
-\contentsline {section}{\numberline {10}Reproducibility and provenance}{18}{section.10}%
+\contentsline {section}{\numberline {8}Changing things}{17}{section.8}%
+\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{17}{paragraph.8.0.0.1}%
+\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf {MoDELib3}{} time units.}{17}{paragraph.8.0.0.2}%
+\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt {\small startAtTimeStep} at zero.}{17}{paragraph.8.0.0.3}%
+\contentsline {section}{\numberline {9}Troubleshooting}{18}{section.9}%
+\contentsline {section}{\numberline {10}Reproducibility and provenance}{19}{section.10}%
 \contentsline {section}{\numberline {A}Architecture reference}{19}{section.A}%
 \contentsline {subsection}{\numberline {A.1}The governing split}{19}{subsection.A.1}%
-\contentsline {subsection}{\numberline {A.2}Key components}{19}{subsection.A.2}%
-\contentsline {subsection}{\numberline {A.3}The three interfaces}{19}{subsection.A.3}%
-\contentsline {subsection}{\numberline {A.4}Unit systems}{19}{subsection.A.4}%
+\contentsline {subsection}{\numberline {A.2}Key components}{21}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}The three interfaces}{21}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}Unit systems}{21}{subsection.A.4}%
 \contentsline {subsection}{\numberline {A.5}Call graph}{21}{subsection.A.5}%
 \contentsline {subsection}{\numberline {A.6}Known non-correspondences between the 0-D and 3-D models}{21}{subsection.A.6}%
-\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{21}{section.B}%
-\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{21}{paragraph.B.0.0.1}%
-\contentsline {section}{\numberline {C}Quick reference}{22}{section.C}%
+\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{22}{section.B}%
+\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{22}{paragraph.B.0.0.1}%
+\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{22}{paragraph.B.0.0.2}%
+\contentsline {section}{\numberline {C}Quick reference}{23}{section.C}%

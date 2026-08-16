@@ -662,27 +662,53 @@ control dicts) and `checkpoint/`, and reuses the staged case under
 
 ---
 
-## Which MoDELib upstream to compare against
+## Which MoDELib upstream, and which is the baseline
 
-There are two upstream repositories and they are **not** interchangeable:
+**The baseline is `mlm335/MoDELib2-NNL`**, at the point the immobile population
+equations were written into it to make the 3-D code consistent with the ZrMicro
+0-D model. That is where this work starts, and it started from nothing:
+`iSize` was **0**, `solveImmobileClusters()` was an empty function body, there
+was no immobile integrator of any kind, and the source carried a literal
+`// Missing immobile sinks` placeholder at `ClusterDynamicsFEM.cpp:110`. The
+loop populations were **absent, not simplified**.
 
-| Repository | `iSize` | Immobile machinery |
-|---|---:|---|
-| `mlm335/MoDELib2-NNL` | 0 | none — empty `solveImmobileClusters()`, a literal `// Missing immobile sinks` placeholder |
-| `mlm335/MoDELib-fullCD` | 8 | complete — `ImmobileSinkRate.h`, `SpatialODESolver.h`, `FirstOrderReaction.h`, continuum→discrete loop conversion |
+`mlm335/MoDELib-fullCD` is a **separate cluster-dynamics branch** — `iSize` 8,
+with `ImmobileSinkRate.h`, `SpatialODESolver.h`, `FirstOrderReaction.h` and a
+continuum→discrete loop conversion. It is a sibling, not the ancestor.
 
-**Use `MoDELib-fullCD` for anything touching cluster dynamics.** `MoDELib3`'s
-immobile solver is a *re-discretization* of fullCD's, not a new scheme: 31 CD
-parameter keys are shared verbatim and most of the rest are renames. fullCD
-projects the rate through the consistent mass matrix then takes one explicit
-Euler step of `dtMax` followed by sequential implicit loss factors; MoDELib3
-evaluates the rate at nodes and takes 20 substeps of a single fused
-semi-implicit update. MoDELib3 has **no** continuum→discrete loop transition —
-that is what "fullCD" names, and it is the largest functional regression.
+**An earlier revision of this file said the opposite** — that fullCD is the
+correct baseline and MoDELib3's immobile solver a *re-discretization* of its
+scheme. That was inferred from 31 shared CD parameter keys plus a set of
+systematic renames (`loopNucDefects`→`nNuc`, `loopCoalLL/LN`→`cLL/cLN`,
+`loopCoalKappa*`→`kappa*`, `loopAnnealTau0_SI`→`tau0_vLoop_SI`,
+`loopCoalNetwork_SI`→`rhoNetwork_SI`, `minimumLoopSize`→`r_min`). **The
+inference does not follow.** Shared naming across two branches of one code,
+developed in one group from one formulation (Po & Ghoniem D1/M1 §2.2), is
+evidence of *convergence*, and says nothing about which came first. The
+immobile equations here were written to reproduce ZrMicro, not to re-express
+fullCD.
 
-Do not cite `Zr4.txt`'s missing immobile keys as evidence about upstream: that
-is a property of one file in this checkout, and fullCD's `Zr4_Fitted.txt`
-carries the full set.
+fullCD is still worth comparing against, as a sibling:
+
+| | `MoDELib-fullCD` | this branch |
+|---|---|---|
+| Rate | Galerkin at quadrature points, L2-projected through the consistent mass matrix | nodal collocation, no mass matrix |
+| Time update | explicit Euler, then **sequential** implicit loss factors per channel | one **fused** semi-implicit update |
+| Sub-cycling | none — one step of `dtMax` | `nSub = 20` per dose step |
+
+The one capability fullCD has and this branch does not is
+`clusterDiscretizationTime` / `initializeDiscreteClimbLoops()`, its
+continuum→discrete loop transition. That is a **gap, not a regression** —
+nothing of the kind existed in MoDELib2-NNL to lose — and it is the piece worth
+taking from fullCD. `post/discrete_loops.py` performs the same conversion
+offline for export and visualization, which is not the same thing: it does not
+feed back into a solve.
+
+Do not cite `Zr4.txt`'s missing immobile keys as evidence about any other
+branch: that is a property of one file in this checkout, and fullCD's
+`Zr4_Fitted.txt` carries a full set.
+
+Full numbered history: [`Docs/DisloCluster Manual/DisloCluster Code History.tex`](Docs/DisloCluster%20Manual/DisloCluster%20Code%20History.tex).
 
 ---
 

@@ -5,9 +5,9 @@
 This tree entered DisloCluster as a git submodule pointing at
 `https://github.com/Ghoniem/MoDELib2-NNL.git`, branch `zr3d_ghoniem`. Commit
 `859af47` converted it to a plain directory, so that `.gitmodules` is gone and
-this line is the only remaining record of where the checkout came from. Note
-that the fork's *name* says MoDELib2-NNL; the correct baseline to compare
-against is nevertheless **MoDELib-fullCD**, for the reasons below.
+this line is the only remaining record of where the checkout came from.
+**MoDELib2-NNL is both the fork's name and the baseline this file is written
+against** — see below, and note that an earlier revision claimed otherwise.
 
 Zr3d_ghoniem is a variant of MoDELib whose cluster-dynamics equations and parameters
 are taken from the **ZrMicro 0-D code** (`ZrClusterDynamics/ZrMicro`, relative to
@@ -19,34 +19,55 @@ The governing equations are those of Po & Ghoniem, Deliverable D1/M1
 
 ## Which upstream — read this before comparing anything
 
-There are two upstream repositories and they are **not** interchangeable:
+**The baseline for this file is [`mlm335/MoDELib2-NNL`](https://github.com/mlm335/MoDELib2-NNL)**,
+at the point the immobile population equations were written into it. At that point it solved
+the mobile steady-state cluster-dynamics PDE and nothing else: `iSize` was **0**,
+`solveImmobileClusters()` was an empty function body, there was no `ImmobileSinkRate.h` and no
+immobile integrator of any kind, and the source carried a literal `// Missing immobile sinks`
+placeholder at `ClusterDynamicsFEM.cpp:110`. The loop populations were **absent, not present in
+a simplified form**.
 
-| Repository | `iSize` | Immobile machinery |
-|---|---:|---|
-| [`mlm335/MoDELib2-NNL`](https://github.com/mlm335/MoDELib2-NNL) | **0** | none — `solveImmobileClusters()` is an empty body, no `ImmobileSinkRate.h`, no `SpatialODESolver.h`, and a literal `// Missing immobile sinks` placeholder at `ClusterDynamicsFEM.cpp:110` |
-| [`mlm335/MoDELib-fullCD`](https://github.com/mlm335/MoDELib-fullCD) | **8** | complete — `ImmobileSinkRate.h`, `SpatialODESolver.h`, `FirstOrderReaction.h`, and continuum→discrete loop conversion |
+[`mlm335/MoDELib-fullCD`](https://github.com/mlm335/MoDELib-fullCD) is a **separate**
+cluster-dynamics branch — `iSize` 8, with `ImmobileSinkRate.h`, `SpatialODESolver.h`,
+`FirstOrderReaction.h` and a continuum→discrete loop conversion. It is a **sibling, not the
+ancestor**.
 
-**`MoDELib-fullCD` is the correct baseline for anything touching cluster dynamics.**
-Earlier revisions of this file and of the reports that cite it used MoDELib2-NNL, which made
-the immobile solver look like an invention from nothing. It is not: it is a
-**re-discretization** of fullCD's scheme. 31 of the CD parameter keys are shared verbatim and
-most of the rest are renames (`loopNucDefects`→`nNuc`, `loopCoalLL/LN`→`cLL/cLN`,
-`loopCoalKappa*`→`kappa*`, `loopAnnealTau0_SI`→`tau0_vLoop_SI`,
+### A correction to earlier revisions of this file
+
+Earlier revisions declared fullCD the correct baseline and described the immobile solver below
+as a **re-discretization** of fullCD's scheme. That was inferred from 31 CD parameter keys
+shared verbatim plus a set of systematic renames (`loopNucDefects`→`nNuc`,
+`loopCoalLL/LN`→`cLL/cLN`, `loopCoalKappa*`→`kappa*`, `loopAnnealTau0_SI`→`tau0_vLoop_SI`,
 `loopCoalNetwork_SI`→`rhoNetwork_SI`, `minimumLoopSize`→`r_min`).
 
-How the two immobile schemes differ:
+**That inference does not follow.** Shared naming across two branches of one code, developed in
+one group from one formulation (Po & Ghoniem D1/M1 §2.2), is evidence of *convergence*, and says
+nothing about which came first. The immobile equations here were written to reproduce ZrMicro,
+not to re-express fullCD.
 
-| | MoDELib-fullCD | this branch |
+### Comparing against the sibling
+
+fullCD remains worth comparing against wherever the comparison is informative. The two immobile
+schemes differ at each of three decision points:
+
+| | MoDELib-fullCD (sibling) | this branch |
 |---|---|---|
 | Rate | Galerkin: assembled at quadrature points, then L2-projected through the consistent mass matrix (CG to 1e-4, `SpatialODESolver`) | nodal collocation; no mass matrix |
 | Time update | explicit Euler `dof += rate*dt`, then **sequential** implicit loss factors `(1+dt·λ_k)^-1` per channel | one **fused** semi-implicit update `(n + dt·nucRate)/(1 + dt·lossN)` |
 | Sub-cycling | none — one step of `dtMax` | `nSub = 20` per dose step |
 
-Genuinely new here: `dadAnisotropy`/`dadZ0` (DAD reconciliation with the 0-D), `atomicVolume_SI`,
+New here relative to the baseline, beyond the immobile equations themselves:
+`dadAnisotropy`/`dadZ0` (DAD reconciliation with the 0-D), `atomicVolume_SI`,
 `concentrationFloor`, `loopSinkScale`, size-dependent vacancy-loop emission, the bi-pyramid
-family. Genuinely **lost** here: `clusterDiscretizationTime` and `initializeDiscreteClimbLoops()` —
-fullCD converts its continuum loop field into discrete climb loops once the dose passes a
-threshold, and this branch has no such transition. That is the largest functional regression.
+family.
+
+The one capability fullCD has and this branch does not is `clusterDiscretizationTime` /
+`initializeDiscreteClimbLoops()`, which converts the continuum loop field into discrete climb
+loops once the dose passes a threshold. That is a **gap, not a regression** — nothing of the
+kind existed in MoDELib2-NNL to lose — and it is the piece most worth taking from fullCD.
+
+Full numbered history: `Docs/DisloCluster Manual/DisloCluster Code History.tex`.
+Plan for closing the gap: `Docs/DisloCluster Manual/anisotropic_diffusion_and_discrete_coupling_plan.md`.
 
 `Library/Materials/Zr4.txt` is **untouched**. The Zr3d_ghoniem material definition is a
 new file, `Library/Materials/Zr3d_ghoniem.txt`. The C++ changes are global: `iSize`
