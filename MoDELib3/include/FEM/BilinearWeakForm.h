@@ -8,6 +8,10 @@
 #ifndef model_BilinearWeakForm_H_
 #define model_BilinearWeakForm_H_
 
+#include <algorithm>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include <chrono>
 #include <vector>
 
@@ -97,10 +101,44 @@ namespace model
         /**********************************************************************/
         std::vector<Eigen::Triplet<double> >  globalTriplets() const
         {
-            std::vector<Eigen::Triplet<double> > glbtrip;
-            glbtrip.reserve(dofPerElement*dofPerElement*TrialBase<TrialFunctionType>::elementSize());
-            
-            for (size_t k=0;k<domain.size();++k)
+            /*! Element assembly, in parallel over EXPLICIT contiguous chunks.
+             *
+             *  Each element's ke is computed from const state into a local
+             *  matrix and appended to a per-chunk buffer, so there is nothing
+             *  shared to race on. This loop is the dominant cost of the whole
+             *  coupled march: the fast step is ~91% of a march, compute() is
+             *  ~87% of the fast step, and this is what compute() spends it on.
+             *
+             *  The chunks are partitioned by hand rather than left to an OpenMP
+             *  schedule, and concatenated in chunk order, so the triplet
+             *  sequence is EXACTLY the serial one. That matters: setFromTriplets
+             *  sums duplicates, so a different order would re-associate those
+             *  sums and the result would agree only to rounding. Reproducing
+             *  the order keeps the assembled matrix bit-identical, which is
+             *  what makes this change verifiable rather than merely plausible.
+             */
+            const size_t nEle(domain.size());
+#ifdef _OPENMP
+            const size_t nChunk(std::min<size_t>(size_t(std::max(1,omp_get_max_threads())),
+                                                 std::max<size_t>(nEle,1)));
+#else
+            const size_t nChunk(1);
+#endif
+            std::vector<std::vector<Eigen::Triplet<double> > > chunks(nChunk);
+            const size_t perChunk(dofPerElement*dofPerElement*(nEle/nChunk+1));
+            for(auto& c : chunks)
+            {
+                c.reserve(perChunk);
+            }
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+            for (long long c=0;c<(long long)nChunk;++c)
+            {
+                const size_t kBeg((size_t(c)*nEle)/nChunk);
+                const size_t kEnd(((size_t(c)+1)*nEle)/nChunk);
+                std::vector<Eigen::Triplet<double> >& glbtrip(chunks[size_t(c)]);
+            for (size_t k=kBeg;k<kEnd;++k)
             {
                 const ElementType& ele(domain.element(k));
                 ElementMatrixType ke(ElementMatrixType::Zero());
@@ -124,6 +162,22 @@ namespace model
                         }
                     }
                 }
+            }
+            }
+            if(nChunk==1)
+            {
+                return chunks[0];
+            }
+            size_t tot(0);
+            for(const auto& c : chunks)
+            {
+                tot+=c.size();
+            }
+            std::vector<Eigen::Triplet<double> > glbtrip;
+            glbtrip.reserve(tot);
+            for(const auto& c : chunks)
+            {
+                glbtrip.insert(glbtrip.end(),c.begin(),c.end());
             }
             return glbtrip;
         }

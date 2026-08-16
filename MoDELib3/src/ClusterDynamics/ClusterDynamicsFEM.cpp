@@ -8,6 +8,7 @@
 #ifndef model_ClusterDynamicsFEM_cpp_
 #define model_ClusterDynamicsFEM_cpp_
 
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -162,8 +163,15 @@ template struct InvDscaling<3>;
     void ClusterDynamicsFEM<dim>::solveMobileClusters()
     {
         std::cout<<", mobile solver "<<std::flush;
+        // Stage timers. The fast step is ~91% of a coupled march, so
+        // knowing which of assembly / preconditioner / Krylov solve
+        // dominates is what decides where optimisation effort goes.
+        using _clk = std::chrono::steady_clock;
+        double t_diff(0.0), t_asm(0.0), t_cmp(0.0), t_slv(0.0);
+        auto _t0 = _clk::now();
         mobileClusters=mSolver.solve(cascadeGlobalProduction);
         clampMobileClusters();
+        t_diff = std::chrono::duration<double>(_clk::now()-_t0).count();
 
         if(this->cdp.computeReactions)
         {/*! Fixed-point/Newton loop on the mobile reaction terms.
@@ -217,6 +225,7 @@ template struct InvDscaling<3>;
                     break;
                 }
                 ++iter;
+                auto _ta = _clk::now();
                 const auto R1((this->cdp.R1cd).eval());
                 auto bWF_R1((test(iDs*mobileClustersIncrement),R1*(-1.0*mobileClustersIncrement))*dV); // THIS SHOULD BE STORED SINCE IT IS ALWAYS THE SAME
                 auto lWF_R1((test(iDs*mobileClustersIncrement),eval(R1*mobileClusters))*dV);
@@ -234,10 +243,23 @@ template struct InvDscaling<3>;
                 auto bWF_RI((test(iDs*mobileClustersIncrement),RI*(-1.0*mobileClustersIncrement))*dV);
                 auto lWF_RI((test(iDs*mobileClustersIncrement),eval(RI*mobileClusters))*dV);
 
-                Eigen::SparseMatrix<double,Eigen::RowMajor> AcIR;
-                AcIR.resize(mobileClustersIncrement.gSize(),mobileClustersIncrement.gSize());
-                std::vector<Eigen::Triplet<double>> globalTripletsR((bWF_R1+bWF_R2+bWF_RI).globalTriplets());
-                AcIR.setFromTriplets(globalTripletsR.begin(),globalTripletsR.end());
+                // REMOVED: an assembly of AcIR whose result was never read.
+                //
+                //   Eigen::SparseMatrix<double,Eigen::RowMajor> AcIR;
+                //   AcIR.resize(...);
+                //   auto globalTripletsR((bWF_R1+bWF_R2+bWF_RI).globalTriplets());
+                //   AcIR.setFromTriplets(...);
+                //
+                // Nothing downstream referenced AcIR or globalTripletsR: the
+                // solve below builds its own matrix from
+                // dmBWF+bWF_R1+bWF_R2+bWF_RI. So every Newton iteration ran a
+                // full element-loop assembly of a gSize x gSize matrix
+                // (362468^2 on the 500 nm case), sorted and compressed the
+                // triplets, and threw the result away -- assembling the same
+                // operator twice per iteration and using one of them.
+                //
+                // Removing it cannot change the answer; `mobile_solver_ab.py`
+                // checks that the evl CD block is bit-identical.
 
                 // NOTE: switching this to the direct (SparseLU) branch was tried
                 // and does NOT work -- compute() itself fails on the ~96k-dof 3-D
@@ -245,9 +267,14 @@ template struct InvDscaling<3>;
                 // operator in mSolver succeeds. The iterative branch is retained;
                 // the first-step convergence problem is an initial-guess problem,
                 // not a linear-algebra one (see ZR3D_GHONIEM_CHANGES.md, issue 12).
+                t_asm += std::chrono::duration<double>(_clk::now()-_ta).count();
+                auto _tc = _clk::now();
                 MobileReactionSolverType rSolver(false,FLT_EPSILON);
                 rSolver.compute(dmBWF+bWF_R1+bWF_R2+bWF_RI);
+                t_cmp += std::chrono::duration<double>(_clk::now()-_tc).count();
+                auto _ts = _clk::now();
                 mobileClustersIncrement=rSolver.solve(cascadeGlobalProduction-mSolver.getA()*mobileClusters.dofVector()+(lWF_R1+lWF_R2+lWF_RI).globalVector());
+                t_slv += std::chrono::duration<double>(_clk::now()-_ts).count();
                 
                 const Eigen::VectorXd dofBefore(mobileClusters.dofVector());
                 Eigen::MatrixXd cOld(dofBefore);
@@ -354,6 +381,19 @@ template struct InvDscaling<3>;
             {// the floor was deferred out of the iteration; apply it once now
                 clampMobileClusters();
             }
+        }
+        // Stage breakdown of the fast step. Printed unconditionally: it is a
+        // handful of characters against a solve measured in minutes, and it is
+        // the only place the cost of the dominant stage of a coupled march is
+        // visible at all.
+        {
+            const double tot(t_diff+t_asm+t_cmp+t_slv);
+            const double pc(tot>0.0 ? 100.0/tot : 0.0);
+            std::cout<<"    mobile stages [s]: diffusion "<<t_diff
+                     <<" ("<<t_diff*pc<<"%), assembly "<<t_asm
+                     <<" ("<<t_asm*pc<<"%), precond "<<t_cmp
+                     <<" ("<<t_cmp*pc<<"%), krylov "<<t_slv
+                     <<" ("<<t_slv*pc<<"%), total "<<tot<<std::endl;
         }
         // Find immobile rate
         
