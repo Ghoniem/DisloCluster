@@ -1009,6 +1009,24 @@ argument** — that is exactly validation item 6, the ROM against a full nodal s
 the same case. Until it is, the ROM has a factor-of-3 ambiguity in the ellipticity it
 predicts, and that ambiguity should be quoted with any result it produces.
 
+**Two qualifications this table needs, both found by integrating it**
+(`coupling/ellipse_rom.py`, validated against the numbers above to 4 digits):
+
+- **The sign of growth decides which axis is major.** `a_x/a_z` relaxes toward `D_x/D_z`
+  only while the loop *grows*; a faster `|ȧ_x|` lengthens `a_x` when positive and eats it
+  when negative. Integrating the same `p = 0.7` loop gives `1.00 → 1.24 → 1.43 → 1.70`
+  growing and `1.00 → 0.86 → 0.69 → 0.27` shrinking. So conclusion 2 is a statement about
+  *growing* loops — and at the arrival ratio this model actually carries (`A/B ≈ 1.11`,
+  above the ⟨a⟩ threshold of §1.3.1), ⟨a⟩ loops are **shrinking**, where the ROM predicts
+  the major axis along `[0001]` instead. A falsifiable prediction, and a place where the
+  DAD window and the ROM make contact.
+- **The attractor is approached slowly.** From a circular nucleus
+  `a_x/a_z = (a₀ + qRt)/(a₀ + Rt)`, so a loop grown to `k` times its nucleus shows only
+  `(1 + q(k−1))/k`: at `q = 2.915` that is 1.96 at `k = 2`, 2.53 at `k = 5`, 2.72 at
+  `k = 10`. **Observed ellipticity measures how far a loop has grown as much as it
+  measures `p`**, so comparing a TEM aspect ratio directly with `p⁻³` under-reads the
+  anisotropy unless the loops are many times their nucleus size.
+
 **What limits the ellipticity.** Without a restoring term the ratios above are
 attractors and the loop elongates indefinitely. The restoring term is the self-stress
 entering `c^eq`, through the curvature of the ellipse:
