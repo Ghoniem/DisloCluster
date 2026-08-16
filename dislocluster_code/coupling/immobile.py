@@ -257,7 +257,7 @@ def dedup_keys(y0_list, rtol):
 
 
 def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
-                      dedup_rtol=0.0, stats=None):
+                      dedup_rtol=0.0, stats=None, retries=2):
     """Advance the immobile state at all quadrature points over one dose step.
 
     Solves, for every point q independently and concurrently (OpenMP batch),
@@ -270,6 +270,10 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
     y0_list  : sequence of (19,)    — per-point native state (mobile = local C_M*)
     t_begin, t_end : float          — dose-step window in seconds
     base_dir : Path or None         — ZrMicro/ root; auto-detected if None
+    retries  : int                  — how many times to re-run points that
+                                      failed in the full batch, on their own.
+                                      The batch step is not deterministic; see
+                                      the comment at the retry loop.
 
     Returns
     -------
@@ -293,6 +297,38 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
 
     cases = build_immobile_cases(base_cli, send, t_begin, t_end)
     raw = run_cpp_solver_batch(cases, base_dir=base_dir)
+
+    # ── retry the stragglers, alone ─────────────────────────────────────────
+    # A case that fails in a full batch does not necessarily fail on its own:
+    # the batch step is NOT deterministic. Measured on the 500 nm anisotropic
+    # march, one point of 90 617 failed at the 0.01 -> 0.1 dpa substep, and the
+    # identical step -- same checkpoint, same fast solve reproduced to every
+    # printed digit -- then completed with zero failures when re-run.
+    #
+    # The mechanism is the per-thread CVODE workspace the batch mode reuses
+    # across cases. Under dynamic scheduling, which case follows which on a
+    # given thread varies from run to run, so a point sitting near the solver's
+    # failure boundary is decided by scheduling rather than by its own state.
+    #
+    # Re-running just the failures repacks them into a tiny batch, which pairs
+    # them differently and usually clears them. This is cheap -- a handful of
+    # cases against tens of thousands -- and it is the honest fix: a transient,
+    # non-reproducible failure should be retried, not silently tolerated by
+    # raising max_failed_nodes, which substitutes an IDENTITY step and freezes
+    # the point for the substep.
+    for attempt in range(int(retries)):
+        stuck = [i for i, r in enumerate(raw) if r is None]
+        if not stuck:
+            break
+        again = run_cpp_solver_batch([cases[i] for i in stuck],
+                                     base_dir=base_dir)
+        for i, r in zip(stuck, again):
+            if r is not None:
+                raw[i] = r
+        if stats is not None:
+            stats.setdefault("retries", []).append(
+                dict(attempt=attempt + 1, n_retried=len(stuck),
+                     n_recovered=sum(r is not None for r in again)))
 
     endpoints = []
     for r in raw:

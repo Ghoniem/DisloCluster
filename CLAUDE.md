@@ -462,6 +462,32 @@ not dividing `substeps_per_interval` was skipping whole intervals.
 The slow side is linear in node count, as this structure predicts: 9.3 s per
 substep at 27 720 nodes and 28.3 s at 90 617 — 3.35×10⁻⁴ vs 3.12×10⁻⁴ s/node.
 
+### The slow step is NOT deterministic
+
+**The same batch of states can fail on one invocation and succeed on the next.**
+Measured on the 500 nm anisotropic march: one point of 90 617 failed at the
+0.01 → 0.1 dpa substep, and the identical step — same checkpoint, and the
+preceding fast solve reproduced to every printed digit
+(`Cv 8.46e-15..6.69e-06 Ci 4.11e-27..8.43e-10 …`) — then completed with **zero**
+failures when re-run twice.
+
+The mechanism is the per-thread CVODE workspace the batch mode reuses across
+cases, which is the optimization that bought 1.67× end to end. Under dynamic
+scheduling, which case follows which on a given thread varies between
+invocations, so a point sitting near the solver's failure boundary is decided by
+scheduling rather than by its own state.
+
+Two consequences:
+
+- `run_immobile_step` takes `retries=2` and re-runs failed points **on their
+  own**, which repacks them into a tiny batch and usually clears them. Prefer
+  that to raising `max_failed_nodes`, which substitutes an **identity step** —
+  it does not recover the point, it freezes it for the substep.
+- **Do not assume two runs of the same case agree point for point.** The
+  fast-solve optimizations were verified bit-identical and that verification
+  stands, because it was the *fast* side; the slow side has never been shown
+  reproducible and this measurement says it is not.
+
 ### Study drivers
 
 | Module | Role |
