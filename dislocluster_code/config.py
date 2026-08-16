@@ -109,6 +109,13 @@ COUPLING = {
     "variant_weights":       (1 / 3, 1 / 3, 1 / 3),
     "max_failed_nodes":      0,
     "on_unconverged":        "warn",       # "warn" | "raise"
+    # Coarsening detector. phi is the model's own Avrami overlap fraction; when
+    # it is large the mean-field estimate of coalescence is no longer reliable
+    # and the population wants a discrete treatment. Reporting only: the march
+    # records the crossing dose, it does not act on it.
+    "phi_star":              0.15,         # threshold on phi
+    "frac_star":             0.10,         # share of interior nodes over it
+    "coarsen_hold":          2,            # consecutive substeps required
 }
 
 SOLVER = {
@@ -320,6 +327,9 @@ class Coupling:
     variant_weights: tuple
     max_failed_nodes: int
     on_unconverged: str
+    phi_star: float = 0.15
+    frac_star: float = 0.10
+    coarsen_hold: int = 2
 
     def validate(self):
         resolve_option(self.route)          # raises KeyError on an unknown name
@@ -348,6 +358,14 @@ class Coupling:
                               f"to 1, got {w}")
         if self.on_unconverged not in ("warn", "raise"):
             raise ConfigError("on_unconverged must be 'warn' or 'raise'")
+        # phi is a probability, so a threshold outside (0,1) can never be
+        # crossed in one direction or is crossed at dose zero in the other.
+        if not 0.0 < self.phi_star < 1.0:
+            raise ConfigError(f"phi_star must lie in (0,1), got {self.phi_star}")
+        if not 0.0 < self.frac_star <= 1.0:
+            raise ConfigError(f"frac_star must lie in (0,1], got {self.frac_star}")
+        if self.coarsen_hold < 1:
+            raise ConfigError("coarsen_hold must be >= 1")
 
     @property
     def snaps(self):
@@ -520,9 +538,25 @@ class SimulationConfig:
                   if k != "regenerate"},
             boundary=dataclasses.asdict(self.boundary),
             material=self.material.file,
+            # The material file's CONTENT, not just its name. The staged case
+            # holds a COPY of it, and the bootstrap is a DDomp solve against it,
+            # so editing the file in place -- changing the diffusion tensor, say
+            # -- must invalidate both. Keying on the name alone let a stale copy
+            # survive silently, which is issue 3 of ZR3D_GHONIEM_CHANGES all
+            # over again: the run does not fail, it answers the wrong question.
+            material_sha=self.material_digest,
             temperature_K=self.material.temperature_K,
         ), sort_keys=True, default=str)
         return hashlib.blake2b(blob.encode(), digest_size=8).hexdigest()
+
+    @property
+    def material_digest(self):
+        """Short digest of the material file's contents, or "missing"."""
+        try:
+            return hashlib.blake2b(self.material.path.read_bytes(),
+                                   digest_size=8).hexdigest()
+        except OSError:
+            return "missing"
 
     @property
     def case_name(self):

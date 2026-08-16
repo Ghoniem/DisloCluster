@@ -57,6 +57,13 @@ class MarchConfig:
     # this field expected); a whole-batch failure aborts either way.
     max_failed_nodes: int | None = None
 
+    # Coarsening detector thresholds. Reporting only -- the march records where
+    # the mean-field treatment of coalescence stops being trustworthy, and does
+    # not act on it. See post/coarsening.py.
+    phi_star: float = 0.15
+    frac_star: float = 0.10
+    coarsen_hold: int = 2
+
     # "warn" keeps a capped, unconverged mobile field and carries on -- it has
     # been measured at 54% error in Ci on a single node while the mean still
     # matched to four figures. "raise" refuses it.

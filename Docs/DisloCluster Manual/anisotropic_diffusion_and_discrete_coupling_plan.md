@@ -1,7 +1,8 @@
 # Plan — anisotropic defect diffusion and discrete↔continuum loop growth
 
-**Status:** proposal, 16 August 2026. Sub-step 4a (the `d_coarsen` detector) is
-implemented and reporting-only; nothing else here is implemented yet.
+**Status:** 16 August 2026. **Phases 1 and 2 and sub-step 4a are implemented**
+(see the per-phase markers below); Phase 3 and sub-steps 4b--4f are not.
+Phase 5's refit is deferred pending experimental data.
 **Source paper:** Y. Li, M. Maron, K. Baker, B. Ramirez Flores, T. Black, J. Hollenbeck,
 I. Lalani, N. Ghoniem, G. Po, *Coupled cluster and dislocation dynamics modeling of
 microstructure evolution in irradiated materials*, J. Mech. Phys. Solids **206** (2026)
@@ -251,6 +252,20 @@ a runnable state. Phases 1–2 are cheap and high value; phase 4 is where the co
 
 ### Phase 1 — Turn on anisotropic diffusion in the fast solve
 
+> ✅ **Implemented** as `dislocluster_code/staging/anisotropy.py`. It generates the
+> six migration-energy components per species from one `p_m`, and generates
+> `dadAnisotropy` from the *same* `p_m` in the same pass — which is Phase 2, and
+> the two are done together because doing either alone leaves the tensor and the
+> capture efficiencies describing different physics. Verified: `p_m = 1`
+> reproduces the isotropic tensor exactly, the recipe reproduces the paper's
+> Table 2, and the anisotropic fast solve converges (48 s, 0 unconverged, 200 nm).
+>
+> The anisotropy shipped is `p_m = (1.178808, 0.913720, 0.913720, 0.913720)` —
+> the values `dadAnisotropy` already carried. Adopting them as the *tensor's*
+> anisotropy makes the two agree for the first time **without moving the
+> calibration**. It is deliberately *not* the paper's choice (DAD on 2i only,
+> `p_m < 0.8`), which needs the refit.
+
 **Change:** replace the isotropic `mobileSpeciesEnergyMigration_eV` rows in
 `Zr3d_ghoniem.txt` with `p_m`-derived pairs using the §1.2 recipe at T = 573 K,
 `E_m^eff = 0.759101` eV for the interstitial family:
@@ -299,6 +314,19 @@ hard check and it is available for free, because setting the three components eq
 reproduces the current scalar exactly.
 
 ### Phase 2 — Make DAD derived, not fitted
+
+> ✅ **Implemented**, together with Phase 1 and in Python rather than in C++.
+> `staging/anisotropy.py` writes `mobileSpeciesEnergyMigration_eV` and
+> `dadAnisotropy` from one `p_m` in one pass, which makes them consistent by
+> construction with no MoDELib rebuild. `--show` reports both and whether they
+> agree; before this change it reported `agree: NO` for every species.
+>
+> A second defect surfaced while wiring it and is fixed: `cfg.domain_key` hashed
+> the material file's *name*, so editing the tensor in place did **not**
+> invalidate the staged case — which holds a *copy* of the material file and a
+> bootstrap solved against it. The key now includes the file's content digest.
+> That is issue 3 of `ZR3D_GHONIEM_CHANGES.md` in a new place: the run does not
+> fail, it answers the wrong question.
 
 **Change:** compute `dadAnisotropy` from the tensor rather than reading it,
 `p_m = (D₃₃/D₁₁)^(1/6)` in `getDlocal()`, with the material key retained only as an

@@ -332,6 +332,28 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
 
     br = mfield.FieldBridge(qssa_sim, paths.MODELIB_MATERIAL)
     N = br.n_nodes
+
+    # Coarsening detector: where the mean-field treatment of coalescence stops
+    # being trustworthy, i.e. where a discrete-continuum handoff would belong.
+    # Fed once per immobile substep so the crossing is resolved to a substep
+    # rather than interpolated across whatever gap the dose list leaves. It is
+    # REPORTING ONLY -- see post/coarsening.py -- and any failure to build it
+    # disables it rather than costing the march.
+    detector = None
+    try:
+        from dislocluster_code.post.coarsening import SubstepDetector
+        detector = SubstepDetector(
+            br.nodes, mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL),
+            paths.MODELIB_MATERIAL,
+            phi_star=getattr(cfg, "phi_star", 0.15),
+            frac_star=getattr(cfg, "frac_star", 0.10),
+            hold=getattr(cfg, "coarsen_hold", 2),
+            variant_weights=getattr(cfg, "variant_weights",
+                                    (1 / 3, 1 / 3, 1 / 3)))
+    except Exception as exc:
+        if verbose:
+            print(f"  coarsening detector unavailable: {exc}")
+
     evl_out = Path(evl_out)
     evl_out.mkdir(parents=True, exist_ok=True)
     shutil.copy2(Path(qssa_sim) / "evl" / "cdNodes.txt", evl_out / "cdNodes.txt")
@@ -529,6 +551,17 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             n_int += st.get("n_integrated", N)
             k_global += 1
 
+            # Coarsening detector -- REPORTING ONLY, nothing branches on it.
+            # Fed here because Y has just been rebound wholesale, which is the
+            # same consistent point the checkpoint uses.
+            if detector is not None:
+                try:
+                    detector.update(Y, d0 + (d1 - d0) * (k + 1) / substeps)
+                except Exception as exc:            # never cost a march a probe
+                    if verbose:
+                        print(f"      coarsening detector disabled: {exc}")
+                    detector = None
+
             # ── CHECKPOINT ──────────────────────────────────────────────────
             # The only consistent point in the body: the fast solve is either
             # fully applied (above) or was not scheduled, Y has just been
@@ -637,6 +670,9 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             resumed=resumed)
     _emit(phase="done", k_global=k_global, interval=n_intervals,
           dose=float(snaps[-1]))
+    if detector is not None and detector.history:
+        diagnostics["coarsening"] = detector.result()
+
     return history, timing, br, diagnostics
 
 

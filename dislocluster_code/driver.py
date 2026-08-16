@@ -66,6 +66,8 @@ def march_config_from(cfg):
         variant_weights=c.variant_weights,
         max_failed_nodes=c.max_failed_nodes,
         on_unconverged=c.on_unconverged,
+        phi_star=c.phi_star, frac_star=c.frac_star,
+        coarsen_hold=c.coarsen_hold,
         mobile_mode="qssa",
         rtol=cfg.solver.rtol, atol=cfg.solver.atol,
         analytic_jac=cfg.solver.analytic_jac)

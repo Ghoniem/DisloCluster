@@ -122,6 +122,81 @@ def avrami(n, c, bmag, kLL, kLN, rhoN):
             r, lam_LL, lam_LN)
 
 
+class SubstepDetector:
+    """Substep-resolution ``d_coarsen``, for use inside the march.
+
+    The snapshot-grid detector interpolates a crossing across whatever gap the
+    dose list leaves -- a decade, on the runs that motivated this -- which is
+    far coarser than the effect it is trying to locate. This class is fed at
+    every immobile substep instead, so the crossing is resolved to one substep.
+
+    It is REPORTING ONLY. It records where the switch to the coupled mode would
+    happen; it does not act on it, and nothing in the march branches on it.
+
+    Usage:  ``det = SubstepDetector(nodes, omega)`` once, then ``det.update(Y,
+    dose)`` after every substep, then ``det.result()`` at the end.
+    """
+
+    def __init__(self, nodes, omega, material_file=None,
+                 phi_star=PHI_STAR, frac_star=FRAC_STAR, hold=HOLD,
+                 variant_weights=(1 / 3, 1 / 3, 1 / 3)):
+        from dislocluster_code.coupling import field as _field
+        self._to_cd = _field.immobile_0d_to_modelib
+        self._omega = float(omega)
+        self._w = variant_weights
+        self.phi_star = float(phi_star)
+        self.frac_star = float(frac_star)
+        self.hold = int(hold)
+        self.kLL, self.kLN, self.rhoN = material_params(material_file)
+        self.mask = interior_mask(np.asarray(nodes, float))
+        self._run = {f["key"]: 0 for f in FAMILIES}      # consecutive hits
+        self.crossed = {f["key"]: None for f in FAMILIES}
+        self.history = []
+
+    def update(self, Y, dose):
+        """Feed one substep. ``Y`` is the (N,19) 0-D state, ``dose`` in dpa."""
+        cd = self._to_cd(np.asarray(Y, float), self._omega, self._w)
+        rec = {"dose": float(dose)}
+        for j, fam in enumerate(FAMILIES):
+            n = cd[:, j][self.mask]
+            c = cd[:, len(FAMILIES) + j][self.mask]
+            pLL, pLN, _, _, _ = avrami(n, c, fam["b_cd"],
+                                       self.kLL, self.kLN, self.rhoN)
+            phi = np.maximum(pLL, pLN)
+            gate = float(np.quantile(phi, 1.0 - self.frac_star))
+            rec[fam["key"]] = gate
+            k = fam["key"]
+            if gate >= self.phi_star:
+                self._run[k] += 1
+                if self._run[k] >= self.hold and self.crossed[k] is None:
+                    # Report the dose at which the criterion was FIRST met, not
+                    # the one at which the hold expired -- the hold exists to
+                    # reject chatter, not to delay the answer.
+                    self.crossed[k] = float(
+                        self.history[-(self.hold - 1)]["dose"]
+                        if self.hold > 1 and len(self.history) >= self.hold - 1
+                        else dose)
+            else:
+                self._run[k] = 0
+        self.history.append(rec)
+        return rec
+
+    def result(self):
+        fired = {k: v for k, v in self.crossed.items() if v is not None}
+        return {
+            "phi_star": self.phi_star, "frac_star": self.frac_star,
+            "hold": self.hold,
+            "d_coarsen": dict(self.crossed),
+            "d_coarsen_first": (min(fired.values()) if fired else None),
+            "families_crossed": sorted(fired),
+            "phi_gate_max": {f["key"]: (max(h[f["key"]] for h in self.history)
+                                        if self.history else 0.0)
+                             for f in FAMILIES},
+            "n_substeps": len(self.history),
+            "trajectory": self.history,
+        }
+
+
 def interior_mask(nodes):
     """Innermost quartile by distance to the nearest domain face.
 
