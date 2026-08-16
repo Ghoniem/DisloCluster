@@ -9,6 +9,7 @@
 #define model_ClusterDynamicsFEM_cpp_
 
 #include <chrono>
+#include <type_traits>
 #include <cmath>
 #include <limits>
 #include <vector>
@@ -212,6 +213,36 @@ template struct InvDscaling<3>;
             // the cardinality fixed while membership churns, one dof entering
             // as another leaves. `entered`/`left` measure that directly.
             std::vector<char> activePrev;
+
+            /*! Assembled ONCE, outside the iteration.
+             *
+             *  Three of the four bilinear forms below cannot change across a
+             *  Newton iteration: dmBWF is a member, bWF_R1 is constant by
+             *  construction (upstream says so in a comment), and bWF_RI depends
+             *  only on immobileClusters, which is frozen for the whole of a
+             *  fast step. Only the second-order reaction term follows
+             *  mobileClusters. Re-assembling all four every iteration was the
+             *  dominant cost of the dominant stage of the dominant step.
+             *
+             *  Split in two so the varying term can be spliced back between
+             *  them, reproducing the original (dmBWF+R1+R2+RI) triplet order:
+             *  setFromTriplets sums duplicates, so any other order would
+             *  re-associate those sums and the matrix would agree only to
+             *  rounding.
+             */
+            const auto R1c((this->cdp.R1cd).eval());
+            auto bWF_R1c((test(iDs*mobileClustersIncrement),R1c*(-1.0*mobileClustersIncrement))*dV);
+            ImmobileSinks<ImmobileTrialType,mSize> RIc(immobileClusters,this->cdp);
+            auto bWF_RIc((test(iDs*mobileClustersIncrement),RIc*(-1.0*mobileClustersIncrement))*dV);
+            typedef typename std::decay<decltype(dmBWF+bWF_R1c)>::type HeadBWFType;
+            auto _th = _clk::now();
+            const std::vector<Eigen::Triplet<double> > tripHead((dmBWF+bWF_R1c).globalTriplets());
+            const std::vector<Eigen::Triplet<double> > tripTail(bWF_RIc.globalTriplets());
+            t_asm += std::chrono::duration<double>(_clk::now()-_th).count();
+            // Hoisted too: a fresh solver each iteration threw away the cached
+            // Dirichlet selection matrix and index map before they could pay.
+            MobileReactionSolverType rSolver(false,FLT_EPSILON);
+
             while(cError>cTol)
             {
                 if(maxIter>0 && iter>=maxIter)
@@ -226,10 +257,9 @@ template struct InvDscaling<3>;
                 }
                 ++iter;
                 auto _ta = _clk::now();
-                const auto R1((this->cdp.R1cd).eval());
-                auto bWF_R1((test(iDs*mobileClustersIncrement),R1*(-1.0*mobileClustersIncrement))*dV); // THIS SHOULD BE STORED SINCE IT IS ALWAYS THE SAME
+                const auto& R1(R1c);
                 auto lWF_R1((test(iDs*mobileClustersIncrement),eval(R1*mobileClusters))*dV);
-                
+
                 SecondOrderReaction<MobileTrialType> R2(mobileClusters,this->cdp);
                 auto bWF_R2((test(iDs*mobileClustersIncrement),R2*(-1.0*mobileClustersIncrement))*dV);
                 auto lWF_R2((test(iDs*mobileClustersIncrement),eval(R2*(0.5*mobileClusters)))*dV);
@@ -239,8 +269,7 @@ template struct InvDscaling<3>;
                 // network sink is already in R1 via otherSinks; the
                 // grain-boundary sink is imposed spatially by the Dirichlet BC
                 // on the mobile species and must not be added here.
-                ImmobileSinks<ImmobileTrialType,mSize> RI(immobileClusters,this->cdp);
-                auto bWF_RI((test(iDs*mobileClustersIncrement),RI*(-1.0*mobileClustersIncrement))*dV);
+                const auto& RI(RIc);
                 auto lWF_RI((test(iDs*mobileClustersIncrement),eval(RI*mobileClusters))*dV);
 
                 // REMOVED: an assembly of AcIR whose result was never read.
@@ -267,10 +296,16 @@ template struct InvDscaling<3>;
                 // operator in mSolver succeeds. The iterative branch is retained;
                 // the first-step convergence problem is an initial-guess problem,
                 // not a linear-algebra one (see ZR3D_GHONIEM_CHANGES.md, issue 12).
+                // head (dmBWF+R1) + R2 + tail (RI): the original operand order.
+                std::vector<Eigen::Triplet<double> > trip;
+                const auto trip2(bWF_R2.globalTriplets());
+                trip.reserve(tripHead.size()+trip2.size()+tripTail.size());
+                trip.insert(trip.end(),tripHead.begin(),tripHead.end());
+                trip.insert(trip.end(),trip2.begin(),trip2.end());
+                trip.insert(trip.end(),tripTail.begin(),tripTail.end());
                 t_asm += std::chrono::duration<double>(_clk::now()-_ta).count();
                 auto _tc = _clk::now();
-                MobileReactionSolverType rSolver(false,FLT_EPSILON);
-                rSolver.compute(dmBWF+bWF_R1+bWF_R2+bWF_RI);
+                rSolver.template computeFromTriplets<HeadBWFType>(trip);
                 t_cmp += std::chrono::duration<double>(_clk::now()-_tc).count();
                 auto _ts = _clk::now();
                 mobileClustersIncrement=rSolver.solve(cascadeGlobalProduction-mSolver.getA()*mobileClusters.dofVector()+(lWF_R1+lWF_R2+lWF_RI).globalVector());

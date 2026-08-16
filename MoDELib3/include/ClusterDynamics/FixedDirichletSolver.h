@@ -117,6 +117,23 @@ namespace model
         template<typename BilinearWeakFormType>
         void compute(const BilinearWeakFormType& bWF)
         {
+            computeFromTriplets<BilinearWeakFormType>(bWF.globalTriplets());
+        }
+
+        /*! compute() from an already-assembled triplet list.
+         *
+         *  The Newton loop of the mobile solve re-assembles four weak forms
+         *  per iteration, three of which cannot have changed: dmBWF is a
+         *  member, bWF_R1 is constant by construction, and bWF_RI depends only
+         *  on the immobile field, which is frozen for the whole of a fast
+         *  step. Only the second-order reaction term moves. This overload lets
+         *  the caller assemble the invariant part once and splice the one
+         *  varying term in, IN THE ORIGINAL ORDER so that setFromTriplets sums
+         *  duplicates exactly as before and the matrix stays bit-identical.
+         */
+        template<typename BilinearWeakFormType>
+        void computeFromTriplets(const std::vector<Eigen::Triplet<double> >& aTriplets)
+        {
             dirichletConditions=&TrialBase<typename BilinearWeakFormType::TrialFunctionType>::dirichletConditions();
             dofVector=&TrialBase<typename BilinearWeakFormType::TrialFunctionType>::dofVector();
             gSize=TrialBase<typename BilinearWeakFormType::TrialFunctionType>::gSize();
@@ -124,7 +141,6 @@ namespace model
             tSize = gSize-cSize;
 
             A.resize(gSize,gSize);
-            const auto aTriplets(bWF.globalTriplets());
             A.setFromTriplets(aTriplets.begin(),aTriplets.end());
 
             /*! T and the global->reduced index map depend only on gSize and on
