@@ -338,6 +338,27 @@ The derivation is exact for the flux as coded, under three stated simplification
 | thermal emission omitted | Vacancy-loop emission is a loss for ⟨c⟩ that does not scale with `A`, so it raises the lower bound by an `A/B`-independent amount and **narrows** the window from below. The criterion is therefore optimistic for ⟨c⟩ by that margin. |
 | `Z⁰` common to the interstitial species | True as `Zr3d_ghoniem.txt` stands (`1.015504` for all three). If a refit breaks it, Step 5's weighted form still holds with `Z⁰_I → Σ w_m Z⁰_m` in each mean. |
 
+**The largest limitation is not in that table: `gdot` is only one term of the content
+equation.** `ClusterDynamicsFEM.cpp:755` updates content as
+
+```cpp
+cNew = (c + dt*(gdot + Gk + clusShare*clusC - contentSink)) / (1 + dt*lossC)
+```
+
+where `Gk` is cascade nucleation — an independent positive source that carries no
+dependence on `A/B` whatever. So:
+
+> The window governs whether existing loops **grow or dissolve by absorption**. It does
+> **not** govern the net population evolution, which nucleation, coalescence and thermal
+> emission also drive.
+
+Run (b) shows the gap concretely: the sweep predicts `ġ_c < 0` at `p = (1,1,0.7,0.7)`, yet
+that march's interior ⟨c⟩ content rises strongly through 1 dpa because nucleation supplies
+it. Both statements are true and they are about different quantities. Absorption is still
+the only channel the anisotropy enters, so the criterion remains the right instrument for
+choosing the DAD — but a claim about an observed loop *population* must account for `Gk`
+as well.
+
 #### Step 7 — the inversion, which is the useful direction
 
 In practice `A/B` is measured and the question is what anisotropy it demands. Inverting
