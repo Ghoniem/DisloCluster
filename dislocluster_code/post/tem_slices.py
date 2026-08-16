@@ -37,6 +37,14 @@ All three are conditions used experimentally on hcp Zr.
     beam. <a>2 and <a>3 are inclined 60 degrees to the beam and image as
     foreshortened ellipses with Burgers vectors of opposite in-plane sign.
 
+``B_1120`` -- beam along [11-20], the third zone axis and the <a> counterpart
+    of B_0001.
+    <a>2's habit normal is parallel to the beam, so that family is seen face-on
+    as full circles at its true size -- the only condition here in which an <a>
+    family is measured undistorted. <c> is edge-on, imaging as horizontal
+    traces, and <a>1 and <a>3 are inclined at 60 degrees to the beam and image
+    at 0.5. Between this view and B_0001 both populations are seen face-on.
+
 ``B_0001_t45`` -- the specimen tilted 45 degrees off [0001] about [2-1-10].
     Neither zone axis shows a <c> loop as an ellipse: down [0001] it is exactly
     face-on, down [01-10] exactly edge-on. A tilted specimen shows it between
@@ -156,7 +164,42 @@ def tilted_view(deg, about=(1.0, 0.0, 0.0), up=(0.0, 0.0, 1.0)):
                      rf"axis ratio $\cos {deg:g}^\circ = {np.cos(t):.3f}$")
 
 
-# The tilted condition, rendered by default alongside the two zone axes.
+def habit_normal(key):
+    """Unit habit-plane normal of a family, read off its own drawn polygon.
+
+    Taken from `loop_polygon` rather than from `b_lattice` so it cannot
+    disagree with what the figures actually draw, and so it survives any change
+    of lattice-to-Cartesian convention in `discrete_loops`.
+    """
+    P = loop_polygon(FAM_BY_KEY[key], np.zeros(3), 1.0)
+    n = np.cross(P[1] - P[0], P[2] - P[0])
+    return n / np.linalg.norm(n)
+
+
+# `<11-20>` -- the third zone axis, and the <a> counterpart of B_0001.
+#
+# A prismatic loop's habit normal IS its Burgers direction, so the [11-20] zone
+# axis is exactly <a>_2's habit normal; deriving it that way rather than writing
+# (1/2, sqrt3/2, 0) by hand keeps it tied to the family definitions.
+#
+# It is the only condition in this module where an <a> family is seen FACE-ON
+# and therefore at its true size:
+#
+#     <c>        |n.B| = 0.000     edge-on, horizontal traces
+#     <a>_1,3    |n.B| = 0.500     ellipses, inclined 60 deg to the beam
+#     <a>_2      |n.B| = 1.000     face-on, full circles
+#
+# B_0001 does the same job for <c>, so the pair between them measures both
+# populations at full size. <a>_2's Burgers vector points along the beam here
+# and is drawn with the out-of-plane symbol; <c>'s lies in the image plane,
+# vertical.
+VIEWS["B_1120"] = dict(
+    beam=tuple(habit_normal("a2")), up=(0.0, 0.0, 1.0),
+    label=r"$B \parallel [11\bar{2}0]$",
+    note=r"$\langle a\rangle_2$ face-on, $\langle c\rangle$ edge-on, "
+         r"$\langle a\rangle_{1,3}$ inclined")
+
+# The tilted condition, rendered by default alongside the three zone axes.
 VIEWS["B_0001_t45"] = tilted_view(45.0)
 
 # Below this fraction of |b| in the image plane, the Burgers vector is called
