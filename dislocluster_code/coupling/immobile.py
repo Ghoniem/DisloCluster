@@ -257,7 +257,7 @@ def dedup_keys(y0_list, rtol):
 
 
 def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
-                      dedup_rtol=0.0, stats=None, retries=2):
+                      dedup_rtol=0.0, stats=None, retries=3):
     """Advance the immobile state at all quadrature points over one dose step.
 
     Solves, for every point q independently and concurrently (OpenMP batch),
@@ -320,14 +320,38 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
         stuck = [i for i, r in enumerate(raw) if r is None]
         if not stuck:
             break
-        again = run_cpp_solver_batch([cases[i] for i in stuck],
-                                     base_dir=base_dir)
+        # Attempt 1 re-runs unchanged, which is what distinguishes a transient
+        # from a real failure. Later attempts TIGHTEN the tolerances, because the
+        # failures seen so far are not transient: they are points whose <c> loop
+        # content is crossing the positivity floor, where the step-size control
+        # stalls partway. Measured on node 41804 of the 500 nm anisotropic
+        # march, rtol or atol alone changed nothing; rtol=1e-8 WITH atol=1e-30
+        # integrated it, and the endpoint is the physical continuation -- its
+        # five nearest neighbors fall by a factor of 277 over the same substep,
+        # so the whole region is collapsing and this point merely reaches the
+        # floor first.
+        #
+        # Tighter, never looser. Loosening also "works" and would be the wrong
+        # trade: it buys convergence by accepting a less accurate answer at the
+        # one point in the domain already known to be difficult.
+        retry_cases = [cases[i] for i in stuck]
+        if attempt > 0:
+            scale_r, scale_a = 10.0 ** (-2 * attempt), 10.0 ** (-10 * attempt)
+            tightened = []
+            for c in retry_cases:
+                d = _cli_to_dict(c)
+                d["rtol"] = repr(float(d.get("rtol", 1e-6)) * scale_r)
+                d["atol"] = repr(float(d.get("atol", 1e-20)) * scale_a)
+                tightened.append(_dict_to_cli(d))
+            retry_cases = tightened
+        again = run_cpp_solver_batch(retry_cases, base_dir=base_dir)
         n_ok = sum(r is not None for r in again)
         for i, r in zip(stuck, again):
             if r is not None:
                 raw[i] = r
-        print(f"      immobile retry {attempt + 1}: {len(stuck)} case(s) "
-              f"re-run alone, {n_ok} recovered", flush=True)
+        how = "unchanged" if attempt == 0 else f"tightened x1e-{2 * attempt}"
+        print(f"      immobile retry {attempt + 1} ({how}): {len(stuck)} "
+              f"case(s), {n_ok} recovered", flush=True)
         if stats is not None:
             stats.setdefault("retries", []).append(
                 dict(attempt=attempt + 1, n_retried=len(stuck),

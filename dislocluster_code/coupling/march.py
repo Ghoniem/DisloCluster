@@ -537,6 +537,26 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             if (N and nfail == N) or (max_failed_nodes is not None
                                       and nfail > max_failed_nodes):
                 bad_idx = [q for q, o in enumerate(out) if o is None]
+                # Dump the state that failed. Without this a failed march throws
+                # away the one thing needed to diagnose it -- the exact input,
+                # including the fast solve that preceded it, which is expensive
+                # to reconstruct and easy to reconstruct WRONGLY: a solver built
+                # without the same seed starts its Newton iteration elsewhere and
+                # converges to a field that agrees to three printed digits and
+                # not at the failing point.
+                try:
+                    dump = (saver.dir if saver.enabled else evl_out.parent)
+                    np.savez_compressed(
+                        Path(dump) / "failed_state.npz", Y=Y,
+                        bad_idx=np.array(bad_idx, dtype=int),
+                        t_begin=float(a), t_end=float(b),
+                        dose_from=float(d0), dose_to=float(d1),
+                        substep=int(k + 1), k_global=int(k_global))
+                    print(f"      wrote {Path(dump) / 'failed_state.npz'}",
+                          flush=True)
+                except Exception as exc:
+                    print(f"      could not dump failed state: {exc}",
+                          flush=True)
                 raise MarchFailure(
                     f"{nfail}/{N} points failed at substep {k + 1} of interval "
                     f"[{d0:g} -> {d1:g}] dpa (max_failed_nodes="
