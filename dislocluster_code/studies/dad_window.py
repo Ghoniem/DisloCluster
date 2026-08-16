@@ -283,6 +283,41 @@ def report(records, z0, p_m, grid=None):
                  + ("any `p_I <= 1`" if need is None else f"**{need:.4f}**")
                  + " |")
 
+    # ── does co-growth hold at each dose? ───────────────────────────────────
+    # The bounds depend on p ALONE, so one fast solve per dose settles this --
+    # no second sweep is needed to test the dose dependence of co-growth.
+    if len(p_m) >= 2:
+        p_v = float(p_m[0])
+        w_int = None
+        if records and "w_i" in records[0]:
+            w_int = [records[0][k] for k in ("w_i", "w_2i", "w_3i")]
+        lo, hi, W, p_bar, f_bar = window_mixed(
+            p_v, list(p_m[1:]), w_int if w_int else [1.0] * (len(p_m) - 1),
+            z0_v, z0_I)
+        L += ["", "## Does co-growth hold, and over what dose range", "",
+              f"At `p_m = ({', '.join(f'{p:g}' for p in p_m)})` the bounds are "
+              f"`L = {lo:.4f}`, `U = {hi:.4f}` (`W = {W:.4f}`, "
+              f"`p_bar = {p_bar:.4f}`, `f_bar = {f_bar:.4f}`). Both families "
+              "grow where `L < A/B < U`; below `L` the interstitial families "
+              "grow and `<c>` dissolves, above `U` the vacancy families grow "
+              "and `<a>` dissolves -- including, above `U`, vacancy `<a>` "
+              "loops in place of interstitial ones.", "",
+              "| dose | `A/B` | regime |", "|---:|---:|---|"]
+        for r in records:
+            x = r["ratio_med"]
+            reg = ("`A/B < L` -- interstitial `<a>` + interstitial `<c>`"
+                   if x < lo else
+                   "**co-growth** -- vacancy `<c>` + interstitial `<a>`"
+                   if x <= hi else
+                   "`A/B > U` -- vacancy `<c>` + vacancy `<a>`")
+            L.append(f"| {r['dose']:.4g} | {x:.4f} | {reg} |")
+        L += ["", "The bounds are functions of `p` only, so this table needs "
+              "one fast solve per dose and no second sweep. Note the window is "
+              f"{100 * (W - 1):.0f}% wide in `A/B`: an excursion of that size, "
+              "in space or in time, moves the material between regimes -- "
+              "which is how both vacancy and interstitial `<a>` loops can be "
+              "present in one specimen without any change to the DAD.", ""]
+
     # ── who carries the interstitial flux ───────────────────────────────────
     L += ["", "## Which species carries the interstitial arrival", "",
           "In the mixed criterion the window opens by "
