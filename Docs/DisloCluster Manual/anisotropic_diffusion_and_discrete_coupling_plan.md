@@ -159,86 +159,227 @@ need to change.** DisloCluster uses Woo's closed-form capture efficiencies,
 for the same anisotropic absorption problem, valid for a randomly oriented population.
 The critical requirement is **consistency**: see §3.2.
 
-### 1.3.1 What those capture efficiencies imply — the co-growth criterion
+### 1.3.1 The DAD window — a closed-form criterion for simultaneous ⟨a⟩ and ⟨c⟩ growth
 
-Because DisloCluster's continuum families absorb through the two closed forms above,
-the condition for **simultaneous ⟨a⟩ and ⟨c⟩ growth** — the observation the whole DAD
-mechanism exists to explain — can be written down in closed form rather than searched
-for numerically. This is derived and checked in
+Irradiated Zr holds prismatic interstitial ⟨a⟩ loops and basal vacancy ⟨c⟩ loops at the
+same time, and reproducing that is the reason the DAD mechanism exists at all. Because
+DisloCluster's continuum families absorb through Woo's two closed forms rather than
+through a line integral, the condition for co-growth can be **derived** rather than
+searched for numerically. It is implemented and checked in
 [`dislocluster_code/studies/dad_window.py`](../../dislocluster_code/studies/dad_window.py).
 
-Write the arrival rate of mobile species `m` at a loop as `D̄_m c_m |m|`, with
-`D̄_m = (det D_m)^(1/3)`, and split it into the vacancy and interstitial parts:
+#### Step 1 — the growth flux, and what cancels out of it
+
+`ClusterDynamicsFEM.cpp:617–645` forms, for each immobile family `k`:
 
 ```
-A = D̄_v c_v                                  vacancy arrival
-B = Σ_{m interstitial} D̄_m c_m |m|           interstitial arrival
+gdot_k = φ_like,k − gate_k · φ_opp,k
+φ_·,k  = Σ_m D̄_m · Z(row(k), m) · S_k · c_m · |m_m|
 ```
 
-A vacancy ⟨c⟩ loop grows when it absorbs more vacancies than interstitials; an
-interstitial ⟨a⟩ loop when it does the reverse. With `Z_c(m) = Z⁰_m p_m` and
-`Z_a(m) = Z⁰_m f(p_m)`, `f(p) ≡ (p + p⁻²)/2`, and one anisotropy `p_I` shared by the
-interstitial species (`Z⁰` is already common to them in `Zr3d_ghoniem.txt`), the two
-conditions are each a bound on the **same single number**:
+with `row(k) = 0` for a vacancy family and `1` for an interstitial family, `D̄_m =
+(det D_m)^(1/3)`, and `S_k = clusterDensity·loopSinkScale`. Two structural facts do the
+work:
+
+- **`S_k` multiplies both channels identically**, so it cancels from the *sign* of
+  `gdot_k`. Whether a family grows is therefore independent of its own density and
+  size — the microstructure sets the *rate*, never the *direction*. This is what makes
+  the criterion below universal rather than state-dependent.
+- **`gate_k ∈ [0,1]`** is a smoothstep in `(r_k/r_min − 1)/0.3` applied to the
+  *shrinking* channel only. Setting `gate_k = 1` is therefore the conservative choice
+  for a growth criterion: a family this analysis calls shrinking would shrink at least
+  as fast with the gate active. §Step 6 returns to what the gate changes.
+
+Set `gate_k = 1` and drop the common `S_k > 0`.
+
+#### Step 2 — collapse the mobile species into two numbers
+
+Define the vacancy and interstitial **arrival rates**
 
 ```
-⟨c⟩ grows   ⟺   A/B  >  (Z⁰_I/Z⁰_v) · p_I / p_v
-⟨a⟩ grows   ⟺   A/B  <  (Z⁰_I/Z⁰_v) · f(p_I) / f(p_v)
+A = D̄_v c_v                                  (the single vacancy species)
+B = Σ_{m interstitial} D̄_m c_m |m_m|         (i, 2i, 3i, weighted by cluster size)
 ```
 
-so both hold together only inside a window whose width is
+A ⟨c⟩ loop is vacancy-type: vacancies are its `like` channel, interstitials its `opp`.
+A ⟨a⟩ loop is interstitial-type and the roles swap. Writing the Eq. (15) efficiencies as
 
 ```
-W = [f(p_I)/f(p_v)] / [p_I/p_v] = g(p_v) / g(p_I),     g(p) ≡ p/f(p) = 2/(1 + p⁻³)
+Z_c(m) = Z⁰_m · p_m                          row 0 — basal, vacancy-type
+Z_a(m) = Z⁰_m · f(p_m),   f(p) ≡ (p + p⁻²)/2 row 1 — prismatic, interstitial-type
 ```
 
-`g` is strictly increasing, so the window is non-empty exactly when `g(p_I) < g(p_v)`:
+The whole criterion rests on these two responding *differently* to `p`. `Z_c` is linear
+and monotone. `f` is not: it is a rising plus a falling term with
+
+```
+f′(p) = (1 − 2p⁻³)/2  = 0   at   p = 2^(1/3) = 1.259921,  where f = 0.944941
+f(p)  = 1                    at   p = 1  and  p = (1+√5)/2 = 1.618034
+```
+
+so `f` is strictly decreasing on `(0, 2^(1/3))` — **still falling at `p = 1`**, where
+`f′(1) = −1/2` — and dips below `Z⁰` on `1 < p < 1.618`. It is that asymmetry, not the
+anisotropy as such, that lets one family gain while the other does not.
+
+Taking for the moment **one anisotropy `p_I` shared by the interstitial species**
+(legitimate here because `Zr3d_ghoniem.txt` already gives `i`, `2i` and `3i` a common
+`Z⁰_I = 1.015504`, against `Z⁰_v = 0.939836`):
+
+```
+gdot_c > 0   ⟺   Z⁰_v p_v A       >  Z⁰_I p_I B
+gdot_a > 0   ⟺   Z⁰_I f(p_I) B    >  Z⁰_v f(p_v) A
+```
+
+#### Step 3 — both conditions are bounds on the same single number
+
+Divide each by `B` and by the leading constants. Both become bounds on the **arrival
+ratio** `A/B`:
+
+```
+⟨c⟩ grows   ⟺   A/B  >  (Z⁰_I/Z⁰_v) · p_I / p_v          ← lower bound
+⟨a⟩ grows   ⟺   A/B  <  (Z⁰_I/Z⁰_v) · f(p_I) / f(p_v)    ← upper bound
+```
+
+Co-growth requires `A/B` to sit in the window between them. That the two conditions
+reduce to bounds on one scalar — rather than to two independent constraints — is the
+reason the problem has a clean answer.
+
+#### Step 4 — when is the window non-empty?
+
+The window has width
+
+```
+W  =  upper / lower  =  [f(p_I)/f(p_v)] · [p_v/p_I]  =  g(p_v) / g(p_I)
+```
+
+where
+
+```
+g(p)  ≡  p / f(p)  =  2p / (p + p⁻²)  =  2p³/(p³ + 1)  =  2 / (1 + p⁻³)
+```
+
+The last form makes the monotonicity immediate: `p⁻³` is strictly decreasing in `p` for
+`p > 0`, so `1 + p⁻³` is strictly decreasing and `g` is **strictly increasing**, with
+`g(0⁺) = 0`, `g(1) = 1`, `g(∞) = 2`. Hence `W > 1 ⟺ g(p_v) > g(p_I) ⟺ p_v > p_I`:
 
 > **Simultaneous growth of ⟨a⟩ and ⟨c⟩ loops is possible if and only if `p_I < p_v`** —
 > the interstitial species must be biased into the basal plane *relative to* the
 > vacancies.
 
-That is the entire DAD argument in one inequality, and it is a property of the capture
-efficiencies alone: it does not depend on the dose, the microstructure or the mobile
-field. Those decide only whether the realized `A/B` lands **inside** the window.
+This is the whole DAD argument in one inequality. Note what it does **not** contain: no
+dose, no loop density, no loop size, no temperature except through `p(T)`, and no
+property of the mobile field. It is a statement about the capture efficiencies alone.
+What the dose and the field decide is only whether the realized `A/B` lands *inside* the
+window.
 
-Two consequences worth keeping in view:
+Two corollaries worth keeping in view:
 
-- **The absolute anisotropy is irrelevant; only the contrast matters.** Making every
-  species equally anisotropic (`p_v = p_I`) gives `W = 1` — a degenerate window that no
-  `A/B` satisfies — however extreme the common `p` is.
+- **Only the contrast matters, never the absolute anisotropy.** Setting `p_v = p_I` gives
+  `W = 1` — a degenerate window no `A/B` satisfies — however extreme the common value.
+  An "anisotropic" model in which every species shares one tensor cannot produce
+  co-growth at all.
 - **`A/B` is not a fixed target.** The anisotropy reshapes the mobile field as well as
-  re-weighting the absorption, so changing `p` moves the ratio and the bounds at once.
-  This is precisely the effect that cannot be captured in 0-D, where the mobile
-  concentrations come from a well-mixed balance with no direction in it.
+  re-weighting the absorption, so moving `p` moves the ratio and the bounds together.
+  This is exactly the coupling that cannot be represented in 0-D, where the mobile
+  concentrations come from a well-mixed balance with no direction in it — and it is why
+  each point of the sweep in `dad_sweep.py` costs a fast solve.
 
-**When the interstitial species do not share one `p`** — which is Li et al.'s own
-structure, DAD on the di- and tri-interstitial with the single interstitial isotropic —
-each condition still collapses to one number, now an arrival-weighted mean over the
-interstitial species, `p̄ = Σ w_m p_m` and `f̄ = Σ w_m f(p_m)` with
-`w_m = D̄_m c_m |m| / B`. The window is non-empty iff `p_v f̄ > f(p_v) p̄`. Since
+#### Step 5 — the general case: interstitial species with different `p`
 
-```
-f(p) − p = (1 − p³) / (2p²)
-```
-
-vanishes at `p = 1`, **an isotropic species is inert in this criterion**: it enters `p̄`
-and `f̄ ` with the same value. The anisotropic species therefore open the window only in
-proportion to the share of the interstitial arrival they actually deliver — giving the
-DAD to the clusters alone buys `W = 1.03` at a 5% cluster share against `W = 1.96` at
-100%. Whether that structure can work in this model is therefore an empirical question
-about the arrival shares, which `dad_window.run` measures.
-
-The inversion is the practically useful direction. At a **measured** `A/B`, the largest
-`p_I` that still permits ⟨a⟩ growth is the root of `f(p_I) = (A/B)(Z⁰_v/Z⁰_I) f(p_v)`,
-which for `A/B ≫ 1` approaches
+Li et al.'s own structure gives the DAD to the di- and tri-interstitial and leaves the
+single interstitial isotropic, so the shared-`p_I` reduction of Step 2 does not apply.
+Carrying the species sum through instead, and writing the **arrival shares**
+`w_m = D̄_m c_m |m_m| / B` (so `Σ w_m = 1` over the interstitial species), the same two
+conditions become
 
 ```
-p_I  ≲  1 / √(2 · (A/B) · Z⁰_v/Z⁰_I)
+⟨c⟩ grows   ⟺   A/B  >  (Z⁰_I/Z⁰_v) · p̄ / p_v ,        p̄ = Σ_m w_m p_m
+⟨a⟩ grows   ⟺   A/B  <  (Z⁰_I/Z⁰_v) · f̄ / f(p_v) ,     f̄ = Σ_m w_m f(p_m)
 ```
 
-— the required anisotropy tightens only as the **square root** of the vacancy excess, so
-a doubling of the vacancy surplus costs a factor 1.41 in `p_I`, not 2.
+— identical in form, with `p_I → p̄` and `f(p_I) → f̄`. The window is non-empty iff
+`p_v f̄ > f(p_v) p̄`, which reduces to Step 4 when all `p_m` are equal. The new content is
+in the difference
+
+```
+f(p) − p  =  (p + p⁻² )/2 − p  =  (p⁻² − p)/2  =  (1 − p³) / (2p²)
+```
+
+which is **positive for `p < 1`, zero at `p = 1`, negative for `p > 1`**. So at `p_v = 1`
+the window opens by `f̄ − p̄ = Σ_m w_m (1 − p_m³)/(2p_m²)`, and:
+
+> **An isotropic species is inert.** A species left at `p_m = 1` enters `p̄` and `f̄` with
+> the same value and contributes nothing to opening the window.
+
+The anisotropic species therefore help only in proportion to the share of the
+interstitial arrival they actually deliver. For `p = (p_v, p_i, p_2i, p_3i) =
+(1, 1, 0.7, 0.7)`:
+
+| cluster share `w_2i + w_3i` | `p̄` | `f̄` | `W` |
+|---:|---:|---:|---:|
+| 0.05 | 0.9850 | 1.0185 | 1.034 |
+| 0.20 | 0.9400 | 1.0741 | 1.143 |
+| 0.60 | 0.8200 | 1.2222 | 1.491 |
+| 1.00 | 0.7000 | 1.3704 | 1.958 |
+
+A window always exists (any `p_m < 1` opens one), but a cluster-only DAD is nearly inert
+if the single interstitial carries the flux — no value of `p_2i`, however extreme, can
+widen a window whose weight `w_2i` is small. **Whether Li et al.'s structure can work in
+this model is therefore an empirical question about the arrival shares**, which
+`dad_window.run` measures.
+
+#### Step 6 — assumptions, and what relaxing them does
+
+The derivation is exact for the flux as coded, under three stated simplifications:
+
+| assumption | effect of relaxing it |
+|---|---|
+| `gate_k = 1` (Step 1) | The gate multiplies the shrinking channel by `≤ 1`, so it scales the lower bound down and the upper bound up: `W_gated = W / (gate_c · gate_a) ≥ W`. **The gate can only widen the window**, so `p_I < p_v` is *necessary and sufficient* for the ungated criterion but only *sufficient* once the gate is active. Empirically the distinction has not mattered: every grid point with `p_I > p_v` gave co-growth on exactly 0.000 of the interior nodes. |
+| thermal emission omitted | Vacancy-loop emission is a loss for ⟨c⟩ that does not scale with `A`, so it raises the lower bound by an `A/B`-independent amount and **narrows** the window from below. The criterion is therefore optimistic for ⟨c⟩ by that margin. |
+| `Z⁰` common to the interstitial species | True as `Zr3d_ghoniem.txt` stands (`1.015504` for all three). If a refit breaks it, Step 5's weighted form still holds with `Z⁰_I → Σ w_m Z⁰_m` in each mean. |
+
+#### Step 7 — the inversion, which is the useful direction
+
+In practice `A/B` is measured and the question is what anisotropy it demands. Inverting
+the ⟨a⟩ condition for the largest admissible `p_I`, at a given `p_v`:
+
+```
+f(p_I) = (A/B) · (Z⁰_v/Z⁰_I) · f(p_v)        solve for p_I ∈ (0, 1]
+```
+
+`f` is strictly decreasing on `(0,1]`, so the root is unique and a bracketed solve is
+robust. For `A/B ≫ 1` the `p⁻²/2` term dominates `f`, giving the asymptote
+
+```
+p_I  ≲  1 / √( 2 · (A/B) · Z⁰_v/Z⁰_I · f(p_v) )
+```
+
+so the required anisotropy tightens only as the **square root** of the vacancy excess —
+doubling the vacancy surplus costs a factor 1.41 in `p_I`, not 2. Checked against the
+exact root:
+
+| `A/B` | exact `p_I` | asymptote |
+|---:|---:|---:|
+| 1.5 | 0.6928 | 0.6001 |
+| 3 | 0.4423 | 0.4244 |
+| 5 | 0.3348 | 0.3287 |
+| 10 | 0.2339 | 0.2324 |
+
+#### Step 8 — from `p` back to what the material file actually holds
+
+`p_m` is a derived quantity, not an input. The file carries
+`mobileSpeciesEnergyMigration_eV`, and `staging/anisotropy.py` splits it at fixed
+`D_eff = (D⟨a⟩² D⟨c⟩)^(1/3)` — so that a change in `p` changes the *directionality* of
+diffusion and not the overall mobility the existing calibration was fitted at:
+
+```
+E_m⟨11,22⟩ = E_m,eff + 2 k_BT ln(p_m)
+E_m⟨33⟩    = E_m,eff − 4 k_BT ln(p_m)
+```
+
+Because the anisotropy is stored as energies, `p_m(T) = exp(−ΔE_m/6k_BT)` is
+temperature-dependent, and a window that is open at one temperature can close at
+another. Any co-growth statement is therefore a statement at a stated `T`.
 
 ### 1.4 The superposition principle
 

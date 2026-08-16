@@ -76,7 +76,16 @@ from dislocluster_code.studies.dad_sweep import (MOBILE, _material_of,
 
 
 def f_a(p):
-    """<a> capture shape ``(p + p^-2)/2`` -- minimum 1 at p = 1."""
+    """<a> capture shape ``(p + p^-2)/2``.
+
+    Strictly decreasing on ``(0, 2^(1/3))`` with an interior minimum of
+    ``0.944941`` at ``p = 2^(1/3) = 1.259921`` -- NOT at ``p = 1``, where it is
+    still falling (``f'(1) = -1/2``). It equals 1 at both ``p = 1`` and
+    ``p = (1+sqrt5)/2 = 1.618034``, dipping below Z0 in between.
+
+    Only the branch ``p <= 1`` is used by :func:`required_p_I`, where the strict
+    monotonicity makes the root unique.
+    """
     p = np.asarray(p, float)
     return 0.5 * (p + p ** -2.0)
 

@@ -51,8 +51,14 @@ Eq. (15) capture efficiencies from `loopDADbias()`:
 A vacancy <c> loop grows on Cv and shrinks on the interstitials; an interstitial
 <a> loop does the reverse. Co-growth therefore needs the vacancy supply and the
 interstitial supply to be simultaneously favourable to their own family, which is
-only possible because Z_c and Z_a respond differently to p_m -- Z_a is a sum of a
-rising and a falling term and has a minimum at p_m = 1, while Z_c is monotone.
+only possible because Z_c and Z_a respond differently to p_m: Z_c = Z0 p is
+monotone, while Z_a = Z0 (p + p^-2)/2 is a rising plus a falling term with an
+interior minimum at p = 2^(1/3) = 1.2599 (where it is 0.9449 Z0), so it is still
+DECREASING at p = 1 and dips below Z0 over 1 < p < (1+sqrt5)/2 = 1.618.
+
+`studies/dad_window.py` turns that difference into a closed-form criterion:
+co-growth is possible iff p_I < p_v. This module measures where the realized
+arrival ratio falls relative to the window that criterion defines.
 
 USAGE
 -----
