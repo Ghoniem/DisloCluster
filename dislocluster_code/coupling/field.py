@@ -104,6 +104,33 @@ def read_material_scalar(material_file, key):
     return float(m.group(1).split()[0])
 
 
+def read_material_vector(material_file, key, n=None):
+    """Read a ``key=v1 v2 ...;`` VECTOR from a MoDELib material file.
+
+    :func:`read_material_scalar` returns ``split()[0]`` and silently discards
+    the rest, which is correct for the scalars it was written for and a trap
+    for everything else. Several keys that look scalar are per-species or
+    per-family: `loopSinkScale` is ``0.291528`` for <c> but ``0.792317`` for
+    the three <a> variants, and `otherSinks_SI`, `dadAnisotropy` and `dadZ0`
+    all carry one entry per mobile species. Reading any of them as a scalar
+    applies the <c> or vacancy value to everything.
+
+    ``n`` broadcasts a single entry to that length, so a genuinely scalar
+    spelling of a per-species key still works.
+    """
+    txt = Path(material_file).read_text(encoding="utf-8", errors="replace")
+    m = re.search(rf"^\s*{re.escape(key)}\s*=\s*([^;#\n]+)", txt, re.M)
+    if not m:
+        raise KeyError(f"{key} not found in {material_file}")
+    v = np.array([float(x) for x in m.group(1).split()], dtype=float)
+    if n is not None:
+        if v.size == 1:
+            v = np.repeat(v, n)
+        elif v.size != n:
+            raise ValueError(f"{key} has {v.size} entries, expected {n}")
+    return v
+
+
 def cluster_atomic_volume(material_file):
     """omega = atomicVolume_SI / b_SI^3 — MoDELib's atomic volume in b^3.
 

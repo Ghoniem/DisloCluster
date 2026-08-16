@@ -131,22 +131,31 @@ LATTICE_BASIS = np.array([[1.0, 0.5,       0.0],
 # the higher count costs nothing to render.
 CIRCLE_SIDES = 64
 
+# ...but it costs a great deal to SOLVE with. The Galerkin climb assembly is
+# O(N_seg^2) over ordered segment pairs, so exporting a 64-gon where 12 sides
+# would do is 28x the work for a shape difference no solve can see. `sides` is
+# therefore the RENDER count and `dd_sides` the one `write_microstructure`
+# exports for dislocation dynamics; plan 4b fixes the latter at 12 for <c>.
+# Area is matched by polygon_circumradius() at either count, so the stored
+# defect number is identical.
+DD_SIDES = 12
+
 FAMILIES = [
     dict(key="c",  label="<c>",   ncol=4, ccol=8,  b_lattice=(0.0, 0.0, 1.0),
          b_cd=1.632993, b_dd=0.8164966, plane_id=0,  vacancy=1,
-         sides=CIRCLE_SIDES,
+         sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
          d_plane=1.632993, color="#1f4fbf", b_label="1/2[0001]",
          b_tex=r"$\frac{1}{2}[0001]$"),
     dict(key="a1", label="<a>1",  ncol=5, ccol=9,  b_lattice=(1.0, 0.0, 0.0),
-         b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=0, sides=16,
+         b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#c62828", b_label="1/3[2-1-10]",
          b_tex=r"$\frac{1}{3}[2\bar{1}\bar{1}0]$"),
     dict(key="a2", label="<a>2",  ncol=6, ccol=10, b_lattice=(0.0, 1.0, 0.0),
-         b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=0, sides=16,
+         b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#2e7d32", b_label="1/3[11-20]",
          b_tex=r"$\frac{1}{3}[11\bar{2}0]$"),
     dict(key="a3", label="<a>3",  ncol=7, ccol=11, b_lattice=(-1.0, 1.0, 0.0),
-         b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=0, sides=16,
+         b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#e6b800", b_label="1/3[-12-10]",
          b_tex=r"$\frac{1}{3}[\bar{1}2\bar{1}0]$"),
 ]
@@ -425,7 +434,7 @@ def coalesce(pop, box_volume, coplanar_tol="plane", max_passes=20,
 
 
 # ── export ───────────────────────────────────────────────────────────────────
-def write_microstructure(pops, out_file, box_shift=None):
+def write_microstructure(pops, out_file, box_shift=None, sides_key="dd_sides"):
     """Write a MoDELib3 ``aLoop`` individual-style microstructure file.
 
     The format is the one in ``MoDELib3/Library/Microstructures/aLoopsIndividual.txt``
@@ -438,14 +447,22 @@ def write_microstructure(pops, out_file, box_shift=None):
     ``loopRadii_SI`` carries the CIRCUMRADIUS of the area-matched polygon, not
     the disc radius, because the generator puts its vertices on a circle of the
     radius it is handed.
+
+    **The side count is `dd_sides`, not the render count `sides`.** They are
+    the same for <a> and differ by more than a factor of five for <c>, whose
+    render count was raised to 64 to draw it as a circle. Since the Galerkin
+    climb assembly is O(N_seg^2), exporting the render count would cost 28x for
+    a shape no solve can resolve. `sides_key` exists only to reproduce a file
+    written before the two were separated.
     """
     plane, radii, sides, vac, cen = [], [], [], [], []
     for pop in pops:
         f = pop.fam
+        n_sides = int(f.get(sides_key, f["sides"]))
         for k in range(len(pop)):
             plane.append(f["plane_id"])
-            radii.append(polygon_circumradius(pop.radii[k], f["sides"]) * B_SI)
-            sides.append(f["sides"])
+            radii.append(polygon_circumradius(pop.radii[k], n_sides) * B_SI)
+            sides.append(n_sides)
             vac.append(f["vacancy"])
             c = pop.centers[k] if box_shift is None else pop.centers[k] + box_shift
             cen.append(c)

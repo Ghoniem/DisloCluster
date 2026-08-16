@@ -151,11 +151,14 @@ def sink_discontinuity(fam, material=None):
     fb = float(np.sqrt(fam["b_cd"] / fam["b_dd"]))
     scale = None
     if material is not None:
-        from dislocluster_code.coupling.field import read_material_scalar
+        # PER FAMILY, and it genuinely differs: 0.291528 for <c> against
+        # 0.792317 for the three <a> variants. Reading it with
+        # read_material_scalar would apply the <c> value to everything.
+        from dislocluster_code.coupling.field import read_material_vector
         try:
-            vals = str(read_material_scalar(material, "loopSinkScale")).split()
-            j = [f["key"] for f in FAMILIES].index(fam["key"])
-            scale = float(vals[j]) if j < len(vals) else float(vals[0])
+            vals = read_material_vector(material, "loopSinkScale",
+                                        len(FAMILIES))
+            scale = float(vals[[f["key"] for f in FAMILIES].index(fam["key"])])
         except Exception:
             scale = None
     fbias = (1.0 / scale) if scale else float("nan")
