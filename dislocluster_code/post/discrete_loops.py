@@ -697,32 +697,30 @@ def write_table(pops, out_file, box_shift=None):
 
 
 # ── driver helpers ───────────────────────────────────────────────────────────
-def build(run_dir, dose, region="interior", coalesce_pass=True,
-          coplanar_tol=None, seed=0, mc_samples=2_000_000, verbose=True,
-          _cache={}):
-    """``(dose_actual, [LoopPopulation], stats)`` for one dose."""
-    key = str(run_dir)
-    if key not in _cache:
-        doses, nodes, frames = movies_mod.cd_blocks(run_dir)
-        # The domain is whatever convex body the nodes fill: a cube for the
-        # reference case, a hexagonal prism for a `GEOMETRY['type']='hexagonal'`
-        # run. EVERYTHING below is keyed on that rather than on the bounding
-        # box -- the nodal volumes, the total volume that turns a density into
-        # a count, and the region the loops are placed in. On a hexagonal prism
-        # the bounding box is 4/3 = 1.33x the crystal, so using it
-        # over-counted the loops by a third and scattered them through six empty
-        # wedges outside the outline.
-        faces = None
-        try:
-            faces = domain_faces(nodes)
-        except Exception:
-            pass
-        w = voronoi_weights(nodes, mc_samples, verbose=False, faces=faces)
-        _cache[key] = (doses, nodes, frames, w, faces)
-    doses, nodes, frames, w, faces = _cache[key]
+def populate(nodes, F, weights, faces, region="interior", coalesce_pass=True,
+             coplanar_tol=None, seed=0, positions_P=None):
+    """Place the discrete population for ONE CD block. ``([pop], stats, box)``.
 
-    i = int(np.argmin(np.abs(np.asarray(doses) - dose)))
-    P, F = frames[i]
+    The half of :func:`build` that does the physics, split out so it can be
+    driven from a LIVE march state as well as from a finished run's snapshots
+    -- the runtime continuum->discrete transition (plan 4b) needs exactly this
+    and none of the run-directory loading around it.
+
+    Parameters
+    ----------
+    nodes : (N,3)   CD node positions, in b. The convex body they fill IS the
+                    crystal: the volume that turns a density into a count, the
+                    region loops are placed in and the clip all come from it.
+    F : (N,12)      one CD block, ``[4 mobile | 4 number | 4 content]`` -- the
+                    layout `movies.cd_blocks` returns and `FAMILIES` indexes
+                    through ``ncol``/``ccol``. Build it from a marched state as
+                    ``np.column_stack([Y[:, :4], immobile_0d_to_modelib(Y, omega)])``.
+    weights : (N,)  nodal volume weights, normalized over the whole domain.
+    faces           convex-hull faces, or None to fall back to the bounding box.
+    positions_P     node cloud used for the box and for placement; defaults to
+                    ``nodes``.
+    """
+    P = nodes if positions_P is None else positions_P
     L = P.max(0) - P.min(0)
     box_volume = float(np.prod(L)) if faces is None else domain_volume(P)
 
@@ -732,11 +730,11 @@ def build(run_dir, dose, region="interior", coalesce_pass=True,
         mask = d_face_nm > cutoff
         # Renormalize weights over the region so counts scale to the FULL box:
         # the interior density is what a bulk DD cell should carry.
-        wr = w * mask
+        wr = weights * mask
         wr = wr / wr.sum()
     elif region == "domain":
         mask = np.ones(len(nodes), dtype=bool)
-        wr = w
+        wr = weights
     else:
         raise ValueError(f"region must be 'interior' or 'domain', got {region!r}")
 
@@ -766,6 +764,44 @@ def build(run_dir, dose, region="interior", coalesce_pass=True,
             saturated=bool(getattr(pop, "saturated", False)),
             max_merged=int(pop.n_merged.max()) if len(pop) else 0))
         pops.append(pop)
+    return pops, stats, (P.min(0), P.max(0)), box_volume, L
+
+
+def domain_weights(nodes, mc_samples=2_000_000, verbose=False):
+    """``(weights, faces)`` for a node cloud -- the expensive part of `build`."""
+    faces = None
+    try:
+        faces = domain_faces(nodes)
+    except Exception:
+        pass
+    return voronoi_weights(nodes, mc_samples, verbose=verbose,
+                           faces=faces), faces
+
+
+def build(run_dir, dose, region="interior", coalesce_pass=True,
+          coplanar_tol=None, seed=0, mc_samples=2_000_000, verbose=True,
+          _cache={}):
+    """``(dose_actual, [LoopPopulation], stats)`` for one dose."""
+    key = str(run_dir)
+    if key not in _cache:
+        doses, nodes, frames = movies_mod.cd_blocks(run_dir)
+        # The domain is whatever convex body the nodes fill: a cube for the
+        # reference case, a hexagonal prism for a `GEOMETRY['type']='hexagonal'`
+        # run. EVERYTHING below is keyed on that rather than on the bounding
+        # box -- the nodal volumes, the total volume that turns a density into
+        # a count, and the region the loops are placed in. On a hexagonal prism
+        # the bounding box is 4/3 = 1.33x the crystal, so using it
+        # over-counted the loops by a third and scattered them through six empty
+        # wedges outside the outline.
+        w, faces = domain_weights(nodes, mc_samples)
+        _cache[key] = (doses, nodes, frames, w, faces)
+    doses, nodes, frames, w, faces = _cache[key]
+
+    i = int(np.argmin(np.abs(np.asarray(doses) - dose)))
+    P, F = frames[i]
+    pops, stats, box, box_volume, L = populate(
+        nodes, F, w, faces, region=region, coalesce_pass=coalesce_pass,
+        coplanar_tol=coplanar_tol, seed=seed, positions_P=P)
 
     if verbose:
         print(f"  dose {doses[i]:.4g} dpa, region={region}, box {L[0]:.0f} b "
