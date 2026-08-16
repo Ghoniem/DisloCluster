@@ -1,0 +1,20 @@
+\contentsline {section}{\numberline {1}The baseline: MoDELib2-NNL, before the immobile populations}{3}{section.1}%
+\contentsline {paragraph}{Above the baseline.}{3}{section*.2}%
+\contentsline {paragraph}{A note on \texttt {\small mlm335/MoDELib-fullCD}, and on an earlier error in these documents.}{3}{section*.3}%
+\contentsline {part}{I\hspace {1em}The immobile population equations}{3}{part.1}%
+\contentsline {section}{\numberline {2}Introducing the immobile populations}{4}{section.2}%
+\contentsline {section}{\numberline {3}Nucleation}{5}{section.3}%
+\contentsline {section}{\numberline {4}Growth by absorption}{6}{section.4}%
+\contentsline {section}{\numberline {5}Annealing and thermal emission}{7}{section.5}%
+\contentsline {section}{\numberline {6}Coalescence}{8}{section.6}%
+\contentsline {part}{II\hspace {1em}The mobile solve, and the coupling between the two}{9}{part.2}%
+\contentsline {part}{III\hspace {1em}The material file and the verification case}{13}{part.3}%
+\contentsline {part}{IV\hspace {1em}The coupled architecture}{15}{part.4}%
+\contentsline {part}{V\hspace {1em}Physics corrections found by measurement}{17}{part.5}%
+\contentsline {part}{VI\hspace {1em}Computational efficiency}{20}{part.6}%
+\contentsline {section}{\numberline {7}The 0-D solver}{20}{section.7}%
+\contentsline {section}{\numberline {8}The fast solve}{21}{section.8}%
+\contentsline {part}{VII\hspace {1em}Portability, reproducibility and post-processing}{23}{part.7}%
+\contentsline {part}{VIII\hspace {1em}Open items}{25}{part.8}%
+\contentsline {section}{Verification status against the 0-D}{27}{section*.4}%
+\contentsline {section}{Summary of measured efficiency changes}{28}{section*.5}%
