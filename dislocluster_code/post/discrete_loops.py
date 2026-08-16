@@ -698,7 +698,7 @@ def write_table(pops, out_file, box_shift=None):
 
 # ── driver helpers ───────────────────────────────────────────────────────────
 def populate(nodes, F, weights, faces, region="interior", coalesce_pass=True,
-             coplanar_tol=None, seed=0, positions_P=None):
+             coplanar_tol=None, seed=0, positions_P=None, return_raw=False):
     """Place the discrete population for ONE CD block. ``([pop], stats, box)``.
 
     The half of :func:`build` that does the physics, split out so it can be
@@ -739,7 +739,7 @@ def populate(nodes, F, weights, faces, region="interior", coalesce_pass=True,
         raise ValueError(f"region must be 'interior' or 'domain', got {region!r}")
 
     rng = np.random.default_rng(seed)
-    pops, stats = [], []
+    pops, stats, raws = [], [], []
     for fam in FAMILIES:
         raw = sample_family(nodes, F, wr, box_volume, fam, mask=mask, rng=rng,
                             positions=("uniform" if region == "interior"
@@ -764,6 +764,12 @@ def populate(nodes, F, weights, faces, region="interior", coalesce_pass=True,
             saturated=bool(getattr(pop, "saturated", False)),
             max_merged=int(pop.n_merged.max()) if len(pop) else 0))
         pops.append(pop)
+        raws.append(raw)
+    if return_raw:
+        # The pre-coalescence draw. The transfer ledger needs it because
+        # coalescence conserves AREA and not COUNT, so loop number is only
+        # comparable with the continuum before that step runs.
+        return pops, stats, (P.min(0), P.max(0)), box_volume, L, raws
     return pops, stats, (P.min(0), P.max(0)), box_volume, L
 
 
