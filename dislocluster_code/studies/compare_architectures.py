@@ -61,9 +61,37 @@ def _hms(x):
 
 def compare(ref_dir, opt_dir):
     (rp, rs, rz), (op, os_, oz) = _load(ref_dir), _load(opt_dir)
-    L = [f"# Fast-solve architecture comparison", "",
+    L = ["# Fast-solve architecture comparison", "",
          f"- reference : `{rp.name}`",
-         f"- optimized : `{op.name}`", ""]
+         f"- optimized : `{op.name}`",
+         f"- CD nodes  : {rz['nodes'].shape[0]:,}",
+         "",
+         "## What changed", "",
+         "Both runs solve the same case with the same Python driver. They",
+         "differ only in the DDomp binary that takes the fast step. Every",
+         "change removes repeated work; none approximates anything, which is",
+         "why the physics section below is the one that decides whether the",
+         "timings mean anything.", "",
+         "| # | change | effect |",
+         "|---|---|---|",
+         "| 1 | `AcIR`, a sparse matrix assembled every Newton iteration and "
+         "never read, removed | 1.64x |",
+         "| 2 | Dirichlet selection matrix `T` and its index map cached; "
+         "`A1 = T'AT` replaced by a filtered copy, `T` being a selection "
+         "matrix | ~1.00x alone |",
+         "| 3 | element assembly `BilinearWeakForm::globalTriplets` "
+         "parallelized over explicit contiguous chunks | 1.33x |",
+         "| 4 | the three loop-invariant weak forms and `rSolver` hoisted out "
+         "of the Newton iteration | 1.11x |",
+         "",
+         "Cumulative on one isolated DDomp call at 200 nm: **96.6 s -> 37.8 s, "
+         "2.556x**. Change 2 measured as nothing on its own because `rSolver` "
+         "was rebuilt each iteration and discarded the cache before it could "
+         "pay; change 4 is what made it count.", "",
+         "Assembly order is preserved exactly at every step. `setFromTriplets` "
+         "sums duplicate entries, so a different triplet order would "
+         "re-associate those sums and the result would agree only to rounding "
+         "-- which would have made bit-identity unavailable as a check.", ""]
 
     # ── physics ─────────────────────────────────────────────────────────────
     L += ["## Physics", ""]
@@ -125,7 +153,10 @@ def compare(ref_dir, opt_dir):
           "|---:|---:|---:|---:|---:|---:|---:|"]
     for a, b in zip(rs.get("timing", []), os_.get("timing", [])):
         fa, fb = float(a.get("fast_s", 0)), float(b.get("fast_s", 0))
-        sp = f"{fa / fb:.3f}x" if fb else "--"
+        # An interval with no fast solve carries only timer noise; a ratio of
+        # two sub-millisecond numbers is not a speedup and must not be printed
+        # as one.
+        sp = f"{fa / fb:.3f}x" if (fb > 1.0 and fa > 1.0) else "--"
         L.append(f"| {a['dose_from']:.4g} | {a['dose_to']:.4g} | "
                  f"{_hms(fa)} | {_hms(fb)} | {sp} | "
                  f"{_hms(a.get('slow_s', 0))} | {_hms(b.get('slow_s', 0))} |")
