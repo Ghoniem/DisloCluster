@@ -462,31 +462,30 @@ not dividing `substeps_per_interval` was skipping whole intervals.
 The slow side is linear in node count, as this structure predicts: 9.3 s per
 substep at 27 720 nodes and 28.3 s at 90 617 — 3.35×10⁻⁴ vs 3.12×10⁻⁴ s/node.
 
-### The slow step is NOT deterministic
+### A point can fail the slow step, and where
 
-**The same batch of states can fail on one invocation and succeed on the next.**
-Measured on the 500 nm anisotropic march: one point of 90 617 failed at the
-0.01 → 0.1 dpa substep, and the identical step — same checkpoint, and the
-preceding fast solve reproduced to every printed digit
-(`Cv 8.46e-15..6.69e-06 Ci 4.11e-27..8.43e-10 …`) — then completed with **zero**
-failures when re-run twice.
+**Measured on the 500 nm anisotropic march**: node 41804 fails the immobile
+integration at the 0.01 → 0.1 dpa substep, and it fails **deterministically** —
+in the full batch, again when re-run on its own, twice, across two separate
+march invocations.
 
-The mechanism is the per-thread CVODE workspace the batch mode reuses across
-cases, which is the optimization that bought 1.67× end to end. Under dynamic
-scheduling, which case follows which on a given thread varies between
-invocations, so a point sitting near the solver's failure boundary is decided by
-scheduling rather than by its own state.
+It sits at `z = 2423.5 b` in a `2474.5 b` domain: **51 b from the basal-pole
+face**, inside the boundary layer, with entirely unremarkable concentrations
+(30th–50th percentile in every mobile species). It is not an extreme-value node.
+That location is the tell — anisotropic interstitial diffusion narrows the
+boundary layer along ⟨c⟩ and steepens its gradient, which is what Li et al.
+report and what puts this point beyond CVODE's reach at `rtol=1e-6`.
 
-Two consequences:
+`run_immobile_step` takes `retries=2` and re-runs failed points on their own.
+That is worth keeping — it costs a handful of cases against tens of thousands
+and it distinguishes a transient from a real failure — but it does **not** help
+here, and the retry log says so explicitly (`1 case(s) re-run alone, 0
+recovered`). A point that fails alone needs a solver or a model answer, not
+another attempt.
 
-- `run_immobile_step` takes `retries=2` and re-runs failed points **on their
-  own**, which repacks them into a tiny batch and usually clears them. Prefer
-  that to raising `max_failed_nodes`, which substitutes an **identity step** —
-  it does not recover the point, it freezes it for the substep.
-- **Do not assume two runs of the same case agree point for point.** The
-  fast-solve optimizations were verified bit-identical and that verification
-  stands, because it was the *fast* side; the slow side has never been shown
-  reproducible and this measurement says it is not.
+Note what `max_failed_nodes` does before reaching for it: it substitutes an
+**identity step**, freezing the point for that substep. It does not recover the
+point; it declares the march successful without it.
 
 ### Study drivers
 

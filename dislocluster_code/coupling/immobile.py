@@ -322,13 +322,16 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
             break
         again = run_cpp_solver_batch([cases[i] for i in stuck],
                                      base_dir=base_dir)
+        n_ok = sum(r is not None for r in again)
         for i, r in zip(stuck, again):
             if r is not None:
                 raw[i] = r
+        print(f"      immobile retry {attempt + 1}: {len(stuck)} case(s) "
+              f"re-run alone, {n_ok} recovered", flush=True)
         if stats is not None:
             stats.setdefault("retries", []).append(
                 dict(attempt=attempt + 1, n_retried=len(stuck),
-                     n_recovered=sum(r is not None for r in again)))
+                     n_recovered=n_ok, cases=list(stuck)))
 
     endpoints = []
     for r in raw:

@@ -536,10 +536,12 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             nfail = sum(o is None for o in out)
             if (N and nfail == N) or (max_failed_nodes is not None
                                       and nfail > max_failed_nodes):
+                bad_idx = [q for q, o in enumerate(out) if o is None]
                 raise MarchFailure(
                     f"{nfail}/{N} points failed at substep {k + 1} of interval "
                     f"[{d0:g} -> {d1:g}] dpa (max_failed_nodes="
-                    f"{max_failed_nodes}). "
+                    f"{max_failed_nodes}); node indices "
+                    f"{bad_idx[:20]}{' ...' if len(bad_idx) > 20 else ''}. "
                     + ("The whole batch failed, which means the solver did not "
                        "run -- check that solver.exe exists and exits 0."
                        if nfail == N else
