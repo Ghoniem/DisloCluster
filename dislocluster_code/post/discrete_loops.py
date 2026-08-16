@@ -105,10 +105,36 @@ LATTICE_BASIS = np.array([[1.0, 0.5,       0.0],
 #                6 basal systems (0-5), then prismatic in pairs: plane (a1,c)
 #                -> 6,7, plane (a3,c) -> 8,9, plane (-a2,c) -> 10,11.
 #   vacancy      1 vacancy-type, 0 interstitial-type (material immobileSpeciesVector)
-#   sides        polygon sides: hexagon for basal <c>, near-circle for <a>
+#   sides        polygon sides used to draw and to export the loop; see
+#                CIRCLE_SIDES below
+
+# Sides used to draw a CIRCULAR loop. 64 is indistinguishable from a circle at
+# every radius these runs reach and at every output resolution used, while
+# remaining a polygon -- which it has to be, because MoDELib3's aLoopGenerator
+# builds loops from vertices. Both loop types now read as circles: <c> uses
+# this value and <a> keeps the 16 it has always had, already round enough that
+# no pixel distinguishes it from a disc at these radii. <a> is left at 16 so
+# that its exported radii and CSVs are unchanged by this edit.
+#
+# The <c> family used 6 until 16 August 2026. That was not arbitrary: basal
+# vacancy loops in Zr facet on <10-10>-type edges, so a hexagon is a defensible
+# equilibrium shape and the drawn hexagon was oriented with its edges along
+# those directions. The physics has not changed -- only the representation, by
+# request, to circles. The faceting note is kept here so the reason for the
+# original choice is not lost if it is ever revisited.
+#
+# Nothing downstream assumes a particular side count. polygon_circumradius()
+# matches the polygon AREA to the disc the continuum field assigned, for any n,
+# so the number of point defects stored in a loop is conserved either way; the
+# circumradius correction is 0.08% at n=64 against 10.0% for a hexagon. The
+# drawn line is resampled to 1.5 nm steps before clipping regardless of n, so
+# the higher count costs nothing to render.
+CIRCLE_SIDES = 64
+
 FAMILIES = [
     dict(key="c",  label="<c>",   ncol=4, ccol=8,  b_lattice=(0.0, 0.0, 1.0),
-         b_cd=1.632993, b_dd=0.8164966, plane_id=0,  vacancy=1, sides=6,
+         b_cd=1.632993, b_dd=0.8164966, plane_id=0,  vacancy=1,
+         sides=CIRCLE_SIDES,
          d_plane=1.632993, color="#1f4fbf", b_label="1/2[0001]",
          b_tex=r"$\frac{1}{2}[0001]$"),
     dict(key="a1", label="<a>1",  ncol=5, ccol=9,  b_lattice=(1.0, 0.0, 0.0),
@@ -127,7 +153,7 @@ FAMILIES = [
 
 # Line thickness of the drawn tubes, in nm. A dislocation line has no thickness,
 # so this is purely a drawing width -- but a single width across families makes
-# the <c> hexagons, which are ten times larger, look like wire. The width is
+# the <c> loops, which are ten times larger, look like wire. The width is
 # therefore proportional to the loop's own radius, clamped so that the small
 # <a> loops stay visible and the large <c> loops do not fill in.
 TUBE_FRACTION = 0.05
@@ -451,17 +477,19 @@ def loop_polygon(fam, center, r_area, in_plane_ref=None):
     for, so the number of point defects it holds is exactly the number the
     continuum field assigned to it.
 
-    <c> loops are hexagons and <a> loops are 16-gons, which is not a rendering
-    preference: basal vacancy loops in Zr facet on <10-10>-type edges, so a
-    hexagon is their shape, while prismatic <a> loops are round enough that a
-    16-gon is indistinguishable from a circle at these radii.
+    Both families are drawn as circles: <c> as a 64-gon (see CIRCLE_SIDES) and
+    <a> as a 16-gon, neither distinguishable from a disc at these radii. <c>
+    was a hexagon until 16 August 2026, on the faceting argument recorded at
+    CIRCLE_SIDES.
     """
     n_sides = int(fam["sides"])
     _, n_hat = family_geometry(fam)
     R = polygon_circumradius(r_area, n_sides)
 
-    # In-plane frame. For <c> the hexagon is oriented with a vertex along the
-    # a1 direction, so its edges run along <10-10> as the faceting requires.
+    # In-plane frame. The starting vertex is placed along the a1 direction. It
+    # mattered while <c> was a hexagon, whose edges then ran along <10-10> as
+    # the faceting required; for a circle the choice is immaterial, and it is
+    # kept only so that a given loop draws identically from run to run.
     ref = np.array([1.0, 0.0, 0.0]) if in_plane_ref is None else np.asarray(in_plane_ref)
     if abs(float(n_hat @ ref)) > 0.9:
         ref = np.array([0.0, 0.0, 1.0])
@@ -509,10 +537,11 @@ def _densify_closed(pts, max_step):
     """Resample a closed polygon so no edge is longer than ``max_step``.
 
     Only used before clipping the drawn line at the crystal surface: the tube is
-    built one cylinder per edge and clipped whole cylinders at a time, so on a
-    six-sided <c> hexagon whose side is 47 nm the cut would land up to half a
-    side away from the wall. Adding collinear points along each side does not
-    change the shape and moves the cut onto the surface.
+    built one cylinder per edge and clipped whole cylinders at a time, so the
+    cut would otherwise land up to half an edge away from the wall. This matters
+    most for the large <c> loops -- at 1 dpa their radius reaches 47 nm, giving
+    a 4.6 nm edge even at 64 sides. Adding collinear points along each edge does
+    not change the shape and moves the cut onto the surface.
     """
     pts = np.asarray(pts, float)
     closed = np.vstack([pts, pts[:1]])
@@ -530,7 +559,7 @@ def render(pops, box_lo, box_hi, out_file, title="", domain_pts=None,
 
     Tube width is a drawing choice only -- a dislocation line has no thickness --
     and is set per loop by ``tube_radius_nm``, proportional to the loop's own
-    radius so the large <c> hexagons do not read as wire next to the small <a>
+    radius so the large <c> loops do not read as wire next to the small <a>
     loops.
 
     ``domain_pts`` is the CD node cloud. Given it, the outline drawn is the
@@ -549,7 +578,7 @@ def render(pops, box_lo, box_hi, out_file, title="", domain_pts=None,
     fig = plt.figure(figsize=(9.0, 7.2))
     # computed_zorder=False so the crystal outline is drawn OVER the loops
     # rather than depth-sorted as one artist against them; otherwise the edges
-    # behind a large <c> hexagon disappear and the prism stops closing.
+    # behind a large <c> loop disappear and the prism stops closing.
     ax = fig.add_subplot(111, projection="3d", computed_zorder=False)
 
     # Loop CENTRES are inside the crystal, but a loop is not a point: at 1 dpa
@@ -812,7 +841,7 @@ def main(argv=None):
                    domain_pts=P, clip_to_domain=not args.no_clip,
                    verbose=verbose_fig)
             # One figure per family. The combined view is dominated by whichever
-            # family is largest -- at 10 dpa the <c> hexagons are 10x the <a>
+            # family is largest -- at 10 dpa the <c> loops are 10x the <a>
             # loops and hide them -- so each population also gets its own panel.
             for pop in pops:
                 f = pop.fam

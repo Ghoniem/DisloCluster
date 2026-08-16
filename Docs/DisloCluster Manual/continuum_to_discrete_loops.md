@@ -91,7 +91,7 @@ r(x) = sqrt( m(x) · Ω / (π |b|) )
 
 | family | habit plane | Burgers vector | \|b\| | sides | `planeID` | type | color |
 |---|---|---|---:|---:|---:|---|---|
-| ⟨c⟩ | basal (0001) | **½[0001]** | 0.8165 b | 6 (hexagon) | 0 | vacancy | blue |
+| ⟨c⟩ | basal (0001) | **½[0001]** | 0.8165 b | 64 (circle) | 0 | vacancy | blue |
 | ⟨a⟩₁ | prismatic | **⅓[21̄1̄0]** | 1.0 b | 16 | 6 | interstitial | red |
 | ⟨a⟩₂ | prismatic | **⅓[112̄0]** | 1.0 b | 16 | 8 | interstitial | green |
 | ⟨a⟩₃ | prismatic | **⅓[1̄21̄0]** | 1.0 b | 16 | 10 | interstitial | yellow |
@@ -103,9 +103,17 @@ to the Miller–Bravais indices above and to Cartesian (1,0,0), (0.5,0.866,0) an
 zero applied stress, as they must be.
 
 These are pure climb loops, so the habit-plane normal is parallel to the Burgers
-vector. Hexagons for ⟨c⟩ is not a drawing preference — basal vacancy loops in Zr
-facet on ⟨10-10⟩-type edges. ⟨a⟩ loops are round enough that a 16-gon is
-indistinguishable from a circle at these radii.
+vector. **Both families are drawn as circles**: ⟨c⟩ as a 64-gon
+(`discrete_loops.CIRCLE_SIDES`) and ⟨a⟩ as a 16-gon, neither distinguishable
+from a disc at these radii or at any output resolution used. A polygon it must
+remain — MoDELib3's `aLoopGenerator` builds loops from vertices.
+
+⟨c⟩ was a hexagon until 16 August 2026. That was not a drawing preference:
+basal vacancy loops in Zr facet on ⟨10-10⟩-type edges, so a hexagon is a
+defensible equilibrium shape, and the drawn hexagon was oriented with its edges
+along those directions. The change is to the representation only; the faceting
+argument is recorded here and at `CIRCLE_SIDES` so it is available if the
+choice is ever revisited.
 
 `planeID` indexes `singleCrystal->slipSystems()`. With
 `enabledSlipSystems=fullBasal fullPrismatic` that list is six basal systems
@@ -113,11 +121,13 @@ indistinguishable from a circle at these radii.
 (−a2,c) → 10,11.
 
 **The polygon carries the disc's area, not the disc's radius.** A regular
-*n*-gon of circumradius *R* has area `(n/2)R² sin(2π/n)`, which for a hexagon is
-only 82.7 % of `πR²`. Since the conserved quantity is the number of point
-defects stored, the export scales the circumradius by
-`sqrt(2π / (n sin(2π/n)))` — 1.0996 for the hexagon, 1.013 for the 16-gon.
-fullCD does not do this and its 12-gons under-fill by 2.3 %.
+*n*-gon of circumradius *R* has area `(n/2)R² sin(2π/n)`. Since the conserved
+quantity is the number of point defects stored, the export scales the
+circumradius by `sqrt(2π / (n sin(2π/n)))` — **1.0008 for the 64-gon**, 1.013
+for the 16-gon, and 1.0996 for the hexagon ⟨c⟩ used to be, whose area is only
+82.7 % of `πR²`. The correction is applied for any *n*, so the stored defect
+count is conserved whatever shape is chosen. fullCD does not do this and its
+12-gons under-fill by 2.3 %.
 
 ---
 
@@ -222,7 +232,7 @@ python -m dislocluster_code.post.discrete_loops <run_dir> [--doses 1e-4 0.01 1 1
 | `aLoops_<dose>.txt` | MoDELib3 `aLoop` individual-style microstructure file — `planeIDs`, `loopRadii_SI`, `loopSides`, `loopCenters`, `isVacancyLoop`, all per loop |
 | `loops_<dose>.csv` | per-loop table: family, position (b and nm), radius, circumradius, Burgers vector, normal, merge count |
 | `loops_<dose>.png` | all families together, drawn as tubular dislocation lines |
-| `loops_<family>_<dose>.png` | one figure per family — the combined view is dominated by whichever family is largest, and at 10 dpa the ⟨c⟩ hexagons are ten times the ⟨a⟩ loops and hide them |
+| `loops_<family>_<dose>.png` | one figure per family — the combined view is dominated by whichever family is largest, and at 10 dpa the ⟨c⟩ loops are ten times the ⟨a⟩ loops and hide them |
 | `manifest.json` | counts, radii, spacings, `2r/d` before and after coalescence, area conservation and saturation flags |
 
 `region='interior'` places a homogeneous population at the interior mean density
@@ -237,7 +247,7 @@ is skipped rather than written as an unparseable empty microstructure.
 ### Line thickness
 
 A dislocation line has no thickness, so the tube width is a drawing choice. A
-single width across families makes the ⟨c⟩ hexagons read as wire next to the
+single width across families makes the ⟨c⟩ loops read as wire next to the
 ⟨a⟩ loops they are ten times larger than, so the width is set per loop,
 
 ```

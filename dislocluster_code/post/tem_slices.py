@@ -24,7 +24,7 @@ Both are conditions used experimentally on hcp Zr.
 
 ``B_0001`` -- beam along [0001], down the c-axis.
     <c> loops lie in the basal plane, normal along the beam, so they image
-    face-on as hexagons. All three <a> families have their prismatic habit plane
+    face-on as circles. All three <a> families have their prismatic habit plane
     parallel to the beam, so they image edge-on as short lines, each family with
     a trace 60 degrees from the next. Every <a> Burgers vector lies in the image
     plane and is perpendicular to its own trace; the <c> Burgers vector points
