@@ -18,9 +18,9 @@ This module reproduces it: pick a beam direction, take a slab of the given
 thickness, project the loop polygons along the beam, and draw them dark on a
 light field.
 
-THE TWO BEAM DIRECTIONS
------------------------
-Both are conditions used experimentally on hcp Zr.
+THE BEAM DIRECTIONS
+-------------------
+All three are conditions used experimentally on hcp Zr.
 
 ``B_0001`` -- beam along [0001], down the c-axis.
     <c> loops lie in the basal plane, normal along the beam, so they image
@@ -36,6 +36,15 @@ Both are conditions used experimentally on hcp Zr.
     trace vertical, since its habit-plane normal [2-1-10] is perpendicular to the
     beam. <a>2 and <a>3 are inclined 60 degrees to the beam and image as
     foreshortened ellipses with Burgers vectors of opposite in-plane sign.
+
+``B_0001_t30`` -- the specimen tilted 30 degrees off [0001] about [2-1-10].
+    Neither zone axis shows a <c> loop as an ellipse: down [0001] it is exactly
+    face-on, down [01-10] exactly edge-on. A tilted specimen shows it between
+    those extremes, and the ELLIPSE is what identifies a basal loop and lets its
+    inclination be read off the plate. A circular loop of normal n viewed along
+    B projects to an ellipse of axis ratio |n.B|, so at 30 degrees <c> images at
+    0.866, <a>1 stays edge-on because its habit normal is the tilt axis, and
+    <a>2/<a>3 image at 0.433. See :func:`tilted_view` for any other angle.
 
 WHAT IS AND IS NOT MODELED
 --------------------------
@@ -92,6 +101,51 @@ VIEWS = {
                    note=r"$\langle c\rangle$ and $\langle a\rangle_1$ edge-on, "
                         r"$\langle a\rangle_{2,3}$ inclined"),
 }
+
+
+def tilted_view(deg, about=(1.0, 0.0, 0.0), up=(0.0, 0.0, 1.0)):
+    """A view with the beam ``deg`` degrees off [0001], tilted about ``about``.
+
+    Neither of the two named views above shows a <c> loop as an ellipse: down
+    [0001] it is exactly face-on (a circle) and down [01-10] exactly edge-on (a
+    line). A real specimen is tilted between those extremes, and the ELLIPSE is
+    what identifies a basal loop and lets its inclination be read off the
+    micrograph -- the projected axis ratio of a circular loop of normal n viewed
+    along B is simply
+
+        b/a = |n . B|
+
+    so a beam ``deg`` off the c-axis foreshortens every <c> loop to
+    ``cos(deg)`` and nothing else about the loop enters.
+
+    The tilt axis defaults to Cartesian x = [2-1-10], which is <a>_1's Burgers
+    direction. That is the experimentally usual choice and it is the one that
+    keeps the picture readable: <a>_1's habit normal IS the tilt axis, so it
+    stays exactly edge-on, and <a>_2 and <a>_3 tilt by the same amount as each
+    other. At 30 degrees:
+
+        <c>          |n.B| = 0.866     a clear ellipse
+        <a>_1        |n.B| = 0.000     still edge-on, a straight trace
+        <a>_2,3      |n.B| = 0.433     strongly foreshortened ellipses
+
+    Verified against `loop_polygon` itself rather than against an assumed frame,
+    so it cannot drift if the family definitions change.
+    """
+    t = np.radians(float(deg))
+    k = np.asarray(about, float)
+    k = k / np.linalg.norm(k)
+    c = np.array([0.0, 0.0, 1.0])
+    # Rodrigues rotation of the c-axis about k.
+    beam = (c * np.cos(t) + np.cross(k, c) * np.sin(t)
+            + k * float(k @ c) * (1.0 - np.cos(t)))
+    return dict(beam=tuple(beam), up=tuple(up),
+                label=rf"$B$ at ${deg:g}^\circ$ from $[0001]$",
+                note=rf"$\langle c\rangle$ inclined: ellipses, "
+                     rf"axis ratio $\cos {deg:g}^\circ = {np.cos(t):.3f}$")
+
+
+# The tilted condition, rendered by default alongside the two zone axes.
+VIEWS["B_0001_t30"] = tilted_view(30.0)
 
 # Below this fraction of |b| in the image plane, the Burgers vector is called
 # out-of-plane and drawn as the conventional circled dot instead of an arrow.
