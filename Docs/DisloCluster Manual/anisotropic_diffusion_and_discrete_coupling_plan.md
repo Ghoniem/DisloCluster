@@ -381,6 +381,102 @@ Because the anisotropy is stored as energies, `p_m(T) = exp(−ΔE_m/6k_BT)` is
 temperature-dependent, and a window that is open at one temperature can close at
 another. Any co-growth statement is therefore a statement at a stated `T`.
 
+### 1.3.2 Vacancy ⟨a⟩ loops — what the window argument forbids, and what it allows
+
+Experiments in irradiated Zr report ⟨a⟩ loops of **both** vacancy and interstitial
+character. That looks at first like a contradiction of §1.3.1, and resolving it sharpens
+what the criterion does and does not claim.
+
+#### The complementarity is exact — no DAD parameters can produce both
+
+`Z_h(m)` depends on the loop's **habit plane** `h` and on the diffusing species `m`. It
+does **not** depend on whether the loop is vacancy- or interstitial-type: a basal loop
+presents its face to the c-axis flux and a prismatic loop to the basal flux, and that is
+geometry. So the two ⟨a⟩ types share one `Z_prism(m) = Z⁰_m f(p_m)`, and
+
+```
+interstitial ⟨a⟩ grows  ⟺  Z_prism(I)·B > Z_prism(v)·A  ⟺  A/B < U
+vacancy      ⟨a⟩ grows  ⟺  Z_prism(v)·A > Z_prism(I)·B  ⟺  A/B > U
+```
+
+with the *same* `U = (Z⁰_I/Z⁰_v) f(p_I)/f(p_v)` from §1.3.1 Step 3. The `Z⁰` and `f(p)`
+factors cancel identically because they multiply both sides. Applying the same argument
+to the basal habit at threshold `L` partitions the `A/B` axis into three regimes:
+
+| regime | growing populations |
+|---|---|
+| `A/B < L` | interstitial ⟨a⟩ + interstitial ⟨c⟩ |
+| `L < A/B < U` | **vacancy ⟨c⟩ + interstitial ⟨a⟩** — the classic Zr microstructure |
+| `A/B > U` | vacancy ⟨c⟩ + **vacancy ⟨a⟩** |
+
+> **A vacancy ⟨a⟩ loop grows exactly where an interstitial ⟨a⟩ loop dissolves**, for any
+> `p_v`, `p_I` and `Z⁰`. The two populations cannot both grow at one place and time.
+
+So the observation cannot be reached by tuning the DAD, and it is not evidence that the
+criterion is wrong — it is a statement about a different regime of the same axis.
+
+#### The inhomogeneity required is small, which inverts into a constraint on `p_I`
+
+The gap between regimes 2 and 3 is the window width `W = g(p_v)/g(p_I)`. At the
+co-growth point measured in `dad_sweep` (`p_v = 1`, `p_I = 0.9137`), `L = 0.9873` and
+`U = 1.1407` — a **16% band in `A/B`**. A local or transient excursion of that size moves
+the material from regime 2 into regime 3 and makes vacancy ⟨a⟩ loops.
+
+This inverts into a useful inference:
+
+> The coexistence of both ⟨a⟩ types is **evidence for a narrow window**, i.e. for `p_I`
+> only slightly below `p_v`.
+
+At the paper's `p_I = 0.70` against `p_v = 1` the window is 96% wide and a factor-2
+excursion in `A/B` would be needed. The fitted `p_I = 0.9137` against `p_v = 1` sits in
+exactly the narrow-window regime that makes both populations easy to obtain — which is an
+argument in favour of the fitted anisotropy over the paper's, on evidence independent of
+the parameter fit itself.
+
+#### Candidate mechanisms, in order of how much new physics each needs
+
+1. **Temporal.** `A/B` is vacancy-rich in the early transient before the sink density
+   builds, then falls. Loops nucleated in regime 3 are vacancy-type; when `A/B` drops
+   into regime 2 they shrink — but slowly, because the rate carries the common `S_k` and
+   the minimum-size gate suppresses the shrinking channel near `r_min`. Predicts vacancy
+   ⟨a⟩ as a **relic** population, declining at high dose. Needs no new physics.
+2. **Cascade-scale.** A vacancy-rich cascade core collapses directly to a vacancy loop in
+   picoseconds at nanometre scale — a **nucleation** channel that bypasses `A/B`
+   altogether, and neither spatial nor temporal at the continuum scale. The channel
+   already exists in form (`loopCascadeFractions`); what is missing is a family for it to
+   feed.
+3. **Continuum-scale spatial.** `A/B` varies across the specimen; the Dirichlet boundary
+   layer is an extreme case. Sufficient in principle, but strained if the two ⟨a⟩ types
+   are observed intermixed within one grain.
+4. **Type-dependent capture.** The complementarity is exact only because `Z` factorizes
+   into `Z⁰_m` times a habit shape. Any mechanism making capture depend on the loop's own
+   type — its own strain field, faulting, solute decoration — splits the thresholds:
+   writing `β_v`, `β_i` for type-specific like-defect enhancements, coexistence needs
+   `β_v β_i > 1`. **Note the sign problem**: the standard dislocation bias (SIAs have the
+   larger relaxation volume, so all loops prefer them) gives `β_i > 1` but `β_v < 1`, and
+   it is not obvious the product exceeds 1. This route therefore needs a specific
+   mechanism, not merely "more physics".
+
+One piece of extra physics already in the 3-D model has the **wrong sign**: vacancy-loop
+thermal emission raises the threshold for vacancy loops of both habits, opening a dead
+band in which *neither* ⟨a⟩ type grows rather than a coexistence band.
+
+#### The code cannot currently represent a vacancy ⟨a⟩ loop
+
+`ClusterDynamicsFEM.cpp:484` builds `Z` with rows labelled by **habit**
+(`// row0 <c>, row1 <a>`), but line 621 selects the row by **polarity**:
+
+```cpp
+const int row(isVacancyFamily(k)?0:1);
+```
+
+With `immobileSpeciesVector = -1 1 1 1` the two labellings coincide one-to-one, so this
+is latent rather than a live bug. But adding a vacancy ⟨a⟩ family would silently give it
+the **basal** capture row — the wrong geometry, and precisely the quantity the whole
+argument turns on. Testing hypothesis 1 or 2 therefore requires carrying a habit index
+per family alongside the polarity index. It is a small change, but it is a C++ change and
+a rebuild, and it must land before any vacancy-⟨a⟩ family is added.
+
 ### 1.4 The superposition principle
 
 Applied twice, identically in structure:
