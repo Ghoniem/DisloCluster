@@ -16,6 +16,11 @@ Libraries/
 ZrMicro/build/
 MoDELib3/build/
 MoDELib3/build_dc/
+# Any additional MoDELib build tree, e.g. build_fast/ for the optimized
+# fast solve alongside build_dc/ as the reference. Same rule as above:
+# regenerable, and a committed Linux ELF once made a clone believe
+# MoDELib was built when it was not.
+MoDELib3/build_*/
 ZrMicro/.vscode/c_cpp_properties.json
 
 # ── Run output ───────────────────────────────────────────────────────────────
