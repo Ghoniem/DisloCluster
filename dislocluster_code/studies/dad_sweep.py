@@ -77,6 +77,7 @@ from dislocluster_code.coupling import field as mf, qssa as mq
 from dislocluster_code.post.discrete_loops import FAMILIES
 from dislocluster_code.post.fields import gb_distance
 from dislocluster_code.staging import anisotropy as ani
+from dislocluster_code.staging.anisotropy import KB_EV, split_migration
 
 # Mobile species: (name, signed size m). Negative = vacancy-type.
 MOBILE = [("Cv", -1), ("Ci", 1), ("C2i", 2), ("C3i", 3)]
@@ -231,16 +232,19 @@ def _read_dadz0(material_file):
     return np.array([float(x) for x in m.group(1).split()], float)
 
 
-def report(records, dose):
-    L = ["# DAD parameters for simultaneous ⟨a⟩ and ⟨c⟩ loop growth", "",
+def report(records, dose, e_eff=None, T=573.0):
+    # ASCII only: this text is printed to a console that is cp1252 on Windows,
+    # and a UnicodeEncodeError on the PRINT would lose a sweep that has already
+    # cost half an hour of fast solves. The file is written utf-8 either way.
+    L = ["# DAD parameters for simultaneous <a> and <c> loop growth", "",
          f"Growth rates evaluated at **{dose:g} dpa** from one frozen immobile "
          "state, on interior nodes. Each row is one fast solve — the mobile "
          "field is re-solved for every parameter point, because the anisotropy "
          "reshapes it and not only the capture efficiencies.", "",
          "`D_eff` is held fixed per species, so a row changes the "
          "**directionality** of diffusion, not its overall rate.", "",
-         "| `p_v` | `p_i` | `p_2i=p_3i` | median `ġ_c` | median `ġ_a` | "
-         "frac ⟨c⟩ grow | frac ⟨a⟩ grow | **frac both** |",
+         "| `p_v` | `p_i` | `p_2i=p_3i` | median `gdot_c` | median `gdot_a` | "
+         "frac `<c>` grow | frac `<a>` grow | **frac both** |",
          "|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for r in records:
         L.append(f"| {r['p_v']:.4f} | {r['p_i']:.4f} | {r['p_cluster']:.4f} | "
@@ -248,18 +252,60 @@ def report(records, dose):
                  f"{r['frac_c_growing']:.3f} | {r['frac_a_growing']:.3f} | "
                  f"**{r['frac_both']:.3f}** |")
     best = max(records, key=lambda r: r["frac_both"]) if records else None
+    median_both = [r for r in records
+                   if r["gdot_c"] > 0 and r["gdot_a"] > 0]
     L += [""]
     if best:
         L += [f"**Widest co-growth region**: `p_v = {best['p_v']:.4f}`, "
               f"`p_i = {best['p_i']:.4f}`, "
-              f"`p_2i = p_3i = {best['p_cluster']:.4f}` — both families growing "
+              f"`p_2i = p_3i = {best['p_cluster']:.4f}` -- both families growing "
               f"on {best['frac_both']:.1%} of interior nodes.", ""]
+    if median_both:
+        L += ["Points where the **median** interior node grows in both "
+              "families at once (a stronger statement than the fraction "
+              "column, which can be satisfied by disjoint parts of the "
+              "domain):", ""]
+        for r in median_both:
+            L.append(f"- `p_v = {r['p_v']:.4f}`, `p_i = {r['p_i']:.4f}`, "
+                     f"`p_2i = p_3i = {r['p_cluster']:.4f}`")
+        L.append("")
+    else:
+        L += ["**No grid point has both medians positive.** Co-growth in this "
+              "state is regional, not domain-wide: the fraction column above "
+              "counts nodes, and where it is non-zero the two families are "
+              "growing in different parts of the interior.", ""]
+
+    # ── the energies, which is what actually goes into the material file ────
     L += ["## Migration energies for these anisotropy factors", "",
-          "From `staging/anisotropy.py`, at fixed `D_eff`:", "",
+          "The DAD factor is not itself an input. What the material file "
+          "carries is `mobileSpeciesEnergyMigration_eV`, split at fixed "
+          "`D_eff = (D_a^2 D_c)^(1/3)` by `staging/anisotropy.py`:", "",
           "```",
           "E_m<11,22> = E_m_eff + 2 kT ln(p_m)",
           "E_m<33>    = E_m_eff - 4 kT ln(p_m)",
           "```", ""]
+    if e_eff is not None:
+        kT = KB_EV * float(T)
+        names = ["v", "i", "2i", "3i"][:len(e_eff)]
+        p_used = sorted({r[k] for r in records
+                         for k in ("p_v", "p_i", "p_cluster")})
+        L += [f"At T = {T:g} K (kT = {kT:.6f} eV), per species `E_m_eff` = "
+              + ", ".join(f"`{n}` {e:.6f}" for n, e in zip(names, e_eff))
+              + " eV:", "",
+              "| `p_m` | " + " | ".join(f"`{n}` E11=E22 / E33" for n in names)
+              + " |",
+              "|---:|" + "---:|" * len(names)]
+        for p in p_used:
+            cells = []
+            for e in e_eff:
+                e11, e33 = split_migration(e, p, T)
+                cells.append(f"{e11:.6f} / {e33:.6f}")
+            L.append(f"| {p:.4f} | " + " | ".join(cells) + " |")
+        L += ["",
+              "Read the column for the species that carries that `p_m` in the "
+              "chosen row: e.g. a `p_v` of 1.1788 takes the `v` entry of the "
+              "1.1788 row, and `p_2i = 0.70` takes the `2i` entry of the 0.70 "
+              "row.", ""]
     return "\n".join(L) + "\n"
 
 
@@ -281,7 +327,8 @@ def main(argv=None):
 
     recs = sweep(args.sim, args.state, args.dose, args.p_v, args.p_cluster,
                  tie_i=not args.free_i, T=args.temperature)
-    text = report(recs, args.dose)
+    e_eff = ani.effective_energies(_material_of(args.sim), args.temperature)
+    text = report(recs, args.dose, e_eff, args.temperature)
     print("\n" + text)
     if args.out:
         Path(args.out).write_text(text, encoding="utf-8")
