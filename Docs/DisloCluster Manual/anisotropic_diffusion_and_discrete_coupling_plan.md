@@ -572,18 +572,103 @@ for ⟨a⟩ only.
 
 So:
 
-**⟨a⟩ — a two-parameter ellipse ROM, in the slow step.** Carry semi-axes `(a,b)` per
-loop, with `b` along `[10̄10]` in the basal plane and `a` along `[0001]`. The
-orientation-resolved climb velocity is projected onto the two axes, giving **2 ODEs per
-loop per species** — embarrassingly parallel, no topology, no remesh, no junctions, and
-structurally identical to the per-node CVODE systems the slow step already solves. This
-captures the dominant shape degree of freedom the paper says the circular approximation
-misses, while remaining a strict subset of its full nodal freedom (no non-planar climb,
-no faceting, no coalescence by contact).
+**⟨a⟩ — a two-parameter ellipse ROM, in the slow step.** Carry semi-axes
+`(a_x, a_z)` per loop, giving **2 ODEs per loop per species** — embarrassingly
+parallel, no topology, no remesh, no junctions, and structurally identical to the
+per-node CVODE systems the slow step already solves. This captures the dominant shape
+degree of freedom the paper says the circular approximation misses, while remaining a
+strict subset of its full nodal freedom (no non-planar climb, no faceting, no
+coalescence by contact). The formulation is set out in §4.3.1.
 
 Because `r/d = 0.046`, a neighboring ⟨a⟩ loop can be treated as a **point sink** — its
 `c∞` is a monopole, `O(1)` per pair, accurate to 0.2%. The neighbor term is lagged
 (explicit), so there is no coupled solve.
+
+##### 4.3.1 The ⟨a⟩ ellipse ROM, in equations
+
+This is a reduced-order model proposed here; it is **not** in Li et al., who carry full
+nodal freedom. What follows separates what the geometry fixes from the one place a
+modeling choice enters.
+
+**Kinematics — fixed by the crystallography, no freedom.** An ⟨a⟩ loop is prismatic and
+pure climb, so its Burgers vector is normal to its own habit plane, and that plane
+therefore *contains* the c-axis. With in-plane axes `ê_z ∥ [0001]` and
+`ê_x = b̂ × ĉ` (an in-plane ⟨10̄10⟩-type direction):
+
+```
+r(θ)  = a_x cosθ ê_x + a_z sinθ ê_z
+ξ(θ)  ∝ (−a_x sinθ,  a_z cosθ)                      tangent
+n̂(θ) = (a_z cosθ,  a_x sinθ) / sqrt(a_z²cos²θ + a_x²sin²θ)      climb direction
+```
+
+`n̂` is the in-plane outward normal because `b × ξ` lies in the plane and is
+perpendicular to `ξ`. Defect count is
+
+```
+N_defects = π a_x a_z |b| / Ω
+```
+
+which is **the same invariant `discrete_loops` conserves**, so the ROM and the discrete
+export agree by construction rather than by calibration.
+
+**The two ODEs.** Evaluate the normal velocity at the two axis endpoints:
+
+```
+ȧ_x = (Ω/|b|) Σ_m  (s_m Z_m D_m^(x) / λ_x) [ c_m − c_m⁰ exp(−s_m Ω σ_n^(x) / k_B T) ]
+ȧ_z = (Ω/|b|) Σ_m  (s_m Z_m D_m^(z) / λ_z) [ c_m − c_m⁰ exp(−s_m Ω σ_n^(z) / k_B T) ]
+```
+
+with `s_m = ±1` by species polarity, `Z_m` the dislocation bias
+(`discreteDislocationBias`), and `λ` a capture length. The bracket is Eq. (49) of the
+paper written as a driving force.
+
+**Where the DAD enters — and the one modeling choice.** The capture diffusivity is set
+by the plane the flux arrives through, which is the plane perpendicular to the local
+tangent:
+
+| endpoint | tangent `ξ` | capture plane | `D` |
+|---|---|---|---|
+| θ = 0, end of `a_x` | ∥ `[0001]` | basal | `D_a` |
+| θ = π/2, end of `a_z` | in basal plane | spans `ĉ` and `b̂` | `√(D_a D_c)` or `D_c` |
+
+The second row is the choice. A geometric-mean closure (the natural one for a line sink
+in a transversely isotropic medium) and a normal-projection closure give different
+steady aspect ratios:
+
+| closure | `a_x/a_z` | at `p_m = 0.7` |
+|---|---|---:|
+| geometric mean, `D^(z) = √(D_a D_c)` | `√(D_a/D_c) = p_m⁻³` | 2.9 |
+| normal projection, `D^(z) = D_c` | `D_a/D_c = p_m⁻⁶` | 8.5 |
+
+Both put the **major axis in the basal plane** for `p_m < 1`, which is the paper's
+conclusion 2. **Which closure is correct should be settled by measurement, not by
+argument** — that is exactly validation item 6, the ROM against a full nodal solve on
+the same case. Until it is, the ROM has a factor-of-3 ambiguity in the ellipticity it
+predicts, and that ambiguity should be quoted with any result it produces.
+
+**What limits the ellipticity.** Without a restoring term the ratios above are
+attractors and the loop elongates indefinitely. The restoring term is the self-stress
+entering `c^eq`, through the curvature of the ellipse:
+
+```
+σ_n^self(θ) = −[ μ|b| / (4π(1−ν)) ] κ(θ) ln( 1 / (κ(θ) r_c) )
+κ(0) = a_z / a_x²          κ(π/2) = a_x / a_z²
+```
+
+As the loop elongates, curvature rises at the major-axis ends, the back-stress there
+grows, and growth throttles. This is the mechanism the paper refers to when it notes
+that "the change of the loop shape will re-distribute the Peach–Koehler force,
+influencing the shrinking/growing rate of the loop". **A ROM without this term is not
+merely less accurate — it has no steady shape at all.**
+
+**Driving concentration.** `c_m = c̃_m + Σ_neighbors c∞_m`, with `c̃` from the FEM at
+the loop's location and the neighbor sum a lagged monopole over loops inside `R_c`
+(§4.2). Explicit in the neighbor term, so no coupled solve.
+
+**What the ROM cannot represent**, and should assert against at runtime rather than
+assume: coalescence by contact, junction formation, non-planar climb, and any departure
+from a centered ellipse. `2r/d = 0.091` says none of these are active for ⟨a⟩ at the
+doses run so far — but that is a property of this dose and dose rate, not of the model.
 
 **⟨c⟩ — full nodal Galerkin, `DD_SIDES = 12`.** Crowding (`2r/d = 0.86`) breaks
 axisymmetry through the *neighbor* field even though DAD does not, and `r/d = 0.43`
@@ -796,11 +881,18 @@ not transferred. Growth strain returns through the existing `F` output.
 5. **Cutoff convergence.** Sweep `R_c/L_s ∈ [2,4]` and require the loop kinetics to be
    flat. This is the honest test of §4.1: the truncation error of a bare kernel shows up
    as `R_c` sensitivity and nowhere else.
-6. **The two representations must agree where both are valid.** Run the ⟨a⟩ family
-   nodally as well as through the ellipse ROM on one case. They should agree while the
-   loop stays near-elliptical; where they diverge, the nodal answer is the reference and
-   the divergence bounds the ROM's validity. Without this the split is an assumption
-   rather than a verified reduction.
+6. **The two representations must agree where both are valid, and this is also how the
+   ROM's one free choice gets settled.** Run the ⟨a⟩ family nodally as well as through
+   the ellipse ROM on one case. They should agree while the loop stays near-elliptical;
+   where they diverge, the nodal answer is the reference and the divergence bounds the
+   ROM's validity. Without this the split is an assumption rather than a verified
+   reduction.
+
+   Specifically, this measurement decides the capture-diffusivity closure of §4.3.1 —
+   geometric mean versus normal projection — which is a **factor of 3 in the predicted
+   ellipticity** at `p_m = 0.7` (`p_m⁻³ = 2.9` against `p_m⁻⁶ = 8.5`). Fit the closure
+   to the nodal aspect ratio; do not pick it by argument. Until it is fitted, quote the
+   ambiguity with any ellipticity the ROM reports.
 7. **Defect-count conservation across the transition.** Total interstitials and vacancies
    stored must be continuous through the continuum→discrete handoff of 4b/4c. This is the
    direct test for the double-count failure, and the conservation channels of
