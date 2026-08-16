@@ -94,6 +94,41 @@ def window(p_v, p_I, z0_v, z0_I):
     return float(lo), float(hi), float(hi / lo)
 
 
+def window_mixed(p_v, p_int, weights, z0_v, z0_I):
+    """The window when the interstitial species do NOT share one anisotropy.
+
+    `Li et al.`'s structure gives the DAD to the interstitial CLUSTERS and
+    leaves the single interstitial isotropic, so ``p_int`` differs across the
+    species and the single-`p_I` reduction no longer applies. Each condition
+    still collapses to one number, now an ARRIVAL-WEIGHTED mean:
+
+        p_bar = sum_m w_m p_m          w_m = Dbar_m c_m |m| / B
+        f_bar = sum_m w_m f(p_m)
+
+        <c> grows  <=>  A/B > (Z0_I/Z0_v) p_bar / p_v
+        <a> grows  <=>  A/B < (Z0_I/Z0_v) f_bar / f(p_v)
+
+    so the window is non-empty iff ``p_v f_bar > f(p_v) p_bar``. Since
+
+        f(p) - p = (1 - p^3) / (2 p^2)
+
+    is positive exactly when ``p < 1``, an isotropic species contributes
+    NOTHING to opening the window: it enters `p_bar` and `f_bar` with the same
+    value. **Only the anisotropic species help, and only in proportion to the
+    share of the interstitial arrival they carry.** Giving the DAD to the
+    clusters alone therefore buys a window only to the extent that the clusters
+    -- not the single interstitial -- deliver the interstitial flux.
+    """
+    p_int = np.asarray(p_int, float)
+    w = np.asarray(weights, float)
+    w = w / w.sum()
+    p_bar = float((w * p_int).sum())
+    f_bar = float((w * f_a(p_int)).sum())
+    lo = (z0_I / z0_v) * p_bar / p_v
+    hi = (z0_I / z0_v) * f_bar / float(f_a(p_v))
+    return lo, hi, hi / lo, p_bar, f_bar
+
+
 def required_p_I(ratio, p_v, z0_v, z0_I):
     """Largest ``p_I`` for which <a> still grows at the given ``A/B``.
 
@@ -123,10 +158,11 @@ def measure(sim_dir, Y, p_m, T=573.0):
     dbar = np.array([(d0[k, 0] * np.exp(-E[k, 0] / (ani.KB_EV * T))) ** (2 / 3)
                      * (d0[k, 5] * np.exp(-E[k, 5] / (ani.KB_EV * T))) ** (1 / 3)
                      for k in range(E.shape[0])])
-    A = dbar[0] * cm[:, 0]
-    B = sum(dbar[m] * cm[:, m] * abs(size)
-            for m, (_n, size) in enumerate(MOBILE) if size > 0)
-    return A / np.maximum(B, 1e-300), cm, wall
+    arrival = np.column_stack([dbar[m] * cm[:, m] * abs(size)
+                               for m, (_n, size) in enumerate(MOBILE)])
+    A = arrival[:, 0]
+    B = arrival[:, 1:].sum(axis=1)
+    return A / np.maximum(B, 1e-300), arrival, cm, wall
 
 
 def run(sim_dir, state_npz, doses, p_m=(1.0, 1.0, 1.0, 1.0), T=573.0,
@@ -148,14 +184,24 @@ def run(sim_dir, state_npz, doses, p_m=(1.0, 1.0, 1.0, 1.0), T=573.0,
         for dose in doses:
             i = int(np.argmin(np.abs(all_doses - dose)))
             Y = np.array(z["Y"][i], dtype=float)
-            ratio, cm, wall = measure(sim_dir, Y, p_m, T)
+            ratio, arrival, cm, wall = measure(sim_dir, Y, p_m, T)
             r = ratio[interior]
+            # Share of the INTERSTITIAL arrival carried by each species. This
+            # is what decides whether giving the DAD to the clusters alone can
+            # open a window at all -- an isotropic species is inert in the
+            # mixed criterion, so the anisotropic ones only help in proportion
+            # to the flux they deliver.
+            ai = arrival[interior, 1:]
+            w = ai / np.maximum(ai.sum(axis=1, keepdims=True), 1e-300)
+            wmed = np.median(w, axis=0)
             rec = dict(dose=float(all_doses[i]),
                        ratio_med=float(np.median(r)),
                        ratio_q1=float(np.quantile(r, 0.25)),
                        ratio_q3=float(np.quantile(r, 0.75)),
                        Cv=float(np.median(cm[interior, 0])),
                        Ci=float(np.median(cm[interior, 1])),
+                       w_i=float(wmed[0]), w_2i=float(wmed[1]),
+                       w_3i=float(wmed[2]),
                        wall_s=wall)
             rec["p_I_needed"] = required_p_I(rec["ratio_med"], p_m[0],
                                              z0_v, z0_I)
@@ -164,7 +210,8 @@ def run(sim_dir, state_npz, doses, p_m=(1.0, 1.0, 1.0, 1.0), T=573.0,
                 need = rec["p_I_needed"]
                 print(f"  {rec['dose']:8.4g} dpa  A/B = {rec['ratio_med']:.4g} "
                       f"[{rec['ratio_q1']:.3g}, {rec['ratio_q3']:.3g}]  "
-                      f"p_I needed <= "
+                      f"w(i,2i,3i) = {wmed[0]:.3f},{wmed[1]:.3f},{wmed[2]:.3f}"
+                      f"  p_I needed <= "
                       f"{'(any)' if need is None else f'{need:.4f}'}"
                       f"  ({wall:.0f} s)", flush=True)
     finally:
@@ -226,7 +273,30 @@ def report(records, z0, p_m, grid=None):
                  f"{r['Cv']:.3e} | {r['Ci']:.3e} | "
                  + ("any `p_I <= 1`" if need is None else f"**{need:.4f}**")
                  + " |")
-    L += ["", "The last column inverts the `<a>` condition at the measured "
+
+    # ── who carries the interstitial flux ───────────────────────────────────
+    L += ["", "## Which species carries the interstitial arrival", "",
+          "In the mixed criterion the window opens by "
+          "`f(p) - p = (1 - p^3)/(2 p^2)`, which is **zero for an isotropic "
+          "species**. A species left at `p = 1` enters `p_bar` and `f_bar` "
+          "identically and contributes nothing. So the anisotropic species "
+          "help only in proportion to the share of the interstitial arrival "
+          "they deliver:", "",
+          "| dose | `w_i` | `w_2i` | `w_3i` | cluster share |",
+          "|---:|---:|---:|---:|---:|"]
+    for r in records:
+        cl = r["w_2i"] + r["w_3i"]
+        L.append(f"| {r['dose']:.4g} | {r['w_i']:.4f} | {r['w_2i']:.4f} | "
+                 f"{r['w_3i']:.4f} | **{cl:.4f}** |")
+    L += ["",
+          "This is the number that decides whether Li et al.'s structure -- "
+          "DAD on the di- and tri-interstitial, single interstitial isotropic "
+          "-- can work in this model. If the cluster share is small, the "
+          "cluster-only DAD is nearly inert however extreme `p_2i` is made, "
+          "and the anisotropy has to be carried by the species that actually "
+          "delivers the flux.", ""]
+
+    L += ["", "The `p_I` column inverts the `<a>` condition at the measured "
           "`A/B`, holding `p_v = 1`: it is the root of `f(p_I) = "
           "(A/B)(Z0_v/Z0_I) f(p_v)`. For `A/B >> 1` it behaves as "
           "`p_I ~ 1/sqrt(2 A/B)`, so the required anisotropy tightens only as "
