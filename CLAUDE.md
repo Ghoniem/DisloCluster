@@ -490,37 +490,91 @@ and that is why the legacy `ydot` assembly in `rate_equations_core.h` is kept
 `growth + nuc + G` into `growth + (nuc + G)` — algebraically identical — moves
 the 10th significant digit, which was measured (`ff2980c4` vs `8bcc7780`).
 
-Measured at 10 dpa on the calibrated 0-D set, route-A anisotropy:
+### What the formulation change does — measured on the COUPLED MARCH
 
-| | `N_a` | `N_c` | `c_a` | `c_c` |
+Two 500 nm hexagonal marches, route A, differing only in `loop_model`, at
+10 dpa. **Interior mean** (innermost quartile) — a domain mean is not quotable
+on this geometry and would have hidden the effect entirely (`N_a` 1.02× instead
+of 3.08×):
+
+| | `N_a` | `c_a` | `N_c` | `c_c` |
 |---|---:|---:|---:|---:|
-| legacy | 7.541e-8 | 1.779e-8 | 6.993e-5 | 1.573e-3 |
-| self-consistent | 2.277e-6 | 1.717e-8 | 1.162e-4 | 5.284e-3 |
-| ratio | **30.2×** | 0.96× | 1.66× | 3.36× |
-| self-consistent, 98% of ⟨a⟩ nucleation in `a1` | 1.144e-7 | 1.777e-8 | 7.566e-5 | 1.926e-3 |
-| ratio | **1.52×** | 1.00× | 1.08× | 1.22× |
+| legacy | 5.830e-08 | 5.156e-05 | 1.777e-08 | 1.648e-03 |
+| self-consistent | 1.795e-07 | 5.390e-05 | 1.783e-08 | 1.097e-03 |
+| ratio | **3.078×** | 1.045× | 1.003× | **0.665×** |
 
-**The individual rates are NOT the cause** — at the fitted parameters the two
-models agree on them almost exactly: `Z_prismatic(i) = 1.072114` vs
-`Z_i_a = 1.072113` (by construction — `Z0_m, p_m` were fitted to reproduce the
-phenomenological `Z`), ⟨a⟩ prefactor ratio `(l_a/l_c)·s_a = 1.000464`, ⟨c⟩
-ratio `s_c/Q = 1.012493`. The ⟨a⟩ prefactor agreement is a coincidence worth
-knowing: `l_a/l_c = √(b_c/b_a) = 1.2627` and the fitted `s_a = 0.792317` are
-reciprocals to 0.05%, so MoDELib's sink-scale calibration silently undoes the
-legacy model's use of `l_c` for ⟨a⟩ sinks.
+`N_a` is the **total** in both, summed over the two legacy families or the three
+prism variants; the aligned fraction measures 0.404 against `f_a` and each
+variant exactly 1/3, and at 1e-4 dpa the two agree to **1.0001**, which is what
+proves the totals are comparable.
 
-**The cause is resolving the three prism variants**, and the last two rows
-prove it by undoing the resolution. The mechanism is coalescence: like-loop
-coarsening goes as `ν_LL·φ_LL·n` with `φ_LL = 1−exp(−κ_LL(4/3)πr³n)`, so three
-families of `n/3` coarsen far less than one family of `n` — and they should,
-because ⟨a⟩ loops of three distinct Burgers vectors on three distinct prism
-planes do not coalesce into one loop. Two qualifications: MoDELib's own
-coalescence loop is per family (`ClusterDynamicsFEM.cpp`, `for(int k=0;k<nF;++k)`
-over `Nvol=n(k)`), so mode 1 agrees with it **by construction** — that is the
-goal, not independent evidence — and the truth is between the two, since real
-loops of different Burgers vectors *do* interact through junctions and through
-each other's diffusion fields. `c_c` moves because the ⟨a⟩ change reaches ⟨c⟩
-through the shared mobile pool; there is no direct term.
+**LOOP GROWTH IS A NEAR-CANCELLATION, and that is the whole story.** The net
+content rate is a small residual of two much larger opposing fluxes:
+
+| ⟨a⟩ prismatic | interstitial gain | vacancy loss | net |
+|---|---:|---:|---:|
+| legacy | 4.0954e-02 | 3.5677e-02 | 5.277e-03 (**12.9%** of gain) |
+| self-consistent | 3.7703e-02 | 3.6854e-02 | 8.492e-04 (**2.25%** of gain) |
+
+so a 5.4% rise in the vacancy efficiency and an 8% fall in the gain cut the net
+to **16%**. The loops then never outgrow their nucleation size: `c_a/N_a` is
+**300.3** against `n_iL_nuc = 300`, i.e. every ⟨a⟩ loop in the self-consistent
+interior is a fresh nucleus, where legacy reaches 884.4.
+
+**`N_a` then follows from two balances, not one.** The number balance pins the
+*content*, because 98% of the loop-number loss is the loop-NETWORK channel and
+`Σ φ_LN·N_k ∝ Σ r_k²N_k = l_a²·Σ c_k` — proportional to total content and
+independent of how it is split (measured loss ratio 1.047 against content ratio
+1.045). The growth balance pins the *size*. Density is the quotient:
+
+```
+N_a ratio = content ratio / size ratio = 1.045 / (300.3/884.4) = 3.078
+measured                                                      = 3.078
+```
+
+**Where the efficiency differences come from.** At the FITTED `p_v = 1.178808`
+all four efficiencies match the workbook to 6 digits, by construction of the
+`dadZ0` fit. Route A sets `p_v = 1`, and because the two Woo forms differ —
+basal `Z⁰p` is monotone, prismatic `Z⁰(p+p⁻²)/2` has its minimum at
+`p = 2^(1/3) = 1.2599` — that one number pushes the families **opposite ways**:
+
+| | `p_v = 1.1788` | `p_v = 1` |
+|---|---:|---:|
+| `Z_basal(v)` — ⟨c⟩ gain | 1.107886 (= `Z_v_c`) | 0.939836 → **0.848×** |
+| `Z_prismatic(v)` — ⟨a⟩ loss | 0.892114 (= `Z_v_a`) | 0.939836 → **1.053×** |
+
+so it starves ⟨c⟩ growth and accelerates ⟨a⟩ shrinkage at once. The interstitial
+efficiencies are untouched (`p_i` unchanged): both ratios exactly 1.000000. In
+**legacy** `p_v` cannot reach the efficiencies at all — `Z_v_a`/`Z_v_c` are
+workbook constants — so this is the co-growth criterion acquiring teeth in the
+coupled march, and it is why `d_coarsen` goes from 0.4 dpa to *never* on this
+case.
+
+**Route A therefore does NOT isolate the formulation.** It measures the
+formulation *plus* the fact that only mode 1 propagates `p_v` into the capture
+efficiencies. At matched `p_v` the residual differences are exactly two:
+per-species cluster mobility (legacy gives `C2i`/`C3i` the monomer `ω_i` though
+`ω_2i/ω_i = 4.9e-6`, overstating cluster arrival) and three ⟨a⟩ families
+instead of two.
+
+> **A CORRECTED CLAIM.** An earlier revision of this section attributed the
+> difference to the *variant split* acting through like-loop coalescence,
+> `φ_LL = 1−exp(−κ_LL(4/3)πr³n)`, three families of `n/3` overlapping less than
+> one of `n`. **That is wrong**: `φ_LL` carries only **2%** of the loop-number
+> loss, the loop-network channel carries 98%, and `φ_LN` contains no dependence
+> on `n` at all. The same revision quoted 0-D numbers (30.2×, 1.52×) labelled
+> "route-A anisotropy" that were in fact taken at the fitted `p_v = 1.178808`,
+> because the diagnostics read `dadAnisotropy` from the shared material file
+> while concurrent runs were rewriting it. **Pin `p_m` on the command line in
+> any diagnostic**; do not inherit it from that file. And note the 0-D is not a
+> valid probe of the march's mechanism here — there `Cv`/`Ci` are free and
+> re-equilibrate, so 0-D and the march move `c_c` in *opposite* directions.
+
+**The prefactors are not a factor**, and one near-identity is worth recording:
+`l_a/l_c = √(b_c/b_a) = 1.2627` and the fitted `loopSinkScale_a = 0.792317` are
+reciprocals to 0.05%, so `(l_a/l_c)·s_a = 1.000464` — MoDELib's sink-scale
+calibration silently undoes the legacy model's use of `l_c` for ⟨a⟩ sinks. The
+⟨c⟩ ratio `s_c/Q = 1.012493`.
 
 **The 28-parameter fit is against mode 0, so it is stale for mode 1** — this
 compounds with the Ω correction. Do not compare a mode-1 run with experiment

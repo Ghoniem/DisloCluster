@@ -1131,33 +1131,107 @@ now one family rather than two.
 
 \subsubsection{What changes, measured}
 
-Table~\ref{tab:lm-measured} is the calibrated 0-D model at 10~\textrm{dpa},
-$T=573$~K, $G=10^{-7}$~\textrm{dpa}/s, at the route-A anisotropy
-$p_m=(1,\,0.9137,\,0.9137,\,0.9137)$.
+Measured on the COUPLED MARCH, which is what the option is for: two 500~nm
+hexagonal marches at route~A differing only in \code{loop\_model}, at
+10~\textrm{dpa}, $T=573$~K, $G=10^{-7}$~\textrm{dpa}/s. The \emph{interior}
+mean --- innermost quartile by distance to the nearest face --- because a
+whole-domain mean on this geometry is dominated by the Dirichlet shell and would
+have reported $N_a$ at $1.02\times$ instead of $3.08\times$, hiding the effect
+entirely.
 
 \begin{table}[htbp]
 \centering
-\caption{The self-consistent formulation against the legacy one, and the
-         attribution of the difference. ``One dominant variant'' puts 98\% of
-         the \aloop{} nucleation into $a_1$, which reassembles the lumped
-         population without changing anything else.}
+\caption{The self-consistent formulation against the legacy one, interior mean
+         at 10~\textrm{dpa}. $N_a$ and $c_a$ are TOTALS in both: summed over the
+         two legacy families, or over the three prism variants. That the totals
+         are comparable is not assumed --- at $10^{-4}$~\textrm{dpa}, before
+         coalescence bites, the two agree to $1.0001$.}
 \label{tab:lm-measured}
 \begin{tabular}{@{}lrrrr@{}}
 \toprule
- & $N_a$ & $N_c$ & $c_a$ & $c_c$ \\
+ & $N_a$ & $c_a$ & $N_c$ & $c_c$ \\
 \midrule
-\code{loop\_model = 0}, legacy      & $7.541\times10^{-8}$ & $1.779\times10^{-8}$ & $6.993\times10^{-5}$ & $1.573\times10^{-3}$ \\
-\code{loop\_model = 1}, equal thirds & $2.277\times10^{-6}$ & $1.717\times10^{-8}$ & $1.162\times10^{-4}$ & $5.284\times10^{-3}$ \\
-\quad ratio to legacy                & $30.2\times$ & $0.96\times$ & $1.66\times$ & $3.36\times$ \\[4pt]
-\code{loop\_model = 1}, one dominant variant & $1.144\times10^{-7}$ & $1.777\times10^{-8}$ & $7.566\times10^{-5}$ & $1.926\times10^{-3}$ \\
-\quad ratio to legacy                & $1.52\times$ & $1.00\times$ & $1.08\times$ & $1.22\times$ \\
+\code{loop\_model = 0}, legacy           & $5.830\times10^{-8}$ & $5.156\times10^{-5}$ & $1.777\times10^{-8}$ & $1.648\times10^{-3}$ \\
+\code{loop\_model = 1}, self-consistent  & $1.795\times10^{-7}$ & $5.390\times10^{-5}$ & $1.783\times10^{-8}$ & $1.097\times10^{-3}$ \\
+\quad ratio                              & $\mathbf{3.078\times}$ & $1.045\times$ & $1.003\times$ & $\mathbf{0.665\times}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{The prefactors and efficiencies barely move.} At the fitted
-parameters the two models agree almost exactly on the individual capture rates,
-which is worth stating because it is not obvious:
+\paragraph{Loop growth is a near-cancellation, and that is the whole story.}
+The net content rate is a small residual of two much larger opposing fluxes, so
+a small change in either moves it a great deal:
+
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\aloop{} prismatic & interstitial gain & vacancy loss & net \\
+\midrule
+legacy           & $4.0954\times10^{-2}$ & $3.5677\times10^{-2}$ & $5.277\times10^{-3}$ ($12.9\%$ of gain) \\
+self-consistent  & $3.7703\times10^{-2}$ & $3.6854\times10^{-2}$ & $8.492\times10^{-4}$ ($2.25\%$ of gain) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+A $5.4\%$ rise in the vacancy efficiency and an $8\%$ fall in the gain cut the
+net to $16\%$ of its legacy value. The loops then never outgrow their
+nucleation size: $c_a/N_a$ is $\mathbf{300.3}$ against
+$n^{\mathrm{nuc}}_{iL} = 300$ --- every \aloop{} loop in the self-consistent
+interior is a fresh nucleus --- where legacy reaches $884.4$.
+
+\paragraph{Two balances, not one, and $N_a$ is their quotient.} The number
+balance pins the \emph{content}, because $98\%$ of the loop-number loss is the
+loop-\emph{network} channel and $\sum_k \phi_{LN} N_k \propto \sum_k r_k^2 N_k
+= \ell_a^2 \sum_k c_k$ --- proportional to total content and independent of how
+it is split (measured loss ratio $1.047$ against content ratio $1.045$). The
+growth balance pins the \emph{size}. Then
+%
+\begin{equation}
+  \frac{N_a^{\text{sc}}}{N_a^{\text{leg}}}
+  = \frac{\text{content ratio}}{\text{size ratio}}
+  = \frac{1.045}{300.3/884.4} = 3.078,
+\end{equation}
+%
+against $3.078$ measured. This is why a content ratio of $\approx 1$ is
+perfectly consistent with a density ratio of $3$: same interstitials, loops
+$2.95\times$ smaller, so $2.95\times$ as many.
+
+\paragraph{Where the efficiency differences come from --- one parameter, two
+directions.} At the \emph{fitted} $p_v = 1.178808$ all four efficiencies
+reproduce the workbook to six digits, by construction of the \code{dadZ0} fit.
+Route~A sets $p_v = 1$, and because the two Woo forms differ --- basal
+$Z^0 p$ is monotone, prismatic $Z^0(p+p^{-2})/2$ has its minimum at
+$p = 2^{1/3} = 1.2599$ --- that single number pushes the families
+\emph{opposite} ways:
+
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & $p_v = 1.1788$ & $p_v = 1$ \\
+\midrule
+$Z^{\text{basal}}_{v}$ --- \cloop{} gain     & $1.107886$ ($= Z_{v,c}$) & $0.939836 \to \mathbf{0.848\times}$ \\
+$Z^{\text{prismatic}}_{v}$ --- \aloop{} loss & $0.892114$ ($= Z_{v,a}$) & $0.939836 \to \mathbf{1.053\times}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+starving \cloop{} growth and accelerating \aloop{} shrinkage at once. The
+interstitial efficiencies are untouched ($p_i$ unchanged): both ratios exactly
+$1.000000$. In the legacy model $p_v$ cannot reach the efficiencies at all,
+$Z_{v,a}$ and $Z_{v,c}$ being workbook constants --- so this is the co-growth
+criterion of Section~\ref{sec:loopmodel} acquiring teeth in the coupled march,
+and it is why $d_{\text{coarsen}}$ moves from $0.4$~\textrm{dpa} to \emph{never}
+on this case.
+
+\paragraph{Route~A therefore does not isolate the formulation.} It measures the
+formulation \emph{plus} the fact that only mode~1 propagates $p_v$ into the
+capture efficiencies. At matched $p_v$ the residual differences are exactly two:
+per-species cluster mobility --- legacy gives $C_{2i}$ and $C_{3i}$ the monomer
+$\omega_i$ although $\omega_{2i}/\omega_i = 4.9\times10^{-6}$, so it overstates
+cluster arrival --- and three \aloop{} families instead of two.
+
+\paragraph{The prefactors are not a factor.} They agree almost exactly, which is
+worth stating because it is not obvious:
 %
 \begin{center}
 \begin{tabular}{@{}lrr@{}}
@@ -1179,28 +1253,37 @@ $s_a = 0.792317$ happen to be reciprocals to within $0.05\%$, so \MoD{}'s
 sink-scale calibration silently undoes the fact that the legacy model sizes its
 \aloop{} sinks with the \cloop{} Burgers vector.
 
-\paragraph{The difference is the variant split, and it is physics.} Since the
-rates agree, essentially all of the $30\times$ comes from \emph{resolving} the
-three prism variants, and Table~\ref{tab:lm-measured} confirms it by
-undoing the resolution: concentrating the \aloop{} population back into one
-variant brings $N_a$ from $30.2\times$ to $1.52\times$. The mechanism is
-coalescence. Like-loop coarsening removes loops at a rate
-$\nu_{LL}\phi_{LL}n$ with an Avrami overlap $\phi_{LL} = 1 -
-\exp(-\kappa_{LL}\tfrac43\pi r^3 n)$, so three families of $n/3$ coarsen far
-less than one family of $n$ --- and they \emph{should}, because \aloop{} loops
-on different prism planes with different Burgers vectors do not coalesce into
-one loop. The legacy model, by lumping them, lets them.
+\paragraph{A retracted explanation, recorded because the error is instructive.}
+An earlier revision of this section attributed the difference to the
+\emph{variant split} acting through like-loop coalescence: $\phi_{LL} = 1 -
+\exp(-\kappa_{LL}\tfrac43\pi r^3 n)$, so three families of $n/3$ overlap less
+than one family of $n$. \textbf{That is wrong.} Measured on the two marches,
+$\phi_{LL}$ carries only $\mathbf{2\%}$ of the loop-number loss; the
+loop-network channel carries $98\%$, and $\phi_{LN} = 1 - \exp(-\kappa_{LN}\pi
+r^2 \rho_N)$ contains \emph{no dependence on loop number density at all}. An
+argument about $\phi_{LL}$ therefore cannot explain a change in $N_a$ on this
+case. The near-cancellation above is the correct account, and it is checkable:
+it closes the ratio to four significant figures, which the coalescence argument
+never did (its own scaling gave $\approx 1.9\times$ against a measured
+$3.08\times$).
 
-Two honest qualifications. First, \MoD{}'s own coalescence loop is per family
-(\file{ClusterDynamicsFEM.cpp}, \code{for(int k=0;k<nF;++k)} over
+Two further cautions from the same episode. The retracted numbers were 0-D, and
+the 0-D is \emph{not} a valid probe of the march's mechanism here: with $C_v$ and
+$C_i$ free to re-equilibrate it moves $c_c$ in the \emph{opposite} direction to
+the march, where they are pinned by the Dirichlet faces and the fast solve. And
+they were labelled ``route-A anisotropy'' when they had in fact been taken at
+$p_v = 1.178808$, because the diagnostic read \code{dadAnisotropy} from the
+shared material file while concurrent runs were rewriting it. \textbf{Pin $p_m$
+on the command line in any diagnostic}; do not inherit it from that file.
+
+Note also what remains true about the split: \MoD{}'s own coalescence loop is per
+family (\code{ClusterDynamicsFEM.cpp}, \code{for(int k=0;k<nF;++k)} over
 \code{Nvol=n(k)}), so \code{loop\_model = 1} matches the 3-D code by
-construction --- which is the stated goal, not independent evidence that the
-split is right. Second, the truth is between the two: cross-variant
-interaction is \emph{fully on} in the legacy model and \emph{fully off} here,
-whereas real loops of different Burgers vectors do interact, through junction
-reactions and through each other's diffusion fields. The $c_c$ column shows the
-coupling that remains --- the \aloop{} change propagates to the \cloop{}
-family through the shared mobile pool, not through any direct term.
+construction. The truth is between the two --- cross-variant interaction is
+fully on in the legacy model and fully off here, whereas real loops of different
+Burgers vectors do interact, through junction reactions and through each other's
+diffusion fields. That is a reason to prefer mode~1's structure; it is not the
+explanation of these numbers.
 
 \begin{quote}
 \textbf{The 28-parameter set was fitted against \code{loop\_model = 0} and is

@@ -82,67 +82,71 @@
 \newlabel{eq:ndot}{{6}{16}{Number and content}{equation.6}{}}
 \newlabel{eq:cdot}{{7}{16}{Number and content}{equation.7}{}}
 \@writefile{toc}{\contentsline {subsubsection}{\numberline {7.3.3}What changes, measured}{16}{subsubsection.7.3.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.1}The prefactors and efficiencies barely move.}{16}{paragraph.7.3.3.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces The self-consistent formulation against the legacy one, and the attribution of the difference. ``One dominant variant'' puts 98\% of the \ensuremath  {\langle a\rangle }{} nucleation into $a_1$, which reassembles the lumped population without changing anything else.}}{17}{table.8}\protected@file@percent }
-\newlabel{tab:lm-measured}{{8}{17}{The self-consistent formulation against the legacy one, and the attribution of the difference. ``One dominant variant'' puts 98\% of the \aloop {} nucleation into $a_1$, which reassembles the lumped population without changing anything else}{table.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.2}The difference is the variant split, and it is physics.}{17}{paragraph.7.3.3.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.3.4}Using it}{17}{subsubsection.7.3.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Starting from pristine material}{18}{subsection.7.4}\protected@file@percent }
-\newlabel{sec:pristine-manual}{{7.4}{18}{Starting from pristine material}{subsection.7.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}The notebook's three control blocks}{19}{subsection.7.5}\protected@file@percent }
-\newlabel{sec:controls}{{7.5}{19}{The notebook's three control blocks}{subsection.7.5}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Control blocks of \texttt  {\footnotesize  coupled\_0d\_3d\_ZrMicro.ipynb}.}}{19}{table.9}\protected@file@percent }
-\newlabel{tab:controls}{{9}{19}{Control blocks of \file {coupled\_0d\_3d\_ZrMicro.ipynb}}{table.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Meshing, and the materialized simulation directory}{19}{subsection.7.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}Fast-solve backends}{19}{subsection.7.7}\protected@file@percent }
-\newlabel{sec:backends}{{7.7}{19}{Fast-solve backends}{subsection.7.7}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Fast-solve backends.}}{20}{table.10}\protected@file@percent }
-\newlabel{tab:backends}{{10}{20}{Fast-solve backends}{table.10}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}Running the march}{20}{subsection.7.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}Outputs}{20}{subsection.7.9}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Coupled-run figure output.}}{21}{table.11}\protected@file@percent }
-\newlabel{tab:coupledout}{{11}{21}{Coupled-run figure output}{table.11}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Changing things}{21}{section.8}\protected@file@percent }
-\newlabel{sec:changing}{{8}{21}{Changing things}{section.8}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Where to change what.}}{21}{table.12}\protected@file@percent }
-\newlabel{tab:whereto}{{12}{21}{Where to change what}{table.12}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{21}{paragraph.8.0.0.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf  {MoDELib3}{} time units.}{21}{paragraph.8.0.0.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt  {\small  startAtTimeStep} at zero.}{21}{paragraph.8.0.0.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces The self-consistent formulation against the legacy one, interior mean at 10~\textrm  {dpa}. $N_a$ and $c_a$ are TOTALS in both: summed over the two legacy families, or over the three prism variants. That the totals are comparable is not assumed --- at $10^{-4}$~\textrm  {dpa}, before coalescence bites, the two agree to $1.0001$.}}{17}{table.8}\protected@file@percent }
+\newlabel{tab:lm-measured}{{8}{17}{The self-consistent formulation against the legacy one, interior mean at 10~\textrm {dpa}. $N_a$ and $c_a$ are TOTALS in both: summed over the two legacy families, or over the three prism variants. That the totals are comparable is not assumed --- at $10^{-4}$~\textrm {dpa}, before coalescence bites, the two agree to $1.0001$}{table.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.1}Loop growth is a near-cancellation, and that is the whole story.}{17}{paragraph.7.3.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.2}Two balances, not one, and $N_a$ is their quotient.}{17}{paragraph.7.3.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.3}Where the efficiency differences come from --- one parameter, two directions.}{17}{paragraph.7.3.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.4}Route~A therefore does not isolate the formulation.}{18}{paragraph.7.3.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.5}The prefactors are not a factor.}{18}{paragraph.7.3.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {7.3.3.6}A retracted explanation, recorded because the error is instructive.}{18}{paragraph.7.3.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {7.3.4}Using it}{19}{subsubsection.7.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Starting from pristine material}{19}{subsection.7.4}\protected@file@percent }
+\newlabel{sec:pristine-manual}{{7.4}{19}{Starting from pristine material}{subsection.7.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.5}The notebook's three control blocks}{20}{subsection.7.5}\protected@file@percent }
+\newlabel{sec:controls}{{7.5}{20}{The notebook's three control blocks}{subsection.7.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Control blocks of \texttt  {\footnotesize  coupled\_0d\_3d\_ZrMicro.ipynb}.}}{20}{table.9}\protected@file@percent }
+\newlabel{tab:controls}{{9}{20}{Control blocks of \file {coupled\_0d\_3d\_ZrMicro.ipynb}}{table.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Meshing, and the materialized simulation directory}{20}{subsection.7.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.7}Fast-solve backends}{21}{subsection.7.7}\protected@file@percent }
+\newlabel{sec:backends}{{7.7}{21}{Fast-solve backends}{subsection.7.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {10}{\ignorespaces Fast-solve backends.}}{21}{table.10}\protected@file@percent }
+\newlabel{tab:backends}{{10}{21}{Fast-solve backends}{table.10}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}Running the march}{21}{subsection.7.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}Outputs}{21}{subsection.7.9}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces Coupled-run figure output.}}{22}{table.11}\protected@file@percent }
+\newlabel{tab:coupledout}{{11}{22}{Coupled-run figure output}{table.11}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Changing things}{22}{section.8}\protected@file@percent }
+\newlabel{sec:changing}{{8}{22}{Changing things}{section.8}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {12}{\ignorespaces Where to change what.}}{22}{table.12}\protected@file@percent }
+\newlabel{tab:whereto}{{12}{22}{Where to change what}{table.12}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{22}{paragraph.8.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf  {MoDELib3}{} time units.}{22}{paragraph.8.0.0.2}\protected@file@percent }
 \gdef \LT@i {\LT@entry 
     {1}{175.11209pt}\LT@entry 
     {1}{278.45877pt}}
-\@writefile{toc}{\contentsline {section}{\numberline {9}Troubleshooting}{22}{section.9}\protected@file@percent }
-\newlabel{sec:trouble}{{9}{22}{Troubleshooting}{section.9}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {13}{Symptoms and causes.}}{22}{table.13}\protected@file@percent }
-\newlabel{tab:trouble}{{13}{22}{Symptoms and causes}{table.13}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {10}Reproducibility and provenance}{23}{section.10}\protected@file@percent }
-\newlabel{sec:repro}{{10}{23}{Reproducibility and provenance}{section.10}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {A}Architecture reference}{23}{section.A}\protected@file@percent }
-\newlabel{app:arch}{{A}{23}{Architecture reference}{section.A}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}The governing split}{23}{subsection.A.1}\protected@file@percent }
-\newlabel{eq:mobile}{{9}{23}{The governing split}{equation.9}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces The components a user is most likely to touch. Route marks where each participates: A = Adaptive march, B = monolithic run, P = post-processing.}}{24}{table.14}\protected@file@percent }
-\newlabel{tab:components}{{14}{24}{The components a user is most likely to touch. Route marks where each participates: A = Adaptive march, B = monolithic run, P = post-processing}{table.14}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt  {\small  startAtTimeStep} at zero.}{23}{paragraph.8.0.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Troubleshooting}{23}{section.9}\protected@file@percent }
+\newlabel{sec:trouble}{{9}{23}{Troubleshooting}{section.9}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {13}{Symptoms and causes.}}{23}{table.13}\protected@file@percent }
+\newlabel{tab:trouble}{{13}{23}{Symptoms and causes}{table.13}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {10}Reproducibility and provenance}{24}{section.10}\protected@file@percent }
+\newlabel{sec:repro}{{10}{24}{Reproducibility and provenance}{section.10}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Architecture reference}{24}{section.A}\protected@file@percent }
+\newlabel{app:arch}{{A}{24}{Architecture reference}{section.A}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}The governing split}{24}{subsection.A.1}\protected@file@percent }
+\newlabel{eq:mobile}{{10}{24}{The governing split}{equation.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Key components}{25}{subsection.A.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.3}The three interfaces}{25}{subsection.A.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.4}Unit systems}{25}{subsection.A.4}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Unit conventions.}}{25}{table.15}\protected@file@percent }
-\newlabel{tab:units}{{15}{25}{Unit conventions}{table.15}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.5}Call graph}{25}{subsection.A.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {A.6}Anisotropic diffusion and the discrete handoff}{25}{subsection.A.6}\protected@file@percent }
 \newlabel{sec:aniso-handoff}{{A.6}{25}{Anisotropic diffusion and the discrete handoff}{subsection.A.6}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Component call graph. Solid arrows are calls, dashed arrows are file input/output. Blue: orchestrating notebook; green: \textsf  {ZrMicro}{} Python; red: \textsf  {ZrMicro}{} C++; purple: \textsf  {MoDELib3}{} C++; ochre: files on disk; gray: products. Route A drives the fast mobile solve through \textsf  {MoDELib3}{} and the slow immobile march through the \textsf  {ZrMicro}{} integrator; Route B runs both inside \textsf  {MoDELib3}{}. The two routes share the material definitions and the post-processing layer.}}{26}{figure.1}\protected@file@percent }
-\newlabel{fig:flow}{{1}{26}{Component call graph. Solid arrows are calls, dashed arrows are file input/output. Blue: orchestrating notebook; green: \ZrM {} Python; red: \ZrM {} C++; purple: \MoD {} C++; ochre: files on disk; gray: products. Route A drives the fast mobile solve through \MoD {} and the slow immobile march through the \ZrM {} integrator; Route B runs both inside \MoD {}. The two routes share the material definitions and the post-processing layer}{figure.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.1}One anisotropy factor, two representations.}{26}{paragraph.A.6.0.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.2}Which anisotropy to use.}{26}{paragraph.A.6.0.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.3}The handoff.}{27}{paragraph.A.6.0.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}Known non-correspondences between the 0-D and 3-D models}{27}{subsection.A.7}\protected@file@percent }
-\newlabel{sec:noncorr}{{A.7}{27}{Known non-correspondences between the 0-D and 3-D models}{subsection.A.7}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{27}{section.B}\protected@file@percent }
-\newlabel{app:changes}{{B}{27}{Changes relative to upstream MoDELib}{section.B}{}}
-\@writefile{toc}{\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{27}{paragraph.B.0.0.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{27}{paragraph.B.0.0.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {C}Quick reference}{28}{section.C}\protected@file@percent }
-\newlabel{app:quickref}{{C}{28}{Quick reference}{section.C}{}}
-\gdef \@abspage@last{29}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.1}One anisotropy factor, two representations.}{25}{paragraph.A.6.0.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {14}{\ignorespaces The components a user is most likely to touch. Route marks where each participates: A = Adaptive march, B = monolithic run, P = post-processing.}}{26}{table.14}\protected@file@percent }
+\newlabel{tab:components}{{14}{26}{The components a user is most likely to touch. Route marks where each participates: A = Adaptive march, B = monolithic run, P = post-processing}{table.14}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {15}{\ignorespaces Unit conventions.}}{27}{table.15}\protected@file@percent }
+\newlabel{tab:units}{{15}{27}{Unit conventions}{table.15}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Component call graph. Solid arrows are calls, dashed arrows are file input/output. Blue: orchestrating notebook; green: \textsf  {ZrMicro}{} Python; red: \textsf  {ZrMicro}{} C++; purple: \textsf  {MoDELib3}{} C++; ochre: files on disk; gray: products. Route A drives the fast mobile solve through \textsf  {MoDELib3}{} and the slow immobile march through the \textsf  {ZrMicro}{} integrator; Route B runs both inside \textsf  {MoDELib3}{}. The two routes share the material definitions and the post-processing layer.}}{27}{figure.1}\protected@file@percent }
+\newlabel{fig:flow}{{1}{27}{Component call graph. Solid arrows are calls, dashed arrows are file input/output. Blue: orchestrating notebook; green: \ZrM {} Python; red: \ZrM {} C++; purple: \MoD {} C++; ochre: files on disk; gray: products. Route A drives the fast mobile solve through \MoD {} and the slow immobile march through the \ZrM {} integrator; Route B runs both inside \MoD {}. The two routes share the material definitions and the post-processing layer}{figure.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.2}Which anisotropy to use.}{28}{paragraph.A.6.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {A.6.0.3}The handoff.}{28}{paragraph.A.6.0.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.7}Known non-correspondences between the 0-D and 3-D models}{28}{subsection.A.7}\protected@file@percent }
+\newlabel{sec:noncorr}{{A.7}{28}{Known non-correspondences between the 0-D and 3-D models}{subsection.A.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{29}{section.B}\protected@file@percent }
+\newlabel{app:changes}{{B}{29}{Changes relative to upstream MoDELib}{section.B}{}}
+\@writefile{toc}{\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{29}{paragraph.B.0.0.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{29}{paragraph.B.0.0.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {C}Quick reference}{30}{section.C}\protected@file@percent }
+\newlabel{app:quickref}{{C}{30}{Quick reference}{section.C}{}}
+\gdef \@abspage@last{31}
