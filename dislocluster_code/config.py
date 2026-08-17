@@ -132,6 +132,21 @@ SOLVER = {
     "lmm":          "bdf",
     "linsol":       "dense",
     "analytic_jac": True,
+    # Which immobile-loop formulation the SLOW step integrates.
+    #   0  legacy      four families split aligned/non-aligned, with the
+    #                  phenomenological Z_i_a / Z_v_c fitted from delta_DAD and
+    #                  one lumped interstitial flux. This is what the 28
+    #                  calibrated parameters were fitted against, so it is the
+    #                  default and the C++ reproduces it BIT-FOR-BIT.
+    #   1  self-consistent
+    #                  one basal <c> and three prismatic <a> variants, matching
+    #                  the 3-D family structure exactly, with Woo capture
+    #                  efficiencies built from the same p_m that sets the
+    #                  diffusion tensor. Every mobile species then carries its
+    #                  own efficiency instead of sharing one.
+    # Keep 0 for anything being fitted; use 1 for a run that must be consistent
+    # with the anisotropic fast solve.
+    "loop_model":   0,
 }
 
 OUTPUT = {
@@ -411,8 +426,14 @@ class Solver:
     lmm: str
     linsol: str
     analytic_jac: bool
+    loop_model: int = 0
 
     def validate(self):
+        if self.loop_model not in (0, 1):
+            raise ConfigError(
+                f"loop_model must be 0 (legacy, the fitted formulation) or 1 "
+                f"(self-consistent with the anisotropic fast solve), got "
+                f"{self.loop_model}")
         if self.backend not in ("cvode", "arkode"):
             raise ConfigError(f"solver backend {self.backend!r} is not "
                               f"'cvode' or 'arkode'")
@@ -429,6 +450,7 @@ class Solver:
         return dict(t_begin=t_begin, t_end=t_end, n_points=n_points,
                     log_time=log_time, rtol=self.rtol, atol=self.atol,
                     analytic_jac=self.analytic_jac, stats=True,
+                    loop_model=self.loop_model,
                     solver_method=dict(backend=self.backend, lmm=self.lmm,
                                        linsol=self.linsol))
 
@@ -531,7 +553,8 @@ class SimulationConfig:
             solver=Solver(rtol=float(s["rtol"]), atol=float(s["atol"]),
                           backend=s["backend"], lmm=s["lmm"],
                           linsol=s["linsol"],
-                          analytic_jac=bool(s["analytic_jac"])),
+                          analytic_jac=bool(s["analytic_jac"]),
+                          loop_model=int(s["loop_model"])),
             output=Output(tag=o["tag"], figures=bool(o["figures"]),
                           movies=bool(o["movies"]),
                           movie_interp=int(o["movie_interp"]),

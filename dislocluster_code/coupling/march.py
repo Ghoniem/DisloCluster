@@ -471,9 +471,21 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         if verbose:
             print(fast.describe())
 
+    # loop_model selects WHICH immobile formulation the slow step integrates:
+    # 0 the fitted legacy one (aligned/non-aligned, phenomenological Z), 1 the
+    # self-consistent one that shares the fast solve's families and capture
+    # physics. It has to reach the CLI here, because this is the only place the
+    # slow step's arguments are built.
+    loop_model = int(getattr(cfg, "loop_model", 0))
     base_cli = collect_solver_args(sim, dict(
         t_begin=1e-1, t_end=1e9, n_points=2, log_time=False,
-        rtol=1e-6, atol=1e-20, stats=True))
+        rtol=1e-6, atol=1e-20, stats=True,
+        loop_model=loop_model,
+        material_file=paths.MODELIB_MATERIAL,
+        variant_weights=getattr(cfg, "variant_weights", (1/3, 1/3, 1/3))))
+    if loop_model and verbose:
+        print("  slow step: SELF-CONSISTENT loop model "
+              "(<c> + 3x<a>, Woo efficiencies from the diffusion tensor)")
 
     # ── checkpoint / resume ─────────────────────────────────────────────────
     fp = _march_fingerprint(cfg, qssa_sim, seed_evl, snaps, base_cli, N)

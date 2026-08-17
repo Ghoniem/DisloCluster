@@ -235,7 +235,8 @@ def read_cd_nodes(evl_dir):
 
 # ── field mapping ────────────────────────────────────────────────────────────
 
-def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3)):
+def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
+                           loop_model=0):
     """Map the marched 0-D immobile state at every point to MoDELib's CD layout.
 
     Parameters
@@ -265,6 +266,20 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3)):
     w = np.asarray(variant_weights, dtype=float)
     if w.shape != (3,):
         raise ValueError("variant_weights must have three entries")
+
+    if loop_model:
+        # SELF-CONSISTENT MODE: y[4..11] already IS this block, in this order --
+        # [n_c, n_a1, n_a2, n_a3, c_c, c_a1, c_a2, c_a3]. The slow step carries
+        # the same four families as the 3-D code, so there is nothing to lump
+        # and nothing to split, and `variant_weights` has already been applied
+        # at the source (the nucleation split) rather than on the way out.
+        #
+        # The number densities still need the 1/omega conversion: the 0-D
+        # carries them per ATOM and MoDELib per b^3.
+        out = np.zeros((Y.shape[0], I_SIZE), dtype=float)
+        out[:, 0:4] = Y[:, 4:8] / omega
+        out[:, 4:8] = Y[:, 8:12]
+        return out
 
     N_a = Y[:, IDX["CiL"]] + Y[:, IDX["CaiL"]]        # <a> loop number
     c_a = Y[:, IDX["CiL_i"]] + Y[:, IDX["CaiL_i"]]    # <a> loop content

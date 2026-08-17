@@ -157,6 +157,135 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     T ann_cont_vL  = P.n_vL_nuc * CvL  / P.tau_vL;
     T ann_cont_avL = P.n_vL_nuc * CavL / P.tau_avL;
 
+    // ══ FAMILY SLOTS ═══════════════════════════════════════════════════════
+    // Both loop models carry exactly four families with a (number, content)
+    // pair each, so everything downstream -- coalescence, rho_N, the free-pool
+    // debits, the accumulators -- is written once against these arrays. Only
+    // the meaning of the four slots and the way their growth is formed differ.
+    //
+    //   loop_model 0 : iL , aiL , vL , avL      (aligned/non-aligned split)
+    //   loop_model 1 : c  , a1  , a2  , a3      (one basal, three prismatic)
+    //
+    T f_num[4], f_cont[4];        // state
+    T f_gain[4], f_loss[4];       // like- and opposite-polarity absorption, >=0
+    T f_nucn[4], f_nucc[4];       // nucleation into number and content
+    T f_annn[4], f_annc[4];       // thermal annealing out of number and content
+    double f_lscale[4], f_cLL[4], f_cLN[4];
+    T loop_abs_i, loop_abs_v, loop_recomb;
+    // Legacy net-growth terms. Declared here rather than in the branch because
+    // the legacy ydot assembly below is kept verbatim and refers to them.
+    T growth_iL(0.0), growth_aiL(0.0), growth_vL(0.0), growth_avL(0.0);
+
+    if (P.loop_model != 0) {
+    // ═══════════════════════════════════════════════════════════════════════
+    // SELF-CONSISTENT MODEL -- the same capture physics as the fast solve.
+    //
+    // State: y[4..11] = [n_c, n_a1, n_a2, n_a3, c_c, c_a1, c_a2, c_a3], which
+    // is exactly MoDELib's CD immobile block, so the 0-D <-> 3-D bridge is an
+    // identity in this mode instead of a lumping.
+    //
+    // Capture efficiencies are Woo's, generated from the SAME p_m that sets the
+    // diffusion tensor (staging/anisotropy.py writes both from one source):
+    //
+    //     Z_basal(m)     = Z0_m p_m                    row 0, vacancy-type <c>
+    //     Z_prismatic(m) = Z0_m (p_m + p_m^-2)/2       row 1, interstitial <a>
+    //
+    // identical to ClusterDynamicsParameters::loopDADbias. The decisive
+    // difference from the legacy model is not the formula but the RESOLUTION:
+    // every mobile species carries its OWN efficiency, where the legacy model
+    // lumps Ci, C2i and C3i into one flux and applies a single Z_i_a to all
+    // three. That is what makes an anisotropy given to the clusters alone
+    // representable here and invisible there.
+    //
+    // The absorption rate of species m at family k, per unit volume, is
+    //
+    //     phi_km = S_k * Dbar_m * Z(row(k), m) * c_m * |m_m|
+    //
+    // with S_k the geometric sink strength. Dbar_m is the orientation-averaged
+    // diffusivity (det D)^(1/3); because anisotropy.py splits the migration
+    // energies at FIXED D_eff, that geometric mean is exactly the omega_m the
+    // legacy model already uses, so no mobility is redefined here -- only its
+    // directional weighting.
+    // ═══════════════════════════════════════════════════════════════════════
+        double Zrow[2][4];
+        for (int m = 0; m < 4; ++m) {
+            const double pm = P.dad_p[m] > 0.0 ? P.dad_p[m] : 1.0;
+            Zrow[0][m] = P.dad_Z0[m] * pm;                          // basal
+            Zrow[1][m] = P.dad_Z0[m] * 0.5 * (pm + 1.0 / (pm * pm)); // prismatic
+        }
+        const T      cm[4]  = {Cv, Ci, C2i, C3i};
+        const double sz[4]  = {1.0, 1.0, 2.0, 3.0};   // |m_m|, atoms per cluster
+        const double Dbar[4] = {P.omega_v, P.omega_i, P.omega_2i, P.omega_2i};
+
+        f_num[0]  = CiL;  f_num[1]  = CaiL;  f_num[2]  = CvL;   f_num[3]  = CavL;
+        f_cont[0] = CiL_i; f_cont[1] = CaiL_i; f_cont[2] = CvL_v; f_cont[3] = CavL_v;
+
+        // Slot 0 is the basal <c> family, slots 1-3 the prismatic <a> variants.
+        const int is_vac[4] = {1, 0, 0, 0};
+        f_lscale[0] = P.l_c; f_cLL[0] = P.c_LL_c; f_cLN[0] = P.c_LN_c;
+        for (int k = 1; k < 4; ++k) {
+            f_lscale[k] = P.l_a; f_cLL[k] = P.c_LL_a; f_cLN[k] = P.c_LN_a;
+        }
+
+        loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
+        const double lc_l_sc = P.l_c / P.l;   // <c> uses the basal length scale
+        const double la_l_sc = P.l_a / P.l;
+
+        for (int k = 0; k < 4; ++k) {
+            const int row = is_vac[k] ? 0 : 1;
+            // Geometric sink strength, scaled per family exactly as
+            // ImmobileSinks does with loopSinkScale. This replaces the legacy
+            // Q, which scaled the <c> channel only.
+            T pref = (is_vac[k] ? lc_l_sc : la_l_sc) * P.loop_sink_scale[k]
+                     * ad_sqrt(f_num[k] * f_cont[k]);
+            T gain(0.0), loss(0.0);
+            for (int m = 0; m < 4; ++m) {
+                const int m_is_vac = (m == 0);
+                T rate = pref * (Zrow[row][m] * Dbar[m] * sz[m]) * cm[m];
+                if (m_is_vac == is_vac[k]) gain = gain + rate;
+                else                       loss = loss + rate;
+            }
+            // Minimum-stable-size gate, on the SHRINKING channel only, exactly
+            // as ClusterDynamicsFEM applies it: a loop at r_min stops absorbing
+            // the defect that would dissolve it, and the un-absorbed defects
+            // stay in the free pool so the balance closes.
+            if (!is_vac[k]) {
+                T rk = f_lscale[k] * ad_sqrt(f_cont[k] / f_num[k]);
+                if (P.r_min_a > 0.0) {
+                    T x = (rk / P.r_min_a - 1.0) / P.w_rmin;
+                    T g = ad_val(x) <= 0.0 ? T(0.0)
+                        : (ad_val(x) >= 1.0 ? T(1.0) : x * x * (3.0 - 2.0 * x));
+                    loss = loss * g;
+                }
+            }
+            f_gain[k] = gain; f_loss[k] = loss;
+            if (is_vac[k]) { loop_abs_v = loop_abs_v + gain; loop_abs_i = loop_abs_i + loss; }
+            else           { loop_abs_i = loop_abs_i + gain; loop_abs_v = loop_abs_v + loss; }
+            loop_recomb = loop_recomb + loss;   // opposite-polarity capture annihilates
+        }
+
+        // ── Nucleation, with no aligned/non-aligned split ───────────────────
+        // The homogeneous clustering channel and the cascade source are shared
+        // out over the three prismatic variants by variant_frac (equal thirds
+        // at zero resolved stress), which is the same reduction
+        // immobile_0d_to_modelib performs on the way to the 3-D code -- done
+        // here at the source instead of on the way out.
+        const double G_iL_tot = P.G_iL + P.G_aiL;
+        const double G_vL_tot = P.G_vL + P.G_avL;
+        T nuc_a_num  = (R_i_3i + R_2i_2i) + T(G_iL_tot / P.n_iL_nuc);
+        T nuc_a_cont = nuc_content + T(G_iL_tot);
+        f_nucn[0] = T(G_vL_tot / P.n_vL_nuc);
+        f_nucc[0] = T(G_vL_tot);
+        for (int k = 1; k < 4; ++k) {
+            f_nucn[k] = P.variant_frac[k - 1] * nuc_a_num;
+            f_nucc[k] = P.variant_frac[k - 1] * nuc_a_cont;
+        }
+
+        // Thermal annealing: vacancy loops only, one family instead of two.
+        f_annn[0] = f_num[0] / P.tau_vL;
+        f_annc[0] = P.n_vL_nuc * f_num[0] / P.tau_vL;
+        for (int k = 1; k < 4; ++k) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); }
+    } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
     // Decomposed into interstitial- and vacancy-absorption components so the
     // free pools can be debited consistently. Each component is >= 0.
@@ -192,16 +321,35 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     iL_v  *= size_gate(r_iL);
     aiL_v *= size_gate(r_aiL);
 
-    T growth_iL  = iL_i  - iL_v;            // net dCiL_i/dt
-    T growth_aiL = aiL_i - aiL_v;
-    T growth_vL  = vL_v  - vL_i;            // net dCvL_v/dt
-    T growth_avL = avL_v - avL_i;
+    growth_iL  = iL_i  - iL_v;            // net dCiL_i/dt
+    growth_aiL = aiL_i - aiL_v;
+    growth_vL  = vL_v  - vL_i;            // net dCvL_v/dt
+    growth_avL = avL_v - avL_i;
 
     // Free-pool depletion by loop absorption (all >= 0):
-    T loop_abs_i = iL_i + aiL_i + vL_i + avL_i;
-    T loop_abs_v = vL_v + avL_v + iL_v + aiL_v;
+    loop_abs_i = iL_i + aiL_i + vL_i + avL_i;
+    loop_abs_v = vL_v + avL_v + iL_v + aiL_v;
     // Defect-loop recombination: one i and one v annihilated per event.
-    T loop_recomb = iL_v + aiL_v + vL_i + avL_i;
+    loop_recomb = iL_v + aiL_v + vL_i + avL_i;
+
+    // Export the legacy quantities into the shared family slots. Assignments
+    // only -- no legacy arithmetic is altered, so loop_model 0 reproduces the
+    // fitted formulation operation for operation.
+    f_num[0]  = CiL;   f_num[1]  = CaiL;   f_num[2]  = CvL;    f_num[3]  = CavL;
+    f_cont[0] = CiL_i; f_cont[1] = CaiL_i; f_cont[2] = CvL_v;  f_cont[3] = CavL_v;
+    f_gain[0] = iL_i;  f_gain[1] = aiL_i;  f_gain[2] = vL_v;   f_gain[3] = avL_v;
+    f_loss[0] = iL_v;  f_loss[1] = aiL_v;  f_loss[2] = vL_i;   f_loss[3] = avL_i;
+    f_nucn[0] = nuc_iL;  f_nucn[1] = nuc_aiL;  f_nucn[2] = T(nuc_vL); f_nucn[3] = T(nuc_avL);
+    f_nucc[0] = nuc_iL_frac * nuc_content + P.G_iL;
+    f_nucc[1] = nuc_aiL_frac * nuc_content + P.G_aiL;
+    f_nucc[2] = T(P.G_vL);  f_nucc[3] = T(P.G_avL);
+    f_annn[0] = T(0.0); f_annn[1] = T(0.0); f_annn[2] = ann_vL;      f_annn[3] = ann_avL;
+    f_annc[0] = T(0.0); f_annc[1] = T(0.0); f_annc[2] = ann_cont_vL; f_annc[3] = ann_cont_avL;
+    f_lscale[0] = P.l_a; f_cLL[0] = P.c_LL_a; f_cLN[0] = P.c_LN_a;
+    f_lscale[1] = P.l_a; f_cLL[1] = P.c_LL_a; f_cLN[1] = P.c_LN_a;
+    f_lscale[2] = P.l_c; f_cLL[2] = P.c_LL_c; f_cLN[2] = P.c_LN_c;
+    f_lscale[3] = P.l_c; f_cLL[3] = P.c_LL_c; f_cLN[3] = P.c_LN_c;
+    }
 
     // ── ODE right-hand side ─────────────────────────────────────────────────
 
@@ -223,24 +371,36 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     ydot[3] = P.G_3i + R_i_2i
               - (R_3i_v + R_i_3i + R_3i_s + R_2i_3i) - emission_3i;
 
-    // dCiL/dt, dCaiL/dt  (Equations 42-43)
-    ydot[4] = nuc_iL;
-    ydot[5] = nuc_aiL;
-
-    // dCvL/dt, dCavL/dt  (Equations 44-45)
-    ydot[6] = nuc_vL  - ann_vL;
-    ydot[7] = nuc_avL - ann_avL;
-
-    // dCiL_i/dt, dCaiL_i/dt  (Equations 46-47) — growth + clustering nucleation
-    // content (same split as number) + cascade content seed.
-    ydot[8] = growth_iL  + nuc_iL_frac  * nuc_content + P.G_iL;
-    ydot[9] = growth_aiL + nuc_aiL_frac * nuc_content + P.G_aiL;
-
-    // dCvL_v/dt, dCavL_v/dt  (Equations 48-49) — the cascade content seed is
-    // essential: without finite content the sqrt(CvL*CvL_v) growth prefactor
-    // pins CvL_v at the floor and vacancy loops can never grow.
-    ydot[10] = growth_vL  + P.G_vL  - ann_cont_vL;
-    ydot[11] = growth_avL + P.G_avL - ann_cont_avL;
+    // ── Loop number and content, from the family slots ──────────────────────
+    // NUMBER changes only by nucleation, annealing and coalescence: growth
+    // moves atoms into existing loops and never creates one. CONTENT carries
+    // the net absorption (gain - loss), the atoms deposited at nucleation, and
+    // the cascade content seed -- the last is essential, because without finite
+    // content the sqrt(N*c) sink prefactor pins the family at the floor and it
+    // can never grow.
+    //
+    // Legacy slots are (iL, aiL, vL, avL); self-consistent slots are
+    // (c, a1, a2, a3). Equations 42-49 in the legacy numbering.
+    if (P.loop_model == 0) {
+        // VERBATIM the pre-existing expressions, including their association.
+        // Regrouping them -- even into an algebraically identical form --
+        // changes the rounding and the legacy result is no longer bit-identical,
+        // which was measured: the 10th significant digit moves. The 28-parameter
+        // fit was made against these exact operations.
+        ydot[4] = nuc_iL;
+        ydot[5] = nuc_aiL;
+        ydot[6] = nuc_vL  - ann_vL;
+        ydot[7] = nuc_avL - ann_avL;
+        ydot[8] = growth_iL  + nuc_iL_frac  * nuc_content + P.G_iL;
+        ydot[9] = growth_aiL + nuc_aiL_frac * nuc_content + P.G_aiL;
+        ydot[10] = growth_vL  + P.G_vL  - ann_cont_vL;
+        ydot[11] = growth_avL + P.G_avL - ann_cont_avL;
+    } else {
+        for (int k = 0; k < 4; ++k) {
+            ydot[4 + k] = f_nucn[k] - f_annn[k];
+            ydot[8 + k] = (f_gain[k] - f_loss[k]) + f_nucc[k] - f_annc[k];
+        }
+    }
 
     // ── Point-defect conservation accumulators (Eq. 12-17) ──────────────────
     // Monotonic time integrals of the production and physical loss channels for
@@ -302,25 +462,35 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         r_out     = r;
     };
 
-    T coal_num_iL,  coal_cont_iL,  numLN_iL,  r_iL_c;
-    T coal_num_aiL, coal_cont_aiL, numLN_aiL, r_aiL_c;
-    T coal_num_vL,  coal_cont_vL,  numLN_vL,  r_vL_c;
-    T coal_num_avL, coal_cont_avL, numLN_avL, r_avL_c;
-    coal(CiL,  CiL_i,  P.l_a, iL_i,  P.c_LL_a, P.c_LN_a, coal_num_iL,  coal_cont_iL,  numLN_iL,  r_iL_c);
-    coal(CaiL, CaiL_i, P.l_a, aiL_i, P.c_LL_a, P.c_LN_a, coal_num_aiL, coal_cont_aiL, numLN_aiL, r_aiL_c);
-    coal(CvL,  CvL_v,  P.l_c, vL_v,  P.c_LL_c, P.c_LN_c, coal_num_vL,  coal_cont_vL,  numLN_vL,  r_vL_c);
-    coal(CavL, CavL_v, P.l_c, avL_v, P.c_LL_c, P.c_LN_c, coal_num_avL, coal_cont_avL, numLN_avL, r_avL_c);
+    // Coalescence is identical in both models -- the geometry does not care how
+    // the families are labelled -- so it runs over the slots. The gain-side
+    // absorption f_gain[k] sets the climb speed, which is why it stays positive
+    // at steady state and coarsening persists.
+    T coal_num[4], coal_cont[4], numLN[4], r_coal[4];
+    for (int k = 0; k < 4; ++k)
+        coal(f_num[k], f_cont[k], f_lscale[k], f_gain[k], f_cLL[k], f_cLN[k],
+             coal_num[k], coal_cont[k], numLN[k], r_coal[k]);
 
-    ydot[4]  = ydot[4]  - coal_num_iL;
-    ydot[5]  = ydot[5]  - coal_num_aiL;
-    ydot[6]  = ydot[6]  - coal_num_vL;
-    ydot[7]  = ydot[7]  - coal_num_avL;
-    ydot[8]  = ydot[8]  - coal_cont_iL;
-    ydot[9]  = ydot[9]  - coal_cont_aiL;
-    ydot[10] = ydot[10] - coal_cont_vL;
-    ydot[11] = ydot[11] - coal_cont_avL;
-    ydot[14] = ydot[14] + (coal_cont_iL + coal_cont_aiL);   // cum_sink_i
-    ydot[17] = ydot[17] + (coal_cont_vL + coal_cont_avL);   // cum_sink_v
+    // The content removed by loop-network coalescence is booked as network sink
+    // absorption on the polarity the family stores, so the atom balance closes.
+    // In the legacy model slots 0,1 are interstitial and 2,3 vacancy; in the
+    // self-consistent model slot 0 is vacancy and 1..3 interstitial.
+    const int slot_is_vac[2][4] = {{0, 0, 1, 1}, {1, 0, 0, 0}};
+    const int* sv = slot_is_vac[P.loop_model != 0 ? 1 : 0];
+    for (int k = 0; k < 4; ++k) {
+        ydot[4 + k] = ydot[4 + k] - coal_num[k];
+        ydot[8 + k] = ydot[8 + k] - coal_cont[k];
+    }
+    if (P.loop_model == 0) {
+        // Again verbatim: the paired sums associate differently from a loop.
+        ydot[14] = ydot[14] + (coal_cont[0] + coal_cont[1]);   // cum_sink_i
+        ydot[17] = ydot[17] + (coal_cont[2] + coal_cont[3]);   // cum_sink_v
+    } else {
+        for (int k = 0; k < 4; ++k) {
+            if (sv[k]) ydot[17] = ydot[17] + coal_cont[k];
+            else       ydot[14] = ydot[14] + coal_cont[k];
+        }
+    }
 
     // ── Evolving network dislocation density rho_N (index IDX_RHO_N) ────────
     // Source: each loop absorbed into the network contributes 2*pi*r of line
@@ -328,8 +498,8 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // irradiation-grown excess toward the grown-in seed, so rho_N saturates.
     const double c_rho_geo = P.c_rhoN * (2.0 * PI / P.Omega);
     T rho_source = c_rho_geo *
-        (r_iL_c * numLN_iL + r_aiL_c * numLN_aiL +
-         r_vL_c * numLN_vL + r_avL_c * numLN_avL);
+        (r_coal[0] * numLN[0] + r_coal[1] * numLN[1] +
+         r_coal[2] * numLN[2] + r_coal[3] * numLN[3]);
     T rho_recovery = P.k_rhoN_rec * (rho_N - P.rho_N);
     ydot[IDX_RHO_N] = rho_source - rho_recovery;
 

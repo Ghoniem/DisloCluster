@@ -258,6 +258,41 @@ def collect_solver_args(sim, solver_config):
     else:
         params['ark_table'] = _ark_table_map.get(str(_ark_raw).upper(), 111)
 
+    # ── Self-consistent loop model (optional) ───────────────────────────────
+    # solver_config['loop_model'] = 1 switches the slow step to the same
+    # family structure and the same capture physics as the fast solve: one
+    # basal <c> and three prismatic <a> variants -- no aligned/non-aligned --
+    # with Woo efficiencies built from the SAME p_m that sets the diffusion
+    # tensor. Absent or 0 keeps the fitted legacy formulation, which the C++
+    # reproduces bit-for-bit.
+    #
+    # The parameters are read from the MoDELib material file rather than the
+    # workbook, deliberately: that file is the single source both sides already
+    # share, and `staging/anisotropy.py` writes dadAnisotropy there together
+    # with the migration energies. Taking them from anywhere else would
+    # reintroduce exactly the drift this change exists to remove.
+    if int(solver_config.get('loop_model', 0)):
+        from dislocluster_code import paths
+        from dislocluster_code.coupling.field import read_material_vector
+        mat = solver_config.get('material_file') or paths.MODELIB_MATERIAL
+        names = ('v', 'i', '2i', '3i')
+        fams = ('c', 'a1', 'a2', 'a3')
+        params['loop_model'] = 1
+        pm = read_material_vector(mat, 'dadAnisotropy', 4)
+        z0 = read_material_vector(mat, 'dadZ0', 4)
+        for j, nm in enumerate(names):
+            params[f'dad_p_{nm}'] = float(pm[j])
+            params[f'dad_Z0_{nm}'] = float(z0[j])
+        try:
+            ls = read_material_vector(mat, 'loopSinkScale', 4)
+        except Exception:
+            ls = [1.0] * 4
+        for j, fm in enumerate(fams):
+            params[f'loop_sink_scale_{fm}'] = float(ls[j])
+        w = solver_config.get('variant_weights', (1 / 3, 1 / 3, 1 / 3))
+        for j, fm in enumerate(fams[1:]):
+            params[f'variant_frac_{fm}'] = float(w[j])
+
     return [f'--{k}={v}' for k, v in params.items()]
 
 

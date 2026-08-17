@@ -110,6 +110,39 @@ struct Parameters {
     double Z_v_c;   // c-loops (vL, avL) capture vacancies        = 1 + delta_v
     double recom;   // recombination volume factor   [-]
 
+    // ── Loop model selector ─────────────────────────────────────────────────
+    // 0 = LEGACY (default). Four families split aligned/non-aligned --
+    //     iL, aiL, vL, avL -- with the PHENOMENOLOGICAL efficiencies Z_i_a,
+    //     Z_v_a, Z_i_c, Z_v_c above, taken from the fitted delta_DAD. The
+    //     interstitial species are lumped into one flux, so all of Ci, C2i and
+    //     C3i are captured with the same Z. This is the formulation the 28
+    //     calibrated parameters were fitted against and it must stay
+    //     reproducible bit-for-bit; see loop_model == 0 in
+    //     rate_equations_core.h, which is untouched by the alternative.
+    //
+    // 1 = SELF-CONSISTENT. Four families matching the 3-D code -- one basal
+    //     <c> and three prismatic <a> variants, NO aligned/non-aligned split --
+    //     with Woo capture efficiencies generated from the SAME diffusion
+    //     tensor the fast solve diffuses with, per mobile species:
+    //
+    //         Z_basal(m)     = Z0_m * p_m
+    //         Z_prismatic(m) = Z0_m * (p_m + p_m^-2)/2
+    //
+    //     identical to ClusterDynamicsParameters::loopDADbias. Each mobile
+    //     species then carries its own efficiency instead of sharing one, and
+    //     the loop sink strength is scaled per family by loopSinkScale exactly
+    //     as ImmobileSinks does.
+    int    loop_model;
+
+    // Per mobile species (v, i, 2i, 3i). Used only when loop_model == 1.
+    double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
+    double dad_Z0[4];   // Z0_m, the isotropic-limit capture efficiency
+    // Per family (c, a1, a2, a3). loop_sink_scale replaces the legacy Q, which
+    // scaled the <c> channel alone; here every family carries its own factor,
+    // as in the material file's loopSinkScale.
+    double loop_sink_scale[4];
+    double variant_frac[3];   // how <a> nucleation splits over a1, a2, a3
+
     // ── Pre-computed length scales (InputData.calculate_derived_parameters) ──
     double l;    // z_c*Omega / (2*pi*a^2)
     double l_a;  // sqrt(Omega / (pi*b_a))
@@ -325,6 +358,29 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.Z_i_c  = optional_param(p, "Z_i_c", 0.8);
     P.Z_v_c  = optional_param(p, "Z_v_c", 1.2);
     P.recom  = optional_param(p, "recom", 1.0);
+
+    // Loop model. Absent => 0 => the legacy formulation, so every existing
+    // command line, fit and stored result reproduces exactly.
+    P.loop_model = static_cast<int>(optional_param(p, "loop_model", 0.0));
+    {
+        // Defaults are the isotropic limit: p_m = 1 makes both Woo rows equal
+        // Z0_m, so a self-consistent run with no tensor anisotropy supplied is
+        // unbiased rather than accidentally biased.
+        const char* pk[4]  = {"dad_p_v",  "dad_p_i",  "dad_p_2i",  "dad_p_3i"};
+        const char* z0k[4] = {"dad_Z0_v", "dad_Z0_i", "dad_Z0_2i", "dad_Z0_3i"};
+        for (int m = 0; m < 4; ++m) {
+            P.dad_p[m]  = optional_param(p, pk[m],  1.0);
+            P.dad_Z0[m] = optional_param(p, z0k[m], 1.0);
+        }
+        const char* sk[4] = {"loop_sink_scale_c",  "loop_sink_scale_a1",
+                             "loop_sink_scale_a2", "loop_sink_scale_a3"};
+        for (int k = 0; k < 4; ++k)
+            P.loop_sink_scale[k] = optional_param(p, sk[k], 1.0);
+        const char* vk[3] = {"variant_frac_a1", "variant_frac_a2",
+                             "variant_frac_a3"};
+        for (int j = 0; j < 3; ++j)
+            P.variant_frac[j] = optional_param(p, vk[j], 1.0 / 3.0);
+    }
 
     // Length scales
     P.l   = require_param(p, "l");

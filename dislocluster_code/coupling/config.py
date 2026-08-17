@@ -73,6 +73,10 @@ class MarchConfig:
     # and not the other is silently inert -- which is exactly how the first
     # attempt at this hook ran a whole march with the transition switched off
     # while the launcher printed that it was on.
+    # Which immobile formulation the slow step integrates; see SOLVER in
+    # config.py. Lives on the MarchConfig because run_coupled builds the slow
+    # step's CLI and nothing else can reach it there.
+    loop_model: int = 0
     discrete_transition: bool = False
     transition_units: tuple = ("c",)
     climb_cutoff_nL: float = 4.0

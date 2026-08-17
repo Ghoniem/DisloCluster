@@ -68,6 +68,7 @@ def march_config_from(cfg):
         on_unconverged=c.on_unconverged,
         phi_star=c.phi_star, frac_star=c.frac_star,
         coarsen_hold=c.coarsen_hold,
+        loop_model=cfg.solver.loop_model,
         discrete_transition=c.discrete_transition,
         transition_units=c.transition_units,
         climb_cutoff_nL=c.climb_cutoff_nL,
