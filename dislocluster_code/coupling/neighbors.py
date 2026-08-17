@@ -66,7 +66,22 @@ from dislocluster_code.coupling.field import read_material_vector as _vec
 from dislocluster_code.post.discrete_loops import FAMILIES, OMEGA_B3
 from dislocluster_code.post.fields import B_SI
 
-N_L_DEFAULT = 3.0          # R_c = N_L * L_s, plan 4.2; swept in plan 5.5
+# R_c = N_L * L_s. Plan 4.2 proposed 3; the convergence sweep plan 5.5 asks for
+# has since been RUN against the real climb solver, on the 200 nm case at 0.1
+# dpa with 6 transferred <c> loops, and 3 is not converged:
+#
+#     n_L    R_c [b]    dotBetaP_33      error vs no cutoff
+#      1       154.7    -1.2576e-22          19.3%
+#      2       309.3    -1.1562e-22           9.6%
+#      3       464.0    -1.0959e-22           3.9%
+#      4       618.6    -1.0571e-22           0.25%
+#      6       928.0    -1.0545e-22           0.000%   (exceeds the loop cloud)
+#
+# 4 is the smallest value that meets plan 5.5's own flatness requirement, so it
+# is the default. The exact zeros at n_L >= 6 are a finite-size artifact of this
+# case -- the cutoff there is larger than the population's extent, so nothing is
+# excluded -- and should not be read as convergence.
+N_L_DEFAULT = 4.0
 
 
 def sink_strength(F, fam, scale=1.0):

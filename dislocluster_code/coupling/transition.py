@@ -311,11 +311,18 @@ def format_ledger(ledger):
 
 
 def write(pops, out_dir, tag="transfer"):
-    """Emit the transferred population as a MoDELib microstructure and a table."""
+    """Emit the transferred population as a MoDELib microstructure and a table.
+
+    Returns ``(microstructure_path, table_path, n_loops)``. Note the two
+    writers themselves return COUNTS, not paths -- easy to misread, and the
+    reason this returns both.
+    """
     from pathlib import Path
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     plist = list(pops.values()) if isinstance(pops, dict) else list(pops)
-    micro = write_microstructure(plist, out_dir / f"aLoops_{tag}.txt")
-    table = write_table(plist, out_dir / f"loops_{tag}.csv")
-    return micro, table
+    micro = out_dir / f"aLoops_{tag}.txt"
+    table = out_dir / f"loops_{tag}.csv"
+    n = write_microstructure(plist, micro)
+    write_table(plist, table)
+    return micro, table, int(n)

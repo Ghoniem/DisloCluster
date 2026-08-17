@@ -9,6 +9,8 @@
 #define model_GalerkinClimbSolver_cpp_
 
 #include <deque>
+#include <limits>       // numeric_limits, for the pair-cutoff distance test
+#include <algorithm>    // min
 
 
 #include <ClusterDynamicsParameters.h>
@@ -144,6 +146,14 @@ namespace model
 //                        }
                     }
                     
+                    // Midpoint and half-length of the FIELD segment, for the
+                    // screened-cutoff test below. Hoisted out of the source
+                    // loop because it does not depend on the source.
+                    const double Rc(this->CD->cdp.climbNeighborCutoff);
+                    const VectorDim fieldMid(fieldLink.second.lock()->source->get_P()
+                                             +0.5*fieldLink.second.lock()->chord());
+                    const double fieldHalf(0.5*fieldLink.second.lock()->chordLength());
+
                     for(const auto& sourceLink : this->DN.networkLinks())
                     {// sum line-integral part of displacement field per segment
                         if(   !sourceLink.second.lock()->hasZeroBurgers()
@@ -152,6 +162,42 @@ namespace model
                            &&  sourceLink.second.lock()->chordLength()>FLT_EPSILON
                            )
                         {
+                            /* Screened cutoff on the pair assembly.
+                             *
+                             * The kernel is exp(-k r)/r, not bare 1/r, so this
+                             * sum converges and truncating it is legitimate --
+                             * see ClusterDynamicsParameters::climbNeighborCutoff.
+                             *
+                             * The test is deliberately CONSERVATIVE: it compares
+                             * the distance between segment MIDPOINTS against
+                             * Rc plus BOTH half-chords, so a pair is dropped only
+                             * when no point of one segment can lie within Rc of
+                             * any point of the other. It can over-include, never
+                             * wrongly exclude.
+                             *
+                             * The minimum is taken over periodicShifts, because
+                             * concentrationMatrices() sums over the images and a
+                             * pair that is far in the primary cell may be near
+                             * in one of them.
+                             *
+                             * The SELF term is never truncated: its midpoint
+                             * distance is zero, so it passes any Rc >= 0.
+                             */
+                            if(Rc>0.0)
+                            {
+                                const VectorDim sourceMid(sourceLink.second.lock()->source->get_P()
+                                                          +0.5*sourceLink.second.lock()->chord());
+                                const double reach(Rc+fieldHalf+0.5*sourceLink.second.lock()->chordLength());
+                                double d2min(std::numeric_limits<double>::max());
+                                for(const auto& shift : this->DN.ddBase.periodicShifts)
+                                {
+                                    d2min=std::min(d2min,(sourceMid+shift-fieldMid).squaredNorm());
+                                }
+                                if(d2min>reach*reach)
+                                {
+                                    continue;
+                                }
+                            }
                             const size_t j0(sourceLink.second.lock()->source->gID());
                             const size_t j1(sourceLink.second.lock()->  sink->gID());
                             const StiffnessMatrixType kcc(clusterStiffnessMatrix(*fieldLink.second.lock(),*sourceLink.second.lock()));

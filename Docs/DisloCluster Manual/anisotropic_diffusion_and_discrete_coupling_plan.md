@@ -893,6 +893,30 @@ plus `otherSinks_SI = 1.88×10¹⁴ m⁻²`:
 neighbor. At 10 dpa the first shell is down to `e^{−2.4} ≈ 9%` and the second to
 `e^{−4.9} ≈ 0.7%`.
 
+**Measured, and `R_c = 3 L_s` is NOT enough.** The cutoff is now implemented in the climb
+solver itself (`climbNeighborCutoff_b`, §4f) and the convergence sweep §5.5 asks for has
+been run against it — 200 nm case, 0.1 dpa, 6 transferred ⟨c⟩ loops, one DD step,
+comparing the basal plastic-distortion rate `dotBetaP_33` against the uncut assembly:
+
+| `n_L` | `R_c` [b] | `dotBetaP_33` | error |
+|---:|---:|---:|---:|
+| 1 | 154.7 | −1.2576e-22 | 19.3% |
+| 2 | 309.3 | −1.1562e-22 | 9.6% |
+| **3** | 464.0 | −1.0959e-22 | **3.9%** |
+| 4 | 618.6 | −1.0571e-22 | 0.25% |
+| 6 | 928.0 | −1.0545e-22 | 0.000% |
+
+So `n_L = 3` carries a 3.9% truncation error and `n_L = 4` is the smallest value meeting
+§5.5's own flatness requirement — **the acceptance test in §5.5 rejects the default this
+section proposed.** `neighbors.N_L_DEFAULT` is now 4.
+
+Two caveats on those numbers. The zeros at `n_L ≥ 6` are a finite-size artifact: the
+cutoff there exceeds the extent of the loop cloud, so nothing is excluded at all. And the
+naive estimate of the excluded tail for a uniform population, `∫_x^∞ u e^{−u} du` relative
+to the whole, is `4e^{−3} ≈ 20%` at `n_L = 3` — far above the 3.9% measured, because this
+domain is finite and holds only six loops. **A denser or larger population will not
+necessarily converge at the same `n_L`, so the sweep is per-case, not once-and-for-all.**
+
 **Truncation here is correct rather than merely tolerable, and the reason matters.** The
 continuum field `c̃` already carries the mean-field response of the entire loop
 population, through `ImmobileSinks`. The discrete Green's-function sum must therefore

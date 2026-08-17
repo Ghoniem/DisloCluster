@@ -66,6 +66,26 @@ namespace model
         return 1.0e-20;
     }
 
+    /**********************************************************************/
+    /* Cutoff on the GalerkinClimbSolver pair assembly [b]. Optional material
+     * key; 0 or absent means NO CUTOFF, so every material file written before
+     * this key existed keeps all-pairs behaviour bit-for-bit. */
+    template<int dim>
+    double ClusterDynamicsParameters<dim>::getClimbNeighborCutoff(const DislocationDynamicsBase<dim>& ddBase)
+    {
+        if(ddBase.simulationParameters.useClusterDynamics)
+        {
+            try
+            {
+                return TextFileParser(ddBase.poly.materialFile).template readScalar<double>("climbNeighborCutoff_b",true);
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- no cutoff
+            }
+        }
+        return 0.0;
+    }
+
     template<int dim>
     ClusterDynamicsParameters<dim>::ClusterDynamicsParameters(const DislocationDynamicsBase<dim>& ddBase) :
     /* init */ kB(ddBase.poly.kB),
@@ -127,6 +147,7 @@ namespace model
     /* init */ dadZ0((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,mSize>("dadZ0",true).array().eval() : Eigen::Array<double,1,mSize>::Ones().eval()),
     /* init */ loopSinkScale((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,iSize/2>("loopSinkScale",true).array().eval() : Eigen::Array<double,1,iSize/2>::Ones().eval()),
     /* init */ concentrationFloor(getConcentrationFloor(ddBase)),
+    /* init */ climbNeighborCutoff(getClimbNeighborCutoff(ddBase)),
     /* init */ computeReactions((ddBase.simulationParameters.useClusterDynamics && mSize>0 && mSize+iSize>1)? TextFileParser(ddBase.poly.materialFile).readScalar<int>("computeReactions",true) : 0),
 //    /* init */ use0DsinkStrength((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readScalar<int>("use0DsinkStrength",true) : 0),
 //    /* init */ Zv((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,dim>("Zv",true) : Eigen::Array<double,1,dim>::Zero()),

@@ -130,6 +130,21 @@ struct ClusterDynamicsParameters
      *  each Newton update and to the immobile densities/contents after each
      *  sub-step. Optional material key `concentrationFloor`. */
     const double concentrationFloor;
+    /*! Cutoff on the GalerkinClimbSolver pair assembly, in units of b.
+     *
+     *  clusterStiffnessMatrix() runs over every ORDERED PAIR of segments and is
+     *  100% of the climb-solve cost -- the linear solve is one scalar division
+     *  per node. Truncating that sum is legitimate because the diffusion kernel
+     *  is not bare 1/r but screened by the sink field as exp(-k r)/r, with the
+     *  same k^2 ImmobileSinks assembles; and because the continuum field cCD
+     *  already carries the mean-field response of the whole population, so the
+     *  discrete sum must supply only the near-field correction the mean field
+     *  misses. Extending it further would double count.
+     *
+     *  Set it to ~3/k. Optional key `climbNeighborCutoff_b`; ZERO OR ABSENT
+     *  MEANS NO CUTOFF, so every existing material file keeps all-pairs
+     *  behaviour exactly. The self term is never truncated. */
+    const double climbNeighborCutoff;
 
     // Reaction map (types: parameters)
     const bool computeReactions;
@@ -154,6 +169,9 @@ struct ClusterDynamicsParameters
     /*! Positivity floor for all concentrations; optional material-file key
      *  `concentrationFloor`, defaulting to ZrMicro's 1e-20. */
     static double getConcentrationFloor(const DislocationDynamicsBase<dim>& ddBase);
+    /*! Climb pair-assembly cutoff [b]; optional material-file key
+     *  `climbNeighborCutoff_b`, defaulting to 0 = no cutoff. */
+    static double getClimbNeighborCutoff(const DislocationDynamicsBase<dim>& ddBase);
     std::map<std::pair<int,int>,double> getMap(const Eigen::Array<double,mSize*(mSize+1)/2,3> matrix_in) const;
     Eigen::Matrix<double,mSize,mSize> getR1() const;
     std::vector<Eigen::Matrix<double,mSize,mSize>> getR2() const;
