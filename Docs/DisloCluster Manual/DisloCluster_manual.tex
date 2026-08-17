@@ -858,14 +858,84 @@ ideal ratio, so every other HEX material is unchanged bit-for-bit.
 alone}, because it is also the lattice constant behind $\Omega$ and halving it
 would halve $\Omega$.
 
+\paragraph{The key alone was a no-op, and silently so.} Making $c/a$ readable
+changed nothing on the discrete side, for a reason worth recording in full.
+\code{aLoopGenerator::generateSingle} selected its branch by comparing the slip
+system's plane spacing against hard-coded constants --- $\sqrt3/2$ for
+prismatic, $\sqrt{8/3}$ for basal --- and \textbf{the basal spacing is $c/a$}.
+At $1.5944272$ neither test matched, control fell off the end of an
+\code{if}/\code{else if} chain with no \code{else}, and every requested basal
+loop vanished: no message, no non-zero exit status, \file{evl\_0.txt} written
+with zero loops for the solve to run on. Measured A/B on one case whose two
+inputs differed only by the \code{c\_SI} line: six loops without the key,
+\textbf{zero} with it.
+
+Two things were changed, and the second matters more. $c/a$ now comes from
+\code{latticeBasis.col(2).norm()} --- that is $QA$, so the test is
+rotation-invariant as well as correct --- and the fall-through now
+\textbf{throws}, naming the spacing and both accepted values. The defect was not
+the wrong constant but that a wrong constant could cost every loop without a
+word. The prismatic constant $\sqrt3/2$ is a purely basal-plane quantity, has no
+$c/a$ in it, and was always correct.
+
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & basal loops & emitted $b_z$ & $|b_{\cloop{}}|$ \\
+\midrule
+before, \code{c\_SI} absent  & 6          & $0.8164965809277259$ & $2.63973$~\AA{} \\
+before, \code{c\_SI} present & \textbf{0} & ---                  & --- \\
+after, \code{c\_SI} absent   & 6          & $0.8164965809277259$ & $2.63973$~\AA{} \\
+after, \code{c\_SI} present  & 6          & $0.7964738632848747$ & $\mathbf{2.57500}$~\AA{} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+$0.8164965809277259$ is $\sqrt{8/3}/2$ to the last digit and
+$0.7964738632848747$ is $(c/a)/2$ to the last digit, so both branches are exact
+rather than approximately right; and the two \code{c\_SI}-absent rows are
+identical, which is the regression test that every other HEX material is
+untouched. Note $|b_{\cloop{}}| = c/2$ in metres \emph{however $a$ is chosen} ---
+the test case still carried $b_{SI} = 0.3233$~nm, so its $b_z$ is
+$(5.15/3.233)/2$ where the library file gives $(5.15/3.23)/2 = 0.7972136$, a
+$0.09\%$ difference in units of $b$ and none at all in metres. Compare $b_z$
+against the case's own $b_{SI}$, never the library's.
+
+\paragraph{The 0-D consequence is not confined to \cloop{}.} $\ell_c$ plays two
+roles in \code{loop\_model = 0}: it forms the genuine \cloop{} radius
+($r_{vL} = \ell_c\sqrt{C_{vL_v}/C_{vL}}$, while $r_{iL}$ correctly uses
+$\ell_a$), \emph{and} it is the model's single sink prefactor $\ell_c/\ell$,
+applied to \aloop{} as well through \code{pref\_iL}, \code{pref\_aiL} and
+\code{v\_abs\_a}. Full self-consistency was chosen over pinning that prefactor,
+so at $10$~dpa
+\[
+N_a\ 0.716\times,\quad c_a\ 0.714\times,\quad
+N_c\ 0.993\times,\quad c_c\ 0.499\times .
+\]
+The \aloop{} column moves because of the shared prefactor, not because of
+anything about the \cloop{} Burgers vector; \code{loop\_model = 1} has no such
+conflation, since it uses each family's own $\ell_k$. No solver rebuild was
+needed --- $\ell_c$ reaches the C++ as a command-line parameter.
+
 \begin{quote}
 \textbf{The \cloop{} part of the 28-parameter fit is stale.} The continuum
 \cloop{} radius rises by $1.4312$ and the 0-D $\ell_c$ by $1.4142$, and sink
 strength rises with $r$. This is the third such warning, after $\Omega$ and
 \code{loop\_model}, and they compound. What it buys is
-$f_{\text{burgers}} = \sqrt{b_{cd}/b_{dd}} = 1.000000$: no Burgers discontinuity
-at the continuum\,$\to$\,discrete transfer, where it was $1.414214$.
+$f_{\text{burgers}} = \sqrt{b_{cd}/b_{dd}} = 1.000000$ on all four families: no
+Burgers discontinuity at the continuum\,$\to$\,discrete transfer, where it was
+$1.414214$ for \cloop{}. The residual \cloop{} sink jump is
+$1/\code{loopSinkScale} = 3.43$, down from $4.85$, and that factor is a
+modelling decision rather than a crystallography error.
 \end{quote}
+
+\noindent
+One hard-coded ideal ratio is left deliberately:
+\code{DislocationMobilityHEXprismatic.cpp} sets $h = \sqrt{8/3}/2$, the
+kink-pair height for prismatic \emph{glide}. It is not a Burgers vector, it was
+fitted at the ideal ratio, and the climb loops here are \code{SESSILELOOP} and
+never reach it.
 
 \subsection{The state vector}
 \label{sec:statevector}
@@ -1263,6 +1333,7 @@ it is split (measured loss ratio $1.047$ against content ratio $1.045$). The
 growth balance pins the \emph{size}. Then
 %
 \begin{equation}
+\label{eq:na-quotient}
   \frac{N_a^{\text{sc}}}{N_a^{\text{leg}}}
   = \frac{\text{content ratio}}{\text{size ratio}}
   = \frac{1.045}{300.3/884.4} = 3.078,
@@ -1306,6 +1377,59 @@ per-species cluster mobility --- legacy gives $C_{2i}$ and $C_{3i}$ the monomer
 $\omega_i$ although $\omega_{2i}/\omega_i = 4.9\times10^{-6}$, so it overstates
 cluster arrival --- and three \aloop{} families instead of two.
 
+\subsubsection{The matched comparison --- the formulation isolated}
+\label{sec:lm-matched}
+
+So the comparison was repeated matched: two further 500~nm hexagonal marches
+identical in every respect but \code{loop\_model}, at \textbf{zero applied
+stress} --- giving $f_a = 1/3$ exactly, the split mode~1 carries, verified as
+$0.333333333333$ in both logs --- and at the \textbf{fitted} $p_v = 1.178808$,
+where all four Woo efficiencies reproduce the workbook constants to six digits.
+Same mesh, same nine-point dose grid, same $90\,617$ CD nodes, $0.71$ and
+$0.73$~h.
+
+\begin{table}[htbp]
+\centering
+\caption{Matched comparison at zero stress and the fitted $p_v$, interior mean
+         at 10~\textrm{dpa}. Compare with Table~\ref{tab:lm-measured}, which
+         additionally carried the $p_v$ difference.}
+\label{tab:lm-matched}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & $N_a$ & $c_a$ & $N_c$ & $c_c$ \\
+\midrule
+\code{loop\_model = 0}, legacy          & $8.7884\times10^{-8}$ & $5.1880\times10^{-5}$ & $2.5810\times10^{-8}$ & $1.6061\times10^{-3}$ \\
+\code{loop\_model = 1}, self-consistent & $1.4217\times10^{-7}$ & $5.4910\times10^{-5}$ & $2.5770\times10^{-8}$ & $1.9143\times10^{-3}$ \\
+\quad ratio                             & $\mathbf{1.618\times}$ & $1.058\times$ & $0.998\times$ & $\mathbf{1.192\times}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent
+\textbf{Most of what route~A showed was $p_v$, not the formulation}: $N_a$ falls
+from $3.078\times$ to $1.618\times$, and $c_c$ \emph{inverts}, $0.665\times \to
+1.192\times$. That is the quantitative form of the paragraph above, and it
+confirms that the \cloop{} starvation was $Z^{\text{basal}}_v$ at $p_v = 1$
+rather than anything about how the families are organised.
+
+The two-balance closure of Eq.~(\ref{eq:na-quotient}) holds on both families:
+%
+\[
+\text{\aloop{}}:\ \frac{1.058}{386.2/590.3} = 1.6177,\qquad
+\text{\cloop{}}:\ \frac{1.192}{74281/62228} = 0.9984,
+\]
+%
+against $1.6177$ and $0.9984$ measured, and the \aloop{} size ratio $0.654$ is
+again the self-consistent loops sitting nearer their nucleus ($386.2$ against
+$n^{\mathrm{nuc}}_{iL} = 300$, where legacy reaches $590.3$).
+
+Finally, $d_{\text{coarsen}}$ \textbf{swaps families outright}, which no ratio
+would have revealed: legacy crosses $\varphi^\ast$ for \cloop{} at
+$0.4$~\textrm{dpa} and never for \aloop{}, while the self-consistent march
+crosses for all three \aloop{} variants at $0.4$~\textrm{dpa} and never for
+\cloop{}. Which family the mean-field treatment of coalescence fails for first
+is therefore a property of the formulation, not of the material.
+
 \paragraph{The prefactors are not a factor.} They agree almost exactly, which is
 worth stating because it is not obvious:
 %
@@ -1322,12 +1446,21 @@ prismatic efficiency, interstitial & $Z^{\text{prismatic}}_{i} = 1.072114$ & $Z_
 \end{center}
 %
 The efficiency agreement is by construction --- $Z^{0}_m$ and $p_m$ in
-\file{Zr3d\_ghoniem.txt} were fitted to reproduce the phenomenological $Z$. The
-prefactor agreement is a coincidence worth knowing about:
-$\ell_a/\ell_c = \sqrt{b_c/b_a} = 1.2627$ and the fitted
-$s_a = 0.792317$ happen to be reciprocals to within $0.05\%$, so \MoD{}'s
-sink-scale calibration silently undoes the fact that the legacy model sizes its
-\aloop{} sinks with the \cloop{} Burgers vector.
+\file{Zr3d\_ghoniem.txt} were fitted to reproduce the phenomenological $Z$.
+
+\begin{quote}
+\textbf{The prefactor coincidence recorded here has since been broken, and
+knowingly.} It read: $\ell_a/\ell_c = \sqrt{b_c/b_a} = 1.2627$ and the fitted
+$s_a = 0.792317$ are reciprocals to within $0.05\%$, so \MoD{}'s sink-scale
+calibration silently undid the legacy model's sizing of \aloop{} sinks with the
+\cloop{} length scale. Putting $|b_{\cloop{}}|$ on its physical value
+(Section~\ref{sec:burgers}) rescales $\ell_c$ by $\sqrt2$, so
+$\ell_a/\ell_c = \sqrt{b_{cL}/b_a} = 0.8929$ and the product is now
+$0.8929 \times 0.792317 = 0.7075$, not $1.0005$. The cancellation was a
+numerical accident of the old \cloop{} convention rather than a property of the
+model, and it is gone. Treat the $1.000464$ above as a historical record of the
+pre-change state.
+\end{quote}
 
 \paragraph{A retracted explanation, recorded because the error is instructive.}
 An earlier revision of this section attributed the difference to the
