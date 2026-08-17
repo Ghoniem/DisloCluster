@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  16 AUG 2026 07:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  16 AUG 2026 17:51
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1192,32 +1192,69 @@ Underfull \hbox (badness 4254) in paragraph at lines 1398--1400
 /10.95 per
  []
 
+
+Underfull \hbox (badness 10000) in paragraph at lines 1406--1406
+[]|\T1/lmtt/m/n/9 dislocluster_code/staging/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1409--1409
+[]|\T1/lmtt/m/n/9 dislocluster_code/post/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1411--1411
+[]|\T1/lmtt/m/n/9 dislocluster_code/coupling/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1413--1413
+[]|\T1/lmtt/m/n/9 dislocluster_code/coupling/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1415--1415
+[]|\T1/lmtt/m/n/9 dislocluster_code/coupling/
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1417--1418
+[]|\T1/lmtt/m/n/9 dislocluster_code/studies/
+ []
+
 [19] [20]
-Overfull \hbox (9.14146pt too wide) in paragraph at lines 1563--1563
+Overfull \hbox (9.14146pt too wide) in paragraph at lines 1580--1580
  [][][]\T1/lmtt/m/n/10 rate_equations.cpp 
  []
 
 
-Overfull \hbox (3.45091pt too wide) in paragraph at lines 1563--1563
+Overfull \hbox (3.45091pt too wide) in paragraph at lines 1580--1580
  [][][]\T1/lmtt/m/n/10 ClusterDynamicsFEM[] 
  []
 
-[21] [22] [23] [24] (DisloCluster_manual.aux)
+[21]
+Underfull \hbox (badness 1365) in paragraph at lines 1633--1643
+ \T1/lmr/bx/n/10.95 A.6.0.3 The hand-off.[] \T1/lmtt/m/n/9 post/coarsening.py \
+T1/lmr/m/n/10.95 de-cides \T1/lmr/m/it/10.95 when \T1/lmr/m/n/10.95 the con-tin
+-uum de-scrip-tion of a
+ []
+
+[22] [23] [24] [25] (DisloCluster_manual.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `DisloCluster_manual.out' has not changed.
-(rerunfilecheck)             Checksum: 54C6E00EBFD4DABD65E014B906DA2FF8;8893.
+(rerunfilecheck)             Checksum: FFCF9CD4FFF0D84B4E552585080CD642;9196.
  ) 
 Here is how much of TeX's memory you used:
- 25032 strings out of 467691
- 459663 string characters out of 5414988
- 1781123 words of memory out of 5000000
- 53379 multiletter control sequences out of 15000+600000
- 747159 words of font info for 127 fonts, out of 8000000 for 9000
+ 25043 strings out of 467691
+ 459809 string characters out of 5414988
+ 1781201 words of memory out of 5000000
+ 53382 multiletter control sequences out of 15000+600000
+ 750147 words of font info for 128 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,16n,94p,678b,2019s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,16n,94p,678b,2013s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
@@ -1242,9 +1279,9 @@ s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users
 Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/
 Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/
 Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb>
-Output written on DisloCluster_manual.pdf (24 pages, 646108 bytes).
+Output written on DisloCluster_manual.pdf (25 pages, 661115 bytes).
 PDF statistics:
- 806 PDF objects out of 1000 (max. 8388607)
- 269 named destinations out of 1000 (max. 500000)
- 413 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 823 PDF objects out of 1000 (max. 8388607)
+ 276 named destinations out of 1000 (max. 500000)
+ 421 words of extra memory for PDF output out of 10000 (max. 10000000)
 

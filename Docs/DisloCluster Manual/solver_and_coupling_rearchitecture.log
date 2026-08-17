@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  15 AUG 2026 15:25
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  16 AUG 2026 17:53
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -918,15 +918,15 @@ Overfull \hbox (37.56816pt too wide) in paragraph at lines 2784--2794
 ng
  []
 
-[37] [38]
-Overfull \hbox (8.398pt too wide) in paragraph at lines 2857--2871
+[37] [38] [39]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 2971--2985
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (68.51009pt too wide) in paragraph at lines 2857--2871
+Overfull \hbox (68.51009pt too wide) in paragraph at lines 2971--2985
 \T1/lmtt/m/n/10 cpp_utils/jac_check.cpp\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 cpp_
 utils/parameters.h\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 code/solver.cpp\T1/lmr/m/
 n/10.95 , \T1/lmtt/m/n/10 dislocluster_code/zerod/cpp_bridge.py\T1/lmr/m/n/10.9
@@ -934,29 +934,33 @@ n/10.95 , \T1/lmtt/m/n/10 dislocluster_code/zerod/cpp_bridge.py\T1/lmr/m/n/10.9
  []
 
 
-Overfull \hbox (147.30827pt too wide) in paragraph at lines 2857--2871
+Overfull \hbox (147.30827pt too wide) in paragraph at lines 2971--2985
 \T1/lmtt/m/n/10 dislocluster_code/coupling/immobile.py\T1/lmr/m/n/10.95 , \T1/l
 mtt/m/n/10 dislocluster_code/coupling/field.py \T1/lmr/m/n/10.95 (new), \T1/lmt
 t/m/n/10 dislocluster_code/coupling/march.py
  []
 
-[39] (solver_and_coupling_rearchitecture.aux)
+[40] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
 Package rerunfilecheck Info: File `solver_and_coupling_rearchitecture.out' has 
 not changed.
-(rerunfilecheck)             Checksum: 742A693FF5182217B66A0EF87D0108AF;15512.
+(rerunfilecheck)             Checksum: D63EB926525685D0E54D0B76CDA496A9;15808.
  ) 
 Here is how much of TeX's memory you used:
- 11794 strings out of 467691
- 181184 string characters out of 5414988
- 620739 words of memory out of 5000000
- 40442 multiletter control sequences out of 15000+600000
+ 11806 strings out of 467691
+ 181320 string characters out of 5414988
+ 621929 words of memory out of 5000000
+ 40444 multiletter control sequences out of 15000+600000
  767842 words of font info for 133 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,15n,79p,539b,577s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,15n,79p,539b,571s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.pf
 b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pfb
@@ -979,10 +983,10 @@ ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pf
 b>
-Output written on solver_and_coupling_rearchitecture.pdf (39 pages, 628282 byte
+Output written on solver_and_coupling_rearchitecture.pdf (40 pages, 638659 byte
 s).
 PDF statistics:
- 828 PDF objects out of 1000 (max. 8388607)
- 207 named destinations out of 1000 (max. 500000)
- 529 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 850 PDF objects out of 1000 (max. 8388607)
+ 217 named destinations out of 1000 (max. 500000)
+ 537 words of extra memory for PDF output out of 10000 (max. 10000000)
 

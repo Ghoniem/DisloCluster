@@ -109,5 +109,11 @@
 \contentsline {paragraph}{Workflow.}{37}{section*.46}%
 \contentsline {subsection}{\numberline {12.6}Results}{37}{subsection.12.6}%
 \contentsline {paragraph}{Files.}{38}{section*.47}%
-\contentsline {section}{\numberline {13}Summary and recommended next steps}{38}{section.13}%
-\contentsline {paragraph}{Files.}{39}{section*.48}%
+\contentsline {subsection}{\numberline {12.7}From an offline export to a runtime handoff}{38}{subsection.12.7}%
+\contentsline {paragraph}{When.}{38}{section*.48}%
+\contentsline {paragraph}{What is exchanged, and the ledger that proves it.}{38}{section*.49}%
+\contentsline {paragraph}{Whether a transfer is possible at all.}{39}{section*.50}%
+\contentsline {paragraph}{What makes the climb solve affordable.}{39}{section*.51}%
+\contentsline {paragraph}{Status.}{39}{section*.52}%
+\contentsline {section}{\numberline {13}Summary and recommended next steps}{40}{section.13}%
+\contentsline {paragraph}{Files.}{40}{section*.53}%

@@ -49,8 +49,12 @@
 \contentsline {subsection}{\numberline {A.3}The three interfaces}{21}{subsection.A.3}%
 \contentsline {subsection}{\numberline {A.4}Unit systems}{21}{subsection.A.4}%
 \contentsline {subsection}{\numberline {A.5}Call graph}{21}{subsection.A.5}%
-\contentsline {subsection}{\numberline {A.6}Known non-correspondences between the 0-D and 3-D models}{21}{subsection.A.6}%
-\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{22}{section.B}%
-\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{22}{paragraph.B.0.0.1}%
-\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{22}{paragraph.B.0.0.2}%
-\contentsline {section}{\numberline {C}Quick reference}{23}{section.C}%
+\contentsline {subsection}{\numberline {A.6}Anisotropic diffusion and the discrete handoff}{21}{subsection.A.6}%
+\contentsline {paragraph}{\numberline {A.6.0.1}One anisotropy factor, two representations.}{22}{paragraph.A.6.0.1}%
+\contentsline {paragraph}{\numberline {A.6.0.2}Which anisotropy to use.}{22}{paragraph.A.6.0.2}%
+\contentsline {paragraph}{\numberline {A.6.0.3}The handoff.}{23}{paragraph.A.6.0.3}%
+\contentsline {subsection}{\numberline {A.7}Known non-correspondences between the 0-D and 3-D models}{23}{subsection.A.7}%
+\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{23}{section.B}%
+\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{23}{paragraph.B.0.0.1}%
+\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{23}{paragraph.B.0.0.2}%
+\contentsline {section}{\numberline {C}Quick reference}{24}{section.C}%

@@ -2793,6 +2793,120 @@ ratio before and after coalescence, and the area-conservation and saturation
 flags.
 
 % ============================================================================
+\subsection{From an offline export to a runtime handoff}
+\label{sec:runtime-handoff}
+
+Everything above converts the continuum loop field into a discrete population
+\emph{for export and visualization}: it does not feed back into a solve. This
+section records the machinery that closes that loop, added on 16~August 2026.
+The physics of the conversion is unchanged --- the radius rule, the coalescence
+bound and the crystal-aware placement are all as described above --- and what is
+new is when it happens, what is removed from the continuum in exchange, and what
+makes the resulting climb solve affordable.
+
+\paragraph{When.} \code{post/coarsening.py} forms the Avrami overlap fractions
+per interior node per family and reports $d_{\text{coarsen}}$, the dose at which
+they cross a threshold $\varphi^\ast$. It is fed inside the immobile substep
+loop, so the crossing is resolved to a substep rather than interpolated across
+whatever gap the dose list leaves --- which had bracketed it only to a factor of
+three. Three independent $500$~nm marches report $d_{\text{coarsen}} = 0.4$~\dpa{}
+for the basal family and no crossing for any prismatic family, identically.
+
+\paragraph{What is exchanged, and the ledger that proves it.} Once a loop is
+discrete it is a sink through the Green's function; if it is \emph{also} still
+in the continuum immobile field it is a sink through \code{ImmobileSinks} as
+well, and it absorbs twice. The same defect has a second face:
+\code{DislocationQuadraturePoint::cCD} samples the continuum mobile field at the
+loop line, so such a loop sees its own depletion twice over. Removing the
+transferred share from the continuum fixes both at once.
+
+Three invariants are audited across every transfer --- loop number, stored
+defects, and sink strength. The first two are conservation statements; the third
+is a modelling statement, and it is the one that catches mistakes. The ledger
+found three separate leaks that inspection had not:
+
+\begin{enumerate}\itemsep3pt
+\item \code{microstructureGenerator} silently refuses any loop whose nodes fall
+outside the grain. Discovering that \emph{after} removing the family from the
+continuum loses those defects, so the refusal is now predicted --- same convex
+hull, same exported polygon, same criterion --- and the refused share stays in
+the continuum. It must be counted in \emph{defects}, not loops: one refusal out
+of six was $83\%$ by count and $98\%$ by defects, because the refused loop
+happened to be the smallest. Proximity to the surface decides refusal, not size.
+\item The population is drawn as $\mathrm{round}(\sum_j n_j V_j)$ loops, an
+integer from a real expectation, so it misses the continuum total by the
+rounding: $1.6\%$ at $98$ loops and $15.4\%$ at $6$. Rescaling every radius by
+$\sqrt{C_{\text{target}}/C_{\text{drawn}}}$ fixes the total exactly and leaves
+every ratio between loops untouched.
+\item Sink strength jumps at the handoff by $\sqrt{b_{cd}/b_{dd}} = 1.414$ ---
+the continuum sizes a basal loop with the full $\langle 0001\rangle$ Burgers
+vector and the discrete side with the half --- times $1/\code{loopSinkScale} =
+3.43$. Coalescence at transfer moves it a further $5.3\times$ on the measured
+case.
+\end{enumerate}
+
+\noindent
+With the first two closed, continuum-after plus discrete equals
+continuum-before to $10^{-16}$. The third is reported and never asserted on: it
+is a decision, and it must be settled before a transfer feeds a solve.
+
+\paragraph{Whether a transfer is possible at all.} A discrete loop must fit
+inside the crystal, and that is not automatic. On the $500$~nm case the kept
+fraction is $0.997$ at $0.1$~\dpa{} and $0.55$ from $1$~\dpa{} onward; the
+plateau is purely geometric, since a loop of mean radius $48$~nm in a
+$500\times433\times800$~nm prism must clear every wall, giving
+$(404/500)(337/433)(704/800) = 0.56$. On the $200$~nm case the kept fraction is
+\emph{exactly zero} --- the basal radii reach $65$~nm against a $173$~nm extent,
+so no loop fits. The transfer declines rather than handing DD a population it
+would refuse, but the lesson generalizes: \textbf{a domain must be chosen
+against the loop size it will reach, not only against the mesh cost.}
+
+\paragraph{What makes the climb solve affordable.} \code{GalerkinClimbSolver}
+assembles over every ordered pair of segments, and that assembly is $100\%$ of
+the climb cost --- the sparse path is dead code, and the live path is lumped, so
+its ``solve'' is one scalar division per node. Reducing the number of unknowns
+therefore buys nothing; only reducing the number of \emph{pairs} does.
+
+Truncating the sum is legitimate because the kernel is not bare $1/r$, which
+could not be truncated --- a growing loop is a net sink, its monopole does not
+vanish, and a shell at radius $r$ contributes $\sim r$ --- but screened as
+$e^{-kr}/r$ by the same $k^2$ that \code{ImmobileSinks.h} already assembles.
+Independently: the continuum field already carries the mean-field response of
+the whole population, so the discrete sum must supply \emph{only} the near-field
+correction, and extending it further would double count in exactly the way the
+ledger above exists to prevent.
+
+The cutoff is the optional material key \code{climbNeighborCutoff\_b}; zero or
+absent means no cutoff, so every case written before it existed is unaffected.
+Verified three ways on a real discrete case: with the key absent and with an
+enormous cutoff the results agree \emph{bit-for-bit} in \code{evl} and in every
+\code{F} field, which is the test of the distance logic itself, while a finite
+cutoff differs. The convergence sweep, on the basal plastic-distortion rate:
+
+\begin{center}
+\begin{tabular}{lrrrrr}
+\toprule
+$R_c/L_s$ & 1 & 2 & 3 & 4 & 6 \\
+\midrule
+error & $19.3\%$ & $9.6\%$ & $3.9\%$ & $0.25\%$ & $0.000\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+so the default is $4$, not the $3$ first proposed --- a case where the
+acceptance test rejected the value the same plan had recommended. The zeros at
+$R_c/L_s \geq 6$ are a finite-size artifact: the cutoff there exceeds the extent
+of the loop cloud, so nothing is excluded. Together with separating the
+rendering polygon count ($64$ sides, chosen for figures) from the exported one
+($12$), the assembly is $274\times$ smaller than the naive version.
+
+\paragraph{Status.} Each piece is validated individually. What has not yet been
+completed is a full march that fires the transition at $d_{\text{coarsen}}$ and
+accumulates growth strain through \code{F} across the whole dose range; until
+that exists, the sink-strength discontinuity remains an open modelling decision.
+
+% ============================================================================
 \section{Summary and recommended next steps}
 % ============================================================================
 
