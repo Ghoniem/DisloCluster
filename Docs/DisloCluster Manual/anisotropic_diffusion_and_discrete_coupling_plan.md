@@ -859,6 +859,21 @@ fast-solve boundary, where a DDomp call happens anyway and the state is already
 synchronized. `d_coarsen` is recorded in `summary.json` with the `φ` trajectory that
 produced it, so the choice is auditable after the fact rather than a hidden branch.
 
+**`fem_every` sets the granularity of the switch, and that costs kept fraction.** The
+trigger is resolved to a substep but acted on at a fast-solve boundary, so the delay
+between the two is up to `fem_every` substeps. With the default `substeps_per_interval = 3`
+and `fem_every = 3` the boundaries coincide with *interval starts*, so a crossing detected
+at 0.4 dpa is acted on at **1.0 dpa** — and on the 500 nm case the kept fraction falls from
+0.997 to 0.55 across exactly that gap, so the delay hands roughly **half the population**
+to a transfer that could have taken nearly all of it.
+
+The fix is `fem_every = 1` for a run that arms the transition, not moving the hook: acting
+between fast solves would leave the mobile field and the discrete network describing
+different microstructures, which is the inconsistency the boundary placement exists to
+avoid. The cost is real — `fem_every` is the accuracy dial of the operator split, and 1 is
+its most expensive setting — so this is a genuine trade rather than an oversight, and it
+should be stated whenever a transition run's kept fraction is quoted.
+
 #### 4.2 The interaction is screened — nearest neighbors are enough
 
 The Galerkin climb solve is `O(N_seg²)`: `clusterStiffnessMatrix(fieldSegment,
