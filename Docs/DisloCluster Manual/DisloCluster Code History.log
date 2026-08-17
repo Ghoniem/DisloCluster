@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  15 AUG 2026 21:38
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  16 AUG 2026 17:43
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -823,34 +823,53 @@ Underfull \hbox (badness 4181) in paragraph at lines 1640--1640
 0.95 , not on the 19-column state it is built from.
  []
 
-
-Underfull \hbox (badness 3895) in paragraph at lines 1665--1675
-[]\T1/lmr/bx/n/10.95 No con-tin-uum$\OMS/lmsy/m/n/10.95 !$\T1/lmr/bx/n/10.95 di
-screte loop tran-si-tion. \T1/lmr/m/n/10.95 The sib-ling fullCD branch has
+[25]
+Underfull \hbox (badness 1024) in paragraph at lines 1688--1690
+[]\T1/lmr/m/n/10.95 Both growth con-di-tions re-duce to bounds on one num-ber, 
+the ar-rival ra-tio $\OML/lmm/m/it/10.95 A=B \OT1/lmr/m/n/10.95 =
  []
 
-[25] [26]
-Underfull \hbox (badness 10000) in paragraph at lines 1820--1821
+
+Underfull \hbox (badness 1389) in paragraph at lines 1706--1706
+\T1/lmr/bx/it/10.95 Code. \T1/lmr/m/n/10.95 Con-firmed 16/16 on a two-grid swee
+p. The mea-sured co-growth set is $\OML/lmm/m/it/10.95 p[] \OT1/lmr/m/n/10.95 =
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1744--1744
+\T1/lmr/bx/it/10.95 Code. \T1/lmr/m/n/10.95 Three leaks were found by the ledge
+r rather than by in-spec-tion.
+ []
+
+[26]
+Underfull \hbox (badness 1490) in paragraph at lines 1806--1806
+\T1/lmr/bx/it/10.95 Why. \T1/lmr/m/n/10.95 They were de-clared on the dat-a-cla
+ss and ac-cepted by \T1/lmtt/m/n/10 _take\T1/lmr/m/n/10.95 , then dropped, so
+ []
+
+[27] [28] [29]
+Underfull \hbox (badness 10000) in paragraph at lines 1995--1996
 []|\T1/lmr/m/n/10.95 unconditional sta-bil-ity (was
  []
 
-[27] [28] (DisloCluster Code History.aux)
+[30] (DisloCluster Code History.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `"DisloCluster Code History".out' has not cha
 nged.
-(rerunfilecheck)             Checksum: 6CEAB1C51DA6BEF79195A80CF51FB093;3826.
+(rerunfilecheck)             Checksum: BAC9B69A9A0B27A66790B1A280E1DF5E;4130.
  ) 
 Here is how much of TeX's memory you used:
- 11278 strings out of 467691
- 171982 string characters out of 5414988
- 605410 words of memory out of 5000000
- 40041 multiletter control sequences out of 15000+600000
- 737666 words of font info for 118 fonts, out of 8000000 for 9000
+ 11305 strings out of 467691
+ 172264 string characters out of 5414988
+ 607091 words of memory out of 5000000
+ 40054 multiletter control sequences out of 15000+600000
+ 743652 words of font info for 120 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,11n,79p,420b,572s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,420b,571s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
@@ -874,9 +893,9 @@ rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/User
 s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/User
 s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/User
 s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtti10.pfb>
-Output written on "DisloCluster Code History.pdf" (28 pages, 564050 bytes).
+Output written on "DisloCluster Code History.pdf" (30 pages, 588685 bytes).
 PDF statistics:
- 507 PDF objects out of 1000 (max. 8388607)
- 114 named destinations out of 1000 (max. 500000)
- 145 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 540 PDF objects out of 1000 (max. 8388607)
+ 126 named destinations out of 1000 (max. 500000)
+ 153 words of extra memory for PDF output out of 10000 (max. 10000000)
 

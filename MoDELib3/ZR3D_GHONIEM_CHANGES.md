@@ -745,6 +745,60 @@ macOS; `DDomp`, `microstructureGenerator` and `libMoDELib.a` all build clean on
 Apple silicon, and the CD Newton iterates reproduce bit-identically between two
 differently configured builds of the same tree.
 
+### 20. The Galerkin climb assembly had no distance cutoff
+
+**Symptom:** none, until a discrete population is present — and then the climb solve
+dominates everything. `GalerkinClimbSolver::computeClimbScalarVelocitiesBulk` runs
+`clusterStiffnessMatrix(fieldSegment, sourceSegment)` over **every ordered pair** of
+segments, each costing an `mSize`-wide `concentrationMatrices` evaluation summed over
+`periodicShifts`.
+
+**Why the linear solve is not the cost.** The sparse path in that file is commented out
+and would throw; only the *lumped* path is live, and the "solve" is one scalar division
+per node, `nodeV[n](kc) = Fc[kc](n)/KKc[kc](n)`. **100% of the cost is the pairwise
+assembly**, so reducing the number of unknowns buys nothing and reducing the number of
+*pairs* is the only lever.
+
+**Why truncating is legitimate.** A bare `1/r` kernel could not be truncated — a growing
+loop is a net sink, its monopole does not vanish, and a shell at `r` contributes `~r`, so
+the sum grows with the cutoff. The physical kernel is screened by the sink field as
+`exp(−kr)/r`, with exactly the `k²` `ImmobileSinks.h` already assembles. Independently:
+the continuum field `cCD` already carries the mean-field response of the whole
+population, so the discrete sum must supply **only** the near-field correction the mean
+field misses — extending it further would double count.
+
+**Change:** new optional material key `climbNeighborCutoff_b`, read through the same
+`try`/`catch` idiom as `atomicVolume_SI` and `concentrationFloor`. **Zero or absent means
+no cutoff**, so every material file written before this key existed keeps all-pairs
+behaviour exactly. The test is deliberately conservative — midpoint distance against
+`R_c` plus *both* half-chords, so a pair is dropped only when no point of one segment can
+lie within `R_c` of any point of the other — and takes the minimum over `periodicShifts`,
+because a pair far in the primary cell may be near in an image. The **self term is never
+truncated**: its midpoint distance is zero and it passes any `R_c ≥ 0`.
+
+**Verification**, on a real discrete case (200 nm, 0.1 dpa, 6 ⟨c⟩ loops handed over by
+`coupling/transition.py`, `useDislocations=1`, `climbSolverType=Galerkin`):
+
+| run | cutoff | result |
+|---|---|---|
+| a | key absent | the new branch is never taken |
+| b | `1e12` | branch taken, excludes nothing |
+| c | `3 L_s` | branch taken, excludes pairs |
+
+**a and b agree bit-for-bit** in `evl` and in every `F` field, which is the test of the
+distance logic itself; c differs, so the cutoff bites.
+
+**Convergence**, against the uncut assembly on `dotBetaP_33` — the basal
+plastic-distortion rate, i.e. exactly what ⟨c⟩ vacancy loops produce:
+
+| `n_L` = `R_c/L_s` | 1 | 2 | 3 | 4 | 6 |
+|---|---:|---:|---:|---:|---:|
+| error | 19.3% | 9.6% | **3.9%** | 0.25% | 0.000% |
+
+**Use `n_L = 4`, not 3.** The zeros at `n_L ≥ 6` are a finite-size artifact — the cutoff
+there exceeds the extent of the loop cloud, so nothing is excluded. With six loops in a
+small domain this sweep is per-case, not once-and-for-all.
+
 ---
 
 ## 5b. Verification against the 0-D

@@ -15,6 +15,7 @@
 \contentsline {section}{\numberline {7}The 0-D solver}{20}{section.7}%
 \contentsline {section}{\numberline {8}The fast solve}{21}{section.8}%
 \contentsline {part}{VII\hspace {1em}Portability, reproducibility and post-processing}{23}{part.7}%
-\contentsline {part}{VIII\hspace {1em}Open items}{25}{part.8}%
-\contentsline {section}{Verification status against the 0-D}{27}{section*.4}%
-\contentsline {section}{Summary of measured efficiency changes}{28}{section*.5}%
+\contentsline {part}{VIII\hspace {1em}Anisotropic diffusion and the discrete handoff}{25}{part.8}%
+\contentsline {part}{IX\hspace {1em}Open items}{28}{part.9}%
+\contentsline {section}{Verification status against the 0-D}{29}{section*.4}%
+\contentsline {section}{Summary of measured efficiency changes}{30}{section*.5}%

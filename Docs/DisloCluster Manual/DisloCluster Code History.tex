@@ -1653,25 +1653,200 @@ should come from the run.}
 \cost{Negligible.}
 
 % ===========================================================================
+\part{Anisotropic diffusion and the discrete handoff}
+\label{part:aniso}
+% ===========================================================================
+
+Work of 16 August 2026. Two threads: making the diffusion tensor and the
+capture efficiencies describe the same physics, and building the
+continuum\,$\rightarrow$\,discrete transition listed as open item~1 below.
+
+\change{One anisotropy factor per species, generating both representations}
+\label{chg:aniso-one-source}
+The anisotropy appeared in the material file twice --- as
+\code{mobileSpeciesEnergyMigration\_eV}, the tensor the fast solve diffuses
+with, and as \code{dadAnisotropy}, the $p_m$ the closed-form capture
+efficiencies use. They were independent. \code{staging/anisotropy.py} now
+generates both from one $p_m$ per species, split at fixed
+$D_{\text{eff}}=(D_a^2D_c)^{1/3}$:
+\[
+E_m^{\langle 11,22\rangle}=E_m^{\text{eff}}+2k_BT\ln p_m,\qquad
+E_m^{\langle 33\rangle}=E_m^{\text{eff}}-4k_BT\ln p_m .
+\]
+\why{The code simultaneously believed diffusion was isotropic and that the
+sinks were biased by its anisotropy. Those cannot both be true.}
+\impact{Reproduces Table~2 of Li et al.\ to the last quoted digit. Because the
+anisotropy is stored as \emph{energies}, $p_m(T)=\exp(-\Delta E_m/6k_BT)$ is
+temperature dependent, repairing a fit previously frozen at one temperature.}
+\cost{Turning the tensor on costs about $2\times$ in the fast solve (223.7\,s
+isotropic against 433.8 and 466.1\,s anisotropic, fresh runs on one mesh). The
+\emph{degree} of anisotropy does not matter: $p=0.70$ and $p=0.9137$ cost the
+same despite a factor~5 difference in directional contrast.}
+
+\change{A closed-form criterion for simultaneous growth of both loop families}
+\label{chg:cogrowth}
+Both growth conditions reduce to bounds on one number, the arrival ratio
+$A/B=\bar D_v c_v\big/\sum_m \bar D_m c_m|m|$:
+\[
+\frac{Z^0_I}{Z^0_v}\frac{\bar p}{p_v} \;<\; \frac{A}{B} \;<\;
+\frac{Z^0_I}{Z^0_v}\frac{\bar f}{f(p_v)},\qquad f(p)=\tfrac12(p+p^{-2}),
+\]
+and the window is non-empty iff $g(p_I)<g(p_v)$ with $g(p)=2/(1+p^{-3})$
+strictly increasing --- that is, \textbf{iff $p_I<p_v$}.
+\why{The observation the DAD mechanism exists to explain can be derived rather
+than searched for. The sink strength $S_k$ multiplies both channels and cancels
+from the \emph{sign}, so the microstructure sets the rate and never the
+direction.}
+\impact{Confirmed 16/16 on a two-grid sweep. The measured co-growth set is
+$p_m=(1,\,0.9137,\,0.9137,\,0.9137)$ --- vacancies isotropic, interstitials at
+the already-fitted value --- giving both families positive absorption on 100\%
+of interior nodes at every dose from 0.01 to 10\,dpa, tolerance
+$p_v\in[0.94,1.07]$. Li et al.'s structure gives none here: the clusters carry
+3.1\% of the interstitial arrival and an isotropic species is inert in the
+criterion.}
+\status{The criterion governs the \emph{absorption flux} only. The content
+update also carries cascade nucleation $G_k$, which no anisotropy affects, so
+it does not govern net population evolution. An isotropic march is not a zero
+of the criterion but another parameter point, so a ratio against one cannot
+test a statement about signs.}
+
+\change{The $d_{\text{coarsen}}$ detector, resolved to a substep}
+\label{chg:dcoarsen}
+\code{post/coarsening.py} forms the Avrami overlap fractions per interior node
+per family and reports the dose at which they cross $\varphi^\ast$;
+\code{coupling/march.py} feeds it inside the immobile substep loop and records
+the trajectory in \code{summary.json}.
+\why{Interpolating the crossing across a decade of dose bracketed it only to a
+factor of three.}
+\impact{Three independent 500\,nm marches report $d_{\text{coarsen}}=0.4$\,dpa
+for the basal family and no crossing for any prismatic family, identically.}
+
+\change{The runtime continuum\,$\rightarrow$\,discrete transition and its ledger}
+\label{chg:transition}
+\code{coupling/transition.py} converts a family's continuum field into discrete
+loops from a live march state, hands them to DD, and removes from the continuum
+only what DD can take. Armed by \code{COUPLING['discrete\_transition']}, off by
+default.
+\why{Once a loop is discrete it is a sink through the Green's function; if it
+is also still in the continuum it absorbs twice. The same bug has a second
+face --- \code{DislocationQuadraturePoint::cCD} samples the continuum field at
+the loop line, so such a loop sees its own depletion twice over.}
+\impact{Three leaks were found by the ledger rather than by inspection.
+(i)~\code{microstructureGenerator} silently refuses loops whose nodes leave the
+grain; \code{fits\_in\_crystal} now predicts that decision exactly and keeps
+the refused share in the continuum. The share must be counted in
+\emph{defects}: one refusal of six was 83\% by count and 98\% by defects.
+(ii)~\code{sample\_family} draws an integer count from a real expectation, so
+the drawn population missed the continuum total by 15.4\% at six loops;
+\code{rescale\_to\_defects} fixes it exactly. (iii)~Sink strength jumps at the
+handoff by $\sqrt{b_{cd}/b_{dd}}=1.414$ times $1/\text{loopSinkScale}=3.43$,
+and coalescence moves it a further $5.3\times$. Conservation of stored defects
+now holds to $10^{-16}$.}
+\status{The sink jump is a modelling decision, reported and never asserted on.
+It must be settled before a transfer feeds a solve. A transfer also requires a
+domain that can hold the loops: the kept fraction is 0.997 at 0.1\,dpa on the
+500\,nm case, 0.55 from 1\,dpa on, and exactly 0 on the 200\,nm case, where the
+basal radii reach 65\,nm against a 173\,nm extent.}
+
+\change{A screened cutoff on the Galerkin climb assembly}
+\label{chg:climb-cutoff}
+New optional material key \code{climbNeighborCutoff\_b} truncates
+\code{GalerkinClimbSolver}'s $O(N_{\text{seg}}^2)$ pair assembly, which is
+100\% of the climb cost --- the live path is lumped and its ``solve'' is one
+scalar division per node.
+\why{The kernel is not bare $1/r$ but screened as $e^{-kr}/r$ with the same
+$k^2$ \code{ImmobileSinks.h} assembles; and the continuum already carries the
+mean-field response, so the discrete sum must supply only the near-field
+correction the mean field misses.}
+\impact{Zero or absent means no cutoff, so every existing material file is
+unaffected. Verified bit-for-bit: an enormous cutoff reproduces the uncut
+assembly exactly in \code{evl} and in every \code{F} field. The measured
+truncation error on $\dot\beta^P_{33}$ is 19.3\,/\,9.6\,/\,3.9\,/\,0.25\% at
+$R_c/L_s=1/2/3/4$, so the default is \textbf{4, not the 3 originally
+proposed}.}
+\cost{$274\times$ fewer pairs than the naive assembly on the measured case, of
+which $28\times$ is the side count and $9.6\times$ the cutoff itself.}
+
+\change{Render side count separated from the export side count}
+\label{chg:dd-sides}
+\code{sides} is now the rendering polygon count and \code{dd\_sides} the one
+\code{write\_microstructure} exports, fixed at 12 for the basal family.
+\why{Raising the basal family to 64 sides to draw it as a circle also changed
+what was exported, and the climb assembly is $O(N_{\text{seg}}^2)$.}
+\impact{$28.4\times$ in the solve, for a shape difference no solve can resolve.
+\code{polygon\_circumradius} matches area at either count, so the stored defect
+number is identical to every digit and no published figure moves.}
+
+\change{The prismatic-loop ellipse reduced-order model}
+\label{chg:ellipse-rom}
+\code{coupling/ellipse\_rom.py}: two ODEs per loop, the curvature self-stress
+that gives the ROM a steady shape at all, and the capture-diffusivity closure
+as an explicit choice.
+\why{A prismatic loop that stays convex and centred is two numbers rather than
+$2N_{\text{sides}}$, and it is the family where that holds ($2r/d=0.091$).}
+\impact{Validated against what it must satisfy by construction: the defect
+count reproduces \code{discrete\_loops}' radius rule exactly, the steady aspect
+ratios are 2.915 and 8.500 for the two closures at $p=0.7$, and isotropic $D$
+gives a rate ratio of exactly~1.}
+\status{Two qualifications found by integrating it. The \emph{sign of growth}
+decides which axis is major, so conclusion~2 of Li et al.\ is a statement about
+growing loops; at the arrival ratio this model carries, the prismatic family is
+shrinking and the ROM predicts the opposite ellipticity. And the attractor is
+approached slowly --- a loop must grow some $10\times$ its nucleus to come
+within 7\% of $p^{-3}$ --- so observed ellipticity measures growth history as
+much as it measures $p$.}
+
+\change{\code{COUPLING} keys that validated and were then discarded}
+\label{chg:config-forward}
+\code{SimulationConfig.from\_dicts} builds \code{Coupling} from an explicit
+field list, and \code{phi\_star}, \code{frac\_star} and \code{coarsen\_hold}
+were not in it.
+\why{They were declared on the dataclass and accepted by \code{\_take}, then
+dropped, so \code{COUPLING['phi\_star']} silently did nothing and every run used
+the dataclass default.}
+\impact{A key that validates and is then ignored is worse than an unknown one,
+which \code{\_take} rejects loudly. All six coupling keys now forward. No
+result is invalidated --- every run used $\varphi^\ast=0.15$, which is what was
+intended --- but the parameter was only ever actually varied through the
+sensitivity sweep in \code{post/coarsening.py}.}
+
+\change{Non-ASCII status glyphs no longer kill a run on Windows}
+\label{chg:stdio}
+49 \code{print} lines across 12 modules carry \code{U+2713} and similar. On
+Windows both a console and a \emph{redirected} stream get cp1252, which encodes
+none of them.
+\why{A march died at \code{input\_data.py:38} after 914\,s of CD node
+bootstrapping and before a single dose step. Earlier marches survived only
+because a \emph{resumed} march skips \code{driver.prepare}, which is the call
+that reaches \code{InputData}.}
+\impact{Fixed at the stream in \code{dislocluster\_code/\_\_init\_\_.py}, once
+at import, because fixing the 49 call sites would not hold --- the next status
+marker anyone types reintroduces it. A no-op on Linux and macOS.}
+
+% ===========================================================================
 \part{Open items}
 \label{part:open}
 % ===========================================================================
 
-These are unresolved as of 15 August 2026. Two of them are physics decisions
+These are unresolved as of 16 August 2026. Two of them are physics decisions
 rather than defects.
 
 \begin{enumerate}\itemsep4pt
 
-\item \textbf{No continuum\,$\rightarrow$\,discrete loop transition.} The
-sibling fullCD branch has \code{clusterDiscretizationTime} and
-\code{initializeDiscreteClimbLoops()}, which convert the continuum loop field
-into discrete climb loops once the dose passes a threshold. This branch has no
-such transition. It is not a regression --- nothing of the kind existed in
-MoDELib2-NNL to lose --- but it is the largest capability the two branches do
-not share, and it is the one worth taking from fullCD. The post-processing
-\code{discrete\_loops} module constructs a discrete population from the
-continuum fields for \emph{visualization and export}, which is not the same
-thing --- it does not feed back into the solve.
+\item \textbf{The continuum\,$\rightarrow$\,discrete loop transition ---
+\emph{built}, not yet exercised over a full march.} This was the largest
+capability the two branches did not share. It now exists, by a different route
+from fullCD's \code{initializeDiscreteClimbLoops()}: the detector of
+change~\ref{chg:dcoarsen} decides \emph{when}, \code{coupling/transition.py}
+performs the handoff with the conservation ledger of
+change~\ref{chg:transition}, and the cutoff of change~\ref{chg:climb-cutoff}
+makes the climb solve affordable. What remains is to run it: the pieces are
+validated individually --- conservation to $10^{-16}$, the cutoff bit-for-bit
+against the uncut assembly --- but a march that fires the transition at
+$d_{\text{coarsen}}$ and accumulates growth strain through \code{F} across the
+whole dose range has not yet been completed and checked. Until it has, the
+sink-strength discontinuity at the handoff remains an open modelling decision
+rather than a settled one.
 
 \item \textbf{The mobile Newton iteration does not converge from a cold start.}
 \code{convergenceError} $= 2.9\times10^{5}$ after the first iteration, then the

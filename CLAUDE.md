@@ -95,9 +95,9 @@ editable into the venv (`pip install -e .`).
 | `dislocluster_code.build` | `ensure_zrmicro_solver`, `ensure_modelib` |
 | `dislocluster_code.zerod` | the 0-D chain: `input_data`, `reaction_rates`, `rate_equations`, `calibration`, `cpp_bridge`, `post_process` |
 | `dislocluster_code.staging` | `case` (mesh, stage, bootstrap), `inputs` (DD/polycrystal/ElasticDeformation), `seed` |
-| `dislocluster_code.coupling` | `march` (the operator split), `config` (`MarchConfig`), `qssa`, `field`, `immobile`, `checkpoint`, `progress` |
-| `dislocluster_code.post` | figures, movies, discrete loops, TEM slices, reports |
-| `dislocluster_code.studies`, `.fitting`, `.legacy` | comparison drivers, parameter fits, superseded modules |
+| `dislocluster_code.coupling` | `march` (the operator split), `config` (`MarchConfig`), `qssa`, `field`, `immobile`, `checkpoint`, `progress`, plus the discrete handoff: `transition` (continuum→discrete + the conservation ledger), `neighbors` (screened cutoff, `k²` as `ImmobileSinks` builds it), `ellipse_rom` (the ⟨a⟩ two-parameter loop) |
+| `dislocluster_code.post` | figures, movies, discrete loops, TEM slices, reports, `coarsening` (the `d_coarsen` detector) |
+| `dislocluster_code.studies`, `.fitting`, `.legacy` | comparison drivers, parameter fits, superseded modules. `dad_sweep` / `dad_window` answer which anisotropy lets ⟨a⟩ and ⟨c⟩ grow together; `compare_anisotropy` diffs two marches |
 
 **`ZrMicro/py_utils/` still exists as a compatibility shim.**
 Each old module aliases `sys.modules[__name__]` to its new home, so
@@ -236,7 +236,7 @@ Nothing else in the notebook should need editing for a normal run.
 | `GEOMETRY` | domain type (`cubic` / `hexagonal`), dimensions |
 | `MESH` | element size and order, boundary-layer refinement |
 | `BOUNDARY` | periodic faces (empty ⇒ Dirichlet everywhere), applied stress and strain |
-| `COUPLING` | route, seed dose, snapshot doses, substeps, fast-solve cadence, failure tolerances |
+| `COUPLING` | route, seed dose, snapshot doses, substeps, fast-solve cadence, failure tolerances, the coarsening detector (`phi_star`, `frac_star`, `coarsen_hold`) and the discrete handoff (`discrete_transition`, `transition_units`, `climb_cutoff_nL`) |
 | `SOLVER`, `OUTPUT` | tolerances and backend; tag, figures, movies, `movie_interp`, checkpoint, resume |
 
 `SimulationConfig.from_dicts` rejects an unknown key rather than ignoring it,
@@ -361,6 +361,79 @@ Rendering lives in `dislocluster_code/post/report.py`; it reads `evl/cdNodes.txt
 `evl/evl_<N>.txt` and never runs a solve.
 
 ---
+
+## Anisotropic diffusion, and which anisotropy to use
+
+The diffusional anisotropy difference appears in the material file **twice** — as
+`mobileSpeciesEnergyMigration_eV` (the tensor the fast solve diffuses with) and as
+`dadAnisotropy` (the `p_m` the closed-form capture efficiencies use). They used to be
+independent, so the code simultaneously believed diffusion was isotropic and that the
+sinks were biased by its anisotropy. `staging/anisotropy.py` now generates **both from one
+`p_m` per species**, split at fixed `D_eff` so a change alters directionality and not
+overall mobility:
+
+```
+E_m⟨11,22⟩ = E_m_eff + 2 k_BT ln(p_m)      E_m⟨33⟩ = E_m_eff − 4 k_BT ln(p_m)
+python -m dislocluster_code.staging.anisotropy --show
+python -m dislocluster_code.staging.anisotropy --p-m 1.0 0.91372 0.91372 0.91372 --apply
+```
+
+**Simultaneous ⟨a⟩ and ⟨c⟩ growth is possible iff `p_I < p_v`.** Both growth conditions
+reduce to bounds on one number — the arrival ratio `A/B = D̄_v c_v / Σ_m D̄_m c_m |m|` — and
+the window between them has width `g(p_v)/g(p_I)` with `g(p) = 2/(1+p⁻³)`, strictly
+increasing. Derived in full in
+[`Docs/DisloCluster Manual/anisotropic_diffusion_and_discrete_coupling_plan.md`](Docs/DisloCluster%20Manual/anisotropic_diffusion_and_discrete_coupling_plan.md) §1.3.1.
+Measured co-growth set, 100% of interior nodes at every dose 0.01–10 dpa:
+
+```
+p_m = (p_v, p_i, p_2i, p_3i) = (1.000000, 0.913720, 0.913720, 0.913720)
+```
+
+i.e. **vacancies isotropic**, interstitials at the already-fitted value; tolerance
+`p_v ∈ [0.94, 1.07]`. Li et al.'s structure (DAD on the clusters only) gives no co-growth
+**here**, because the clusters carry 3.1% of the interstitial arrival and an isotropic
+species is inert in the criterion — in their model the di-interstitial is the *more*
+mobile species and carries the flux.
+
+Two limits worth knowing before quoting any of this. The criterion governs the
+**absorption flux only**: `ClusterDynamicsFEM.cpp:755` adds cascade nucleation `Gk`, which
+no anisotropy affects, so it does not govern net population evolution. And an isotropic
+march is **not a zero** of the criterion — it is another parameter point — so a ratio taken
+against one cannot test a statement about signs.
+
+## The continuum → discrete handoff
+
+`post/coarsening.py` decides **when** the mean-field treatment of coalescence stops being
+valid (`d_coarsen`, where the Avrami overlap crosses `phi_star`); `coupling/transition.py`
+performs the switch, and `coupling/neighbors.py` supplies the cutoff that makes the climb
+solve affordable. Armed with `COUPLING['discrete_transition'] = True`, **off by default**.
+
+| invariant across a transfer | status |
+|---|---|
+| loop number | exact to the integer draw |
+| stored defects | **exact to 1e-16** (`rescale_to_defects` removes the rounding) |
+| sink strength | **jumps, by design** — reported, never asserted on |
+
+The sink jump is `√(b_cd/b_dd) = 1.414` (the continuum sizes a ⟨c⟩ loop with the full
+⟨0001⟩ Burgers vector, DD with the half) times `1/loopSinkScale = 3.43`. Coalescence at
+transfer moves it further, 5.3× on the measured case. **Which of these to keep is a
+modelling decision that must be made before a transfer feeds a solve.**
+
+Two things the transfer must respect, both measured rather than assumed:
+
+- **`microstructureGenerator` silently refuses loops whose nodes leave the grain.**
+  `transition.fits_in_crystal` predicts that decision exactly and keeps the refused share
+  in the continuum. The share must be counted in **defects, not loops** — one refusal of
+  six was 83% by count and 98% by defects.
+- **The domain must be able to hold the loops.** `frac_kept` is 0.997 at 0.1 dpa on the
+  500 nm case, 0.55 from 1 dpa on (a purely geometric plateau), and **exactly 0 on the
+  200 nm case**, where ⟨c⟩ radii reach 65 nm against a 173 nm extent. Check `frac_kept`
+  before trusting a transfer on any new geometry.
+
+**C++ side:** `climbNeighborCutoff_b` (optional material key, 0 or absent = no cutoff)
+truncates `GalerkinClimbSolver`'s `O(N_seg²)` pair assembly, which is 100% of the climb
+cost. Use `R_c = 4 L_s` — **not 3**: the measured truncation error is 19.3% / 9.6% / 3.9% /
+0.25% at `n_L` = 1 / 2 / 3 / 4.
 
 ## The coupling contract
 
@@ -598,6 +671,23 @@ written to `discrete_loops/tem_slices/`, where — under several hundred loop
 PNGs — they were unfindable; `driver.report` now passes `--out
 <run>/tem_slices`. Older runs still have them nested, e.g.
 `ZrMicro/output/20260809_100409_0dea883_Adaptive_500nm_pristine/discrete_loops/tem_slices/`.
+
+**`tem_slices/` renders four conditions**, each as per-dose panels plus a montage. A
+circular loop of habit normal `n` viewed along `B` projects to an ellipse of axis ratio
+`|n·B|`, and that one number is the whole story:
+
+| view | ⟨c⟩ | ⟨a⟩₁ | ⟨a⟩₂ | ⟨a⟩₃ |
+|---|---:|---:|---:|---:|
+| `B_0001` — down the c-axis | 1.000 face-on | 0 | 0 | 0 |
+| `B_0110` — prism zone | 0 | 0 | 0.5 | 0.5 |
+| `B_1120` — the ⟨a⟩ counterpart of `B_0001` | 0 | 0.5 | **1.000 face-on** | 0.5 |
+| `B_0001_t45` — tilted 45° about [2̄1̄10] | **0.707** | 0 | 0.612 | 0.612 |
+
+`B_0001` and `B_1120` between them measure both populations at true size. The tilted view
+exists because neither zone axis shows a basal loop as an ellipse, and the ellipse is what
+identifies one; `tilted_view(deg)` builds any other angle. Note that tilting opens ⟨a⟩₂/₃
+while foreshortening ⟨c⟩, so at 45° the two are only 0.095 apart in axis ratio and are
+told apart by ellipse *orientation* and the Burgers markers rather than by shape.
 **The march writes ONE snapshot per dose interval**, so `movies/` has as many
 frames as `COUPLING['doses']` has entries plus one — an eight-dose run animates
 as an eight-frame flipbook however high the fps. `OUTPUT['movie_interp']`
