@@ -1249,6 +1249,37 @@ on three independent 500 nm marches — isotropic reference, and the two anisotr
 it reports `d_coarsen = 0.4 dpa` for ⟨c⟩ and no crossing for any ⟨a⟩ family, identically.
 `phi*` is a `COUPLING` input, default 0.15.
 
+**How much of the population can actually go discrete — measured.** A transfer can only
+hand DD loops that fit *entirely* inside the crystal: `microstructureGenerator` refuses any
+whose nodes fall outside the grain, and `transition.fits_in_crystal` predicts that
+decision exactly (5 of 6 predicted kept, generator then accepted 5 of 5). The refused share
+stays in the continuum, so the split is conservative — measured at ≤2.3e-16 relative.
+
+| dose | raw ⟨c⟩ | kept | `frac_kept` (by defects) | `r̄` [nm] |
+|---:|---:|---:|---:|---:|
+| 1e-4 | 7 | 7 | 1.000 | 3.3 |
+| 0.01 | 100 | 98 | 0.989 | 4.4 |
+| 0.1 | 100 | 93 | 0.997 | 16.0 |
+| 1 | 98 | 53 | 0.546 | 47.4 |
+| 10 | 99 | 52 | 0.519 | 48.6 |
+
+500 nm case, run (c). The plateau near 0.55 is **purely geometric**: at `r̄ = 48 nm` in a
+500 × 433 × 800 nm prism a centre must clear every wall by `r`, giving
+`(404/500)(337/433)(704/800) = 0.56`.
+
+Two consequences for this phase:
+
+- **`d_coarsen = 0.4 dpa` sits in the usable window** on the 500 nm case — between the
+  0.997 and 0.546 rows — so a transfer at the detector's trigger carries most of the
+  population, and about half thereafter. The hybrid state that leaves (half discrete, half
+  continuum) is what §4.5's architecture already supports.
+- **The 200 nm case has no usable window at all.** By 1 dpa its ⟨c⟩ radii reach 65 nm
+  against a 173 nm y-extent, so `frac_kept` is exactly 0 — *no* loop fits. The transfer
+  correctly declines to transfer anything rather than handing DD a set it would refuse,
+  but it means the discrete route needs a domain chosen against the loop size it will
+  reach, not only against the mesh cost. **Check `frac_kept` before trusting a transfer on
+  any new geometry.**
+
 **4b. A runtime continuum→discrete transition.** Port the logic of
 `dislocluster_code/post/discrete_loops.py` — which already conserves defect count
 exactly, places loops by density, and clips to the crystal — into a staging step that

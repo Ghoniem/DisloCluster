@@ -116,6 +116,13 @@ COUPLING = {
     "phi_star":              0.15,         # threshold on phi
     "frac_star":             0.10,         # share of interior nodes over it
     "coarsen_hold":          2,            # consecutive substeps required
+    # Act on d_coarsen instead of only reporting it: at the first fast-solve
+    # boundary after a family crosses phi*, convert it to discrete loops, hand
+    # them to DD and keep in the continuum only what DD cannot take. OFF by
+    # default -- every run made before this existed is unaffected.
+    "discrete_transition":   False,
+    "transition_units":      ("c",),      # which of transition.UNITS may switch
+    "climb_cutoff_nL":       4.0,         # R_c = nL * L_s; see neighbors.py
 }
 
 SOLVER = {
@@ -330,6 +337,9 @@ class Coupling:
     phi_star: float = 0.15
     frac_star: float = 0.10
     coarsen_hold: int = 2
+    discrete_transition: bool = False
+    transition_units: tuple = ("c",)
+    climb_cutoff_nL: float = 4.0
 
     def validate(self):
         resolve_option(self.route)          # raises KeyError on an unknown name
@@ -364,6 +374,16 @@ class Coupling:
             raise ConfigError(f"phi_star must lie in (0,1), got {self.phi_star}")
         if not 0.0 < self.frac_star <= 1.0:
             raise ConfigError(f"frac_star must lie in (0,1], got {self.frac_star}")
+        if self.discrete_transition:
+            from dislocluster_code.coupling.transition import UNITS
+            bad = [u for u in self.transition_units if u not in UNITS]
+            if bad:
+                raise ConfigError(
+                    f"transition_units {bad} are not transferable; the 0-D "
+                    f"state lumps the <a> variants, so the units are "
+                    f"{sorted(UNITS)}")
+            if self.climb_cutoff_nL <= 0.0:
+                raise ConfigError("climb_cutoff_nL must be positive")
         if self.coarsen_hold < 1:
             raise ConfigError("coarsen_hold must be >= 1")
 
@@ -496,7 +516,18 @@ class SimulationConfig:
                 dedup_rtol=float(c["dedup_rtol"]),
                 variant_weights=tuple(float(x) for x in c["variant_weights"]),
                 max_failed_nodes=int(c["max_failed_nodes"]),
-                on_unconverged=c["on_unconverged"]),
+                on_unconverged=c["on_unconverged"],
+                # These were declared on the dataclass and accepted by _take,
+                # but never forwarded here -- so COUPLING['phi_star'] and its
+                # neighbours silently did nothing and every run used the
+                # dataclass default. A key that validates and is then dropped
+                # is worse than an unknown one, which _take rejects loudly.
+                phi_star=float(c["phi_star"]),
+                frac_star=float(c["frac_star"]),
+                coarsen_hold=int(c["coarsen_hold"]),
+                discrete_transition=bool(c["discrete_transition"]),
+                transition_units=tuple(c["transition_units"]),
+                climb_cutoff_nL=float(c["climb_cutoff_nL"])),
             solver=Solver(rtol=float(s["rtol"]), atol=float(s["atol"]),
                           backend=s["backend"], lmm=s["lmm"],
                           linsol=s["linsol"],

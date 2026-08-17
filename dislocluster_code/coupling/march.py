@@ -354,6 +354,85 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         if verbose:
             print(f"  coarsening detector unavailable: {exc}")
 
+    # ── the discrete transition (plan 4b/4c/4f) ─────────────────────────────
+    # OFF unless COUPLING['discrete_transition'] asks for it, so nothing here
+    # changes a run that predates it. When on, a family that has crossed phi*
+    # is converted to discrete loops at the NEXT FAST-SOLVE BOUNDARY -- where a
+    # DDomp call happens anyway and the state is already synchronized, which is
+    # what plan 4.1 specifies -- and only what DD can actually take is removed
+    # from the continuum.
+    do_transition = bool(getattr(cfg, "discrete_transition", False))
+    transition_units = tuple(getattr(cfg, "transition_units", ("c",)))
+    transferred = set()
+    transition_log = []
+    trans_weights = trans_faces = None
+    if do_transition and verbose:
+        print(f"  discrete transition ARMED for {transition_units} "
+              f"at phi* = {getattr(cfg, 'phi_star', 0.15)}")
+
+    def _maybe_transition(Y, dose_now):
+        """Convert any crossed unit to discrete loops. Returns the new ``Y``."""
+        nonlocal trans_weights, trans_faces
+        if not do_transition or detector is None:
+            return Y
+        crossed = {k for k, v in (detector.result().get("d_coarsen") or {}).items()
+                   if v is not None}
+        from dislocluster_code.coupling import transition as trans
+        pending = [u for u in transition_units if u not in transferred
+                   and crossed.intersection(trans.UNITS[u]["families"])]
+        if not pending:
+            return Y
+        from dislocluster_code.coupling import neighbors as nbr
+        omega = mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL)
+        if trans_weights is None:
+            from dislocluster_code.post.discrete_loops import domain_weights
+            trans_weights, trans_faces = domain_weights(br.nodes)
+        for unit in pending:
+            try:
+                Y_new, pops, ledger = trans.transfer(
+                    Y, br.nodes, omega, keys=(unit,),
+                    weights=trans_weights, faces=trans_faces,
+                    material=paths.MODELIB_MATERIAL, coalesce_pass=False)
+                ok, msgs = trans.check(ledger)
+                frac = ledger["rows"][0].get("frac_kept", 0.0)
+                if frac <= 0.0:
+                    # Nothing fits inside the crystal. Declining is the correct
+                    # outcome -- see plan 4.6 -- and it must not be mistaken for
+                    # a completed transfer, so the unit stays untransferred and
+                    # will be retried at the next boundary.
+                    if verbose:
+                        print(f"      transition '{unit}' DECLINED at "
+                              f"{dose_now:.4g} dpa: no loop fits the crystal")
+                    transition_log.append(dict(unit=unit, dose=float(dose_now),
+                                               declined=True, frac_kept=0.0))
+                    continue
+                n = trans.inject_discrete_loops(qssa_sim, pops,
+                                                tag=f"{unit}_{dose_now:.4g}dpa",
+                                                verbose=verbose)
+                Rc = nbr.cutoff(nbr.screening_lengths(
+                    trans.cd_block(Y, omega), paths.MODELIB_MATERIAL),
+                    getattr(cfg, "climb_cutoff_nL", 4.0))
+                trans.enable_discrete_climb(qssa_sim, Rc)
+                transferred.add(unit)
+                rec = dict(unit=unit, dose=float(dose_now), declined=False,
+                           frac_kept=float(frac), R_c_b=float(Rc),
+                           loops=n, ledger_ok=bool(ok), messages=msgs,
+                           rows=ledger["rows"])
+                transition_log.append(rec)
+                diagnostics["transition"] = transition_log
+                if verbose:
+                    print(f"      transition '{unit}' at {dose_now:.4g} dpa: "
+                          f"{n['realized']} loops, {100*frac:.1f}% of the "
+                          f"family, R_c = {Rc:.4g} b, ledger "
+                          f"{'OK' if ok else 'FAILED: ' + '; '.join(msgs)}")
+                Y = Y_new
+            except Exception as exc:                # never cost a march a probe
+                if verbose:
+                    print(f"      transition '{unit}' failed: {exc}")
+                transition_log.append(dict(unit=unit, dose=float(dose_now),
+                                           error=str(exc)))
+        return Y
+
     evl_out = Path(evl_out)
     evl_out.mkdir(parents=True, exist_ok=True)
     shutil.copy2(Path(qssa_sim) / "evl" / "cdNodes.txt", evl_out / "cdNodes.txt")
@@ -507,6 +586,12 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             # previous result.
             did_fast, this_fast_s = False, 0.0
             if k_global % fem_every == 0:
+                # Act on the coarsening detector HERE, before the fast solve,
+                # so the solve that follows already sees the discrete network
+                # and the reduced continuum field. Doing it after would leave
+                # one interval in which the loops are counted on both sides --
+                # the double count plan 4.5 exists to prevent.
+                Y = _maybe_transition(Y, d0 + (d1 - d0) * k / substeps)
                 if fast is not None:
                     t_f = time.perf_counter()
                     if not (i == 0 and k == 0):      # step 0 solved above
