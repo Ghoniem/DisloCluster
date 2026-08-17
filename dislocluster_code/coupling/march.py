@@ -426,10 +426,24 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                     getattr(cfg, "climb_cutoff_nL", 4.0))
                 trans.enable_discrete_climb(qssa_sim, Rc)
                 transferred.add(unit)
+                # JSON-SAFE BY CONSTRUCTION. `diagnostics` is written to
+                # summary.json with `default=float`, so a Path anywhere in here
+                # raises at the very END of the march -- after every dose step
+                # has been solved and the state saved, which is the most
+                # expensive possible moment to discover it. `inject_discrete_loops`
+                # returns Paths among its counts; keep the counts, stringify the
+                # paths, and coerce the ledger rows.
                 rec = dict(unit=unit, dose=float(dose_now), declined=False,
                            frac_kept=float(frac), R_c_b=float(Rc),
-                           loops=n, ledger_ok=bool(ok), messages=msgs,
-                           rows=ledger["rows"])
+                           loops_requested=int(n["requested"]),
+                           loops_realized=int(n["realized"]),
+                           loops_lost=int(n["lost"]),
+                           microstructure=str(n["microstructure"]),
+                           ledger_ok=bool(ok), messages=[str(m) for m in msgs],
+                           rows=[{k: (float(v) if isinstance(v, (int, float))
+                                      else str(v))
+                                  for k, v in row.items()}
+                                 for row in ledger["rows"]])
                 transition_log.append(rec)
                 diagnostics["transition"] = transition_log
                 if verbose:
