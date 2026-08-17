@@ -340,6 +340,47 @@ def ddomp_cmd(sim_dir, exe=None, in_case_dir=False):
     return ([str(exe), str(sim_dir)], str(sim_dir) if in_case_dir else None)
 
 
+def modelib_generator():
+    """Locate MoDELib's microstructureGenerator, or None.
+
+    Same build tree and same WSL/ELF preference as :func:`modelib_ddomp`. It is
+    a separate binary because it does a separate job: it turns a microstructure
+    SPECIFICATION into the node/loop/link topology an `evl` configuration needs,
+    which is what the runtime continuum->discrete transition uses rather than
+    reproducing that topology in Python.
+    """
+    names = ("microstructureGenerator",) if use_wsl() else (
+        ("microstructureGenerator.exe",) if sys.platform == "win32"
+        else ("microstructureGenerator",))
+    gdir = MODELIB_BUILD / "tools" / "MicrostructureGenerator"
+    for sub in ("", "Release", "Debug"):
+        for name in names:
+            c = (gdir / sub / name) if sub else (gdir / name)
+            if c.exists():
+                return c
+    return None
+
+
+def generator_cmd(sim_dir, exe=None):
+    """``(argv, cwd)`` that runs microstructureGenerator on *sim_dir*.
+
+    The generator writes ``evl/evl_0.txt`` under the case, so like the
+    bootstrap's DDomp call it must run WITH THE CASE AS ITS WORKING DIRECTORY;
+    from anywhere else the file lands outside the case.
+    """
+    exe = Path(exe).resolve() if exe else modelib_generator()
+    if exe is None:
+        raise FileNotFoundError(
+            f"no microstructureGenerator under {MODELIB_BUILD}")
+    sim_dir = Path(sim_dir).resolve()
+    if use_wsl():
+        wsl_dir = windows_to_wsl(sim_dir)
+        wsl_exe = windows_to_wsl(exe)
+        return (["wsl.exe", "-e", "bash", "-c",
+                 f"cd '{wsl_dir}' && '{wsl_exe}' '{wsl_dir}'"], None)
+    return ([str(exe), str(sim_dir)], str(sim_dir))
+
+
 def git_hash(path=None):
     """Short git hash for *path*, falling back through the nested checkouts.
 

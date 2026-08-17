@@ -310,6 +310,84 @@ def format_ledger(ledger):
     return "\n".join(L)
 
 
+def inject_discrete_loops(sim_dir, pops, ddomp_generator=None, tag="transfer",
+                          verbose=True):
+    """Put a discrete population into a march's `evl_0` WITHOUT losing its CD field.
+
+    This is the piece that makes a runtime transition possible at all, and the
+    obstacle it clears is worth stating. `write_microstructure` emits INPUT for
+    MoDELib's `microstructureGenerator`, which builds the node/loop/link topology
+    a dislocation network needs -- intricate enough that reproducing it in Python
+    would be its own defect surface. But the generator writes a FRESH `evl_0`,
+    and the march's `evl_0` already carries the CD field the whole coupling
+    exists to advance. Running the generator naively destroys it.
+
+    The two are separable because of how `EvlFile` is built: it parses ONLY the
+    CD block numerically and keeps every other record as verbatim text. So the
+    merge is exactly
+
+        network  <- the generator's evl   (nodes, loops, links, displacement)
+        CD block <- the march's evl       (the field being marched)
+
+    and `EvlFile.write` rewrites the header's CD row count to match. Both files
+    describe the same FE mesh, so `cdNodes.txt` and hence the CD row order are
+    identical between them -- which is the assumption that makes this legal, and
+    it is checked rather than trusted.
+    """
+    import subprocess
+    from pathlib import Path
+    from dislocluster_code import paths
+    from dislocluster_code.coupling.field import EvlFile
+
+    sim_dir = Path(sim_dir)
+    evl0 = sim_dir / "evl" / "evl_0.txt"
+    if not evl0.is_file():
+        raise FileNotFoundError(f"no evl_0 in {sim_dir}")
+
+    micro, table, n_loops = write(pops, sim_dir / "inputFiles", tag=tag)
+    (sim_dir / "inputFiles" / "initialMicrostructure.txt").write_text(
+        f"microstructureFile={micro.name};\n", encoding="utf-8")
+
+    keep = EvlFile(evl0)                       # the CD field to preserve
+    backup = evl0.with_suffix(".txt.premerge")
+    backup.write_bytes(evl0.read_bytes())
+
+    exe = ddomp_generator or paths.modelib_generator()
+    cmd, cwd = paths.generator_cmd(sim_dir, exe=exe)
+    proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        backup.replace(evl0)                   # never leave a half-written evl
+        raise RuntimeError(
+            f"microstructureGenerator failed ({proc.returncode}):\n"
+            f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
+
+    made = EvlFile(evl0)                       # the network just generated
+    if made.n_cd and made.n_cd != keep.n_cd:
+        backup.replace(evl0)
+        raise ValueError(
+            f"the generated evl has {made.n_cd} CD rows and the marched one "
+            f"{keep.n_cd}; they must describe the same mesh")
+    made.cd = keep.cd                          # network from one, field from the other
+    made.write(evl0)
+
+    # THE GENERATOR CAN SILENTLY DROP LOOPS. It refuses any whose nodes fall
+    # outside the grain ("nodes outside grain N"), which for a population sampled
+    # right up to the crystal surface is not rare -- 6 requested, 5 created, in
+    # the first case this was run on. That is a conservation LEAK and precisely
+    # what the ledger exists to catch: the continuum was zeroed for every loop,
+    # so any the generator refuses take their defects with them.
+    realized = int(made.n_loops)
+    if verbose:
+        note = "" if realized == n_loops else \
+            f"  <-- {n_loops - realized} REFUSED by the generator"
+        print(f"      injected {realized}/{n_loops} discrete loops, CD block "
+              f"preserved ({keep.cd.shape[0]} rows){note}")
+    return dict(requested=int(n_loops), realized=realized,
+                lost=int(n_loops) - realized,
+                lost_fraction=(n_loops - realized) / n_loops if n_loops else 0.0,
+                microstructure=micro, table=table, evl=evl0)
+
+
 def write(pops, out_dir, tag="transfer"):
     """Emit the transferred population as a MoDELib microstructure and a table.
 
