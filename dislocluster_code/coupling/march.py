@@ -425,6 +425,16 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                     trans.cd_block(Y, omega), paths.MODELIB_MATERIAL),
                     getattr(cfg, "climb_cutoff_nL", 4.0))
                 trans.enable_discrete_climb(qssa_sim, Rc)
+                # HAND THE NETWORK TO THE FAST SOLVE. inject_discrete_loops
+                # merged it into the staged case's evl_0, but `solve` rewrites
+                # evl_0 from its own preserved seed on every call, so without
+                # this the next fast solve silently reverted to an empty
+                # dislocation network -- which is what every earlier transition
+                # run did. See MobileQSSASolver.adopt_network.
+                n_adopted = 0
+                if fast is not None:
+                    n_adopted = fast.adopt_network(
+                        Path(qssa_sim) / "evl" / "evl_0.txt", verbose=verbose)
                 transferred.add(unit)
                 # JSON-SAFE BY CONSTRUCTION. `diagnostics` is written to
                 # summary.json with `default=float`, so a Path anywhere in here
@@ -439,6 +449,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                            loops_realized=int(n["realized"]),
                            loops_lost=int(n["lost"]),
                            microstructure=str(n["microstructure"]),
+                           loops_in_fast_solve=int(n_adopted),
                            ledger_ok=bool(ok), messages=[str(m) for m in msgs],
                            rows=[{k: (float(v) if isinstance(v, (int, float))
                                       else str(v))
@@ -787,6 +798,17 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             used_steps.add(step)
         br.write_immobile_field(Y, evl_src=seed_evl,
                                 dest=evl_out / f"evl_{step}.txt")
+
+        # The SUPERPOSED mobile field, if the fast solve published one. It is
+        # kept beside the snapshot rather than in `history`, because it is not
+        # part of the marched state: `Y[:, 0:4]` is the corrective FEM field the
+        # slow step froze, and c_FEM + c_DD is a derived quantity that only
+        # exists where a discrete network does. Absent (no transition, or a
+        # binary predating outputSuperposedMobile) nothing is written and every
+        # figure falls back to the CD block, as before.
+        if fast is not None and getattr(fast, "last_superposed", None) is not None:
+            np.savetxt(evl_out / f"cdTotalMobile_{step}.txt",
+                       fast.last_superposed)
 
         # The interval is complete: bank the history and the updated timing.
         saver.save(Y, dict(

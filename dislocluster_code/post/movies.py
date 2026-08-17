@@ -154,6 +154,52 @@ def subdivide_doses(doses, n=DEFAULT_INTERP):
             np.asarray(frac, dtype=float), np.asarray(real, dtype=bool))
 
 
+def _superposed_by_dose(run_dir, doses, n_nodes):
+    """One ``(N,4)`` superposed mobile field per dose, ``None`` where absent.
+
+    The march files these as ``evl_coupled/cdTotalMobile_<step>.txt`` with the
+    same ``<step>`` tag as ``evl_<step>.txt``, which is a dose-lattice index
+    where one exists and an ``s<NN>`` ordinal where it does not. Rather than
+    reproduce that rule, the files are matched to doses by pairing the sorted
+    snapshot tags with the sorted doses — the march writes them in the same
+    order, one per interval.
+
+    Returns a list as long as ``doses``. A malformed or wrongly-sized file is
+    skipped with a warning rather than raised on: this is a visualization
+    enhancement and must never cost a report a march earned.
+    """
+    d = Path(run_dir) / "evl_coupled"
+    if not d.is_dir():
+        return [None] * len(doses)
+    files = sorted(d.glob("cdTotalMobile_*.txt"),
+                   key=lambda p: (len(p.stem), p.stem))
+    if not files:
+        return [None] * len(doses)
+    out = [None] * len(doses)
+    # Dose 0 is the seed and gets no fast solve, so the snapshots correspond to
+    # doses[1:]. Fill from the end so a partial set lands on the LATE doses,
+    # which is where a discrete network exists at all.
+    for k, p in enumerate(files):
+        j = len(doses) - len(files) + k
+        if j < 0:
+            continue
+        try:
+            a = np.loadtxt(p, dtype=float).reshape(-1, mfield.M_SIZE)
+        except Exception as exc:                              # noqa: BLE001
+            print(f"  note: could not read {p.name}: {exc}")
+            continue
+        if a.shape[0] != n_nodes:
+            print(f"  note: {p.name} has {a.shape[0]} rows, expected "
+                  f"{n_nodes}; ignoring")
+            continue
+        out[j] = a
+    n = sum(x is not None for x in out)
+    if n:
+        print(f"  superposed mobile field (c_FEM + c_DD) for {n} of "
+              f"{len(doses)} snapshots")
+    return out
+
+
 def cd_blocks(run_dir, variant_weights=(1 / 3, 1 / 3, 1 / 3), interp=1):
     """``(doses, nodes, {i: (P, F)})`` rebuilt from ``march_state.npz``.
 
@@ -191,10 +237,19 @@ def cd_blocks_interpolated(run_dir, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     omega = mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL)
     lm = mfield.run_loop_model(run_dir)
 
+    # The SUPERPOSED mobile field, one file per snapshot, written by the march
+    # only where a discrete network existed. Where it does, it replaces the
+    # mobile columns, because it is the physical concentration: the CD block
+    # holds only the corrective FEM part and the loop-localized depletion lives
+    # entirely in the analytic term. Where it does not -- every continuum-only
+    # run, and every run made before this existed -- nothing changes.
+    sup = _superposed_by_dose(run_dir, doses, Y.shape[1])
+
     solved = []
     for i in range(len(doses)):
         F = np.empty((Y.shape[1], mfield.N_CD_COLS))
-        F[:, :mfield.M_SIZE] = Y[i][:, :mfield.M_SIZE]
+        F[:, :mfield.M_SIZE] = (Y[i][:, :mfield.M_SIZE] if sup[i] is None
+                                else sup[i])
         F[:, mfield.M_SIZE:] = mfield.immobile_0d_to_modelib(
             Y[i], omega, variant_weights, loop_model=lm)
         solved.append(F)

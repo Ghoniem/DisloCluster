@@ -86,6 +86,26 @@ namespace model
         return 0.0;
     }
 
+    /**********************************************************************/
+    /* Whether to publish the superposed mobile field. Optional material key;
+     * absent means 0 = off, so no existing case writes the extra file or pays
+     * for the pairwise evaluation that builds it. */
+    template<int dim>
+    int ClusterDynamicsParameters<dim>::getOutputSuperposedMobile(const DislocationDynamicsBase<dim>& ddBase)
+    {
+        if(ddBase.simulationParameters.useClusterDynamics)
+        {
+            try
+            {
+                return TextFileParser(ddBase.poly.materialFile).template readScalar<int>("outputSuperposedMobile",true);
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- off
+            }
+        }
+        return 0;
+    }
+
     template<int dim>
     ClusterDynamicsParameters<dim>::ClusterDynamicsParameters(const DislocationDynamicsBase<dim>& ddBase) :
     /* init */ kB(ddBase.poly.kB),
@@ -148,6 +168,7 @@ namespace model
     /* init */ loopSinkScale((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,iSize/2>("loopSinkScale",true).array().eval() : Eigen::Array<double,1,iSize/2>::Ones().eval()),
     /* init */ concentrationFloor(getConcentrationFloor(ddBase)),
     /* init */ climbNeighborCutoff(getClimbNeighborCutoff(ddBase)),
+    /* init */ outputSuperposedMobile(getOutputSuperposedMobile(ddBase)),
     /* init */ computeReactions((ddBase.simulationParameters.useClusterDynamics && mSize>0 && mSize+iSize>1)? TextFileParser(ddBase.poly.materialFile).readScalar<int>("computeReactions",true) : 0),
 //    /* init */ use0DsinkStrength((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readScalar<int>("use0DsinkStrength",true) : 0),
 //    /* init */ Zv((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,dim>("Zv",true) : Eigen::Array<double,1,dim>::Zero()),

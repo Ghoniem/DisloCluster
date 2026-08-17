@@ -146,6 +146,27 @@ struct ClusterDynamicsParameters
      *  behaviour exactly. The self term is never truncated. */
     const double climbNeighborCutoff;
 
+    /*! Write the SUPERPOSED mobile concentration at the CD nodes to
+     *  evl/cdTotalMobile_<runID>.txt, in the same node order as
+     *  evl/cdNodes.txt. Optional material key `outputSuperposedMobile`,
+     *  DEFAULT 0 = do not write, so nothing changes for any existing case.
+     *
+     *  WHY THIS IS A SEPARATE FILE AND NOT THE CD BLOCK. MoDELib solves the
+     *  mobile species by superposition: the physical concentration is
+     *  c = c_FEM + c_DD, where c_DD is the analytic (Green's function) field of
+     *  the discrete segments and the FEM carries only the CORRECTIVE part, its
+     *  Dirichlet values set to bndConcentration - c_DD
+     *  (ClusterDynamics::initializeDirichlet). The CD block of evl_*.txt holds
+     *  c_FEM because initializeConfiguration reads it straight back into
+     *  mobileClusters -- overwriting it with the total would corrupt the
+     *  restart. So the total is published alongside, for visualization and for
+     *  any diagnostic that wants the physical field.
+     *
+     *  With no discrete dislocations, c_DD is identically zero and this file
+     *  equals the CD block's mobile columns. That is the case for every
+     *  continuum-only run, and it is a useful self-check. */
+    const int outputSuperposedMobile;
+
     // Reaction map (types: parameters)
     const bool computeReactions;
 //    const int use0DsinkStrength;
@@ -172,6 +193,9 @@ struct ClusterDynamicsParameters
     /*! Climb pair-assembly cutoff [b]; optional material-file key
      *  `climbNeighborCutoff_b`, defaulting to 0 = no cutoff. */
     static double getClimbNeighborCutoff(const DislocationDynamicsBase<dim>& ddBase);
+    /*! Whether to publish the superposed mobile field; optional material-file
+     *  key `outputSuperposedMobile`, defaulting to 0 = off. */
+    static int getOutputSuperposedMobile(const DislocationDynamicsBase<dim>& ddBase);
     std::map<std::pair<int,int>,double> getMap(const Eigen::Array<double,mSize*(mSize+1)/2,3> matrix_in) const;
     Eigen::Matrix<double,mSize,mSize> getR1() const;
     std::vector<Eigen::Matrix<double,mSize,mSize>> getR2() const;

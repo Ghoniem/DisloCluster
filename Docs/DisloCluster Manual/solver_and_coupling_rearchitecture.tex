@@ -2902,10 +2902,57 @@ of the loop cloud, so nothing is excluded. Together with separating the
 rendering polygon count ($64$ sides, chosen for figures) from the exported one
 ($12$), the assembly is $274\times$ smaller than the naive version.
 
-\paragraph{Status.} Each piece is validated individually. What has not yet been
-completed is a full march that fires the transition at $d_{\text{coarsen}}$ and
-accumulates growth strain through \code{F} across the whole dose range; until
-that exists, the sink-strength discontinuity remains an open modelling decision.
+\paragraph{Status --- and the gap is more basic than previously recorded.} Each
+piece is validated individually, and a full $500$~nm march has now fired the
+transition at $1$~\dpa{} ($53/53$ loops realized, $54.6\%$ of the basal family,
+ledger clean) and run to $10$~\dpa. An earlier revision of this paragraph named
+the outstanding item as growth-strain accumulation through \code{F}. That
+understated it. \textbf{The transferred loops never entered a solve at all}, and
+three separate facts have to be stated in order:
+
+\begin{enumerate}\itemsep3pt
+\item \code{inject\_discrete\_loops} writes \code{aLoops\_<unit>\_<dose>.txt},
+      which is a \emph{microstructureGenerator input file}. The fast solve never
+      runs the generator: \code{MobileQSSASolver.solve} copies
+      \code{evl\_qssa\_seed.txt}, overwrites its CD block and writes
+      \code{evl\_0.txt}. The evl header is ten integers beginning
+      \code{nNodes nLoops nLoopLinks}, and in that seed the first six are
+      \emph{zero} --- so every one of the eight fast solves ran with an empty
+      dislocation network, both before and after the transfer. Arming
+      \code{useDislocations} and \code{climbSolverType} is necessary and was
+      done; it is not sufficient.
+
+\item Even with the loops loaded, the discrete contribution would \emph{not}
+      appear in the stored CD field. The live superposition site is
+      \code{ClusterDynamics.cpp:150}, and it modifies the FEM's \emph{Dirichlet
+      conditions} alone:
+      \code{dirichletConditions = bndConcentration $-$ otherConcentration}. That
+      is the usual superposition split --- the physical field is
+      $c = c_{\text{FEM}} + c_{\text{DD}}$, the FEM carries the corrective part
+      so the sum meets the true boundary condition, and $c_{\text{DD}}$ is
+      evaluated on demand at DD quadrature points
+      (\code{DislocationQuadraturePoint.cpp:267}), never stored on the CD node
+      set. The loop-localized depletion halos live entirely in $c_{\text{DD}}$.
+      A figure drawn from \code{march\_state.npz} is therefore smooth
+      \emph{by construction}, whatever the dislocation state.
+
+\item That has a consequence for how existing figures must be read.
+      Because $c_{\text{DD}} \equiv 0$ in every run made so far,
+      $c_{\text{FEM}}$ \emph{is} the physical concentration and every published
+      field figure is correct as it stands. The moment loops genuinely enter a
+      solve, the stored CD block becomes the corrective part only, and the same
+      figure code would then be wrong rather than merely featureless.
+\end{enumerate}
+
+So closing the loop needs two independent pieces, and they are not the same
+size. Getting the loop records into the evl the fast solve reads --- run the
+generator once at the transition, or write the records directly into
+\code{evl\_qssa\_seed.txt}, which \code{EvlFile} already preserves by design ---
+changes the \emph{physics}. Adding $\sum_{\text{seg}}$
+\code{clusterConcentration}$(x, \code{cdp})$ in the renderer changes only the
+\emph{picture}, but it is what makes the effect visible at all. Until the first
+of these is done, the sink-strength discontinuity remains an open modelling
+decision that no run has yet exercised.
 
 % ============================================================================
 \section{A self-consistent slow solver}

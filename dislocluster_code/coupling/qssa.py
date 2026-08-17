@@ -132,12 +132,65 @@ class MobileQSSASolver:
 
         self.nodes = mfield.read_cd_nodes(self.evl_dir)
         self.n_nodes = self.nodes.shape[0]
+        self.n_loops = mfield.EvlFile(self._seed).n_loops
 
         self._configure()
         self.n_calls = 0
         self.wall_s = 0.0
+        self.last_superposed = None
+        self.last_evl = None
         self.n_converged = 0
         self.n_unconverged = 0
+
+    # -- adopting a discrete network ------------------------------------------
+    def adopt_network(self, evl_with_network, verbose=True):
+        """Re-seed from an evl that carries dislocation records.
+
+        THIS IS WHAT MAKES A RUNTIME TRANSITION REACH THE FAST SOLVE, and the
+        bug it fixes is one step further along than it looks.
+        ``transition.inject_discrete_loops`` does run
+        ``microstructureGenerator`` and does merge the network into the staged
+        case's ``evl/evl_0.txt``, preserving the CD block. But ``solve`` writes
+        ``evl_0.txt`` from ``self._seed`` on EVERY call -- that is the whole
+        reason the seed is kept, see ``__init__`` -- so the very next fast solve
+        overwrote the merged network with the loop-free seed. Every solve then
+        ran with an empty dislocation network, before and after the transfer,
+        and nothing in the logs said so.
+
+        Only the network records are adopted; the CD block is supplied by
+        ``solve`` from ``Y`` as always, so no field is taken from the file.
+        """
+        src = Path(evl_with_network)
+        ev = mfield.EvlFile(src)
+        if ev.n_cd != self.n_nodes:
+            raise ValueError(
+                f"{src} has {ev.n_cd} CD rows but the case has "
+                f"{self.n_nodes} CD nodes")
+        shutil.copy2(src, self._seed)
+        before, self.n_loops = self.n_loops, ev.n_loops
+
+        # A SECOND STEP IS REQUIRED, and the reason is an ordering fact rather
+        # than an accuracy argument. DefectiveCrystal emplaces its
+        # microstructures in a fixed order (DefectiveCrystal.cpp:38-44):
+        # ClusterDynamics BEFORE DislocationNetwork. MicrostructureContainer::
+        # solve() then walks that order, so within one step the CD mobile solve
+        # runs first and the climb velocities are computed after it.
+        #
+        # The discrete field enters the CD solve as c_DD in its Dirichlet
+        # values, and c_DD is LINEAR in the nodal climbVelocityScalar
+        # (DislocationSegment::clusterConcentration). On step 0 those are still
+        # zero, so a one-step fast solve sees c_DD = 0 no matter how many loops
+        # are present -- the superposition would be armed and inert. Step 1's CD
+        # solve sees the velocities step 0 computed.
+        if self.n_loops:
+            self.n_steps = 2
+            set_dd_scalar(self.dd_file, "Nsteps", str(self.n_steps))
+        if verbose:
+            print(f"      fast solve adopted the discrete network: "
+                  f"{before} -> {ev.n_loops} loops, {ev.n_nodes} nodes"
+                  + (f"; Nsteps -> {self.n_steps} so the CD solve sees nonzero "
+                     f"climb velocities" if self.n_loops else ""))
+        return ev.n_loops
 
     # -- one-time reconfiguration --------------------------------------------
     def _configure(self):
@@ -172,8 +225,9 @@ class MobileQSSASolver:
                                    "mobileSolverMaxIterations",
                                    "useElasticDeformation",
                                    "useElasticDeformationFEM")}
+        self.n_steps = 1          # raised to 2 by adopt_network; see there
         set_dd_scalar(self.dd_file, "useImmobileSolver", "0")
-        set_dd_scalar(self.dd_file, "Nsteps", "1")
+        set_dd_scalar(self.dd_file, "Nsteps", str(self.n_steps))
         set_dd_scalar(self.dd_file, "startAtTimeStep", "0")
         set_dd_scalar(self.dd_file, "outputFrequency", "1")
         set_dd_scalar(self.dd_file, "mobileSolverClampInLoop", "0")
@@ -217,6 +271,11 @@ class MobileQSSASolver:
             Y, self.omega, variant_weights, loop_model=self.loop_model)
         if warm_start:
             ev.cd[:, :mfield.M_SIZE] = Y[:, 0:mfield.M_SIZE]
+        # Clear any evl a previous multi-step solve left, so "the highest
+        # numbered file present" below cannot pick up a stale one.
+        for stale in self.evl_dir.glob("evl_*.txt"):
+            if re.fullmatch(r"evl_(\d+)\.txt", stale.name):
+                stale.unlink()
         ev.write(self.evl_dir / "evl_0.txt")
 
         t0 = time.perf_counter()
@@ -225,7 +284,20 @@ class MobileQSSASolver:
         self.n_calls += 1
         self.wall_s += dt
 
-        out = self.evl_dir / "evl_0.txt"
+        # THE LAST STEP'S OUTPUT, not always evl_0. With one step DDomp writes
+        # evl_0 and this is what it always was; with the two steps a discrete
+        # network requires (see adopt_network) the converged field is in the
+        # highest-numbered file. Selecting by what is on disk rather than by an
+        # assumed naming convention keeps this correct either way.
+        written = sorted(
+            (int(m.group(1)), p) for p in self.evl_dir.glob("evl_*.txt")
+            if (m := re.fullmatch(r"evl_(\d+)\.txt", p.name)))
+        if not written:
+            raise QSSASolveError(
+                f"DDomp wrote no evl_<n>.txt in {self.evl_dir}\n"
+                f"stdout tail:\n{proc.stdout[-2000:]}")
+        out = written[-1][1]
+        self.last_evl = out
         try:
             C_M = mfield.EvlFile(out).mobile.copy()
         except Exception as e:                       # noqa: BLE001
@@ -238,6 +310,15 @@ class MobileQSSASolver:
                 f"({self.n_nodes},{mfield.M_SIZE})")
         if not np.isfinite(C_M).all():
             raise QSSASolveError("the mobile field contains non-finite values")
+
+        # The PHYSICAL field c_FEM + c_DD, when MoDELib published it. C_M above
+        # stays the corrective FEM field: it is what the slow step must freeze,
+        # since the immobile equations are written against the same field the
+        # sinks were assembled from. The superposed one is for figures and
+        # diagnostics only, and it is None whenever there is no discrete
+        # network -- in which case it would equal C_M anyway.
+        self.last_superposed = mfield.read_superposed_mobile(
+            self.evl_dir, self.n_nodes)
 
         if self.verbose:
             rng = "  ".join(f"{nm} {C_M[:, j].min():.2e}..{C_M[:, j].max():.2e}"

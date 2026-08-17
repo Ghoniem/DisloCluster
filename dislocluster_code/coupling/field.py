@@ -222,6 +222,39 @@ class EvlFile:
         return dest
 
 
+def read_superposed_mobile(evl_dir, n_nodes=None):
+    """``(N,4)`` physical mobile field ``c_FEM + c_DD``, or None if absent.
+
+    Written by MoDELib as ``evl/cdTotalMobile_<runID>.txt`` when the material
+    key ``outputSuperposedMobile`` is set — which ``transition.
+    enable_discrete_climb`` does, because otherwise the discrete loop field is
+    active in the solve and invisible in every figure.
+
+    Why it has to come from MoDELib rather than be rebuilt here: the analytic
+    field of a segment is ``concentrationMatrices(x) @ [v_source, v_sink]``
+    (``DislocationSegment::clusterConcentration``), i.e. it is LINEAR IN THE
+    NODAL CLIMB VELOCITY — and those velocities are the output of the climb
+    solve itself. There is no way to evaluate the Green's function offline
+    without first reproducing the solve that sets its amplitude.
+
+    The highest runID present is returned, matching ``MobileQSSASolver``'s
+    read-back rule.
+    """
+    import re as _re
+    from pathlib import Path as _P
+    evl_dir = _P(evl_dir)
+    cands = sorted(
+        (int(m.group(1)), p) for p in evl_dir.glob("cdTotalMobile_*.txt")
+        if (m := _re.fullmatch(r"cdTotalMobile_(\d+)\.txt", p.name)))
+    if not cands:
+        return None
+    arr = np.loadtxt(cands[-1][1], dtype=float).reshape(-1, M_SIZE)
+    if n_nodes is not None and arr.shape[0] != n_nodes:
+        raise ValueError(
+            f"{cands[-1][1]} has {arr.shape[0]} rows, expected {n_nodes}")
+    return arr
+
+
 def read_cd_nodes(evl_dir):
     """(N,3) coordinates of the CD nodes, in Burgers-vector units.
 

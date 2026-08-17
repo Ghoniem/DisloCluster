@@ -12,6 +12,11 @@
 #include <omp.h>
 #endif
 
+#include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <string>
+
 #include <ClusterDynamics.h>
 //#include <ExternalAndInternalBoundary.h>
 //#include <Fix.h>
@@ -197,6 +202,76 @@ void ClusterDynamics<dim>::applyBoundaryConditions()
             configIO.cdMatrix().resize(nNodes,mSize+iSize);
             configIO.cdMatrix().block(0,0,nNodes,mSize)=clusterDynamicsFEM->mobileClusters.dofVector().reshaped(mSize,nNodes).transpose();
             configIO.cdMatrix().block(0,mSize,nNodes,iSize)=clusterDynamicsFEM->immobileClusters.dofVector().reshaped(iSize,nNodes).transpose();
+
+            if(cdp.outputSuperposedMobile)
+            {/* Publish the PHYSICAL mobile field c = c_FEM + c_DD.
+              *
+              * The CD block above is c_FEM alone -- the corrective part of the
+              * superposition -- because initializeConfiguration reads it back
+              * into mobileClusters and the restart depends on it being exactly
+              * that. The analytic contribution of the discrete segments is
+              * never added into the FEM interior; it enters only through the
+              * Dirichlet values (see initializeDirichlet). So a figure drawn
+              * from the CD block is smooth by construction however many
+              * discrete loops exist, and the localized depletion around each
+              * loop lives entirely in the term added here.
+              *
+              * With no discrete dislocations every mobileConcentration() is
+              * zero and this file reproduces the CD block's mobile columns
+              * exactly, which is worth keeping as a self-check.
+              *
+              * Cost is O(nNodes * nSegments) and is the reason this is opt-in:
+              * ~5.8e7 segment-point evaluations on the 500 nm case with 53
+              * transferred loops, seconds with OpenMP, but it must not be
+              * charged to a continuum-only run. */
+                const auto t0(std::chrono::system_clock::now());
+                const auto& feNodes(clusterDynamicsFEM->mobileClusters.fe().nodes());
+                Eigen::Matrix<double,Eigen::Dynamic,mSize> total(nNodes,int(mSize));
+                total=configIO.cdMatrix().block(0,0,nNodes,mSize);
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+                for(size_t n=0;n<nNodes;++n)
+                {
+                    const auto& node(feNodes[n]);
+                    VectorMSize other(VectorMSize::Zero());
+                    for(const auto& microstructure : this->microstructures)
+                    {
+                        if(microstructure.get()!=static_cast<const MicrostructureBase<dim>* const>(this))
+                        {/* Pass the FE node, not just its position: pointGrains
+                          * then resolves the grain from the node's own elements
+                          * instead of falling through to
+                          * mesh.searchWithGuess(x,nullptr), which would be a
+                          * fresh mesh search for every one of ~90k nodes. Same
+                          * call shape as initializeDirichlet above. */
+                            other+=microstructure->mobileConcentration(node.P0,&node,nullptr,nullptr);
+                        }
+                    }
+                    for(int k=0;k<mSize;++k)
+                    {
+                        total(n,k)+=other(k);
+                    }
+                }
+                const std::string fname("evl/cdTotalMobile_"+std::to_string(this->microstructures.ddBase.simulationParameters.runID)+".txt");
+                std::ofstream tf(fname.c_str());
+                if(tf.is_open())
+                {
+                    tf<<std::setprecision(15)<<std::scientific;
+                    for(size_t n=0;n<nNodes;++n)
+                    {
+                        tf<<total.row(n)<<"\n";
+                    }
+                    tf.close();
+                    std::cout<<"wrote "<<fname<<" (superposed mobile field, "
+                             <<nNodes<<" nodes, "
+                             <<(std::chrono::duration<double>(std::chrono::system_clock::now()-t0)).count()
+                             <<" sec)"<<std::endl;
+                }
+                else
+                {
+                    std::cout<<"WARNING: could not open "<<fname<<std::endl;
+                }
+            }
         }
         else
         {
