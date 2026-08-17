@@ -810,7 +810,13 @@ template struct InvDscaling<3>;
       *  .msh file, and the interior ordering is not reproducible from outside.
       *  Written once per run, since the mesh does not move.
       */
-        std::ofstream nodeFile("evl/cdNodes.txt");
+        // Absolute, via traitsIO.evlFolder. This used to be the cwd-relative
+        // "evl/cdNodes.txt", which is correct ONLY when DDomp is launched with
+        // the case as its working directory -- true for the bootstrap, false
+        // for the fast solve. It happened to work because only the bootstrap
+        // writes it, but the same idiom silently misfiled the superposed field.
+        std::ofstream nodeFile(ddBase.simulationParameters.traitsIO.evlFolder
+                               + "/cdNodes.txt");
         nodeFile<<std::setprecision(15)<<std::scientific;
         for(const auto& node : mobileClusters.fe().nodes())
         {

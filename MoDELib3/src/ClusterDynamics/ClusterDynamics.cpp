@@ -252,7 +252,20 @@ void ClusterDynamics<dim>::applyBoundaryConditions()
                         total(n,k)+=other(k);
                     }
                 }
-                const std::string fname("evl/cdTotalMobile_"+std::to_string(this->microstructures.ddBase.simulationParameters.runID)+".txt");
+                /* ABSOLUTE, via traitsIO.evlFolder -- the same anchor
+                 * DDconfigIO::getTxtFilename uses. NOT the cwd-relative
+                 * "evl/..." that writeNodePositions uses: that only works when
+                 * DDomp is launched with the case as its working directory,
+                 * which `paths.ddomp_cmd(..., in_case_dir=True)` does for the
+                 * bootstrap and the fast solve does NOT. Written relatively,
+                 * this file landed outside the case, std::ofstream failed
+                 * silently, and the warning below went into a stdout the march
+                 * discards on success -- so the superposition looked inert when
+                 * it was merely misfiled. */
+                const std::string fname(this->microstructures.ddBase.simulationParameters.traitsIO.evlFolder
+                                        +"/cdTotalMobile_"
+                                        +std::to_string(this->microstructures.ddBase.simulationParameters.runID)
+                                        +".txt");
                 std::ofstream tf(fname.c_str());
                 if(tf.is_open())
                 {

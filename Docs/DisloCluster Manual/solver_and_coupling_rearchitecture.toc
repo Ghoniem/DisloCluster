@@ -114,15 +114,15 @@
 \contentsline {paragraph}{What is exchanged, and the ledger that proves it.}{38}{section*.49}%
 \contentsline {paragraph}{Whether a transfer is possible at all.}{39}{section*.50}%
 \contentsline {paragraph}{What makes the climb solve affordable.}{39}{section*.51}%
-\contentsline {paragraph}{Status.}{40}{section*.52}%
+\contentsline {paragraph}{Status --- and the gap is more basic than previously recorded.}{40}{section*.52}%
 \contentsline {section}{\numberline {13}A self-consistent slow solver}{40}{section.13}%
 \contentsline {subsection}{\numberline {13.1}The inconsistency}{40}{subsection.13.1}%
-\contentsline {subsection}{\numberline {13.2}One switch, two formulations}{40}{subsection.13.2}%
+\contentsline {subsection}{\numberline {13.2}One switch, two formulations}{41}{subsection.13.2}%
 \contentsline {subsection}{\numberline {13.3}Where the parameters come from, and why it matters}{41}{subsection.13.3}%
 \contentsline {subsection}{\numberline {13.4}Verification: bit-identity of the fitted path}{41}{subsection.13.4}%
-\contentsline {subsection}{\numberline {13.5}What the formulation change costs, and the attribution}{41}{subsection.13.5}%
-\contentsline {paragraph}{Two qualifications, both load-bearing.}{41}{section*.53}%
+\contentsline {subsection}{\numberline {13.5}What the formulation change costs, and the attribution}{42}{subsection.13.5}%
+\contentsline {paragraph}{Two qualifications, both load-bearing.}{42}{section*.53}%
 \contentsline {paragraph}{The parameter set is stale for the new mode.}{42}{section*.54}%
 \contentsline {subsection}{\numberline {13.6}One combination is refused}{42}{subsection.13.6}%
-\contentsline {section}{\numberline {14}Summary and recommended next steps}{42}{section.14}%
+\contentsline {section}{\numberline {14}Summary and recommended next steps}{43}{section.14}%
 \contentsline {paragraph}{Files.}{43}{section*.55}%

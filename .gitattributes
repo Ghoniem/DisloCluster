@@ -1,2 +1,39 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# ---------------------------------------------------------------------------
+# FILES CONSUMED BY LINUX/WSL MUST BE CHECKED OUT WITH LF, ALWAYS.
+#
+# `core.autocrlf=true` is set on at least one development machine, and with
+# `* text=auto` alone that converts every tracked text file to CRLF in the
+# working tree. Git's stored blob is LF and stays LF, so this is invisible to
+# `git diff` and to code review -- and it silently breaks every shell script:
+#
+#     Docs/Formulation/build_modelib.sh: line 18:
+#         set: pipefail: invalid option name
+#
+# because bash reads `set -euo pipefail\r` and the option name is `pipefail\r`.
+# The MoDELib build cannot run at all in that state, which is the documented
+# way to build the 3-D half of the repository.
+#
+# The same applies to anything else read by a Linux tool rather than by Python:
+# the MoDELib input files DDomp parses, and the tutorial run scripts.
+*.sh            text eol=lf
+*.bash          text eol=lf
+Makefile        text eol=lf
+*.cmake         text eol=lf
+CMakeLists.txt  text eol=lf
+
+# MoDELib input decks: TextFileParser splits on whitespace and tolerates \r in
+# most places, but not in a trailing comment or a matrix continuation line, and
+# a case that fails this way fails deep inside a solve rather than at parse.
+MoDELib3/**/inputFiles/**  text eol=lf
+MoDELib3/Library/**        text eol=lf
+
+# Binary, so never touched. Listed explicitly because `text=auto` has been
+# wrong about at least one of these before.
+*.pdf   binary
+*.png   binary
+*.gif   binary
+*.xlsx  binary
+*.msh   binary

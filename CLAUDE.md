@@ -422,6 +422,35 @@ no anisotropy affects, so it does not govern net population evolution. And an is
 march is **not a zero** of the criterion — it is another parameter point — so a ratio taken
 against one cannot test a statement about signs.
 
+## The superposition: why a discrete loop showed no halo
+
+MoDELib solves the mobile species by **superposition**, `c = c_FEM + c_DD`, and `c_DD`
+(the analytic Green's-function field of the discrete segments) enters the FEM problem
+**only through the Dirichlet values** — `ClusterDynamics.cpp:150`,
+`dirichletConditions = bndConcentration − otherConcentration`. The CD block of
+`evl_*.txt` is `c_FEM`, the *corrective* part, and it has to be: `initializeConfiguration`
+reads it straight back into `mobileClusters`. So **a figure drawn from the CD block is
+smooth by construction however many discrete loops exist** — the loop-localized depletion
+lives entirely in `c_DD`, which used to be evaluated on demand at DD quadrature points and
+discarded.
+
+Three things were needed, and each alone was enough to make the transition inert:
+
+| | |
+|---|---|
+| `outputSuperposedMobile` | new optional material key, **default 0**. Makes `ClusterDynamics::output` also write `evl/cdTotalMobile_<runID>.txt` (`nNodes × 4`, in `cdNodes.txt` order) holding `c_FEM + c_DD`. `enable_discrete_climb` sets it; the march files one per snapshot into `evl_coupled/`; `movies.cd_blocks` substitutes it for the mobile columns where present. |
+| `MobileQSSASolver.adopt_network` | `inject_discrete_loops` *does* merge the generated network into the staged `evl_0` — but `solve` rewrites `evl_0` from its own preserved seed on **every** call, so the next fast solve discarded it. The evl header's first six integers were `0` in that seed, before and after the transfer: **every fast solve ran with no dislocations.** |
+| `Nsteps = 2` | `DefectiveCrystal` emplaces `ClusterDynamics` **before** `DislocationNetwork` (`DefectiveCrystal.cpp:38-44`) and `MicrostructureContainer::solve` walks that order, so the CD solve runs first. `c_DD` is **linear in the nodal `climbVelocityScalar`**, which is zero on step 0 — a one-step fast solve sees `c_DD = 0` however many loops are present. |
+
+**This cannot be reimplemented in Python.** The Green's function's amplitude is the nodal
+climb velocity, which is the *output* of the climb solve (`clusterConcentration` =
+`concentrationMatrices(x) @ [v_source, v_sink]`). There is no offline evaluation.
+
+**Existing figures are correct.** Because `c_DD ≡ 0` in every run made before this,
+`c_FEM` *was* the physical concentration. It is once loops genuinely enter a solve that the
+CD block becomes the corrective part only — which is why the total is published *alongside*
+rather than folded in.
+
 ## Two formulations of the slow step — `SOLVER['loop_model']`
 
 The slow step's *integrator* is chosen by route (Option A IMEX / Option B CVODE).

@@ -799,6 +799,65 @@ plastic-distortion rate, i.e. exactly what ⟨c⟩ vacancy loops produce:
 there exceeds the extent of the loop cloud, so nothing is excluded. With six loops in a
 small domain this sweep is per-case, not once-and-for-all.
 
+### 21. The superposed mobile field was never published, so `c_DD` was invisible
+
+**Symptom:** on a march that had transferred 53 ⟨c⟩ loops to a discrete population at
+1 dpa, `3d/Cv_10dpa.png` is as smooth as a continuum-only run — no depletion around any
+loop. The expectation was the opposite: a discrete loop is a sink, and its field should
+show a halo.
+
+**Not a bug in the physics — a missing output, plus two upstream blockers.**
+
+MoDELib solves the mobile species by **superposition**. The physical concentration is
+
+```
+c(x) = c_FEM(x) + c_DD(x)
+```
+
+with `c_DD` the analytic (Green's function) field of the discrete segments. `c_DD` enters
+the FEM problem **only through the Dirichlet values** — `ClusterDynamics.cpp:150`:
+
+```cpp
+otherConcentration += microstructure->mobileConcentration(node->P0,node,nullptr,nullptr);
+...
+mobileClusters.dirichletConditions().at(mSize*node->gID+k)
+        = bndConcentration(k) - otherConcentration(k);
+```
+
+so the FEM carries the **corrective** part and the sum meets the true boundary condition.
+The CD block of `evl_*.txt` is therefore `c_FEM`, and it must be: `initializeConfiguration`
+reads it straight back into `mobileClusters`, so writing the total there would corrupt the
+restart. `c_DD` was evaluated on demand at DD quadrature points
+(`DislocationQuadraturePoint.cpp:267`) and never stored anywhere. **A figure drawn from the
+CD block is smooth by construction, whatever the dislocation state.**
+
+**Fix:** optional material key `outputSuperposedMobile` (**default 0**, so no existing case
+writes the file or pays for it). `ClusterDynamics::output` then also writes
+`evl/cdTotalMobile_<runID>.txt` — `nNodes × mSize`, in `evl/cdNodes.txt` order — holding
+`c_FEM + c_DD`. Cost is `O(nNodes × nSegments)`, OpenMP-parallel over nodes, and the FE
+node pointer is passed to `mobileConcentration` so `pointGrains` resolves the grain from
+the node's own elements instead of doing ~90 000 mesh searches.
+
+**With no discrete dislocations every `mobileConcentration()` returns zero and this file
+reproduces the CD block's mobile columns exactly** — worth keeping as a self-check.
+
+**Two blockers on the Python side, both of which alone made the transition inert:**
+
+| blocker | why |
+|---|---|
+| the fast solve ran with an **empty** network, always | `inject_discrete_loops` merges the generated network into the staged `evl_0`, but `MobileQSSASolver.solve` rewrites `evl_0` from its own preserved seed on every call — which is why that seed exists. The evl header's first six integers were `0` in the seed, before and after the transfer. `adopt_network` re-seeds from the merged evl. |
+| one step is not enough | `DefectiveCrystal` emplaces `ClusterDynamics` **before** `DislocationNetwork` (`DefectiveCrystal.cpp:38-44`) and `MicrostructureContainer::solve` walks that order, so the CD solve precedes the climb-velocity computation. `c_DD` is **linear in the nodal `climbVelocityScalar`** (`DislocationSegment::clusterConcentration` = `concentrationMatrices(x) @ [v_source, v_sink]`), which is zero on step 0. `adopt_network` raises `Nsteps` to 2. |
+
+**Why this cannot be done in Python.** The Green's function's *amplitude* is the nodal
+climb velocity, and that is the **output** of the climb solve. There is no way to evaluate
+`c_DD` offline without first reproducing the solve that sets it.
+
+**Read existing figures correctly.** Because `c_DD ≡ 0` in every run made before this,
+`c_FEM` *was* the physical concentration and every published field figure is right as it
+stands. It is once loops genuinely enter a solve that the CD block becomes the corrective
+part only — and the same figure code would then be wrong rather than merely featureless.
+That asymmetry is why the total is published **alongside** the CD block, not folded into it.
+
 ---
 
 ## 5b. Verification against the 0-D

@@ -62,6 +62,12 @@ MATERIAL = {
     "dose_rate_dpa_s": 1.0e-7,
     "overrides":       {},                   # extra 0-D parameters, on top of
                                              # calibration.REFERENCE_OVERRIDES
+    # Derive the 0-D `sigma_n` / `sigma_h` from BOUNDARY instead of reading them
+    # from the workbook. ON by default, because the workbook and BOUNDARY had
+    # disagreed: `Material_Environment!sigma_n` stands at 1.0e8 Pa, so every
+    # run was at 100 MPa in the 0-D loop alignment and at 0 MPa in the 3-D
+    # elastic solve. Set False to reproduce a run made before this existed.
+    "stress_from_boundary": True,
 }
 
 GEOMETRY = {
@@ -193,6 +199,7 @@ class Material:
     temperature_K: float
     dose_rate_dpa_s: float
     overrides: dict
+    stress_from_boundary: bool = True
 
     @property
     def path(self):
@@ -210,16 +217,35 @@ class Material:
         if self.workbook is not None and not Path(self.workbook).is_file():
             raise ConfigError(f"no workbook {self.workbook}")
 
-    def build_sim(self, verbose=False):
+    def build_sim(self, verbose=False, boundary=None):
         """The calibrated 0-D chain at this run's T and G.
 
         Goes through `calibration.build_sim`, never straight to the workbook:
         28 workbook parameters have drifted from the fitted set and 11 are
         absent, which moves N_a by five orders of magnitude.
+
+        THE APPLIED LOAD COMES FROM `boundary`, NOT FROM THE WORKBOOK.
+        `Material_Environment!sigma_n` stands at 1.0e8 Pa, and the 0-D used it
+        for the aligned/non-aligned loop split and the stress-dependent vacancy
+        emission while `BOUNDARY` -- which drives the 3-D elastic solve -- was
+        zero. Every run in the 500 nm series was therefore at 100 MPa in the
+        0-D and 0 MPa in the 3-D at the same time, and the tell was that the
+        aligned fraction came out 0.4015 where a zero-stress run must give
+        exactly 1/3 (`f_a = (1 + 2f)/3` with `f = 0` at `sigma_n = 0`).
+
+        An explicit `overrides` entry still wins, so a deliberate value can be
+        pinned; `stress_from_boundary=False` restores the old behaviour for
+        reproducing a run made before this existed.
         """
         from dislocluster_code.zerod.calibration import build_sim
+        extra = dict(self.overrides or {})
+        if self.stress_from_boundary and boundary is not None:
+            from dislocluster_code.staging import stress as _stress
+            derived = _stress.overrides(boundary.applied_stress_MPa)
+            for k, v in derived.items():
+                extra.setdefault(k, v)          # explicit override wins
         return build_sim(input_file=self.workbook, T=self.temperature_K,
-                         G=self.dose_rate_dpa_s, extra=self.overrides or None,
+                         G=self.dose_rate_dpa_s, extra=extra or None,
                          verbose=verbose)
 
 
@@ -501,7 +527,9 @@ class SimulationConfig:
             material=Material(file=m["file"], workbook=m["workbook"],
                               temperature_K=float(m["temperature_K"]),
                               dose_rate_dpa_s=float(m["dose_rate_dpa_s"]),
-                              overrides=dict(m["overrides"] or {})),
+                              overrides=dict(m["overrides"] or {}),
+                              stress_from_boundary=bool(
+                                  m["stress_from_boundary"])),
             geometry=Geometry(type=geo["type"], size_nm=float(geo["size_nm"]),
                               height_nm=(None if geo["height_nm"] is None
                                          else float(geo["height_nm"])),

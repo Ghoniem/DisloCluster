@@ -88,7 +88,10 @@ def prepare(cfg, out_dir=None, force_stage=False, verbose=True):
     sim_dir = cfg.sim_dir
     scaffold = sim_dir / "evl" / domain["scaffold"]
 
-    sim = cfg.material.build_sim()
+    # The boundary is passed so the 0-D takes its applied load from BOUNDARY
+    # rather than from the workbook's independent `sigma_n`; see
+    # Material.build_sim.
+    sim = cfg.material.build_sim(boundary=cfg.boundary)
     if verbose:
         print(f"\ncalibrated 0-D: {len(sim.overrides_applied)} fitted "
               f"parameters on top of {Path(sim.input_file).name}")
