@@ -71,7 +71,7 @@ from dislocluster_code import paths
 from dislocluster_code.coupling import field as mfield
 from dislocluster_code.post.fields import domain_volume, domain_faces
 from dislocluster_code.post.volume_average import voronoi_weights
-from dislocluster_code.zerod.calibration import build_sim
+from dislocluster_code.config import sim_for_run
 
 # Weights that turn a mobile concentration into ATOMS of each species, matching
 # I_stored = Ci + 2*C2i + 3*C3i and V_stored = Cv in the balance being checked.
@@ -118,7 +118,10 @@ def measure(run_dir, n_samples=1_000_000, verbose=True):
         Y = np.stack([mfield.to_legacy_layout(Y[d], lm)
                       for d in range(len(doses))])
 
-    sim = build_sim(verbose=False)
+    # The run's OWN model, not the workbook's: `sigma_n` stands at 1.0e8 Pa in
+    # the workbook, so a zero-stress run rebuilt with `build_sim()` alone gets
+    # f_a = 0.4015 where the march itself ran at exactly 1/3.
+    sim = sim_for_run(run_dir, verbose=False)
     G = float(sim.input_data.material_params["G"])
     omega = float(mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL))
     n_atoms = float(domain_volume(nodes)) / omega

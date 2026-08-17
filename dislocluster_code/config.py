@@ -42,7 +42,7 @@ from dislocluster_code.integration import resolve as resolve_option
 __all__ = ["ConfigError", "Material", "Geometry", "Mesh", "Boundary",
            "Coupling", "Solver", "Output", "SimulationConfig",
            "MATERIAL", "GEOMETRY", "MESH", "BOUNDARY", "COUPLING", "SOLVER",
-           "OUTPUT"]
+           "OUTPUT", "sim_for_run"]
 
 VOIGT = ("11", "22", "33", "12", "23", "13")
 
@@ -721,3 +721,48 @@ class SimulationConfig:
             f"({c.n_substeps} substeps total)",
             f"sim dir     {self.sim_dir}",
         ])
+
+
+def sim_for_run(run_dir, verbose=False):
+    """The 0-D model chain **as a finished run actually built it**.
+
+    Post-processing that needs the 0-D right-hand side -- `post.volume_average`
+    for the conservation channels, `post.boundary_flux` for the surface flux --
+    used to call `calibration.build_sim()` with no arguments, which takes the
+    applied load from the WORKBOOK. `Material_Environment!sigma_n` stands at
+    1.0e8 Pa, so a run staged with `stress_from_boundary` and a zero `BOUNDARY`
+    was post-processed at 100 MPa: `f_a` came out 0.4015 in the diagnostic
+    against the 1/3 the march itself ran with, and `f_a` sets the aligned /
+    non-aligned split whose two families have different capture efficiencies.
+
+    `config.json` records everything needed to reproduce the choice, so the
+    diagnostic reconstructs it through the SAME path the driver used rather
+    than a parallel one. A run directory without `config.json` -- a standalone
+    0-D run, or anything predating the driver -- falls back to the calibrated
+    default, which is what those runs were built with.
+    """
+    from pathlib import Path
+    import json as _json
+
+    cj = Path(run_dir) / "config.json"
+    if not cj.is_file():
+        from dislocluster_code.zerod.calibration import build_sim
+        return build_sim(verbose=verbose)
+
+    c = _json.loads(cj.read_text(encoding="utf-8"))
+    m, b = c["material"], c.get("boundary", {})
+    mat = Material(
+        file=m["file"], workbook=m["workbook"],
+        temperature_K=float(m["temperature_K"]),
+        dose_rate_dpa_s=float(m["dose_rate_dpa_s"]),
+        overrides=dict(m.get("overrides") or {}),
+        stress_from_boundary=bool(m.get("stress_from_boundary", False)))
+    bnd = Boundary(
+        periodic_face_ids=tuple(b.get("periodic_face_ids", ())),
+        applied_stress_MPa=tuple(b.get("applied_stress_MPa", (0.0,) * 6)),
+        applied_stress_rate_MPa_s=tuple(
+            b.get("applied_stress_rate_MPa_s", (0.0,) * 6)),
+        applied_strain=tuple(b.get("applied_strain", (0.0,) * 6)),
+        applied_strain_rate=tuple(b.get("applied_strain_rate", (0.0,) * 6)),
+        stiffness_ratio=tuple(b.get("stiffness_ratio", (0.0,) * 6)))
+    return mat.build_sim(verbose=verbose, boundary=bnd)

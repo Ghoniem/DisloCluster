@@ -46,7 +46,7 @@ from scipy.spatial import cKDTree
 
 from dislocluster_code import paths                                   # noqa: E402
 from dislocluster_code.coupling import field as _field                # noqa: E402
-from dislocluster_code.zerod.calibration import build_sim                   # noqa: E402
+from dislocluster_code.config import sim_for_run                           # noqa: E402
 from dislocluster_code.zerod.post_process import calculate_derived_quantities  # noqa: E402
 from dislocluster_code.post.visualization import ZrMicroVisualizer         # noqa: E402
 from dislocluster_code.coupling.immobile import ACCUMULATOR_SLICE as ACC  # noqa: E402
@@ -196,7 +196,11 @@ def main(argv=None):
     run_dir = Path(args.run_dir)
     out = Path(args.out) if args.out else run_dir / "volume_average"
 
-    sim = build_sim()
+    # The run's OWN model. `build_sim()` with no arguments takes the applied
+    # load from the workbook, where `sigma_n` is 1.0e8 Pa -- so the conservation
+    # channels for a zero-stress run were formed at f_a = 0.4015 while the march
+    # integrated 1/3, and the two loop families differ in capture efficiency.
+    sim = sim_for_run(run_dir)
     doses, Y_avg, w, nodes = averaged_trajectory(run_dir, args.samples)
 
     print(f"\n{'dose':>10} {'Cv':>12} {'Ci':>12} {'N_a':>12} {'N_c':>12} "
