@@ -378,7 +378,21 @@ python -m dislocluster_code.staging.anisotropy --show
 python -m dislocluster_code.staging.anisotropy --p-m 1.0 0.91372 0.91372 0.91372 --apply
 ```
 
-**Simultaneous ⟨a⟩ and ⟨c⟩ growth is possible iff `p_I < p_v`.** Both growth conditions
+**Simultaneous ⟨a⟩ and ⟨c⟩ growth is possible iff `p_I < p_v`.**
+
+> **WHICH SOLVER THIS CRITERION IS ABOUT.** It is derived from
+> `ClusterDynamicsFEM::solveImmobileClusters`, i.e. the 3-D immobile solver
+> (`useImmobileSolver=1`), whose capture efficiencies come from the diffusion
+> tensor through `loopDADbias`. **The coupled march does not run that solver.**
+> Its slow step is ZrMicro's, which carries the *aligned/non-aligned* families
+> and *phenomenological* efficiencies `Z_i_a = 1+delta_i`, `Z_v_c = 1+delta_v`
+> read from the workbook. In the coupled route the diffusion tensor therefore
+> reaches loop growth **only through the mobile concentrations**, never through
+> the capture efficiencies. So this criterion predicts the 3-D solver's
+> behaviour, and predicts a coupled march only indirectly, through the mobile
+> field the fast solve hands over.
+
+ Both growth conditions
 reduce to bounds on one number — the arrival ratio `A/B = D̄_v c_v / Σ_m D̄_m c_m |m|` — and
 the window between them has width `g(p_v)/g(p_I)` with `g(p) = 2/(1+p⁻³)`, strictly
 increasing. Derived in full in
@@ -395,7 +409,8 @@ i.e. **vacancies isotropic**, interstitials at the already-fitted value; toleran
 species is inert in the criterion — in their model the di-interstitial is the *more*
 mobile species and carries the flux.
 
-Two limits worth knowing before quoting any of this. The criterion governs the
+Three limits worth knowing before quoting any of this. The criterion is the 3-D
+immobile solver's, as above, and the coupled march runs a different one. It governs the
 **absorption flux only**: `ClusterDynamicsFEM.cpp:755` adds cascade nucleation `Gk`, which
 no anisotropy affects, so it does not govern net population evolution. And an isotropic
 march is **not a zero** of the criterion — it is another parameter point — so a ratio taken

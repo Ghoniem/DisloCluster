@@ -168,6 +168,25 @@ through a line integral, the condition for co-growth can be **derived** rather t
 searched for numerically. It is implemented and checked in
 [`dislocluster_code/studies/dad_window.py`](../../dislocluster_code/studies/dad_window.py).
 
+#### Step 0 — which solver this is a criterion for
+
+Everything below is derived from `ClusterDynamicsFEM::solveImmobileClusters`, the **3-D**
+immobile solver, reached only with `useImmobileSolver=1`. That is the solver whose capture
+efficiencies come from the diffusion tensor.
+
+**The coupled march does not run it.** Its slow step is ZrMicro's
+(`rate_equations_core.h`), which carries the *aligned/non-aligned* family split and
+*phenomenological* efficiencies `Z_i_a = 1+δ_i`, `Z_v_c = 1+δ_v` taken from the workbook,
+not from any tensor. In the coupled route the anisotropic diffusion therefore reaches loop
+growth **only by reshaping the mobile concentrations** — `Φ_i` and `Φ_v` — and never
+through `Z`.
+
+So the criterion below governs the 3-D solver exactly, and a coupled march only through
+the mobile field the fast solve hands over. An earlier revision of this section did not
+say so, and the sweep in `studies/dad_sweep.py` was presented as predicting march
+behaviour when it predicts the 3-D solver's. §Phase 6 takes up the obvious consequence:
+making the slow step use the same efficiencies as the fast solve.
+
 #### Step 1 — the growth flux, and what cancels out of it
 
 `ClusterDynamicsFEM.cpp:617–645` forms, for each immobile family `k`:
