@@ -645,12 +645,18 @@ solve affordable. Armed with `COUPLING['discrete_transition'] = True`, **off by 
 |---|---|
 | loop number | exact to the integer draw |
 | stored defects | **exact to 1e-16** (`rescale_to_defects` removes the rounding) |
-| sink strength | **jumps, by design** — reported, never asserted on |
+| sink strength | **now continuous to ~2%** — was a jump; still reported, never asserted on |
 
-The sink jump is `√(b_cd/b_dd) = 1.414` (the continuum sizes a ⟨c⟩ loop with the full
-⟨0001⟩ Burgers vector, DD with the half) times `1/loopSinkScale = 3.43`. Coalescence at
-transfer moves it further, 5.3× on the measured case. **Which of these to keep is a
-modelling decision that must be made before a transfer feeds a solve.**
+**The Burgers half of the sink jump has been removed rather than accounted for.** It
+used to read `√(b_cd/b_dd) = 1.414` — the continuum sized a ⟨c⟩ loop with the full
+⟨0001⟩ Burgers vector and DD with the half — times `1/loopSinkScale = 3.43`, product
+4.85. Both sides now carry `|b| = c/2`, so a fresh ledger on the 500 nm matched leg
+gives `√(b_cd/b_dd) = 1.000000` and measures `S_raw/S_cont` at **0.97–1.04 at every
+dose from 1e-4 to 10 dpa**. What remains is `1/loopSinkScale = 3.43`, which is a
+convention difference between the two solvers and lives *outside* the S totals —
+`continuum_totals` does not apply `loopSinkScale`, which is why it never appeared in
+`S_ratio_transfer`. **That one is still a modelling decision to be made before a
+transfer feeds a solve.**
 
 Two things the transfer must respect, both measured rather than assumed:
 
@@ -658,10 +664,23 @@ Two things the transfer must respect, both measured rather than assumed:
   `transition.fits_in_crystal` predicts that decision exactly and keeps the refused share
   in the continuum. The share must be counted in **defects, not loops** — one refusal of
   six was 83% by count and 98% by defects.
-- **The domain must be able to hold the loops.** `frac_kept` is 0.997 at 0.1 dpa on the
-  500 nm case, 0.55 from 1 dpa on (a purely geometric plateau), and **exactly 0 on the
-  200 nm case**, where ⟨c⟩ radii reach 65 nm against a 173 nm extent. Check `frac_kept`
-  before trusting a transfer on any new geometry.
+- **The domain must be able to hold the loops, and the ⟨c⟩ Burgers correction made
+  this WORSE.** `l_c` rose by √2, so ⟨c⟩ radii did too, and a bigger loop is harder to
+  fit. Measured on the 500 nm matched leg, ⟨c⟩ only:
+
+  ```
+  dpa      1e-4   1e-3   1e-2    0.1      1      2      5     10
+  frac_kept 1.000  0.981  0.990  0.757  0.0096 0.0005 0.0144 0.0232
+  r_mean nm  3.3    3.5    4.7   19.9    18.2    7.2   42.3   35.8
+  ```
+
+  So the ⟨c⟩ handoff is **effectively infeasible on a 500 nm domain above ~0.1 dpa**,
+  where the pre-correction figure was 0.55 from 1 dpa on, and it was already exactly 0
+  on the 200 nm case. `coalescence_area` tracks `frac_kept` almost exactly (0.00945
+  against 0.00964 at 1 dpa), which is the check that the loss is the geometric refusal
+  and *not* the coalescence step failing to conserve area; the refused defects stay in
+  the continuum, and (I) and (II) still pass. Check `frac_kept` before trusting a
+  transfer on any geometry — **including ones where it used to be acceptable.**
 
 **C++ side:** `climbNeighborCutoff_b` (optional material key, 0 or absent = no cutoff)
 truncates `GalerkinClimbSolver`'s `O(N_seg²)` pair assembly, which is 100% of the climb

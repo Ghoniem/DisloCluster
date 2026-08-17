@@ -2839,11 +2839,21 @@ integer from a real expectation, so it misses the continuum total by the
 rounding: $1.6\%$ at $98$ loops and $15.4\%$ at $6$. Rescaling every radius by
 $\sqrt{C_{\text{target}}/C_{\text{drawn}}}$ fixes the total exactly and leaves
 every ratio between loops untouched.
-\item Sink strength jumps at the handoff by $\sqrt{b_{cd}/b_{dd}} = 1.414$ ---
-the continuum sizes a basal loop with the full $\langle 0001\rangle$ Burgers
+\item Sink strength jumped at the handoff by $\sqrt{b_{cd}/b_{dd}} = 1.414$ ---
+the continuum sized a basal loop with the full $\langle 0001\rangle$ Burgers
 vector and the discrete side with the half --- times $1/\code{loopSinkScale} =
-3.43$. Coalescence at transfer moves it a further $5.3\times$ on the measured
+3.43$. Coalescence at transfer moved it a further $5.3\times$ on the measured
 case.
+
+\emph{The first factor has since been removed rather than accounted for.} Both
+sides now carry $|b_{\cloop{}}| = c/2$, so $\sqrt{b_{cd}/b_{dd}} = 1.000000$ and
+a fresh ledger on the 500~nm matched leg measures $S_{\text{raw}}/S_{\text{cont}}$
+at $0.97$--$1.04$ at every dose from $10^{-4}$ to $10$~dpa: the sink strength is
+\emph{continuous} across the transfer to about $2\%$. What is left is
+$1/\code{loopSinkScale} = 3.43$, a convention difference between the two solvers
+which lives \emph{outside} these totals --- \code{continuum\_totals} never
+applies \code{loopSinkScale}, which is why it was not what
+\code{S\_ratio\_transfer} measured --- and it remains the open decision.
 \end{enumerate}
 
 \noindent
@@ -2861,6 +2871,32 @@ $(404/500)(337/433)(704/800) = 0.56$. On the $200$~nm case the kept fraction is
 so no loop fits. The transfer declines rather than handing DD a population it
 would refuse, but the lesson generalizes: \textbf{a domain must be chosen
 against the loop size it will reach, not only against the mesh cost.}
+
+\begin{quote}
+\textbf{Putting $|b_{\cloop{}}|$ on its physical value made this strictly worse,
+and the numbers above are superseded.} $\ell_c$ rose by $\sqrt2$, so the
+\cloop{} radii did too, and a larger loop is harder to fit. Re-measured on the
+$500$~nm matched leg, \cloop{} only:
+%
+\begin{center}
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+\dpa{}              & $10^{-4}$ & $10^{-3}$ & $10^{-2}$ & $0.1$ & $1$ & $2$ & $5$ & $10$ \\
+\midrule
+\code{frac\_kept}   & $1.000$ & $0.981$ & $0.990$ & $0.757$ & $0.0096$ & $0.0005$ & $0.0144$ & $0.0232$ \\
+$\bar r$ [nm]       & $3.3$ & $3.5$ & $4.7$ & $19.9$ & $18.2$ & $7.2$ & $42.3$ & $35.8$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+%
+so the \cloop{} handoff is effectively infeasible on a $500$~nm domain above
+about $0.1$~\dpa{}, where it previously kept $55\%$. \code{coalescence\_area}
+tracks \code{frac\_kept} almost exactly ($0.00945$ against $0.00964$ at
+$1$~\dpa{}), which is the check that this is the geometric refusal and not the
+coalescence step failing to conserve area; the refused defects stay in the
+continuum and invariants (I) and (II) still pass. Re-check \code{frac\_kept} on
+every geometry, \emph{including ones where it used to be acceptable}.
+\end{quote}
 
 \paragraph{What makes the climb solve affordable.} \code{GalerkinClimbSolver}
 assembles over every ordered pair of segments, and that assembly is $100\%$ of

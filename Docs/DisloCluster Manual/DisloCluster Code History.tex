@@ -1738,15 +1738,20 @@ the refused share in the continuum. The share must be counted in
 \emph{defects}: one refusal of six was 83\% by count and 98\% by defects.
 (ii)~\code{sample\_family} draws an integer count from a real expectation, so
 the drawn population missed the continuum total by 15.4\% at six loops;
-\code{rescale\_to\_defects} fixes it exactly. (iii)~Sink strength jumps at the
+\code{rescale\_to\_defects} fixes it exactly. (iii)~Sink strength jumped at the
 handoff by $\sqrt{b_{cd}/b_{dd}}=1.414$ times $1/\text{loopSinkScale}=3.43$,
-and coalescence moves it a further $5.3\times$. Conservation of stored defects
+and coalescence moved it a further $5.3\times$. Conservation of stored defects
 now holds to $10^{-16}$.}
-\status{The sink jump is a modelling decision, reported and never asserted on.
-It must be settled before a transfer feeds a solve. A transfer also requires a
-domain that can hold the loops: the kept fraction is 0.997 at 0.1\,dpa on the
-500\,nm case, 0.55 from 1\,dpa on, and exactly 0 on the 200\,nm case, where the
-basal radii reach 65\,nm against a 173\,nm extent.}
+\status{\textbf{Superseded in part by change~\ref{chg:bc-half}.} The Burgers
+factor is now $1.000000$ and the measured $S_{\text{raw}}/S_{\text{cont}}$ is
+$0.97$--$1.04$ at every dose, so the sink strength is continuous across the
+transfer; what remains is $1/\text{loopSinkScale}=3.43$, still a modelling
+decision that must be settled before a transfer feeds a solve. The kept fraction
+went the \emph{wrong} way: it was 0.997 at 0.1\,dpa on the 500\,nm case and 0.55
+from 1\,dpa on, and is now 0.757 at 0.1\,dpa and 0.0005--0.023 from 1\,dpa on,
+because $\ell_c$ rose by $\sqrt2$ and a larger loop is harder to fit. It was
+already exactly 0 on the 200\,nm case. Re-check it on every geometry, including
+ones where it used to be acceptable.}
 
 \change{A screened cutoff on the Galerkin climb assembly}
 \label{chg:climb-cutoff}
@@ -1824,11 +1829,126 @@ at import, because fixing the 49 call sites would not hold --- the next status
 marker anyone types reintroduces it. A no-op on Linux and macOS.}
 
 % ===========================================================================
+\part{Lattice constants and the loop Burgers vectors}
+\label{part:burgers}
+% ===========================================================================
+
+Work of 17 August 2026. One thread: making both codes size a loop with the same
+Burgers vector, which turned out to require a change in the lattice basis itself
+and then exposed a silent failure in the discrete generator.
+
+\change{One \cloop{} Burgers vector, $\frac12[0001]$ with the physical $c/a$}
+\label{chg:bc-half}
+The same vacancy basal loop was sized three different ways at once: $2.6397$~\AA{}
+on the discrete side ($\frac12\times$ the \emph{ideal} $c$), $5.2795$~\AA{} in the
+3-D continuum (the \emph{full} ideal $c$) and $5.1500$~\AA{} in the 0-D (the full
+\emph{physical} $c$). All three now read $c/2 = 2.5750$~\AA{} with
+$c/a = 5.15/3.23 = 1.5944272$, and $|b_{\aloop{}}| = a = 3.23$~\AA{} was already
+correct on all three sides.
+\why{The \cloop{} Burgers vector derives from the lattice basis and from nowhere
+else --- \code{aLoopGenerator} builds a discrete basal loop's $b$ from it, and
+\code{immobileSpeciesBurgers} is multiplied by it for \code{rloop()} --- so no
+input-file edit could reach the discrete side. \code{HEXlattice::getLatticeBasis}
+had to take the material.}
+\impact{$c/a$ comes from the \emph{optional} key \code{c\_SI}, absent meaning the
+ideal $\sqrt{8/3}$, so every other HEX material is unchanged bit-for-bit.
+$f_{\text{burgers}} = \sqrt{b_{cd}/b_{dd}}$ is $1.000000$ on all four families,
+and the measured $S_{\text{raw}}/S_{\text{cont}}$ across a transfer is
+$0.97$--$1.04$ at every dose: the sink strength is now \emph{continuous}, where
+the Burgers factor used to put it at $1.414$. \code{b\_SI} also moved
+$0.3233 \to 0.323$~nm so both codes share one $a$, which removes a $0.28\%$ error
+in $\Omega_{b^3}$ and re-stages every case automatically, \code{domain\_key}
+hashing the material content.}
+\status{\textbf{The \cloop{} part of the 28-parameter fit is now stale}, the
+third such warning after $\Omega$ and \code{loop\_model}, and they compound.
+Two further consequences went the wrong way and are worth knowing before relying
+on either. The kept fraction at the discrete handoff \emph{fell} --- $\ell_c$ rose
+by $\sqrt2$, so \cloop{} radii did too, and a larger loop is harder to fit: 0.757
+at $0.1$~dpa and $0.0005$--$0.023$ from $1$~dpa on the 500\,nm case, against
+0.997 and 0.55 before. And in the 0-D, full self-consistency was chosen over
+pinning a shared prefactor, so \aloop{} moves as well: $N_a\,0.716\times$,
+$c_a\,0.714\times$, $N_c\,0.993\times$, $c_c\,0.499\times$ at $10$~dpa. $\ell_c$
+plays two roles in \code{loop\_model}~0 --- the genuine \cloop{} radius, and the
+model's single sink prefactor $\ell_c/\ell$ applied to \aloop{} too. Mode~1 has
+no such conflation.}
+
+\change{\code{aLoopGenerator} chose the basal branch by the ideal $c/a$, and
+dropped every loop in silence}
+\label{chg:aloop-silent}
+\code{generateSingle} compared the slip system's plane spacing against hard-coded
+constants --- $\sqrt3/2$ prismatic, $\sqrt{8/3}$ basal --- and \textbf{the basal
+spacing is $c/a$}. At $1.5944272$ neither matched, control fell off the end of an
+\code{if}/\code{else if} chain with no \code{else}, and every requested basal loop
+vanished.
+\why{Change~\ref{chg:bc-half} was, by itself, a complete no-op on the discrete
+side --- and not visibly so: the generator printed its banner, wrote
+\code{evl\_0.txt}, exited $0$, and produced zero loops for a solve to run on.
+Measured A/B on one case differing only by the \code{c\_SI} line: six loops
+without the key, \textbf{zero} with it.}
+\impact{$c/a$ now comes from \code{latticeBasis.col(2).norm()} --- that is $QA$,
+so the test is rotation-invariant as well as correct --- and the fall-through
+\textbf{throws}, naming the spacing and both accepted values. Verified after
+rebuilding: with \code{c\_SI} absent, six loops and $b_z = 0.8164965809277259 =
+\sqrt{8/3}/2$ to the last digit, \emph{identical to before the fix}, which is the
+regression test for every other HEX material; with it present, six loops and
+$b_z = 0.7964738632848747 = (c/a)/2$ to the last digit, $|b| = 2.57500$~\AA{}.}
+\status{The second half matters more than the first: the defect was not the wrong
+constant but that a wrong constant could cost every loop without a word. One
+hard-coded ideal ratio is left deliberately ---
+\code{DislocationMobilityHEXprismatic} sets $h = \sqrt{8/3}/2$, a kink-pair height
+for prismatic \emph{glide}, not a Burgers vector, fitted at the ideal ratio and
+never reached by a \code{SESSILELOOP}.}
+
+\change{The matched \code{loop\_model} comparison, and what route~A had been measuring}
+\label{chg:lm-matched}
+Two 500\,nm marches differing \emph{only} in \code{loop\_model}, at zero applied
+stress ($f_a = 1/3$ exactly) and the fitted $p_v = 1.178808$, where all four Woo
+efficiencies reproduce the workbook to six digits.
+\why{The earlier route-A pair differed in $p_v$ as well, because only mode~1
+propagates $p_v$ into the capture efficiencies, so it measured the formulation
+plus that.}
+\impact{Most of what route~A showed was $p_v$: $N_a$ falls from $3.078\times$ to
+$1.618\times$ and $c_c$ \emph{inverts}, $0.665\times \to 1.192\times$. The
+two-balance closure holds on both families to four figures. And
+$d_{\text{coarsen}}$ swaps families outright --- legacy crosses $\varphi^\ast$ for
+\cloop{} at $0.4$\,dpa and never for \aloop{}, the self-consistent march the other
+way round --- so which family the mean-field treatment of coalescence fails for
+first is a property of the formulation, not of the material.}
+\status{A recorded prefactor identity is retracted by
+change~\ref{chg:bc-half}: $(\ell_a/\ell_c)s_a$ was $1.000464$, and is now
+$0.7075$. The near-reciprocity was a numerical accident of the old \cloop{}
+convention rather than a property of the model.}
+
+\change{Post-processing rebuilds the run's own 0-D model}
+\label{chg:sim-for-run}
+\code{post.volume\_average} and \code{post.boundary\_flux} called
+\code{calibration.build\_sim()} with no arguments, taking the applied load from
+the workbook, where \code{sigma\_n} stands at $1.0\times10^8$~Pa. New
+\code{config.sim\_for\_run(run\_dir)} reconstructs the model through the same
+\code{Material.build\_sim(boundary=...)} path the driver used.
+\why{A run staged with \code{stress\_from\_boundary} and a zero \code{BOUNDARY}
+was post-processed at $100$~MPa: the diagnostic printed $f_a = 0.4015$ where the
+march integrated exactly $1/3$.}
+\impact{\textbf{This changes no published number}, and the reason is worth
+recording: with the node states fixed, the two models' right-hand sides differ in
+the four loop rows \emph{only} --- the mobile block and all six conservation
+accumulators are bit-identical, relative difference exactly $0.0$ over 400 nodes
+at $10$~dpa. \code{boundary\_flux} integrates the mobile rows and
+\code{volume\_average} reports the accumulators, so both were already immune;
+$f_a$ partitions loop nucleation and enters neither. What is removed is a
+misleading print and a latent hazard.}
+\cost{Also fixed: \code{staging/anisotropy.apply} was not idempotent, its
+\code{re.sub} patterns stopping at the \code{;} so each \code{--apply} prepended a
+fresh generated comment rather than replacing the old one. Both keys in the
+checked-in material file had accumulated two copies. \code{domain\_key} hashes
+that file, so re-deriving at an unchanged $p_m$ still re-staged every case.}
+
+% ===========================================================================
 \part{Open items}
 \label{part:open}
 % ===========================================================================
 
-These are unresolved as of 16 August 2026. Two of them are physics decisions
+These are unresolved as of 17 August 2026. Two of them are physics decisions
 rather than defects.
 
 \begin{enumerate}\itemsep4pt

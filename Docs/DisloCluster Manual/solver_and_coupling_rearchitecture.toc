@@ -113,21 +113,21 @@
 \contentsline {paragraph}{When.}{38}{section*.48}%
 \contentsline {paragraph}{What is exchanged, and the ledger that proves it.}{38}{section*.49}%
 \contentsline {paragraph}{Whether a transfer is possible at all.}{39}{section*.50}%
-\contentsline {paragraph}{What makes the climb solve affordable.}{39}{section*.51}%
+\contentsline {paragraph}{What makes the climb solve affordable.}{40}{section*.51}%
 \contentsline {paragraph}{Status --- and the gap is more basic than previously recorded.}{40}{section*.52}%
-\contentsline {section}{\numberline {13}A self-consistent slow solver}{40}{section.13}%
-\contentsline {subsection}{\numberline {13.1}The inconsistency}{40}{subsection.13.1}%
+\contentsline {section}{\numberline {13}A self-consistent slow solver}{41}{section.13}%
+\contentsline {subsection}{\numberline {13.1}The inconsistency}{41}{subsection.13.1}%
 \contentsline {subsection}{\numberline {13.2}One switch, two formulations}{41}{subsection.13.2}%
-\contentsline {subsection}{\numberline {13.3}Where the parameters come from, and why it matters}{41}{subsection.13.3}%
-\contentsline {subsection}{\numberline {13.4}Verification: bit-identity of the fitted path}{41}{subsection.13.4}%
+\contentsline {subsection}{\numberline {13.3}Where the parameters come from, and why it matters}{42}{subsection.13.3}%
+\contentsline {subsection}{\numberline {13.4}Verification: bit-identity of the fitted path}{42}{subsection.13.4}%
 \contentsline {subsection}{\numberline {13.5}What the formulation change costs, and the attribution}{42}{subsection.13.5}%
-\contentsline {paragraph}{Loop growth is a near-cancellation.}{42}{section*.53}%
-\contentsline {paragraph}{$N_a$ is the quotient of two balances.}{42}{section*.54}%
-\contentsline {paragraph}{One parameter, two directions.}{42}{section*.55}%
+\contentsline {paragraph}{Loop growth is a near-cancellation.}{43}{section*.53}%
+\contentsline {paragraph}{$N_a$ is the quotient of two balances.}{43}{section*.54}%
+\contentsline {paragraph}{One parameter, two directions.}{43}{section*.55}%
 \contentsline {paragraph}{Route~A therefore does not isolate the formulation.}{43}{section*.56}%
 \contentsline {paragraph}{The prefactors are not a factor.}{43}{section*.57}%
 \contentsline {paragraph}{A RETRACTED ATTRIBUTION, recorded because the error is instructive.}{43}{section*.58}%
-\contentsline {paragraph}{The parameter set is stale for the new mode.}{43}{section*.59}%
-\contentsline {subsection}{\numberline {13.6}One combination is refused}{43}{subsection.13.6}%
+\contentsline {paragraph}{The parameter set is stale for the new mode.}{44}{section*.59}%
+\contentsline {subsection}{\numberline {13.6}One combination is refused}{44}{subsection.13.6}%
 \contentsline {section}{\numberline {14}Summary and recommended next steps}{44}{section.14}%
-\contentsline {paragraph}{Files.}{44}{section*.60}%
+\contentsline {paragraph}{Files.}{45}{section*.60}%

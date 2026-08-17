@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  17 AUG 2026 06:39
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  17 AUG 2026 13:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -918,28 +918,28 @@ ng
  []
 
 [38] [39]
-Overfull \hbox (9.76479pt too wide) in paragraph at lines 2925--2938
+Overfull \hbox (9.76479pt too wide) in paragraph at lines 2961--2974
 \T1/lmr/m/it/10.95 Dirich-let con-di-tions \T1/lmr/m/n/10.95 alone: \T1/lmtt/m/
 n/10 dirichletConditions = bndConcentration $\OMS/lmsy/m/n/10 ^^@$ \T1/lmtt/m/n
 /10 otherConcentration\T1/lmr/m/n/10.95 .
  []
 
 [40] [41] [42]
-Overfull \hbox (72.45674pt too wide) in paragraph at lines 3169--3177
+Overfull \hbox (72.45674pt too wide) in paragraph at lines 3205--3213
 []\T1/lmr/m/n/10.95 What re-mains true about the split: MoD-ELib3's co-a-les-ce
 nce loop is it-self per fam-ily (\T1/lmtt/m/n/10 ClusterDynamicsFEM.cpp\T1/lmr/
 m/n/10.95 ,
  []
 
-[43]
-Overfull \hbox (8.398pt too wide) in paragraph at lines 3256--3270
+[43] [44]
+Overfull \hbox (8.398pt too wide) in paragraph at lines 3292--3306
  []\T1/lmr/bx/n/10.95 Files.[] \T1/lmtt/m/n/10 cpp_utils/dual.h\T1/lmr/m/n/10.9
 5 , \T1/lmtt/m/n/10 cpp_utils/rate_equations_core.h\T1/lmr/m/n/10.95 , \T1/lmtt
 /m/n/10 cpp_utils/rate_equations.{h,cpp}\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (68.51009pt too wide) in paragraph at lines 3256--3270
+Overfull \hbox (68.51009pt too wide) in paragraph at lines 3292--3306
 \T1/lmtt/m/n/10 cpp_utils/jac_check.cpp\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 cpp_
 utils/parameters.h\T1/lmr/m/n/10.95 , \T1/lmtt/m/n/10 code/solver.cpp\T1/lmr/m/
 n/10.95 , \T1/lmtt/m/n/10 dislocluster_code/zerod/cpp_bridge.py\T1/lmr/m/n/10.9
@@ -947,13 +947,13 @@ n/10.95 , \T1/lmtt/m/n/10 dislocluster_code/zerod/cpp_bridge.py\T1/lmr/m/n/10.9
  []
 
 
-Overfull \hbox (147.30827pt too wide) in paragraph at lines 3256--3270
+Overfull \hbox (147.30827pt too wide) in paragraph at lines 3292--3306
 \T1/lmtt/m/n/10 dislocluster_code/coupling/immobile.py\T1/lmr/m/n/10.95 , \T1/l
 mtt/m/n/10 dislocluster_code/coupling/field.py \T1/lmr/m/n/10.95 (new), \T1/lmt
 t/m/n/10 dislocluster_code/coupling/march.py
  []
 
-[44] (solver_and_coupling_rearchitecture.aux)
+[45] (solver_and_coupling_rearchitecture.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -963,8 +963,8 @@ not changed.
 (rerunfilecheck)             Checksum: 20CF8D17D90C05D691B9ED07DE2CF5DC;17548.
  ) 
 Here is how much of TeX's memory you used:
- 11836 strings out of 467691
- 181698 string characters out of 5414988
+ 11837 strings out of 467691
+ 181705 string characters out of 5414988
  617575 words of memory out of 5000000
  40453 multiletter control sequences out of 15000+600000
  767842 words of font info for 133 fonts, out of 8000000 for 9000
@@ -992,10 +992,10 @@ ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Ow
 ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pf
 b>
-Output written on solver_and_coupling_rearchitecture.pdf (44 pages, 669881 byte
+Output written on solver_and_coupling_rearchitecture.pdf (45 pages, 673063 byte
 s).
 PDF statistics:
- 916 PDF objects out of 1000 (max. 8388607)
- 238 named destinations out of 1000 (max. 500000)
+ 920 PDF objects out of 1000 (max. 8388607)
+ 239 named destinations out of 1000 (max. 500000)
  593 words of extra memory for PDF output out of 10000 (max. 10000000)
 

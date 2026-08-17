@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  17 AUG 2026 08:29
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  17 AUG 2026 09:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -986,282 +986,287 @@ e fit-ting util-i-ties (\T1/lmtt/m/n/9 dislocluster_code/fitting/\T1/lmr/m/n/10
 
 [12{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.e
 nc}]
+Overfull \hbox (44.34486pt too wide) in paragraph at lines 873--880
+[]\T1/lmr/m/n/10.95 Two things were changed, and the sec-ond mat-ters more. $\O
+ML/lmm/m/it/10.95 c=a$ \T1/lmr/m/n/10.95 now comes from \T1/lmtt/m/n/10 lattice
+Basis.col(2).norm()
+ []
+
+[13]
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/listings\lstlang1.sty
 File: lstlang1.sty 2025/11/14 1.11b listings language file
 )
-[13]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 941.
+(Font)              <14.4> on input line 1011.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 941.
+(hyperref)                removing `math shift' on input line 1011.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\leavevmode@ifvmode' on input line 941.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                \kern 1.82538pt
-(hyperref)                removed on input line 941.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\leftrightarrow' on input line 941.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\leavevmode@ifvmode' on input line 941.
+(hyperref)                removing `\leavevmode@ifvmode' on input line 1011.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                \kern 1.82538pt
-(hyperref)                removed on input line 941.
+(hyperref)                removed on input line 1011.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 941.
+(hyperref)                removing `\leftrightarrow' on input line 1011.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1015--1020
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `\leavevmode@ifvmode' on input line 1011.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                \kern 1.82538pt
+(hyperref)                removed on input line 1011.
+
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 1011.
+
+[14]
+Underfull \hbox (badness 10000) in paragraph at lines 1085--1090
 []|\T1/lmr/m/n/10.95 SUNDIALS CVODE, adaptive-order
  []
 
 
-Underfull \hbox (badness 3078) in paragraph at lines 1015--1020
+Underfull \hbox (badness 3078) in paragraph at lines 1085--1090
 \T1/lmr/m/n/10.95 adaptive-step BDF, at ev-ery node with
  []
 
 
-Underfull \hbox (badness 3536) in paragraph at lines 1015--1020
+Underfull \hbox (badness 3536) in paragraph at lines 1085--1090
 \T1/lmr/m/n/10.95 size both fol-low a lo-cal er-ror es-ti-mate
  []
 
 
-Overfull \hbox (7.2999pt too wide) in paragraph at lines 1015--1020
+Overfull \hbox (7.2999pt too wide) in paragraph at lines 1085--1090
 \T1/lmtt/m/n/10 dislocluster_code/coupling/seeded_march.py\T1/lmr/m/n/10.95 .| 
 
  []
 
-[14]
+[15]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <12> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1047.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1117.
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1047.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1117.
 
-Underfull \hbox (badness 7047) in paragraph at lines 1079--1080
+Underfull \hbox (badness 7047) in paragraph at lines 1149--1150
 []|\T1/lmr/m/n/10.95 a lump-ing: aligned/non-
  []
 
 
-Underfull \hbox (badness 5260) in paragraph at lines 1079--1080
+Underfull \hbox (badness 5260) in paragraph at lines 1149--1150
 \T1/lmr/m/n/10.95 aligned summed, the $\OMS/lmsy/m/n/10.95 h\OML/lmm/m/it/10.95
  a\OMS/lmsy/m/n/10.95 i$
  []
 
 
-Underfull \hbox (badness 3138) in paragraph at lines 1079--1080
+Underfull \hbox (badness 3138) in paragraph at lines 1149--1150
 \T1/lmr/m/n/10.95 to-tal split over $\OML/lmm/m/it/10.95 a[]::a[]$ \T1/lmr/m/n/
 10.95 by
  []
 
-[15] [16] [17] [18]
+[16] [17] [18] [19] [20]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10.95> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1366.
- [19] [20] [21]
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1499.
+ [21] [22]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1549.
-
-Underfull \hbox (badness 1199) in paragraph at lines 1597--1600
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1682.
+ [23]
+Underfull \hbox (badness 1199) in paragraph at lines 1730--1733
 []|\T1/lmtt/m/n/9 fe_mesh.png\T1/lmr/m/n/10.95 , plus one file per quan-tity pe
 r dose: \T1/lmtt/m/n/9 Cv_06dpa.png\T1/lmr/m/n/10.95 ,
  []
 
-[22]
-Underfull \hbox (badness 5388) in paragraph at lines 1632--1635
+
+Underfull \hbox (badness 5388) in paragraph at lines 1765--1768
 []|\T1/lmr/m/n/10.95 the \T1/lmtt/m/n/10 RUN \T1/lmr/m/n/10.95 dic-tio-nary of 
 the Adap-tive note-book \T1/lmr/m/it/10.95 and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1636--1638
+Underfull \hbox (badness 10000) in paragraph at lines 1769--1771
 []|\T1/lmr/m/n/10.95 the work-book \T1/lmtt/m/n/9 input/Zr_input_parameters.xls
 x\T1/lmr/m/n/10.95 , or
  []
 
 
-Underfull \hbox (badness 8113) in paragraph at lines 1639--1641
+Underfull \hbox (badness 8113) in paragraph at lines 1772--1774
 []|\T1/lmtt/m/n/9 MoDELib3/Library/Materials/Zr3d_ghoniem.txt\T1/lmr/m/n/10.95 
 , then re-run
  []
 
 
-Overfull \hbox (15.64737pt too wide) in paragraph at lines 1645--1647
+Overfull \hbox (15.64737pt too wide) in paragraph at lines 1778--1780
 []|\T1/lmtt/m/n/10 Nsteps \T1/lmr/m/n/10.95 and \T1/lmtt/m/n/10 dtMax \T1/lmr/m
 /n/10.95 in \T1/lmtt/m/n/9 tutorials/zrmicro_coupled/inputFiles/DD.txt| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1647--1647
+Underfull \hbox (badness 10000) in paragraph at lines 1780--1780
 []|\T1/lmr/m/n/10.95 mesh or do-main (Adap-tive
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1650--1652
+Underfull \hbox (badness 10000) in paragraph at lines 1783--1785
 []|\T1/lmtt/m/n/10 meshFile \T1/lmr/m/n/10.95 and the de-for-ma-tion gra-di-ent
  \T1/lmtt/m/n/10 F \T1/lmr/m/n/10.95 in
  []
 
-[23]
-Underfull \hbox (badness 2351) in paragraph at lines 1712--1712
+[24]
+Underfull \hbox (badness 2351) in paragraph at lines 1845--1845
 []|\T1/lmss/m/n/10.95 MoDELib3 \T1/lmr/m/n/10.95 CMake \T1/lmr/m/it/10.95 gen-e
 r-ate \T1/lmr/m/n/10.95 step
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1722--1722
+Underfull \hbox (badness 10000) in paragraph at lines 1855--1855
 []|\T1/lmtt/m/n/9 build_modelib.sh \T1/lmr/m/n/10.95 stops with
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1747--1751
+Underfull \hbox (badness 10000) in paragraph at lines 1880--1884
 []|\T1/lmr/m/n/10.95 Historically a member-initialization-order bug in
  []
 
 
-Underfull \hbox (badness 1377) in paragraph at lines 1751--1751
+Underfull \hbox (badness 1377) in paragraph at lines 1884--1884
 []|\T1/lmr/m/n/10.95 Three $\OMS/lmsy/m/n/10.95 h\OML/lmm/m/it/10.95 a\OMS/lmsy
 /m/n/10.95 i$ \T1/lmr/m/n/10.95 fam-i-lies give dif-fer-ent
  []
 
 
-Underfull \hbox (badness 2134) in paragraph at lines 1754--1754
+Underfull \hbox (badness 2134) in paragraph at lines 1887--1887
 []|\T1/lmr/m/n/10.95 Notebook re-gres-sion cell re-ports
  []
 
-
-ignored: Infinite glue shrinkage found in box being split [24] [25]
-Overfull \hbox (15.10968pt too wide) in paragraph at lines 1836--1836
+[25] [26]
+Overfull \hbox (15.10968pt too wide) in paragraph at lines 1969--1969
 []|\T1/lmtt/m/n/9 dislocluster_code/zerod/input_data.py| 
  []
 
 
-Underfull \hbox (badness 1163) in paragraph at lines 1836--1838
+Underfull \hbox (badness 1163) in paragraph at lines 1969--1971
 []|\T1/lmr/m/n/10.95 reads the work-book, com-putes ev-ery de-rived
  []
 
 
-Overfull \hbox (37.05128pt too wide) in paragraph at lines 1838--1838
+Overfull \hbox (37.05128pt too wide) in paragraph at lines 1971--1971
 []|\T1/lmtt/m/n/9 dislocluster_code/zerod/reaction_rates.py\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (15.10968pt too wide) in paragraph at lines 1840--1840
+Overfull \hbox (15.10968pt too wide) in paragraph at lines 1973--1973
 []|\T1/lmtt/m/n/9 dislocluster_code/zerod/cpp_bridge.py| 
  []
 
 
-Underfull \hbox (badness 3219) in paragraph at lines 1840--1842
+Underfull \hbox (badness 3219) in paragraph at lines 1973--1975
 []|\T1/lmr/m/n/10.95 flattens pa-ram-e-ters to the \T1/lmtt/m/n/10 --key=value 
 \T1/lmr/m/n/10.95 CLI,
  []
 
 
-Overfull \hbox (19.83467pt too wide) in paragraph at lines 1842--1842
+Overfull \hbox (19.83467pt too wide) in paragraph at lines 1975--1975
 []|\T1/lmtt/m/n/9 dislocluster_code/coupling/immobile.py| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1842--1844
+Underfull \hbox (badness 10000) in paragraph at lines 1975--1977
 []|\T1/lmr/m/n/10.95 the operator-split driver (\T1/lmtt/m/n/10 pack_y0\T1/lmr/
 m/n/10.95 ,
  []
 
 
-Overfull \hbox (24.55966pt too wide) in paragraph at lines 1844--1844
+Overfull \hbox (24.55966pt too wide) in paragraph at lines 1977--1977
 []|\T1/lmtt/m/n/9 dislocluster_code/legacy/modelib_fem.py| 
  []
 
 
-Overfull \hbox (10.38469pt too wide) in paragraph at lines 1847--1847
+Overfull \hbox (10.38469pt too wide) in paragraph at lines 1980--1980
 []|\T1/lmtt/m/n/9 dislocluster_code/coupling/export.py| 
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1849--1850
+Underfull \hbox (badness 10000) in paragraph at lines 1982--1983
 []|\T1/lmtt/m/n/9 dislocluster_code/post/report.py\T1/lmr/m/n/10.95 ,
  []
 
 
-Overfull \hbox (81.25955pt too wide) in paragraph at lines 1852--1852
+Overfull \hbox (81.25955pt too wide) in paragraph at lines 1985--1985
 []|\T1/lmtt/m/n/9 dislocluster_code/studies/run_zr3d_singlecrystal.py| 
  []
 
 
-Underfull \hbox (badness 1394) in paragraph at lines 1852--1854
+Underfull \hbox (badness 1394) in paragraph at lines 1985--1987
 []|\T1/lmr/m/n/10.95 the single-crystal post-processing driver (Sec-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1854--1856
+Underfull \hbox (badness 10000) in paragraph at lines 1987--1989
 []|\T1/lmr/m/n/10.95 the 0-D in-te-gra-tor: CVODE/ARKODE,
  []
 
 
-Underfull \hbox (badness 4254) in paragraph at lines 1854--1856
+Underfull \hbox (badness 4254) in paragraph at lines 1987--1989
 \T1/lmr/m/n/10.95 OpenMP batch mode, one \T1/lmtt/m/n/10 SUNContext \T1/lmr/m/n
 /10.95 per
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1862--1862
+Underfull \hbox (badness 10000) in paragraph at lines 1995--1995
 []|\T1/lmtt/m/n/9 dislocluster_code/staging/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1865--1865
+Underfull \hbox (badness 10000) in paragraph at lines 1998--1998
 []|\T1/lmtt/m/n/9 dislocluster_code/post/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1867--1867
+Underfull \hbox (badness 10000) in paragraph at lines 2000--2000
 []|\T1/lmtt/m/n/9 dislocluster_code/coupling/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1869--1869
+Underfull \hbox (badness 10000) in paragraph at lines 2002--2002
 []|\T1/lmtt/m/n/9 dislocluster_code/coupling/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1871--1871
+Underfull \hbox (badness 10000) in paragraph at lines 2004--2004
 []|\T1/lmtt/m/n/9 dislocluster_code/coupling/
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1873--1874
+Underfull \hbox (badness 10000) in paragraph at lines 2006--2007
 []|\T1/lmtt/m/n/9 dislocluster_code/studies/
  []
 
-
-Overfull \hbox (9.14146pt too wide) in paragraph at lines 2036--2036
+[27] [28]
+Overfull \hbox (9.14146pt too wide) in paragraph at lines 2169--2169
  [][][]\T1/lmtt/m/n/10 rate_equations.cpp 
  []
 
 
-Overfull \hbox (3.45091pt too wide) in paragraph at lines 2036--2036
+Overfull \hbox (3.45091pt too wide) in paragraph at lines 2169--2169
  [][][]\T1/lmtt/m/n/10 ClusterDynamicsFEM[] 
  []
 
-[26] [27] [28]
-Underfull \hbox (badness 1365) in paragraph at lines 2089--2099
+[29]
+Underfull \hbox (badness 1365) in paragraph at lines 2222--2232
  \T1/lmr/bx/n/10.95 A.6.0.3 The hand-off.[] \T1/lmtt/m/n/9 post/coarsening.py \
 T1/lmr/m/n/10.95 de-cides \T1/lmr/m/it/10.95 when \T1/lmr/m/n/10.95 the con-tin
 -uum de-scrip-tion of a
  []
 
-[29] [30] [31] [32] (DisloCluster_manual.aux)
+[30] [31] [32] [33] (DisloCluster_manual.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -1270,11 +1275,11 @@ Package rerunfilecheck Info: File `DisloCluster_manual.out' has not changed.
 (rerunfilecheck)             Checksum: 654257E9A4C6167912191991BE9E5792;9806.
  ) 
 Here is how much of TeX's memory you used:
- 25119 strings out of 467691
- 460835 string characters out of 5414988
- 1783104 words of memory out of 5000000
- 53409 multiletter control sequences out of 15000+600000
- 769766 words of font info for 136 fonts, out of 8000000 for 9000
+ 25132 strings out of 467691
+ 461047 string characters out of 5414988
+ 1783039 words of memory out of 5000000
+ 53416 multiletter control sequences out of 15000+600000
+ 770408 words of font info for 138 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  84i,16n,94p,678b,2019s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.pf
@@ -1304,9 +1309,9 @@ Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/
 Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/
 Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/O
 wner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtti10.pfb>
-Output written on DisloCluster_manual.pdf (32 pages, 743639 bytes).
+Output written on DisloCluster_manual.pdf (33 pages, 753690 bytes).
 PDF statistics:
- 929 PDF objects out of 1000 (max. 8388607)
- 319 named destinations out of 1000 (max. 500000)
+ 941 PDF objects out of 1000 (max. 8388607)
+ 324 named destinations out of 1000 (max. 500000)
  437 words of extra memory for PDF output out of 10000 (max. 10000000)
 
