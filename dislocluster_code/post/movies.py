@@ -189,13 +189,14 @@ def cd_blocks_interpolated(run_dir, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     z = np.load(Path(run_dir) / "march_state.npz")
     doses, Y, nodes = z["doses"], z["Y"], z["nodes"]
     omega = mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL)
+    lm = mfield.run_loop_model(run_dir)
 
     solved = []
     for i in range(len(doses)):
         F = np.empty((Y.shape[1], mfield.N_CD_COLS))
         F[:, :mfield.M_SIZE] = Y[i][:, :mfield.M_SIZE]
         F[:, mfield.M_SIZE:] = mfield.immobile_0d_to_modelib(
-            Y[i], omega, variant_weights)
+            Y[i], omega, variant_weights, loop_model=lm)
         solved.append(F)
 
     d_out, src, frac, real = subdivide_doses(doses, interp)

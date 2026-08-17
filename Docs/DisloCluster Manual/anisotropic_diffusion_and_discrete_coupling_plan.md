@@ -601,6 +601,35 @@ true. `ImmobileSinks.h` and `solveImmobileClusters()` already use
 continuum side is structurally ready for an anisotropic tensor and simply needs `p_m`
 derived rather than fitted.
 
+**A second disconnection, on the other side of the split — now closed as an option.**
+Everything in this section is about `solveImmobileClusters`, which the coupled march does
+not run (see Step 0). Its slow step is ZrMicro's, and *that* solver had no `p_m` at all:
+aligned/non-aligned families and phenomenological `Z_i_a = 1+delta_i`. So even with the
+tensor and `dadAnisotropy` reconciled, the coupled route still integrated an immobile
+model the fast solve did not share.
+
+`SOLVER['loop_model'] = 1` closes it: the slow step then carries `⟨c⟩ + 3×⟨a⟩` — MoDELib's
+own CD block — with `Z_basal(m) = Z0_m p_m` and `Z_prismatic(m) = Z0_m (p_m + p_m^-2)/2`
+read from `Zr3d_ghoniem.txt`, so the criterion of §1.3.1 governs the coupled march too and
+the field bridge becomes an identity. **Off by default**, because the 28-parameter set was
+fitted against the legacy formulation.
+
+Two findings from building it belong here, because they bear on §1.3.1's premises:
+
+- **The legacy model structurally cannot see cluster anisotropy.** It applies one `Z_i_a`
+  to `omega_i·(Ci + 2·C2i + 3·C3i)` — one efficiency *and* the monomer jump frequency for
+  all three interstitial species, though `omega_2i/omega_i = 4.9e-6`. Changing `p_2i`
+  alone therefore changes nothing in it. That is Li et al.'s structure exactly, and it is
+  a second, independent reason their set was inert here, alongside the arrival-share
+  argument already given in §1.3.1.
+- **At the fitted parameters the two formulations agree on the rates, and differ by the
+  variant split.** `Z_prismatic(i) = 1.072114` vs `Z_i_a = 1.072113`; ⟨a⟩ sink prefactor
+  ratio 1.000464; ⟨c⟩ ratio 1.012493. The measured 30.2× in `N_a` at 10 dpa comes from
+  resolving the three prism variants, which coarsen far less as three populations of `n/3`
+  than as one of `n` — confirmed by concentrating 98% of ⟨a⟩ nucleation into `a1`, which
+  returns `N_a` to 1.52×. MoDELib's coalescence is per family too, so mode 1 agrees with
+  it by construction rather than by independent argument.
+
 ### 2.3 Discrete↔continuum — complete, dormant
 
 - `GalerkinClimbSolver::clusterForceKernel` builds the RHS from

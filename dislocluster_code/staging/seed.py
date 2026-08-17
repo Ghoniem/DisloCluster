@@ -48,16 +48,23 @@ def pristine_state():
     return y
 
 
-def zero_d_state(sim, dose, n_points=4000, rtol=1e-10, atol=1e-24):
+def zero_d_state(sim, dose, n_points=4000, rtol=1e-10, atol=1e-24,
+                 loop_model=0, material_file=None):
     """The calibrated 0-D state vector at `dose`, from one adaptive run.
 
     Integrated to the requested dose in a single call rather than marched, so
     the seed carries no accumulated step error.
+
+    `loop_model` must match the march's, or the seed is a state vector in the
+    other formulation's layout: the same twelve numbers meaning
+    aligned/non-aligned rather than <c>/<a1..a3>.
     """
     G = float(sim.input_data.material_params["G"])
     cli = collect_solver_args(sim, dict(
         t_begin=1e-1, t_end=dose / G, n_points=n_points, log_time=True,
-        rtol=rtol, atol=atol, analytic_jac=True))
+        rtol=rtol, atol=atol, analytic_jac=True,
+        loop_model=int(loop_model),
+        material_file=material_file or paths.MODELIB_MATERIAL))
     p = subprocess.run([str(paths.zrmicro_solver_exe())] + cli,
                        capture_output=True, text=True)
     rows = np.array([[float(x) for x in L.split()]
@@ -70,7 +77,7 @@ def zero_d_state(sim, dose, n_points=4000, rtol=1e-10, atol=1e-24):
 
 
 def build_seed(sim, dose, dest, scaffold, variant_weights=(1 / 3, 1 / 3, 1 / 3),
-               material_file=None):
+               material_file=None, loop_model=0):
     """Write a uniform seed onto the CD nodes of `scaffold`.
 
     `scaffold` fixes the node count, so it must come from the SAME staged case
@@ -82,7 +89,8 @@ def build_seed(sim, dose, dest, scaffold, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     if dose <= 0.0:
         y, hit = pristine_state(), 0.0
     else:
-        y, hit = zero_d_state(sim, dose)
+        y, hit = zero_d_state(sim, dose, loop_model=loop_model,
+                              material_file=material_file)
 
     ev = mfield.EvlFile(Path(scaffold))
     N = ev.cd.shape[0]
@@ -90,14 +98,24 @@ def build_seed(sim, dose, dest, scaffold, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     y19 = y[:19] if y.size >= 19 else np.r_[y, np.zeros(19 - y.size)]
     ev.cd[:, :mfield.M_SIZE] = y[0:4]
     ev.cd[:, mfield.M_SIZE:] = mfield.immobile_0d_to_modelib(
-        np.tile(y19, (N, 1)), omega, variant_weights=variant_weights)
+        np.tile(y19, (N, 1)), omega, variant_weights=variant_weights,
+        loop_model=loop_model)
     Path(dest).parent.mkdir(parents=True, exist_ok=True)
     ev.write(dest)
     return y, hit
 
 
-def lumped(Y):
-    """The four reported aggregates: <a> and <c> loop density and content."""
+def lumped(Y, loop_model=0):
+    """The four reported aggregates: <a> and <c> loop density and content.
+
+    The same four numbers in either formulation, but summed over different
+    slots: legacy pairs each family with its aligned partner, the
+    self-consistent model puts <c> alone in slot 0 and the three prism variants
+    in slots 1..3.
+    """
     Y = np.atleast_2d(Y)
+    if loop_model:
+        return dict(N_c=Y[:, 4], N_a=Y[:, 5:8].sum(axis=1),
+                    c_c=Y[:, 8], c_a=Y[:, 9:12].sum(axis=1))
     return dict(N_a=Y[:, 4] + Y[:, 5], N_c=Y[:, 6] + Y[:, 7],
                 c_a=Y[:, 8] + Y[:, 9], c_c=Y[:, 10] + Y[:, 11])

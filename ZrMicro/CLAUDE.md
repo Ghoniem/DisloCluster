@@ -36,6 +36,47 @@ y[12] = [Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i, CvL_v, CavL_v]
 | 10 | CvL_v | Vacancies in vacancy loops |
 | 11 | CavL_v | Vacancies in alloyed vacancy loops |
 
+### Indices 4–11 depend on `loop_model`
+
+`SOLVER['loop_model']` (CLI `--loop_model`, default 0) selects which immobile
+formulation the solver integrates. **Only slots 4–11 change; the mobile species,
+the six accumulators and `rho_N` are identical in both.**
+
+| slot | `loop_model = 0` (default) | `loop_model = 1` |
+|---|---|---|
+| 4–7 | `CiL, CaiL, CvL, CavL` | `n_c, n_a1, n_a2, n_a3` |
+| 8–11 | `CiL_i, CaiL_i, CvL_v, CavL_v` | `c_c, c_a1, c_a2, c_a3` |
+
+Mode 1 is MoDELib's own CD immobile block, in MoDELib's order — one basal ⟨c⟩
+and three prismatic ⟨a⟩ variants, no aligned/non-aligned split — with capture
+efficiencies built from the same `p_m` that sets the diffusion tensor:
+
+```
+Z_basal(m)     = Z0_m * p_m                            row 0, <c>
+Z_prismatic(m) = Z0_m * (p_m + p_m^-2)/2               row 1, <a>
+phi_km         = S_k * Dbar_m * Z(row(k),m) * c_m * |m|
+S_k            = (l_k/l) * loop_sink_scale_k * sqrt(n_k * c_k)
+ydot[4+k]      = nuc_num[k] - ann_num[k] - coal_num[k]
+ydot[8+k]      = (gain[k] - loss[k]) + nuc_cont[k] - ann_cont[k] - coal_cont[k]
+```
+
+The decisive difference is **resolution, not formula**: every mobile species
+carries its own efficiency and its own `Dbar_m`, where the legacy model lumps
+`Ci, C2i, C3i` into `omega_i*(Ci + 2*C2i + 3*C3i)` under a single `Z_i_a` — so
+it gives the clusters the *monomer* mobility and cannot represent an anisotropy
+given to the clusters alone. Parameters arrive as `--dad_p_<m>`, `--dad_Z0_<m>`,
+`--loop_sink_scale_<k>`, `--variant_frac_<k>`, emitted by
+`zerod/cpp_bridge.py` from the MoDELib material file.
+
+**`loop_model = 0` is bit-identical to the pre-change solver** (`sha256
+8bcc7780…` on a 25-point integration). Its `ydot` assembly and paired
+accumulator sums in `rate_equations_core.h` are kept **verbatim** inside
+`if (P.loop_model == 0)` for that reason: regrouping `growth + nuc + G` into
+`growth + (nuc + G)` is algebraically identical and moves the 10th significant
+digit, which was measured. The fit was made against the original association —
+do not tidy that branch. Full discussion in the root
+[`CLAUDE.md`](../CLAUDE.md#two-formulations-of-the-slow-step--solverloop_model).
+
 ### Rate Equations (key physics terms)
 
 **Free vacancy:**

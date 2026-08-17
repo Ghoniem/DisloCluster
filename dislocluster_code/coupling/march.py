@@ -463,14 +463,6 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     evl_out.mkdir(parents=True, exist_ok=True)
     shutil.copy2(Path(qssa_sim) / "evl" / "cdNodes.txt", evl_out / "cdNodes.txt")
 
-    fast = None
-    if mobile_mode == "qssa":
-        fast = mqssa.MobileQSSASolver(qssa_sim, paths.MODELIB_MATERIAL,
-                                      seed_evl=seed_evl, verbose=verbose,
-                                      on_unconverged=cfg.on_unconverged)
-        if verbose:
-            print(fast.describe())
-
     # loop_model selects WHICH immobile formulation the slow step integrates:
     # 0 the fitted legacy one (aligned/non-aligned, phenomenological Z), 1 the
     # self-consistent one that shares the fast solve's families and capture
@@ -486,6 +478,15 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     if loop_model and verbose:
         print("  slow step: SELF-CONSISTENT loop model "
               "(<c> + 3x<a>, Woo efficiencies from the diffusion tensor)")
+
+    fast = None
+    if mobile_mode == "qssa":
+        fast = mqssa.MobileQSSASolver(qssa_sim, paths.MODELIB_MATERIAL,
+                                      seed_evl=seed_evl, verbose=verbose,
+                                      on_unconverged=cfg.on_unconverged,
+                                      loop_model=loop_model)
+        if verbose:
+            print(fast.describe())
 
     # ── checkpoint / resume ─────────────────────────────────────────────────
     fp = _march_fingerprint(cfg, qssa_sim, seed_evl, snaps, base_cli, N)
@@ -506,7 +507,8 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     ev0 = mfield.EvlFile(seed_evl)
     Y = np.zeros((N, mc.N_EQ))
     Y[:, 0:4] = ev0.mobile
-    Y[:, 4:12] = mfield.modelib_immobile_to_0d(ev0.immobile, br.omega)
+    Y[:, 4:12] = mfield.modelib_immobile_to_0d(ev0.immobile, br.omega,
+                                               loop_model=loop_model)
     Y[:, mc.IDX_RHO_N] = float(sim.input_data.material_params["rho"])
     Y_seed = Y.copy()
 
@@ -580,7 +582,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     def _emit(**kw):
         if progress is None:
             return
-        L = seed_mod.lumped(Y)
+        L = seed_mod.lumped(Y, loop_model)
         progress(progress_mod.SubstepEvent(
             n_substeps_total=cfg.n_substeps, n_intervals=n_intervals,
             substeps_per_interval=substeps, resumed=resumed,
@@ -817,6 +819,10 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
           dose=float(snaps[-1]))
     if detector is not None and detector.history:
         diagnostics["coarsening"] = detector.result()
+    # Which formulation `history` is IN. Everything downstream that reads the
+    # 19-column state -- the report, the movies, the discrete-loop export --
+    # has to know, and the state array itself does not say.
+    diagnostics["loop_model"] = loop_model
 
     return history, timing, br, diagnostics
 

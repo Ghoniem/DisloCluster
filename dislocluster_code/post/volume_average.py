@@ -45,6 +45,7 @@ from scipy.spatial import cKDTree
 
 
 from dislocluster_code import paths                                   # noqa: E402
+from dislocluster_code.coupling import field as _field                # noqa: E402
 from dislocluster_code.zerod.calibration import build_sim                   # noqa: E402
 from dislocluster_code.zerod.post_process import calculate_derived_quantities  # noqa: E402
 from dislocluster_code.post.visualization import ZrMicroVisualizer         # noqa: E402
@@ -109,6 +110,17 @@ def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True):
               f"{Y.shape[1]} nodes, {Y.shape[2]} states")
     w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose)
     Y_avg = np.einsum("n,dns->ds", w, Y)
+    # A self-consistent march stores <c>/<a1..a3> in the immobile slots. The
+    # 0-D figure suite reads them by the legacy names, so the four families are
+    # moved into the slots those names expect -- lossless for every aggregate
+    # any figure plots, since the split the legacy layout carries does not
+    # exist in the other model. A legacy march is returned untouched.
+    lm = _field.run_loop_model(run_dir)
+    if lm:
+        Y_avg = _field.to_legacy_layout(Y_avg, lm)
+        if verbose:
+            print("  self-consistent march: <c>/<a1..a3> mapped onto the "
+                  "legacy slots (aligned partners zero)")
     return np.asarray(doses, dtype=float), Y_avg, w, nodes
 
 

@@ -792,6 +792,7 @@ reproducible even as the workbook evolves
 (Section~\ref{sec:repro}).
 
 \subsection{The state vector}
+\label{sec:statevector}
 
 The integrated state is a flat array of length 19, and the same layout is
 used by the Python layer, the C++ solver, and the Adaptive march:
@@ -817,6 +818,15 @@ The four loop families are the aligned/non-aligned split of the two loop
 types: $iL$ and $aiL$ are prismatic \aloop{} interstitial loops, $vL$ and
 $avL$ are basal \cloop{} vacancy loops. At zero applied stress the three
 prismatic variants are equivalent and the aligned fraction is $1/3$.
+
+Rows \code{y[4:8]} and \code{y[8:12]} are the \emph{only} part of the layout
+that \code{SOLVER['loop\_model']} changes. Under \code{loop\_model = 1} the
+same eight slots hold one basal \cloop{} and the three prismatic \aloop{}
+variants instead --- \MoD{}'s own immobile block ---
+see Section~\ref{sec:loopmodel}. Everything else in Table~\ref{tab:state0d} is
+identical in both formulations. \textbf{The array does not say which layout it
+is in}, which is why \file{march\_state.npz} records \code{loop\_model}
+alongside it.
 
 \subsection{Solver configuration}
 \label{sec:solvercfg}
@@ -957,6 +967,293 @@ Section~\ref{sec:firstsim} means a \MoD{} run that is not driven by the 0-D
 notebook, which is a statement about who launches it rather than about which
 integrator it uses. That case does in fact use Option A, since a \MoD{} run on
 its own has no other choice.
+
+\subsection{Two \emph{formulations} of the slow step: \code{loop\_model}}
+\label{sec:loopmodel}
+
+Section~\ref{sec:options} chose an \emph{integrator}. This section chooses a
+\emph{model}. The two are orthogonal: either formulation can be marched with
+either integrator, and the switch is one key,
+\code{SOLVER['loop\_model']}.
+
+\begin{table}[htbp]
+\centering
+\caption{The two immobile formulations. Both integrate 19 equations with the
+         same accumulators, the same $\rho_N$ equation and the same
+         coalescence geometry; they differ in what the four loop families
+         \emph{are} and in how their capture rates are formed.}
+\label{tab:loopmodel}
+\begin{tabular}{@{}lp{4.9cm}p{5.4cm}@{}}
+\toprule
+ & \code{loop\_model = 0} (default) & \code{loop\_model = 1} \\
+\midrule
+name & \textbf{legacy} & \textbf{self-consistent} \\[3pt]
+families &
+  $\mathrm{iL}$, $\mathrm{aiL}$, $\mathrm{vL}$, $\mathrm{avL}$ --- an
+  \aloop{} and a \cloop{} population, each split into a pure-Zr and a
+  solute-decorated (``aligned'') variant &
+  $c$, $a_1$, $a_2$, $a_3$ --- one basal \cloop{} and the three prismatic
+  \aloop{} variants, exactly \MoD{}'s CD block \\[3pt]
+capture &
+  phenomenological, $Z_{i,a}=1+\delta_i$, $Z_{v,c}=1+\delta_v$, read from the
+  workbook; one $Z$ for all three interstitial species &
+  Woo efficiencies generated from the same $p_m$ that sets the diffusion
+  tensor; \emph{every mobile species carries its own} $Z$ \\[3pt]
+bridge to 3-D &
+  a lumping: aligned/non-aligned summed, the \aloop{} total split over
+  $a_1..a_3$ by \code{variant\_weights} &
+  an identity, up to the $1/\Omega$ on the number densities \\[3pt]
+status &
+  \textbf{the fitted model} --- reproduced bit-for-bit; use it for any
+  comparison with the 28-parameter set or with experiment &
+  physically consistent with the fast solve, but \textbf{not calibrated};
+  see the warning at the end of this section \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Why the option exists}
+
+The slow step and the fast solve had been describing different materials. The
+fast solve diffuses each mobile species with an anisotropic tensor
+$\mathbf{D}_m$ and, in \MoD{}'s own immobile solver, biases the sinks with the
+anisotropy of that same tensor. The legacy slow step instead carries an
+aligned/non-aligned split that the 3-D code does not have at all, and biases
+its sinks with two fitted scalars $\delta_i,\delta_v$ that know nothing about
+$\mathbf{D}_m$. Two consequences followed, and both are visible in results:
+
+\begin{enumerate}
+\item \textbf{The bridge had to invent information in both directions.} Going
+      out, the \aloop{} total was split over $a_1,a_2,a_3$ by a weight vector;
+      coming back, the aligned/non-aligned ratio was reconstructed from the
+      previous state. Neither operation is a round trip.
+\item \textbf{An anisotropy carried by the clusters alone was invisible.}
+      Because the legacy model applies one $Z_{i,a}$ to the whole interstitial
+      flux $\omega_i(C_i + 2C_{2i} + 3C_{3i})$, giving $C_{2i}$ a different
+      directionality from $C_i$ changes nothing in it. That is exactly the
+      structure of the Li~et~al.\ parameter set, and it is why that set was
+      inert here.
+\end{enumerate}
+
+\subsubsection{The self-consistent equations}
+
+State layout, replacing entries 4--11 of the 19-vector of
+Section~\ref{sec:statevector}:
+%
+\begin{equation}
+y_{4..11} = \bigl[\,n_c,\ n_{a1},\ n_{a2},\ n_{a3},\
+                    c_c,\ c_{a1},\ c_{a2},\ c_{a3}\,\bigr],
+\end{equation}
+%
+$n_k$ a loop number density and $c_k$ the atoms stored in that family, both as
+atom fractions. This \emph{is} \MoD{}'s immobile block, in \MoD{}'s order.
+
+\paragraph{Capture efficiencies.} With $p_m$ the Woo anisotropy of mobile
+species $m$ --- one number per species, from which
+\code{staging/anisotropy.py} generates both the migration-energy tensor and
+these efficiencies, so the two cannot disagree ---
+%
+\begin{align}
+  Z^{\text{basal}}_{m}      &= Z^{0}_{m}\, p_m ,
+  \label{eq:Zbasal}\\
+  Z^{\text{prismatic}}_{m}  &= Z^{0}_{m}\,
+      \tfrac{1}{2}\!\left(p_m + p_m^{-2}\right).
+  \label{eq:Zprism}
+\end{align}
+%
+These are identical to \code{ClusterDynamicsParameters::loopDADbias}, which is
+the point: they are not a new model but the fast solve's own bias, evaluated in
+the slow step. Note that $f(p)=\tfrac12(p+p^{-2})$ is minimized at
+$p=2^{1/3}=1.259921$, not at $p=1$, so an isotropic species is \emph{not} a
+stationary point of the prismatic efficiency.
+
+\paragraph{Absorption.} The rate at which species $m$ is absorbed by family
+$k$, per unit volume, is
+%
+\begin{equation}
+  \phi_{km} = S_k \; \bar{D}_m \; Z_{\mathrm{row}(k),\,m} \; c_m \; |m| ,
+  \qquad
+  S_k = \frac{\ell_k}{\ell}\, s_k \sqrt{n_k c_k},
+  \label{eq:phikm}
+\end{equation}
+%
+where $\mathrm{row}(k)$ is basal for $k=c$ and prismatic for $k=a_1..a_3$;
+$|m| \in \{1,1,2,3\}$ is the number of atoms the cluster carries;
+$\ell_k = \sqrt{\Omega/\pi b_k}$ is the family's \emph{own} radius scale, so a
+\cloop{} is sized with $b_c$ and an \aloop{} with $b_a$; and $s_k$ is
+\code{loopSinkScale} from the material file, the same array \MoD{}'s
+\code{ImmobileSinks} multiplies its geometric sink strength by. $\bar{D}_m$ is
+the orientation-averaged diffusivity $(\det \mathbf{D}_m)^{1/3}$ --- and
+because \code{anisotropy.py} splits the migration energies at \emph{fixed}
+$D_{\text{eff}}$, that geometric mean is exactly the $\omega_m$ the legacy
+model already uses. \textbf{No mobility is redefined; only its directional
+weighting.} Splitting $\phi_{km}$ by polarity,
+%
+\begin{equation}
+  g_k = \!\!\sum_{m \,\text{same sign as}\, k}\!\! \phi_{km},
+  \qquad
+  \ell_k^{\text{loss}} = \!\!\sum_{m \,\text{opposite}}\!\! \phi_{km},
+\end{equation}
+%
+with the minimum-stable-size gate applied to $\ell_k^{\text{loss}}$ on the
+interstitial families only --- a loop at $r_{\min}$ stops absorbing the defect
+that would dissolve it, and the un-absorbed defects stay in the free pool so
+the atom balance still closes.
+
+\paragraph{Number and content.} Growth moves atoms into loops that already
+exist and never creates one, so
+%
+\begin{align}
+  \dot n_k &= \nu^{\mathrm{nuc}}_k - \nu^{\mathrm{ann}}_k - \Lambda^{N}_k ,
+  \label{eq:ndot}\\
+  \dot c_k &= \bigl(g_k - \ell_k^{\text{loss}}\bigr)
+              + \gamma^{\mathrm{nuc}}_k - \gamma^{\mathrm{ann}}_k
+              - \Lambda^{C}_k ,
+  \label{eq:cdot}
+\end{align}
+%
+with $\Lambda^{N},\Lambda^{C}$ the coalescence losses, unchanged from the
+legacy model. Nucleation carries no aligned/non-aligned split: the homogeneous
+clustering channel and the cascade source are shared over the three prism
+variants by \code{variant\_frac} (equal thirds at zero resolved stress),
+%
+\begin{equation}
+  \nu^{\mathrm{nuc}}_{a_j} = w_j\!\left[
+      \bigl(R_{i,3i} + R_{2i,2i}\bigr) +
+      \frac{G_{iL} + G_{aiL}}{n^{\mathrm{nuc}}_{iL}} \right],
+  \qquad
+  \nu^{\mathrm{nuc}}_{c} = \frac{G_{vL} + G_{avL}}{n^{\mathrm{nuc}}_{vL}} ,
+\end{equation}
+%
+which is the same reduction the bridge used to perform on the way out, done
+here at the source instead. Thermal annealing acts on the vacancy family only,
+now one family rather than two.
+
+\subsubsection{What changes, measured}
+
+Table~\ref{tab:lm-measured} is the calibrated 0-D model at 10~\textrm{dpa},
+$T=573$~K, $G=10^{-7}$~\textrm{dpa}/s, at the route-A anisotropy
+$p_m=(1,\,0.9137,\,0.9137,\,0.9137)$.
+
+\begin{table}[htbp]
+\centering
+\caption{The self-consistent formulation against the legacy one, and the
+         attribution of the difference. ``One dominant variant'' puts 98\% of
+         the \aloop{} nucleation into $a_1$, which reassembles the lumped
+         population without changing anything else.}
+\label{tab:lm-measured}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+ & $N_a$ & $N_c$ & $c_a$ & $c_c$ \\
+\midrule
+\code{loop\_model = 0}, legacy      & $7.541\times10^{-8}$ & $1.779\times10^{-8}$ & $6.993\times10^{-5}$ & $1.573\times10^{-3}$ \\
+\code{loop\_model = 1}, equal thirds & $2.277\times10^{-6}$ & $1.717\times10^{-8}$ & $1.162\times10^{-4}$ & $5.284\times10^{-3}$ \\
+\quad ratio to legacy                & $30.2\times$ & $0.96\times$ & $1.66\times$ & $3.36\times$ \\[4pt]
+\code{loop\_model = 1}, one dominant variant & $1.144\times10^{-7}$ & $1.777\times10^{-8}$ & $7.566\times10^{-5}$ & $1.926\times10^{-3}$ \\
+\quad ratio to legacy                & $1.52\times$ & $1.00\times$ & $1.08\times$ & $1.22\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The prefactors and efficiencies barely move.} At the fitted
+parameters the two models agree almost exactly on the individual capture rates,
+which is worth stating because it is not obvious:
+%
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & self-consistent & legacy \\
+\midrule
+prismatic efficiency, interstitial & $Z^{\text{prismatic}}_{i} = 1.072114$ & $Z_{i,a} = 1.072113$ \\
+\aloop{} sink prefactor, ratio     & \multicolumn{2}{r}{$(\ell_a/\ell_c)\,s_a = 1.000464$} \\
+\cloop{} sink prefactor, ratio     & \multicolumn{2}{r}{$s_c/Q = 1.012493$} \\
+\bottomrule
+\end{tabular}
+\end{center}
+%
+The efficiency agreement is by construction --- $Z^{0}_m$ and $p_m$ in
+\file{Zr3d\_ghoniem.txt} were fitted to reproduce the phenomenological $Z$. The
+prefactor agreement is a coincidence worth knowing about:
+$\ell_a/\ell_c = \sqrt{b_c/b_a} = 1.2627$ and the fitted
+$s_a = 0.792317$ happen to be reciprocals to within $0.05\%$, so \MoD{}'s
+sink-scale calibration silently undoes the fact that the legacy model sizes its
+\aloop{} sinks with the \cloop{} Burgers vector.
+
+\paragraph{The difference is the variant split, and it is physics.} Since the
+rates agree, essentially all of the $30\times$ comes from \emph{resolving} the
+three prism variants, and Table~\ref{tab:lm-measured} confirms it by
+undoing the resolution: concentrating the \aloop{} population back into one
+variant brings $N_a$ from $30.2\times$ to $1.52\times$. The mechanism is
+coalescence. Like-loop coarsening removes loops at a rate
+$\nu_{LL}\phi_{LL}n$ with an Avrami overlap $\phi_{LL} = 1 -
+\exp(-\kappa_{LL}\tfrac43\pi r^3 n)$, so three families of $n/3$ coarsen far
+less than one family of $n$ --- and they \emph{should}, because \aloop{} loops
+on different prism planes with different Burgers vectors do not coalesce into
+one loop. The legacy model, by lumping them, lets them.
+
+Two honest qualifications. First, \MoD{}'s own coalescence loop is per family
+(\file{ClusterDynamicsFEM.cpp}, \code{for(int k=0;k<nF;++k)} over
+\code{Nvol=n(k)}), so \code{loop\_model = 1} matches the 3-D code by
+construction --- which is the stated goal, not independent evidence that the
+split is right. Second, the truth is between the two: cross-variant
+interaction is \emph{fully on} in the legacy model and \emph{fully off} here,
+whereas real loops of different Burgers vectors do interact, through junction
+reactions and through each other's diffusion fields. The $c_c$ column shows the
+coupling that remains --- the \aloop{} change propagates to the \cloop{}
+family through the shared mobile pool, not through any direct term.
+
+\begin{quote}
+\textbf{The 28-parameter set was fitted against \code{loop\_model = 0} and is
+stale for \code{loop\_model = 1}.} Table~\ref{tab:lm-measured} is therefore a
+measurement of the formulation change on an uncalibrated parameter set, and
+\emph{not} a statement about which formulation matches experiment. Do not
+compare a \code{loop\_model = 1} run with data before the refit. This is the
+same caution the $\Omega$ correction already carries, and it compounds with
+it.
+\end{quote}
+
+\subsubsection{Using it}
+
+\begin{lstlisting}[language=Python]
+SOLVER = {
+    'rtol': 1e-6, 'atol': 1e-20, 'analytic_jac': True,
+    'loop_model': 1,        # 0 = legacy (default), 1 = self-consistent
+}
+\end{lstlisting}
+
+\noindent Three things the switch does beyond the ODE right-hand side:
+
+\begin{itemize}
+\item \textbf{Parameters come from the material file, not the workbook.}
+      \code{dad\-Anisotropy}, \code{dadZ0} and \code{loopSinkScale} are read
+      from \file{Zr3d\_ghoniem.txt} --- the one file both sides already share,
+      and the file \code{anisotropy.py} writes the migration energies into.
+      Taking them from anywhere else would reintroduce the drift the option
+      exists to remove.
+\item \textbf{The bridge becomes an identity.} \code{immobile\_0d\_to\_modelib}
+      and its inverse copy the block through with only the $1/\Omega$ factor,
+      and the round trip is exact --- there is no aligned/non-aligned
+      information to lose. The seed, the fast solve's warm start and the
+      post-processing all follow \code{loop\_model}, which is recorded in
+      \file{march\_state.npz} and in \code{summary.json} so that a finished run
+      can be read back correctly.
+\item \textbf{The continuum$\,\to\,$discrete handoff is refused.}
+      \code{COUPLING['discrete\_transition'] = True} together with
+      \code{loop\_model = 1} raises at validation time.
+      \file{coupling/transition.py} addresses the immobile state by the legacy
+      slot names, which under the self-consistent layout name a different
+      family in every slot; the failure would otherwise be silent --- a
+      well-formed set of discrete loops drawn from the wrong population.
+\end{itemize}
+
+\noindent The legacy path is unchanged, and that is verified rather than
+assumed: \code{loop\_model = 0} reproduces the pre-change solver
+\textbf{bit-for-bit} on a 25-point integration. The check earned its keep. An
+earlier version of the branch regrouped $\text{growth} + \text{nuc} + G$ into
+$\text{growth} + (\text{nuc} + G)$ --- algebraically identical, and the tenth
+significant digit moved. The legacy assembly in
+\file{rate\_equations\_core.h} is therefore kept \emph{verbatim}, including its
+operator association, inside \code{if (P.loop\_model == 0)}. Do not tidy it.
 
 \subsection{Starting from pristine material}
 \label{sec:pristine-manual}

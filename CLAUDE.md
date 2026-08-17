@@ -391,6 +391,12 @@ python -m dislocluster_code.staging.anisotropy --p-m 1.0 0.91372 0.91372 0.91372
 > the capture efficiencies. So this criterion predicts the 3-D solver's
 > behaviour, and predicts a coupled march only indirectly, through the mobile
 > field the fast solve hands over.
+>
+> **`SOLVER['loop_model'] = 1` removes that gap** — the slow step then carries
+> `⟨c⟩ + 3×⟨a⟩` with Woo efficiencies built from the same `p_m`, so the
+> criterion applies to the coupled march too. It is **off by default**, because
+> the 28-parameter set was fitted against the legacy formulation. See the next
+> section.
 
  Both growth conditions
 reduce to bounds on one number — the arrival ratio `A/B = D̄_v c_v / Σ_m D̄_m c_m |m|` — and
@@ -415,6 +421,95 @@ immobile solver's, as above, and the coupled march runs a different one. It gove
 no anisotropy affects, so it does not govern net population evolution. And an isotropic
 march is **not a zero** of the criterion — it is another parameter point — so a ratio taken
 against one cannot test a statement about signs.
+
+## Two formulations of the slow step — `SOLVER['loop_model']`
+
+The slow step's *integrator* is chosen by route (Option A IMEX / Option B CVODE).
+Its **model** is chosen by `SOLVER['loop_model']`, and the two are orthogonal.
+
+| | `0` — legacy (**the default**) | `1` — self-consistent |
+|---|---|---|
+| families | `iL, aiL, vL, avL` (aligned/non-aligned) | `c, a1, a2, a3` — MoDELib's CD block |
+| capture | phenomenological `Z_i_a = 1+delta_i`, one `Z` for all interstitial species | Woo, from the same `p_m` as the tensor, **one `Z` per species** |
+| bridge | a lumping + a split, both lossy | an **identity** (only `1/Ω`), round trip exact |
+| status | **the fitted model**, bit-identical to the pre-change binary | consistent with the fast solve, **not calibrated** |
+
+Equations:
+
+```
+Z_basal(m)     = Z0_m · p_m                      row 0, vacancy-type <c>
+Z_prismatic(m) = Z0_m · (p_m + p_m^-2)/2         row 1, interstitial <a>
+phi_km         = S_k · Dbar_m · Z(row(k),m) · c_m · |m|
+S_k            = (l_k/l) · loopSinkScale_k · sqrt(n_k · c_k)
+ydot[4+k]      = nuc_num[k]  - ann_num[k]  - coal_num[k]
+ydot[8+k]      = (gain[k] - loss[k]) + nuc_cont[k] - ann_cont[k] - coal_cont[k]
+y[4..11]       = [n_c, n_a1, n_a2, n_a3, c_c, c_a1, c_a2, c_a3]
+```
+
+identical to `ClusterDynamicsParameters::loopDADbias` and to `ImmobileSinks`'s
+`Sk`. `l_k = √(Ω/πb_k)` is the family's **own** radius scale, so ⟨c⟩ is sized
+with `b_c` and ⟨a⟩ with `b_a` — the legacy model sizes both with `l_c`.
+`Dbar_m = (det D_m)^(1/3)`, which equals the legacy `omega_m` because
+`anisotropy.py` splits the migration energies at fixed `D_eff`: **no mobility is
+redefined, only its directional weighting.** `p_m`, `Z0_m` and `loopSinkScale`
+are read from `Zr3d_ghoniem.txt`, not the workbook — the one file both sides
+share, and the file `anisotropy.py` writes.
+
+**The legacy path is bit-identical** (`sha256 8bcc7780…`, 25-point integration),
+and that is why the legacy `ydot` assembly in `rate_equations_core.h` is kept
+**verbatim** inside `if (P.loop_model == 0)`. Do not tidy it: regrouping
+`growth + nuc + G` into `growth + (nuc + G)` — algebraically identical — moves
+the 10th significant digit, which was measured (`ff2980c4` vs `8bcc7780`).
+
+Measured at 10 dpa on the calibrated 0-D set, route-A anisotropy:
+
+| | `N_a` | `N_c` | `c_a` | `c_c` |
+|---|---:|---:|---:|---:|
+| legacy | 7.541e-8 | 1.779e-8 | 6.993e-5 | 1.573e-3 |
+| self-consistent | 2.277e-6 | 1.717e-8 | 1.162e-4 | 5.284e-3 |
+| ratio | **30.2×** | 0.96× | 1.66× | 3.36× |
+| self-consistent, 98% of ⟨a⟩ nucleation in `a1` | 1.144e-7 | 1.777e-8 | 7.566e-5 | 1.926e-3 |
+| ratio | **1.52×** | 1.00× | 1.08× | 1.22× |
+
+**The individual rates are NOT the cause** — at the fitted parameters the two
+models agree on them almost exactly: `Z_prismatic(i) = 1.072114` vs
+`Z_i_a = 1.072113` (by construction — `Z0_m, p_m` were fitted to reproduce the
+phenomenological `Z`), ⟨a⟩ prefactor ratio `(l_a/l_c)·s_a = 1.000464`, ⟨c⟩
+ratio `s_c/Q = 1.012493`. The ⟨a⟩ prefactor agreement is a coincidence worth
+knowing: `l_a/l_c = √(b_c/b_a) = 1.2627` and the fitted `s_a = 0.792317` are
+reciprocals to 0.05%, so MoDELib's sink-scale calibration silently undoes the
+legacy model's use of `l_c` for ⟨a⟩ sinks.
+
+**The cause is resolving the three prism variants**, and the last two rows
+prove it by undoing the resolution. The mechanism is coalescence: like-loop
+coarsening goes as `ν_LL·φ_LL·n` with `φ_LL = 1−exp(−κ_LL(4/3)πr³n)`, so three
+families of `n/3` coarsen far less than one family of `n` — and they should,
+because ⟨a⟩ loops of three distinct Burgers vectors on three distinct prism
+planes do not coalesce into one loop. Two qualifications: MoDELib's own
+coalescence loop is per family (`ClusterDynamicsFEM.cpp`, `for(int k=0;k<nF;++k)`
+over `Nvol=n(k)`), so mode 1 agrees with it **by construction** — that is the
+goal, not independent evidence — and the truth is between the two, since real
+loops of different Burgers vectors *do* interact through junctions and through
+each other's diffusion fields. `c_c` moves because the ⟨a⟩ change reaches ⟨c⟩
+through the shared mobile pool; there is no direct term.
+
+**The 28-parameter fit is against mode 0, so it is stale for mode 1** — this
+compounds with the Ω correction. Do not compare a mode-1 run with experiment
+before the refit.
+
+`COUPLING['discrete_transition'] = True` with `loop_model = 1` **raises at
+validation time**: `coupling/transition.py` addresses the immobile state by the
+legacy slot names, which name a different family in every slot under the new
+layout. The failure would not crash — it would build a well-formed set of
+discrete loops from the wrong population. Porting the handoff is the next piece
+of work.
+
+`march_state.npz` and `summary.json` record `loop_model`, because **the state
+array does not say which layout it is in**. `field.run_loop_model(run)` reads it
+and `field.to_legacy_layout` maps mode-1 families onto the legacy slots for the
+0-D figure suite and `post.boundary_flux`, which address them by the legacy
+names — lossless for every aggregate a figure plots, since the aligned/non-aligned
+split it would need does not exist in mode 1.
 
 ## The continuum → discrete handoff
 

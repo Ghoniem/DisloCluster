@@ -525,6 +525,7 @@ next step rather than claimed as a result.
 
 % ============================================================================
 \section{The 0-D $\leftrightarrow$ 3-D field handoff}
+\label{sec:fieldhandoff}
 % ============================================================================
 
 \subsection{What was wrong}
@@ -2905,6 +2906,179 @@ rendering polygon count ($64$ sides, chosen for figures) from the exported one
 completed is a full march that fires the transition at $d_{\text{coarsen}}$ and
 accumulates growth strain through \code{F} across the whole dose range; until
 that exists, the sink-strength discontinuity remains an open modelling decision.
+
+% ============================================================================
+\section{A self-consistent slow solver}
+\label{sec:selfconsistent}
+% ============================================================================
+
+Everything up to here made the \emph{transport} between the two codes exact: the
+handoff of \S\ref{sec:fieldhandoff} replaced four scalars with a per-node field,
+and the criterion of the anisotropy plan governs \code{solveImmobileClusters}.
+What remained was that the two sides still integrated \emph{different immobile
+models}. This section closes that, as an option.
+
+\subsection{The inconsistency}
+
+The slow step of the coupled march is ZrMicro's, not MoDELib3's. It carries an
+aligned/non-aligned split of two loop types --- $iL$, $aiL$, $vL$, $avL$ --- and
+biases its sinks with two fitted scalars $\delta_i, \delta_v$. MoDELib3 carries
+one basal \cloop{} and three prismatic \aloop{} variants, and biases its sinks
+with the anisotropy of the diffusion tensor. Neither structure maps onto the
+other, so the field bridge had to \emph{invent} information in both directions:
+outward, \code{immobile\_0d\_to\_modelib} split the \aloop{} total over
+$a_1,a_2,a_3$ by a weight vector; inward,
+\code{modelib\_immobile\_to\_0d} reconstructed the aligned/non-aligned ratio
+from the previous state. A round trip through the bridge was therefore not the
+identity, and no amount of care in the transport could make it one --- the
+information genuinely was not there.
+
+The second consequence is sharper, because it silently voided a result. The
+legacy model applies a single $Z_{i,a}$ to the whole interstitial arrival
+$\omega_i(C_i + 2C_{2i} + 3C_{3i})$, and it gives all three interstitial
+species the \emph{monomer} jump frequency. Giving $C_{2i}$ a different
+directionality from $C_i$ therefore changes nothing in it. That is exactly the
+structure of the Li~et~al.\ parameter set --- anisotropy on the clusters only
+--- and it is why that set produced no co-growth here. The model had no slot
+for the effect.
+
+\subsection{One switch, two formulations}
+
+\code{SOLVER['loop\_model']} selects the formulation; it is orthogonal to the
+Option~A/Option~B choice of \emph{integrator}. Under \code{loop\_model = 1} the
+eight immobile slots become
+%
+\[
+  y_{4..11} = [\,n_c,\ n_{a1},\ n_{a2},\ n_{a3},\
+                 c_c,\ c_{a1},\ c_{a2},\ c_{a3}\,],
+\]
+%
+which \emph{is} MoDELib3's CD immobile block in MoDELib3's order, and the capture
+efficiencies become Woo's, built from the same $p_m$ that
+\code{staging/anisotropy.py} writes the migration-energy tensor from:
+%
+\[
+  Z^{\text{basal}}_{m} = Z^{0}_{m} p_m, \qquad
+  Z^{\text{prismatic}}_{m} = Z^{0}_{m}\,\tfrac12\!\left(p_m + p_m^{-2}\right),
+\]
+%
+identical to \code{ClusterDynamicsParameters::loopDADbias}. Absorption of
+species $m$ by family $k$ is
+$\phi_{km} = S_k \bar{D}_m Z_{\mathrm{row}(k),m} c_m |m|$, with
+$S_k = (\ell_k/\ell)\,s_k\sqrt{n_k c_k}$ built from the family's \emph{own}
+radius scale $\ell_k = \sqrt{\Omega/\pi b_k}$ and \code{loopSinkScale}, the same
+array \code{ImmobileSinks} multiplies by. The full equations are in the manual,
+\S``Two formulations of the slow step''.
+
+Architecturally the payoff is that \textbf{the bridge collapses to an
+identity}:
+%
+\begin{center}
+\code{out[:, 0:4] = Y[:, 4:8] / omega} \qquad
+\code{out[:, 4:8] = Y[:, 8:12]}
+\end{center}
+%
+and its inverse likewise. Nothing is lumped, nothing is split, and the round
+trip is exact --- \emph{because there is no longer any information that only one
+side holds}. That is a stronger statement than ``the mapping was improved''.
+
+\subsection{Where the parameters come from, and why it matters}
+
+$p_m$, $Z^0_m$ and $s_k$ are read from \code{Zr3d\_ghoniem.txt}, not from the
+workbook. This is deliberate and is the whole point of the exercise: that file
+is the single source both sides already share, and it is the file
+\code{anisotropy.py} generates the migration energies into, from one $p_m$ per
+species. Reading the efficiencies from anywhere else would recreate the exact
+failure this option exists to remove --- the code simultaneously believing that
+diffusion is isotropic and that the sinks are biased by its anisotropy.
+
+\subsection{Verification: bit-identity of the fitted path}
+
+The legacy formulation is the fitted one, so the acceptance test is not
+``similar'' but \emph{bit-identical}. \code{loop\_model = 0} reproduces the
+pre-change binary exactly, \code{sha256 8bcc7780\ldots} on a 25-point
+integration.
+
+That test paid for itself twice. First, an early build of the branch declared
+\code{growth\_iL} and friends inside the new branch, so the legacy assembly
+below no longer compiled --- and a \code{grep -c " error "} on the build output
+was misread as a count of something else, a stale binary was tested, and
+bit-identity was very nearly reported for code that had not been rebuilt.
+Second, once it did build, the first attempt \emph{failed} the test:
+\code{ff2980c4} against \code{8bcc7780}. The cause was that the new assembly
+regrouped $\text{growth} + \text{nuc} + G$ as
+$\text{growth} + (\text{nuc} + G)$ --- algebraically identical, and the tenth
+significant digit moved. Floating-point addition is not associative, and the
+28-parameter fit was made against the original association.
+
+The legacy \code{ydot} assembly and the paired accumulator sums are therefore
+kept \emph{verbatim} inside \code{if (P.loop\_model == 0)}, and the shared
+family-slot arrays are populated from them by assignment only. The
+self-consistent branch writes its \code{ydot} in a loop over slots; the legacy
+branch must not be rewritten that way.
+
+The new mode's own acceptance test is a symmetry: at equal
+\code{variant\_frac} and zero resolved stress the three \aloop{} variants must
+be indistinguishable, and they are --- $7.5884177301\times10^{-7}$,
+$\ldots300$, $\ldots302$, agreeing to eleven digits, the residual being
+roundoff in CVODE's dense factorization rather than asymmetry in the model.
+
+\subsection{What the formulation change costs, and the attribution}
+
+At $10$~\dpa\ on the calibrated 0-D set, route~A anisotropy, the
+self-consistent model gives $N_a$ \textbf{30.2$\times$} the legacy value, $c_c$
+$3.36\times$, $c_a$ $1.66\times$, and $N_c$ essentially unchanged
+($0.96\times$).
+
+That is a large enough departure to demand an attribution rather than a shrug,
+and the individual rates turn out \emph{not} to be the cause. At the fitted
+parameters the two models agree almost exactly on them:
+$Z^{\text{prismatic}}_i = 1.072114$ against $Z_{i,a} = 1.072113$ (by
+construction --- $Z^0_m, p_m$ were fitted to reproduce the phenomenological
+$Z$); the \aloop{} sink prefactor ratio $(\ell_a/\ell_c)s_a = 1.000464$; the
+\cloop{} ratio $s_c/Q = 1.012493$. The \aloop{} prefactor agreement is a
+coincidence worth recording: $\ell_a/\ell_c = \sqrt{b_c/b_a} = 1.2627$ and the
+fitted $s_a = 0.792317$ are reciprocals to $0.05\%$, so MoDELib3's sink-scale
+calibration happens to undo the fact that the legacy model sizes its \aloop{}
+sinks with the \cloop{} Burgers vector.
+
+The cause is \textbf{resolving the three prism variants}, and the attribution is
+by construction rather than by argument: concentrating $98\%$ of the \aloop{}
+nucleation back into $a_1$ --- reassembling the lumped population and changing
+nothing else --- brings $N_a$ from $30.2\times$ to $1.52\times$ and $c_a$ from
+$1.66\times$ to $1.08\times$. The mechanism is coalescence: like-loop
+coarsening removes loops at $\nu_{LL}\phi_{LL}n$ with
+$\phi_{LL} = 1 - \exp(-\kappa_{LL}\tfrac43\pi r^3 n)$, so three families of
+$n/3$ coarsen much less than one family of $n$. They should: \aloop{} loops of
+three distinct Burgers vectors on three distinct prism planes do not coalesce
+into one loop, and the legacy model lets them.
+
+\paragraph{Two qualifications, both load-bearing.} MoDELib3's coalescence loop is
+itself per family (\code{ClusterDynamicsFEM.cpp}, \code{for(int k=0;k<nF;++k)}
+over \code{Nvol=n(k)}), so \code{loop\_model = 1} agrees with the 3-D code
+\emph{by construction} --- that is the stated goal, not independent evidence
+that per-variant coalescence is right. And the truth is between the two:
+cross-variant interaction is fully on in the legacy model and fully off here,
+while real loops of different Burgers vectors do interact, through junction
+reactions and through each other's diffusion fields. The $c_c$ column shows the
+coupling that does survive --- the \aloop{} change reaches the \cloop{} family
+through the shared mobile pool, there being no direct term between them.
+
+\paragraph{The parameter set is stale for the new mode.} The 28 parameters were
+fitted against \code{loop\_model = 0}. Every number in this section therefore
+measures a formulation change on an uncalibrated set, and none of it says which
+formulation matches experiment. This compounds with the $\Omega$ correction,
+which already invalidated the fit.
+
+\subsection{One combination is refused}
+
+\code{COUPLING['discrete\_transition'] = True} with \code{loop\_model = 1}
+raises at validation time, before anything expensive runs.
+\code{coupling/transition.py} addresses the immobile state by the legacy slot
+names, which under the self-consistent layout name a different family in every
+slot. The failure mode is the one this document keeps returning to: it would not
+crash, it would produce a well-formed set of discrete loops drawn from the wrong
+population. Porting the handoff is the natural next piece of work.
 
 % ============================================================================
 \section{Summary and recommended next steps}

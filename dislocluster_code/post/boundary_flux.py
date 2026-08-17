@@ -106,6 +106,17 @@ def measure(run_dir, n_samples=1_000_000, verbose=True):
     run_dir = Path(run_dir)
     z = np.load(run_dir / "march_state.npz")
     doses, Y, nodes = z["doses"], z["Y"], z["nodes"]
+    # `reaction_rates_at_nodes` evaluates the LEGACY 0-D mobile right-hand side,
+    # which addresses the loop populations by the legacy slot names. On a
+    # self-consistent march the families are moved into those slots first --
+    # correct for the totals, which is all the mobile sink terms use, but note
+    # that the sink strengths are then the legacy phenomenological ones rather
+    # than the tensor efficiencies the march itself integrated. This is a
+    # cross-check on the boundary channel, not a measurement of the new model.
+    lm = mfield.run_loop_model(run_dir)
+    if lm:
+        Y = np.stack([mfield.to_legacy_layout(Y[d], lm)
+                      for d in range(len(doses))])
 
     sim = build_sim(verbose=False)
     G = float(sim.input_data.material_params["G"])

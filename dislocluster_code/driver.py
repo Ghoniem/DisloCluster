@@ -98,9 +98,10 @@ def prepare(cfg, out_dir=None, force_stage=False, verbose=True):
         "evl_seed_pristine.txt" if d0 <= 0 else f"evl_seed_{d0:.3f}dpa.txt")
     y, hit = _seed.build_seed(sim, d0, seed_evl, scaffold,
                               variant_weights=cfg.coupling.variant_weights,
-                              material_file=cfg.material.path)
+                              material_file=cfg.material.path,
+                              loop_model=cfg.solver.loop_model)
     if verbose:
-        L = _seed.lumped(y)
+        L = _seed.lumped(y, cfg.solver.loop_model)
         what = "pristine" if d0 <= 0 else f"the 0-D at {d0:g} dpa"
         print(f"seed: {what} (solver reached {hit:.4g} dpa)")
         print(f"  N_a={L['N_a'][0]:.4e}  N_c={L['N_c'][0]:.4e}  "
@@ -146,7 +147,12 @@ def march(run, progress=None, resume=None, verbose=False):
     np.savez_compressed(run.out_dir / "march_state.npz",
                         doses=np.array(doses),
                         Y=np.array([history[d] for d in doses]),
-                        nodes=br.nodes)
+                        nodes=br.nodes,
+                        # Which of the two immobile formulations `Y` is in.
+                        # Post-processing cannot tell from the array -- both
+                        # are 19 columns of plausible numbers -- and reading it
+                        # in the wrong one relabels <c> as <a> silently.
+                        loop_model=np.array(cfg.solver.loop_model))
     (run.out_dir / "summary.json").write_text(json.dumps(dict(
         doses=doses, wall_s=wall, timing=timing, diagnostics=diag,
         config=cfg.to_dict()), indent=2, default=float), encoding="utf-8")
@@ -158,9 +164,10 @@ def march(run, progress=None, resume=None, verbose=False):
 def table(result):
     """The four lumped aggregates against dose, as printable rows."""
     rows = []
+    lm = int(result.diagnostics.get("loop_model", 0))
     for d in sorted(result.history):
         L = {k: float(v.mean())
-             for k, v in _seed.lumped(result.history[d]).items()}
+             for k, v in _seed.lumped(result.history[d], lm).items()}
         rows.append((d, L["N_a"], L["N_c"], L["c_a"], L["c_c"]))
     return rows
 

@@ -27,34 +27,44 @@
 \contentsline {subsection}{\numberline {6.2}Inputs: the Excel workbook}{11}{subsection.6.2}%
 \contentsline {subsection}{\numberline {6.3}The state vector}{12}{subsection.6.3}%
 \contentsline {subsection}{\numberline {6.4}Solver configuration}{12}{subsection.6.4}%
-\contentsline {section}{\numberline {7}The coupled 0-D$\,\leftrightarrow \,$3-D simulation}{12}{section.7}%
-\contentsline {subsection}{\numberline {7.1}The idea}{12}{subsection.7.1}%
+\contentsline {section}{\numberline {7}The coupled 0-D$\,\leftrightarrow \,$3-D simulation}{13}{section.7}%
+\contentsline {subsection}{\numberline {7.1}The idea}{13}{subsection.7.1}%
 \contentsline {subsection}{\numberline {7.2}Two options for the slow step}{13}{subsection.7.2}%
-\contentsline {paragraph}{\numberline {7.2.0.1}The names.}{13}{paragraph.7.2.0.1}%
-\contentsline {subsection}{\numberline {7.3}Starting from pristine material}{14}{subsection.7.3}%
-\contentsline {subsection}{\numberline {7.4}The notebook's three control blocks}{15}{subsection.7.4}%
-\contentsline {subsection}{\numberline {7.5}Meshing, and the materialized simulation directory}{15}{subsection.7.5}%
-\contentsline {subsection}{\numberline {7.6}Fast-solve backends}{15}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}Running the march}{16}{subsection.7.7}%
-\contentsline {subsection}{\numberline {7.8}Outputs}{16}{subsection.7.8}%
-\contentsline {section}{\numberline {8}Changing things}{17}{section.8}%
-\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{17}{paragraph.8.0.0.1}%
-\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf {MoDELib3}{} time units.}{17}{paragraph.8.0.0.2}%
-\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt {\small startAtTimeStep} at zero.}{17}{paragraph.8.0.0.3}%
-\contentsline {section}{\numberline {9}Troubleshooting}{18}{section.9}%
-\contentsline {section}{\numberline {10}Reproducibility and provenance}{19}{section.10}%
-\contentsline {section}{\numberline {A}Architecture reference}{19}{section.A}%
-\contentsline {subsection}{\numberline {A.1}The governing split}{19}{subsection.A.1}%
-\contentsline {subsection}{\numberline {A.2}Key components}{21}{subsection.A.2}%
-\contentsline {subsection}{\numberline {A.3}The three interfaces}{21}{subsection.A.3}%
-\contentsline {subsection}{\numberline {A.4}Unit systems}{21}{subsection.A.4}%
-\contentsline {subsection}{\numberline {A.5}Call graph}{21}{subsection.A.5}%
-\contentsline {subsection}{\numberline {A.6}Anisotropic diffusion and the discrete handoff}{21}{subsection.A.6}%
-\contentsline {paragraph}{\numberline {A.6.0.1}One anisotropy factor, two representations.}{22}{paragraph.A.6.0.1}%
-\contentsline {paragraph}{\numberline {A.6.0.2}Which anisotropy to use.}{22}{paragraph.A.6.0.2}%
-\contentsline {paragraph}{\numberline {A.6.0.3}The handoff.}{23}{paragraph.A.6.0.3}%
-\contentsline {subsection}{\numberline {A.7}Known non-correspondences between the 0-D and 3-D models}{23}{subsection.A.7}%
-\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{23}{section.B}%
-\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{23}{paragraph.B.0.0.1}%
-\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{23}{paragraph.B.0.0.2}%
-\contentsline {section}{\numberline {C}Quick reference}{24}{section.C}%
+\contentsline {paragraph}{\numberline {7.2.0.1}The names.}{14}{paragraph.7.2.0.1}%
+\contentsline {subsection}{\numberline {7.3}Two \emph {formulations} of the slow step: \texttt {\small loop\_model}}{14}{subsection.7.3}%
+\contentsline {subsubsection}{\numberline {7.3.1}Why the option exists}{14}{subsubsection.7.3.1}%
+\contentsline {subsubsection}{\numberline {7.3.2}The self-consistent equations}{15}{subsubsection.7.3.2}%
+\contentsline {paragraph}{\numberline {7.3.2.1}Capture efficiencies.}{15}{paragraph.7.3.2.1}%
+\contentsline {paragraph}{\numberline {7.3.2.2}Absorption.}{16}{paragraph.7.3.2.2}%
+\contentsline {paragraph}{\numberline {7.3.2.3}Number and content.}{16}{paragraph.7.3.2.3}%
+\contentsline {subsubsection}{\numberline {7.3.3}What changes, measured}{16}{subsubsection.7.3.3}%
+\contentsline {paragraph}{\numberline {7.3.3.1}The prefactors and efficiencies barely move.}{16}{paragraph.7.3.3.1}%
+\contentsline {paragraph}{\numberline {7.3.3.2}The difference is the variant split, and it is physics.}{17}{paragraph.7.3.3.2}%
+\contentsline {subsubsection}{\numberline {7.3.4}Using it}{17}{subsubsection.7.3.4}%
+\contentsline {subsection}{\numberline {7.4}Starting from pristine material}{18}{subsection.7.4}%
+\contentsline {subsection}{\numberline {7.5}The notebook's three control blocks}{19}{subsection.7.5}%
+\contentsline {subsection}{\numberline {7.6}Meshing, and the materialized simulation directory}{19}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}Fast-solve backends}{19}{subsection.7.7}%
+\contentsline {subsection}{\numberline {7.8}Running the march}{20}{subsection.7.8}%
+\contentsline {subsection}{\numberline {7.9}Outputs}{20}{subsection.7.9}%
+\contentsline {section}{\numberline {8}Changing things}{21}{section.8}%
+\contentsline {paragraph}{\numberline {8.0.0.1}Temperature appears in three places.}{21}{paragraph.8.0.0.1}%
+\contentsline {paragraph}{\numberline {8.0.0.2}The 3-D dose step is expressed in \textsf {MoDELib3}{} time units.}{21}{paragraph.8.0.0.2}%
+\contentsline {paragraph}{\numberline {8.0.0.3}Keep \texttt {\small startAtTimeStep} at zero.}{21}{paragraph.8.0.0.3}%
+\contentsline {section}{\numberline {9}Troubleshooting}{22}{section.9}%
+\contentsline {section}{\numberline {10}Reproducibility and provenance}{23}{section.10}%
+\contentsline {section}{\numberline {A}Architecture reference}{23}{section.A}%
+\contentsline {subsection}{\numberline {A.1}The governing split}{23}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Key components}{25}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}The three interfaces}{25}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}Unit systems}{25}{subsection.A.4}%
+\contentsline {subsection}{\numberline {A.5}Call graph}{25}{subsection.A.5}%
+\contentsline {subsection}{\numberline {A.6}Anisotropic diffusion and the discrete handoff}{25}{subsection.A.6}%
+\contentsline {paragraph}{\numberline {A.6.0.1}One anisotropy factor, two representations.}{26}{paragraph.A.6.0.1}%
+\contentsline {paragraph}{\numberline {A.6.0.2}Which anisotropy to use.}{26}{paragraph.A.6.0.2}%
+\contentsline {paragraph}{\numberline {A.6.0.3}The handoff.}{27}{paragraph.A.6.0.3}%
+\contentsline {subsection}{\numberline {A.7}Known non-correspondences between the 0-D and 3-D models}{27}{subsection.A.7}%
+\contentsline {section}{\numberline {B}Changes relative to upstream MoDELib}{27}{section.B}%
+\contentsline {paragraph}{\numberline {B.0.0.1}Which upstream.}{27}{paragraph.B.0.0.1}%
+\contentsline {paragraph}{\numberline {B.0.0.2}A correction.}{27}{paragraph.B.0.0.2}%
+\contentsline {section}{\numberline {C}Quick reference}{28}{section.C}%

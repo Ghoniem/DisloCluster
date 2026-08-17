@@ -93,10 +93,16 @@ class MobileQSSASolver:
 
     def __init__(self, sim_dir, material_file=None, seed_evl=None,
                  ddomp=None, use_wsl=None, verbose=True,
-                 on_unconverged="warn", elastic=None):
+                 on_unconverged="warn", elastic=None, loop_model=0):
         if on_unconverged not in ("warn", "raise"):
             raise ValueError("on_unconverged must be 'warn' or 'raise'")
         self.on_unconverged = on_unconverged
+        # Which immobile layout Y[:, 4:12] arrives in. The fast solve itself is
+        # unaffected -- it only ever sees the CD block -- but the map that fills
+        # that block from Y is a different one in each mode, and getting it
+        # wrong is silent: both produce a well-formed block, one of them for the
+        # wrong four families.
+        self.loop_model = int(loop_model)
         # None -> decide from the staged case (see `_configure`); True or
         # False forces the elastic solve on or off.
         self.elastic = elastic
@@ -208,7 +214,7 @@ class MobileQSSASolver:
 
         ev = mfield.EvlFile(self._seed)
         ev.cd[:, mfield.M_SIZE:] = mfield.immobile_0d_to_modelib(
-            Y, self.omega, variant_weights)
+            Y, self.omega, variant_weights, loop_model=self.loop_model)
         if warm_start:
             ev.cd[:, :mfield.M_SIZE] = Y[:, 0:mfield.M_SIZE]
         ev.write(self.evl_dir / "evl_0.txt")

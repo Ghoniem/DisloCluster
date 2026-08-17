@@ -296,6 +296,67 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     return out
 
 
+def to_legacy_layout(Y, loop_model=0):
+    """Re-express a self-consistent state in the LEGACY slot layout.
+
+    The 0-D figure suite and ``zerod.post_process`` address the immobile state
+    by the legacy names, and rewriting all of that for a second formulation
+    would double the surface that has to stay correct. This instead moves the
+    four families into the slots those names expect:
+
+        n_c -> CvL,  c_c -> CvL_v            <c> is a vacancy loop in both
+        sum(n_a1..3) -> CiL, c_a -> CiL_i    the three prism variants, lumped
+
+    with the ALIGNED partners set to zero, which is the truthful statement: the
+    self-consistent model carries no aligned/non-aligned split, so every figure
+    that plots the pair sum is exactly right and every figure that plots the
+    split shows all of one and none of the other rather than an invented ratio.
+
+    ``loop_model=0`` returns the input unchanged, so callers can apply this
+    unconditionally.
+    """
+    Y = np.atleast_2d(np.asarray(Y, dtype=float))
+    if not loop_model:
+        return Y
+    out = Y.copy()
+    n_c, n_a = Y[:, 4], Y[:, 5:8].sum(axis=1)
+    c_c, c_a = Y[:, 8], Y[:, 9:12].sum(axis=1)
+    out[:, IDX["CiL"]], out[:, IDX["CaiL"]] = n_a, 0.0
+    out[:, IDX["CvL"]], out[:, IDX["CavL"]] = n_c, 0.0
+    out[:, IDX["CiL_i"]], out[:, IDX["CaiL_i"]] = c_a, 0.0
+    out[:, IDX["CvL_v"]], out[:, IDX["CavL_v"]] = c_c, 0.0
+    return out
+
+
+def run_loop_model(run_dir):
+    """Which immobile formulation a finished run's ``march_state.npz`` is in.
+
+    Runs made before the self-consistent model existed carry no such key, and
+    they are all legacy — so a missing key is 0, not an error. ``summary.json``
+    is consulted as a fallback for a run whose npz predates the key but whose
+    diagnostics do not.
+    """
+    from pathlib import Path as _P
+    run_dir = _P(run_dir)
+    p = run_dir / "march_state.npz"
+    if p.is_file():
+        with np.load(p) as z:
+            if "loop_model" in z.files:
+                return int(z["loop_model"])
+    s = run_dir / "summary.json"
+    if s.is_file():
+        import json as _json
+        try:
+            d = _json.loads(s.read_text(encoding="utf-8"))
+        except Exception:
+            return 0
+        v = (d.get("diagnostics") or {}).get("loop_model")
+        if v is None:
+            v = ((d.get("config") or {}).get("solver") or {}).get("loop_model")
+        return int(v or 0)
+    return 0
+
+
 def modelib_to_0d_mobile(cd):
     """(N,4) frozen mobile field for the slow march, straight from the CD block.
 
@@ -308,7 +369,7 @@ def modelib_to_0d_mobile(cd):
     return cd[:, :M_SIZE].copy()
 
 
-def modelib_immobile_to_0d(immob, omega, Y_prev=None):
+def modelib_immobile_to_0d(immob, omega, Y_prev=None, loop_model=0):
     """Inverse map: MoDELib immobile field -> 0-D lumped loop state.
 
     Returns an (N, 8) block in ZrMicro's immobile order
@@ -319,8 +380,19 @@ def modelib_immobile_to_0d(immob, omega, Y_prev=None):
     PREVIOUS 0-D state's ratio when one is supplied, so the information is
     preserved across a round trip instead of being reset to the f_a/f_na
     nominal. With ``Y_prev=None`` an even split is used.
+
+    ``loop_model=1`` inverts the identity path instead: the slow step then
+    carries MoDELib's own four families, so the block passes straight back with
+    only the ``omega`` factor undone. Nothing is lumped and nothing is split, so
+    unlike the legacy path this round trip is EXACT — there is no
+    aligned/non-aligned information to lose in the first place.
     """
     immob = np.atleast_2d(np.asarray(immob, dtype=float))
+    if loop_model:
+        out = np.zeros((immob.shape[0], 8), dtype=float)
+        out[:, 0:4] = immob[:, 0:4] * omega
+        out[:, 4:8] = immob[:, 4:8]
+        return out
     n_c = immob[:, 0] * omega
     n_a = immob[:, 1:4].sum(axis=1) * omega
     c_c = immob[:, 4]

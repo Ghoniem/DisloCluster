@@ -574,6 +574,20 @@ class SimulationConfig:
         self.coupling.validate()
         self.solver.validate()
         self.output.validate()
+        # The continuum -> discrete handoff has not been ported to the
+        # self-consistent formulation. `transition.cd_block` and the
+        # scale/zero helpers address the immobile state by the LEGACY slot
+        # names (CiL, CaiL, CvL, CavL, ...), which under loop_model=1 name a
+        # different family in every slot. The failure would be silent -- a
+        # well-formed set of discrete loops drawn from the wrong population --
+        # so the combination is refused rather than approximated.
+        if self.solver.loop_model and self.coupling.discrete_transition:
+            raise ValueError(
+                "COUPLING['discrete_transition'] is not supported with "
+                "SOLVER['loop_model'] = 1: the transfer addresses the immobile "
+                "state by the legacy aligned/non-aligned slot names. Run the "
+                "handoff with loop_model = 0, or the self-consistent model "
+                "without the handoff.")
         return self
 
     # ── identity ─────────────────────────────────────────────────────────────
