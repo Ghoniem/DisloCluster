@@ -166,20 +166,38 @@ def sink_discontinuity(fam, material=None):
 
 
 # ── the transfer ─────────────────────────────────────────────────────────────
-def zero_unit(Y, key):
-    """A copy of ``Y`` with one transferable unit's continuum field removed."""
+def scale_unit(Y, key, factor=0.0):
+    """A copy of ``Y`` with one transferable unit's continuum field scaled.
+
+    ``factor=0`` removes the family entirely, which is the whole-family transfer
+    of plan 4.5. A non-zero factor is what a PARTIAL transfer needs: when the
+    microstructure generator refuses some loops (see :func:`split_by_fit`),
+    their defects must stay in the continuum, so the family is scaled to the
+    refused fraction instead of zeroed.
+
+    BOTH the number and the content columns take the same factor, which is what
+    keeps `Delta c / Delta n = c/n` and therefore leaves the mean radius -- and
+    invariant (III) -- unchanged. Scaling only one of them would silently
+    resize every remaining loop.
+    """
     if key not in UNITS:
         raise KeyError(f"{key!r} is not transferable; choose from {list(UNITS)}")
     Y = np.array(Y, dtype=float, copy=True)
     u = UNITS[key]
     for name in u["n"] + u["c"]:
-        Y[:, IDX[name]] = 0.0
+        Y[:, IDX[name]] *= float(factor)
     return Y
+
+
+def zero_unit(Y, key):
+    """A copy of ``Y`` with one transferable unit's continuum field removed."""
+    return scale_unit(Y, key, 0.0)
 
 
 def transfer(Y, nodes, omega, keys=("c",), weights=None, faces=None,
              region="domain", variant_weights=(1 / 3, 1 / 3, 1 / 3),
-             coalesce_pass=True, seed=0, material=None, mc_samples=2_000_000):
+             coalesce_pass=True, seed=0, material=None, mc_samples=2_000_000,
+             fit_filter=True, conserve_defects=True):
     """Convert the named units to discrete loops and remove them from `Y`.
 
     Returns ``(Y_after, {family_key: LoopPopulation}, ledger)``.
@@ -205,6 +223,34 @@ def transfer(Y, nodes, omega, keys=("c",), weights=None, faces=None,
     out, rows = {}, []
     for key in keys:
         u = UNITS[key]
+        # Loops the generator will refuse must keep their share of the
+        # continuum, so the fit is predicted BEFORE anything is zeroed. The
+        # fraction is by stored defects and is taken over the whole unit --
+        # <a> is three families sharing one 0-D population, so one factor.
+        kept_defects = 0.0
+        all_defects = 0.0
+        if fit_filter:
+            for fk in u["families"]:
+                kept, _refused, _f = split_by_fit(by_key[fk], faces)
+                kept_defects += kept.stored_defects
+                all_defects += by_key[fk].stored_defects
+                by_key[fk] = kept
+            frac_kept = (kept_defects / all_defects) if all_defects > 0 else 1.0
+        else:
+            frac_kept = 1.0
+
+        # Make the transfer conserve defects EXACTLY. The drawn population
+        # misses the continuum total by the integer rounding in sample_family
+        # -- 15.4% at six loops -- so each kept population is rescaled to the
+        # share of the continuum it is supposed to carry. Skipped when
+        # conserve_defects=False, which reproduces the raw draw.
+        if conserve_defects:
+            for fk in u["families"]:
+                fam0 = FAM_BY_KEY[fk]
+                _N, C_cont, _S = continuum_totals(F, vol, fam0)
+                by_key[fk], _s = rescale_to_defects(by_key[fk],
+                                                    frac_kept * C_cont)
+
         for fk in u["families"]:
             fam = FAM_BY_KEY[fk]
             pop, raw = by_key[fk], raw_by_key[fk]
@@ -227,9 +273,12 @@ def transfer(Y, nodes, omega, keys=("c",), weights=None, faces=None,
                 S_ratio_coalesced=(S1 / S0) if S0 else float("nan"),
                 coalescence_N=(N1 / Nr) if Nr else float("nan"),
                 coalescence_area=(C1 / Cr) if Cr else float("nan"),
-                f_burgers=fb, f_bias=fbias, f_total=ftot))
+                f_burgers=fb, f_bias=fbias, f_total=ftot,
+                frac_kept=frac_kept,
+                C_discrete_kept=float(by_key[fk].stored_defects)))
             out[fk] = pop
-        Y_after = zero_unit(Y_after, key)
+        # Scale, not zero, by whatever the discrete side could not take.
+        Y_after = scale_unit(Y_after, key, 1.0 - frac_kept)
 
     # After zeroing, the continuum must hold nothing of the transferred unit.
     F_after = cd_block(Y_after, omega, variant_weights)
@@ -259,15 +308,27 @@ def check(ledger, tol_loops=1.0, tol_defects=2e-2):
             ok = False
             msgs.append(f"(I) {r['family']}: loop number moved by {r['dN']:+.2f} "
                         f"({r['N_continuum']:.2f} -> {r['N_discrete']:.0f})")
-        if np.isfinite(r["dC_rel"]) and abs(r["dC_rel"]) > tol_defects:
+        # (II) on the population actually handed over, against the share it
+        # was supposed to take. The raw draw's own rounding error is reported
+        # separately as dC_rel and is not a failure -- rescale_to_defects
+        # removes it.
+        want = r.get("frac_kept", 1.0) * r["C_continuum"]
+        got = r["C_discrete_kept"]
+        if want > 0 and abs(got - want) > tol_defects * want:
             ok = False
-            msgs.append(f"(II) {r['family']}: stored defects moved by "
-                        f"{100 * r['dC_rel']:+.2f}%")
-    for fk, (N, C, S) in ledger["residual"].items():
-        if N != 0.0 or C != 0.0:
+            msgs.append(f"(II) {r['family']}: handed over {got:.6e} defects, "
+                        f"intended {want:.6e} ({100*(got-want)/want:+.2f}%)")
+    # The residual is EXPECTED to be non-zero under a partial transfer: it is
+    # exactly the share the generator refused. What must hold is that it equals
+    # that share, not that it vanishes.
+    for r in ledger["rows"]:
+        fk = r["family"]
+        N, C, S = ledger["residual"][fk]
+        want = (1.0 - r.get("frac_kept", 1.0)) * r["C_continuum"]
+        if abs(C - want) > max(1e-6 * max(want, 1.0), 1e-9 * r["C_continuum"]):
             ok = False
-            msgs.append(f"residual: {fk} still carries N={N:.3e} C={C:.3e} "
-                        "in the continuum after transfer")
+            msgs.append(f"residual: {fk} continuum holds C={C:.6e} after "
+                        f"transfer, expected {want:.6e} (the refused share)")
     return ok, msgs
 
 
@@ -308,6 +369,79 @@ def format_ledger(ledger):
     L += ["", "(I) and (II): " + ("OK" if ok else "FAILED")]
     L += ["  " + m for m in msgs]
     return "\n".join(L)
+
+
+def fits_in_crystal(pop, faces, sides_key="dd_sides"):
+    """Boolean mask of loops every vertex of which lies inside the crystal.
+
+    This PREDICTS what `microstructureGenerator` will accept. Its criterion is
+    that a loop's nodes fall inside the grain -- it prints "nodes outside grain
+    N" and silently drops the loop otherwise -- and the loops are built as
+    polygons on exactly the `dd_sides` vertices `write_microstructure` exports,
+    so the same test applied to the same vertices reproduces the same decision.
+
+    Predicting it rather than discovering it afterwards is what makes the
+    transfer conservative: a refused loop's defects must stay in the continuum,
+    and that can only be arranged BEFORE the continuum is zeroed.
+    """
+    from dislocluster_code.post.discrete_loops import loop_polygon
+    if faces is None or len(pop) == 0:
+        return np.ones(len(pop), dtype=bool)
+    N, bb = faces
+    fam = dict(pop.fam)
+    fam["sides"] = int(pop.fam.get(sides_key, pop.fam["sides"]))
+    keep = np.ones(len(pop), dtype=bool)
+    for k in range(len(pop)):
+        P = loop_polygon(fam, pop.centers[k], pop.radii[k])
+        keep[k] = bool(np.all(P @ N.T <= bb[None, :] + 1e-9))
+    return keep
+
+
+def rescale_to_defects(pop, target):
+    """Rescale a population's radii so it stores exactly ``target`` defects.
+
+    WHY THIS IS NEEDED, and why it is not a fudge. `sample_family` draws
+    ``round(sum_j n_j V_j)`` loops -- an INTEGER count from a real expectation --
+    so the drawn population misses the continuum total by the rounding. That is
+    negligible when the population is large (1.6% at 98 loops) and it is not
+    when it is small: 15.4% at 6 loops, measured. A transfer that loses 15% of
+    the stored defects is not a transfer.
+
+    Since stored defects go as ``pi r^2 |b| / Omega``, scaling every radius by
+    ``sqrt(target/current)`` fixes the total EXACTLY while leaving every ratio
+    between loops, and hence the shape of the size distribution, untouched. The
+    alternative -- drawing a non-integer number of loops -- does not exist.
+
+    The correction is applied only on the TRANSFER path, never in
+    `discrete_loops.build`, so no published figure moves.
+    """
+    cur = pop.stored_defects
+    if len(pop) == 0 or cur <= 0 or target <= 0:
+        return pop, 1.0
+    s = float(np.sqrt(target / cur))
+    return LoopPopulation(pop.fam, pop.centers, pop.radii * s,
+                          pop.n_merged), s
+
+
+def split_by_fit(pop, faces):
+    """``(kept, refused)`` populations, and the defect fraction kept.
+
+    The fraction is by STORED DEFECTS, not by loop count, and the two are not
+    interchangeable: on the first case this ran, one loop of six was refused,
+    which is 83.3% by count but 98.4% by defects, because the refused loop
+    happened to be the SMALLEST. What decides refusal is proximity to the
+    surface, not size, so the count fraction carries no information about how
+    much material is involved and only the defect fraction may be used to
+    reconcile the continuum.
+    """
+    keep = fits_in_crystal(pop, faces)
+    kept = LoopPopulation(pop.fam, pop.centers[keep], pop.radii[keep],
+                          pop.n_merged[keep])
+    refused = LoopPopulation(pop.fam, pop.centers[~keep], pop.radii[~keep],
+                             pop.n_merged[~keep])
+    tot = pop.stored_defects
+    frac = (kept.stored_defects / tot) if tot > 0 else 1.0
+    return kept, refused, float(frac)
 
 
 def inject_discrete_loops(sim_dir, pops, ddomp_generator=None, tag="transfer",
