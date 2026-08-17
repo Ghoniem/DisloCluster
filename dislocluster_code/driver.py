@@ -68,6 +68,9 @@ def march_config_from(cfg):
         on_unconverged=c.on_unconverged,
         phi_star=c.phi_star, frac_star=c.frac_star,
         coarsen_hold=c.coarsen_hold,
+        discrete_transition=c.discrete_transition,
+        transition_units=c.transition_units,
+        climb_cutoff_nL=c.climb_cutoff_nL,
         mobile_mode="qssa",
         rtol=cfg.solver.rtol, atol=cfg.solver.atol,
         analytic_jac=cfg.solver.analytic_jac)

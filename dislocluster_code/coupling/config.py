@@ -57,12 +57,25 @@ class MarchConfig:
     # this field expected); a whole-batch failure aborts either way.
     max_failed_nodes: int | None = None
 
-    # Coarsening detector thresholds. Reporting only -- the march records where
-    # the mean-field treatment of coalescence stops being trustworthy, and does
-    # not act on it. See post/coarsening.py.
+    # Coarsening detector thresholds. See post/coarsening.py.
     phi_star: float = 0.15
     frac_star: float = 0.10
     coarsen_hold: int = 2
+
+    # Whether the march ACTS on the detector or only reports it. With
+    # discrete_transition off -- the default -- the detector is pure
+    # instrumentation and the march is unchanged. On, a family that has crossed
+    # phi* is handed to DD at the next fast-solve boundary; see
+    # coupling/transition.py.
+    #
+    # THESE MUST BE FORWARDED BY driver.march_config_from. The march reads its
+    # own MarchConfig, not SimulationConfig.coupling, so a field added to one
+    # and not the other is silently inert -- which is exactly how the first
+    # attempt at this hook ran a whole march with the transition switched off
+    # while the launcher printed that it was on.
+    discrete_transition: bool = False
+    transition_units: tuple = ("c",)
+    climb_cutoff_nL: float = 4.0
 
     # "warn" keeps a capped, unconverged mobile field and carries on -- it has
     # been measured at 54% error in Ci on a single node while the mean still

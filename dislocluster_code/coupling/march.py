@@ -361,7 +361,19 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     # DDomp call happens anyway and the state is already synchronized, which is
     # what plan 4.1 specifies -- and only what DD can actually take is removed
     # from the continuum.
-    do_transition = bool(getattr(cfg, "discrete_transition", False))
+    # `getattr(..., False)` would make a MarchConfig that simply lacks the field
+    # indistinguishable from one that has it set to False -- and the first run
+    # of this hook did exactly that: driver.march_config_from did not forward
+    # the key, so a whole march ran with the transition off while the launcher
+    # printed that it was on. Missing is now a hard error; only an explicit
+    # False is silent.
+    if not hasattr(cfg, "discrete_transition"):
+        raise AttributeError(
+            "the march config has no 'discrete_transition' field. It is "
+            "declared on both SimulationConfig.coupling and MarchConfig and "
+            "must be forwarded by driver.march_config_from; a field present "
+            "on one and not the other is silently inert.")
+    do_transition = bool(cfg.discrete_transition)
     transition_units = tuple(getattr(cfg, "transition_units", ("c",)))
     transferred = set()
     transition_log = []
