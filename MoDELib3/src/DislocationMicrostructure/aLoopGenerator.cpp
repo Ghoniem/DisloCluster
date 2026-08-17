@@ -10,6 +10,7 @@
 #define model_aLoopGenerator_cpp_
 
 #include <numbers>
+#include <stdexcept>
 #include <chrono>
 #include <random>
 #include <cmath>
@@ -186,9 +187,20 @@ void aLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& pID,c
     const double planeSpacing(slipSystem.n.planeSpacing());
     const auto& planeBase(*grain.singleCrystal->planeNormals()[pID]);
 
+    // THE BASAL SPACING IS c/a, AND IT IS NOT ALWAYS THE IDEAL sqrt(8/3).
+    // This test used to compare planeSpacing against a hard-coded sqrt(8/3), so
+    // a material supplying its own `c_SI` matched NEITHER branch: every basal
+    // loop was then dropped in silence -- no loop, no warning, no non-zero exit
+    // -- and the run continued with an empty configuration. Taking c/a from the
+    // lattice itself keeps the ideal-ratio materials on exactly the path they
+    // were on (their basis still has c/a = sqrt(8/3)) and makes the physical
+    // ratio work. `latticeBasis` is Q*A, so its third column has norm c/a in
+    // any crystal orientation.
+    const double cOverA(grain.singleCrystal->latticeBasis.col(2).norm());
+
         if(fabs(planeSpacing-sqrt(3.0)/2.0)<FLT_EPSILON)
-        { // prismatic plane spacing
-            
+        { // prismatic plane spacing -- sqrt(3)/2 in units of a, no c/a in it
+
             const double loopRadius(radius/mg.ddBase.poly.b_SI);
             VectorDimD b(slipSystem.s.cartesian());   // Prism axis
             const VectorDimD loopNorm(slipSystem.s.cartesian().normalized());   // Prism axis
@@ -222,9 +234,13 @@ void aLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& pID,c
             std::cout << "Creating Individual <a> Loop" << std::endl;
             mg.insertJunctionLoop(loopNodePos,glidePlane,b,loopNorm,P0,grainID,DislocationLoopIO<3>::SESSILELOOP);
         }
-        else if(fabs(planeSpacing-sqrt(8.0/3.0))<FLT_EPSILON)
-        {// basal plane spacing
-            
+        else if(fabs(planeSpacing-cOverA)<FLT_EPSILON)
+        {// basal plane spacing == c/a, from the lattice rather than assumed ideal
+
+            // 1/2[0001]: the magnitude is HALF the basal spacing, i.e. c/2. This
+            // line is the ONLY definition of the <c> loop Burgers vector in the
+            // discrete code, which is why the lattice basis had to carry the
+            // physical c/a for it to come out at 2.575 A rather than 2.6397 A.
             VectorDimD b(0.5*slipSystem.n.planeSpacing()*slipSystem.n.cartesian().normalized()); // 1/2 c-type loop
             const VectorDimD loopNorm(slipSystem.unitNormal);
             const ReciprocalLatticeDirection<3> r(grain.singleCrystal->reciprocalLatticeDirection(loopNorm));
@@ -257,6 +273,20 @@ void aLoopGenerator::generateSingle(MicrostructureGenerator& mg,const int& pID,c
             }
             mg.insertJunctionLoop(loopNodePos,glidePlane,b,loopNorm,P0,grainID,DislocationLoopIO<3>::SESSILELOOP);
             std::cout << "Created Individual Basal Loop" << std::endl;
+        }
+        else
+        {// NEVER fall through in silence.
+            // With the basal test hard-coded to the ideal c/a, a material
+            // carrying its own `c_SI` matched neither branch and every requested
+            // loop vanished without a message, an exit code, or an empty-output
+            // warning: `evl_0.txt` was written with zero loops and the solve ran
+            // on it. A requested loop that cannot be built is a failure, not a
+            // no-op.
+            throw std::runtime_error("aLoopGenerator: slip system "+std::to_string(pID)
+                                     +" has plane spacing "+std::to_string(planeSpacing)
+                                     +", which is neither prismatic ("+std::to_string(sqrt(3.0)/2.0)
+                                     +") nor basal (c/a = "+std::to_string(cOverA)
+                                     +"). No loop generated.");
         }
 
 }

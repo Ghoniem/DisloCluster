@@ -142,9 +142,9 @@ DD_SIDES = 12
 
 FAMILIES = [
     dict(key="c",  label="<c>",   ncol=4, ccol=8,  b_lattice=(0.0, 0.0, 1.0),
-         b_cd=1.632993, b_dd=0.8164966, plane_id=0,  vacancy=1,
+         b_cd=0.7972136, b_dd=0.7972136, plane_id=0,  vacancy=1,
          sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
-         d_plane=1.632993, color="#1f4fbf", b_label="1/2[0001]",
+         d_plane=1.5944272, color="#1f4fbf", b_label="1/2[0001]",
          b_tex=r"$\frac{1}{2}[0001]$"),
     dict(key="a1", label="<a>1",  ncol=5, ccol=9,  b_lattice=(1.0, 0.0, 0.0),
          b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=0, sides=16, dd_sides=16,

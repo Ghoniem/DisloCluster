@@ -557,6 +557,46 @@ per-species cluster mobility (legacy gives `C2i`/`C3i` the monomer `ω_i` though
 `ω_2i/ω_i = 4.9e-6`, overstating cluster arrival) and three ⟨a⟩ families
 instead of two.
 
+### The MATCHED comparison — the formulation isolated
+
+Two further 500 nm hexagonal marches, identical in every respect except
+`loop_model`, at **zero applied stress** (so `f_a = 1/3` exactly, the split mode 1
+carries — verified `0.333333333333` in both logs) and at the **fitted
+`p_v = 1.178808`**, where all four Woo efficiencies reproduce the workbook
+constants to 6 digits. Same mesh, same 9-point dose grid, same 90 617 CD nodes,
+0.71 h and 0.73 h. Interior mean, `N_a` and `c_a` totalled over families:
+
+| | `N_c` | `N_a` | `c_c` | `c_a` |
+|---|---:|---:|---:|---:|
+| legacy | 2.5810e-08 | 8.7884e-08 | 1.6061e-03 | 5.1880e-05 |
+| self-consistent | 2.5770e-08 | 1.4217e-07 | 1.9143e-03 | 5.4910e-05 |
+| ratio | 0.998 | **1.618** | **1.192** | 1.058 |
+
+**Most of what route A showed was `p_v`, not the formulation.** `N_a` falls from
+3.078× to 1.618× and `c_c` inverts, 0.665× → 1.192×, once `p_v` is matched — which
+is the quantitative form of the claim above, and it confirms that the ⟨c⟩ starvation
+was `Z_basal(v)` at `p_v = 1` rather than anything about the families.
+
+The same two-balance closure holds exactly, on both families:
+
+```
+<a>   N ratio = content ratio / size ratio = 1.058 / (386.2/590.3) = 1.6177   measured 1.6177
+<c>                                       = 1.192 / (74281/62228) = 0.9984   measured 0.9984
+```
+
+and the ⟨a⟩ size ratio 0.654 is again the self-consistent loops sitting nearer their
+nucleus (386.2 against `n_iL_nuc = 300`, where legacy reaches 590.3).
+
+**`d_coarsen` swaps families outright**, which no ratio would have shown:
+
+| | ⟨c⟩ | ⟨a⟩₁₋₃ |
+|---|---|---|
+| legacy | **0.4 dpa** | never |
+| self-consistent | never | **0.4 dpa** |
+
+so which family the mean-field treatment of coalescence fails for first is a
+property of the formulation, not of the material.
+
 > **A CORRECTED CLAIM.** An earlier revision of this section attributed the
 > difference to the *variant split* acting through like-loop coalescence,
 > `φ_LL = 1−exp(−κ_LL(4/3)πr³n)`, three families of `n/3` overlapping less than
@@ -1099,9 +1139,40 @@ with `python -m dislocluster_code.post.boundary_flux <run>`; `march_report`
 calls it guarded, so a diagnostic can never cost a report a multi-hour march
 earned.
 
+**BUT THAT AGREEMENT IS NOT GENERAL — it has only ever been demonstrated on the
+200 nm march.** Run on the 500 nm hexagonal matched leg (9 doses, 90 617 nodes),
+the same diagnostic gives:
+
+| dose | measured | closure | ratio |
+|---:|---:|---:|---:|
+| 0.1 | 25 059 785 | 163 678 581 | 0.153 |
+| 1 | 292 106 555 | 1 687 484 085 | 0.173 |
+| 10 | 5 000 524 226 | 17 910 221 185 | **0.279** |
+
+a factor of 3.6, not 3.7%. Three things are established about it and one is not:
+
+- **it is not a regression.** Re-run today on the 200 nm march the ratios are
+  1.116 / 0.922 / 0.901 / **0.900** against the 1.110 / 1.008 / 0.970 / 0.963
+  recorded above. Both columns fell by the same ~1.93× — the Ω correction, 0.516×
+  — so the *ratio* survived and the diagnostic still works.
+- **it is not the trapezoid.** The 500 nm grid is the finer of the two (9 points
+  against 4), so grid error would go the other way.
+- **it is not `sim_for_run`.** With the node states fixed, the workbook and
+  run-specific models give *bit-identical* mobile rows; see that fix's commit.
+- **what it is, is open.** The leading candidate is the fast-solve cadence: this
+  march does 1 FEM solve per dose interval and freezes the mobile field across 3
+  substeps, so the snapshot field the measured side integrates is not the field
+  the accumulators saw. That predicts the right sign but has not been shown to
+  give a factor of 3.6.
+
+So quote the 200 nm number as what it is — one case — and **re-measure before
+relying on the boundary channel on any new geometry**. The closure value itself is
+unaffected either way: it is the accumulators' own integral.
+
 A surface integral inside MoDELib, where the FE gradients already exist, would
-be the gold standard. This needs no C++ change and works on runs that already
-exist, which is why it came first.
+be the gold standard, and this disagreement is the argument for building it. The
+Python route needs no C++ change and works on runs that already exist, which is
+why it came first.
 
 ### The loop Burgers vectors — one value per family, four places
 
@@ -1158,7 +1229,49 @@ built from `a = 3.23` by `b_SI³` with `a = 3.233`.
 the 0-D `l_c` ×1.4142, and sink strength rises with `r`. This is the **third**
 stale-fit warning, alongside Ω and `loop_model`, and they compound. What it buys is
 `f_burgers = √(b_cd/b_dd) = 1.000000` — no Burgers discontinuity at the
-continuum → discrete transfer, where it was 1.414214.
+continuum → discrete transfer, where it was 1.414214. Verified on all four families;
+the residual ⟨c⟩ sink jump is `1/loopSinkScale = 3.43`, down from 4.85, and that
+factor is a separate modelling decision rather than a crystallography error.
+
+**A hard-coded ideal `c/a` in `aLoopGenerator` made the whole change a silent
+no-op, and this is the failure mode to remember.** `generateSingle` chose its
+branch by comparing the plane spacing against constants — `√3/2` for prismatic,
+**`√(8/3)` for basal** — and the basal spacing *is* `c/a`. With `c_SI` present the
+spacing became 1.5944272, matched neither branch, and fell off the end of the
+`if`/`else if` chain: **every requested basal loop vanished with no message, no
+exit code and no empty-output warning**, and `evl_0.txt` was written with zero
+loops for the solve to run on. Measured A/B on one case, the two inputs differing
+only by the `c_SI` line: 5 basal loops with the key absent, **0** with it present.
+
+Two things were changed, and the second matters more than the first:
+
+- `cOverA` now comes from `grain.singleCrystal->latticeBasis.col(2).norm()`. That
+  is `Q·A`'s third column, so it is `c/a` in any crystal orientation, and an
+  ideal-ratio material still takes exactly the path it took before.
+- the fall-through now **throws**, naming the spacing and both accepted values. A
+  requested loop that cannot be built is a failure, not a no-op.
+
+The 0-D consequence of `|b_⟨c⟩| = c/2` is **not** confined to ⟨c⟩, and the reason is
+a pre-existing conflation worth knowing about: `l_c` plays two roles in
+`loop_model = 0`. It forms the genuine ⟨c⟩ radius (`r_vL = l_c√(CvL_v/CvL)`, and
+`r_iL` correctly uses `l_a`), *and* it is the model's single sink prefactor `l_c/l`,
+applied to ⟨a⟩ as well through `pref_iL`, `pref_aiL` and `v_abs_a`. Full
+self-consistency was chosen deliberately over pinning that prefactor, so at 10 dpa:
+
+```
+N_a 0.716x   c_a 0.714x   N_c 0.993x   c_c 0.499x
+```
+
+The ⟨a⟩ column moves because of the shared prefactor, not because of anything about
+the ⟨c⟩ Burgers vector. `loop_model = 1` has no such conflation — it uses each
+family's own `l_k`. No C++ or solver rebuild was needed for this: `l_c` reaches the
+C++ as a CLI parameter.
+
+**One hard-coded ideal `c/a` is deliberately left**:
+`DislocationMobilityHEXprismatic.cpp:37,62` sets `h = √(8/3)/2`, the kink-pair
+height for prismatic *glide*. It is not a Burgers vector and it was fitted at the
+ideal ratio; the climb loops here are `SESSILELOOP` and never use it. Revisit it
+with the glide kinetics, not with this.
 
 ### Ω was corrected — the fit has NOT been redone
 

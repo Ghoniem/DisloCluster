@@ -918,6 +918,69 @@ FCC keep their no-argument signatures.
 
 ---
 
+### 23. `aLoopGenerator` selected the basal branch by the IDEAL c/a, and dropped every loop in silence
+
+**Symptom:** with change 22 applied and the binary rebuilt, `microstructureGenerator`
+printed its usual banner, wrote `evl/evl_0.txt`, exited **0** — and produced **zero
+loops**. No warning, no error, no "loop refused" line. A solve then ran on the empty
+configuration. Change 22 was, by itself, a complete no-op on the discrete side.
+
+**Cause.** `aLoopGenerator::generateSingle` picks its branch by comparing the slip
+system's plane spacing against hard-coded constants, and the **basal spacing *is* c/a**:
+
+```cpp
+if(fabs(planeSpacing-sqrt(3.0)/2.0)<FLT_EPSILON)        { /* prismatic */ }
+else if(fabs(planeSpacing-sqrt(8.0/3.0))<FLT_EPSILON)   { /* basal */ }
+// ... and NO else.
+```
+
+With `c_SI` present the spacing is 1.5944272, which matches neither test, so control
+fell off the end of the chain and the function returned having built nothing. The
+prismatic constant `√3/2` is a purely basal-plane quantity and contains no c/a, so it
+was and remains correct.
+
+**Fix, in two parts.**
+
+```cpp
+const double cOverA(grain.singleCrystal->latticeBasis.col(2).norm());
+...
+else if(fabs(planeSpacing-cOverA)<FLT_EPSILON)   { /* basal */ }
+else { throw std::runtime_error("aLoopGenerator: slip system ... has plane spacing ..."
+                                " which is neither prismatic (...) nor basal (c/a = ...)"); }
+```
+
+`latticeBasis` is `Q·A`, so its third column has norm c/a in **any** crystal
+orientation — the test is now rotation-invariant as well as correct. The
+`else { throw }` is the more important half: the original defect was not the wrong
+constant but that a wrong constant could cost every loop without a word.
+
+**Measured, A/B on one case, the two inputs differing only by the `c_SI` line:**
+
+| | basal loops created | emitted `b_z` | \|b_⟨c⟩\| |
+|---|---:|---:|---:|
+| before the fix, `c_SI` absent | 6 | 0.8164965809277259 | 2.63973 Å |
+| before the fix, `c_SI` present | **0** | — | — |
+| after the fix, `c_SI` absent | 6 | 0.8164965809277259 | 2.63973 Å |
+| after the fix, `c_SI` present | 6 | 0.7964738632848747 | **2.57500 Å** |
+
+`0.8164965809277259` is `√(8/3)/2` to the last digit and `0.7964738632848747` is
+`(c/a)/2` to the last digit, so both branches are exact rather than approximately
+right. The `c_SI`-absent rows are **identical before and after**, which is the
+regression test that every other HEX material is untouched.
+
+Note that `|b_⟨c⟩| = c/2 = 2.5750 Å` **however `a` is chosen** — the test case's staged
+material still carries `b_SI = 0.3233e-9`, so its `b_z` is `(5.15/3.233)/2` while the
+Library file gives `(5.15/3.23)/2 = 0.7972136`; the two differ by 0.09% in units of `b`
+and not at all in metres. Compare `b_z` against the case's own `b_SI`, never against the
+Library's.
+
+**Still hard-coded, deliberately:** `DislocationMobilityHEXprismatic.cpp:37,62` sets
+`h = √(8/3)/2`, the kink-pair height for prismatic **glide**. It is not a Burgers vector,
+it was fitted at the ideal ratio, and the climb loops here are `SESSILELOOP` and never
+reach it.
+
+---
+
 ## 5b. Verification against the 0-D
 
 Interior nodes, selected by the top decile of Cv (the grain boundary is a Dirichlet

@@ -366,8 +366,17 @@ class InputData:
         self.derived['l_a'] = np.sqrt(self.physical_props['Omega'] / 
                                     (np.pi * self.physical_props['b_a']))
         
+        # THE <c> LOOP BURGERS MAGNITUDE, NOT THE LATTICE CONSTANT c.
+        # A <c> loop is a 1/2[0001] vacancy loop, so |b| = c/2 = 2.575 A.
+        #
+        # `b_c` is deliberately NOT reused here. It is also the lattice
+        # constant c behind Omega = (sqrt(3)/4) a^2 c, and halving it would
+        # halve Omega -- the exact error this repository already had to
+        # correct once. A separate key keeps the two roles apart.
+        self.physical_props.setdefault(
+            'b_cL', 0.5 * self.physical_props['b_c'])
         self.derived['l_c'] = np.sqrt(self.physical_props['Omega'] /
-                                    (np.pi * self.physical_props['b_c']))
+                                    (np.pi * self.physical_props['b_cL']))
 
         # ── Diffusional Anisotropy Difference (DAD) bias factors ─────────────
         # In HCP Zr the interstitial diffusion tensor is far more anisotropic

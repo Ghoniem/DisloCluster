@@ -117,9 +117,12 @@ def continuum_totals(F, vol, fam):
 def discrete_totals(pop):
     """``(N, C, S)`` held by a DISCRETE population.
 
-    Note `stored_defects` uses ``b_dd``: `sample_family` sizes a loop by the
-    DD Burgers magnitude, which for <c> is half the CD one. That is not a
-    bookkeeping detail -- see `sink_discontinuity`.
+    Note `stored_defects` uses ``b_dd``: `sample_family` sizes a loop by the DD
+    Burgers magnitude. That used to be half the CD one for <c> and is now equal
+    to it -- both sides carry ``|b| = c/2``. Keep the two names distinct anyway:
+    they are read from different places (`FAMILIES` and the material file's
+    lattice basis), and the ledger's job is to notice if they ever diverge
+    again -- see `sink_discontinuity`.
     """
     if len(pop) == 0:
         return 0.0, 0.0, 0.0
@@ -134,19 +137,25 @@ def sink_discontinuity(fam, material=None):
     than a discovered surprise:
 
     1. **The Burgers magnitude.** The continuum sizes a loop with ``b_cd`` and
-       the discrete side with ``b_dd``. For <c> those differ by 2 (full versus
-       half [0001]), and since ``r ~ 1/sqrt(b)`` at fixed stored defects the
-       DISCRETE radius is ``sqrt(2)`` times the continuum one. Sink strength is
-       linear in `r`, so (III) jumps by ``sqrt(b_cd/b_dd)``.
+       the discrete side with ``b_dd``. Since ``r ~ 1/sqrt(b)`` at fixed stored
+       defects and sink strength is linear in `r`, (III) jumps by
+       ``sqrt(b_cd/b_dd)``.
+
+       **THIS IS NOW 1 FOR EVERY FAMILY.** It used to be ``sqrt(2) = 1.414``
+       for <c>, because only the discrete side treated a basal loop as the
+       ``1/2[0001]`` loop it physically is -- the continuum sized it with the
+       full ``[0001]``. Both now carry ``|b| = c/2 = 2.575 A``, so the
+       discontinuity this factor measured has been removed rather than
+       accounted for. <a> was always 1.
 
     2. **The bias parameter.** `loopSinkScale` (continuum, 0.291528 for <c>)
        and `discreteDislocationBias` (discrete, 1.0) are unrelated numbers
        serving the same role. Left as they are, absorption jumps by
        ``1/0.291528 = 3.43``.
 
-    Returned as ``(factor_b, factor_bias, total)``. For <c> the product is
-    about 4.85, which is not a rounding error and is exactly what invariant
-    (III) exists to surface.
+    Returned as ``(factor_b, factor_bias, total)``. With factor 1 removed the
+    <c> product is 3.43, down from about 4.85 -- still not a rounding error,
+    and still exactly what invariant (III) exists to surface.
     """
     fb = float(np.sqrt(fam["b_cd"] / fam["b_dd"]))
     scale = None

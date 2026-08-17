@@ -26,10 +26,26 @@ materialName=Zr;
 crystalStructure=HEX;
 atomsPerUnitCell=2;
 enabledSlipSystems=fullBasal fullPrismatic; # types of slip systems enabled e.g. enabledSlipSystems=fullBasal ShockleyBasal fullPrismatic fullPyramidal;
-b_SI=0.3233e-9; #0.3615e-9; # [m] 		Burgers vector magnitude 
+b_SI=0.323e-9;  # [m] |b| of 1/3<11-20> = a = 3.23 A, THE SAME a the
+                # workbook uses (it had 0.3233e-9, 0.09% apart). This is
+                # MoDELib's length unit, so changing it re-stages every
+                # case -- automatic, domain_key hashes the material.
+                # It also removes a 0.28% error in Omega_b^3: the 3-D was
+                # converting an Omega built from a=3.23 by b_SI^3 at 3.233.
 mu0_SI=33e9;	# [Pa] 		temperature-independent shear modulus coeff in mu=mu0+mu1*T
 mu1_SI=0.0;		# [Pa/K] 	temperature-dependent shear modulus coeff in mu=mu0+mu1*T
 nu=0.34;		# [-]		Poisson's ratio
+# [m] AXIAL lattice parameter. HEXlattice::getLatticeBasis divides this by
+# b_SI to get c/a = 1.5944272, the PHYSICAL alpha-Zr ratio, in place of the
+# ideal sqrt(8/3) = 1.6329932 it used to hard-code. Optional key: absent
+# means the ideal ratio, so other HEX materials are untouched.
+#
+# This is what puts the <c> loop Burgers vector on its physical value.
+# b_<c> = 1/2[0001] derives from the lattice basis and NOWHERE ELSE --
+# aLoopGenerator builds a discrete basal loop's b from it, and
+# immobileSpeciesBurgers is multiplied by it for rloop(). With the ideal
+# ratio a 1/2[0001] loop came out 2.6397 A instead of 2.5750 A.
+c_SI=5.15e-10;
 rho_SI=6520.0;	# [kg/m^3]	mass density
 Tm=2128;		# [K]		melting temperature
 
@@ -199,9 +215,16 @@ immobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2;  # [-] relative relaxation volume
 # Writing Cartesian components here instead gives |b| = 1.0, 0.753, 1.197 for the
 # three <a> families, which makes them INEQUIVALENT -- visible as three different
 # <a> loop densities at zero applied stress, where they must be identical.
+# <c> column is 0.5, i.e. 1/2[0001] -- the physical vacancy-loop Burgers
+# vector -- NOT the full [0001] it used to be. With c/a from c_SI this
+# gives |b_<c>| = 0.7972136 b = 2.575 A, and f_burgers = 1 exactly at the
+# continuum -> discrete transfer. The three <a> columns are unchanged and
+# each has Cartesian length 1, so |b_<a>| = a = 3.23 A as 1/3<11-20>
+# requires; writing Cartesian components instead would make the three <a>
+# families inequivalent.
 immobileSpeciesBurgers=0.0 1.0 0.0 -1.0
                        0.0 0.0 1.0  1.0
-                       1.0 0.0 0.0  0.0;
+                       0.5 0.0 0.0  0.0;
 alpha_bp=1.0;          # [-] bi-pyramid sink-strength coefficient, Eq. (14)
 delVPyramid=1.2e-29;   # [m^3] pyramid formation volume
 w0=0.15;               # [-] sigmoid width factor, Eq. (31)
