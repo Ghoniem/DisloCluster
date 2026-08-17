@@ -44,7 +44,12 @@ namespace model
         typedef typename SingleCrystalBase<dim>::SecondPhaseContainerType SecondPhaseContainerType;
 
         HEXlattice(const MatrixDim& Q,const PolycrystallineMaterialBase& material,const std::string& polyFile);
-        static Eigen::Matrix<double,dim,dim> getLatticeBasis();
+        /*! Lattice vectors in units of b. The c/a ratio comes from the optional
+         *  material key `c_SI` (c/a = c_SI/b_SI); absent means the IDEAL
+         *  sqrt(8/3), so any material file written before this key existed is
+         *  unaffected. The <c> loop Burgers vector derives from this basis and
+         *  from nothing else -- see the definition for why that matters. */
+        static Eigen::Matrix<double,dim,dim> getLatticeBasis(const PolycrystallineMaterialBase& material);
         std::vector<std::shared_ptr<GlidePlaneBase>> getPlaneNormals(const PolycrystallineMaterialBase& material,const std::string& polyFile) const;
         std::vector<std::shared_ptr<SlipSystem>> getSlipSystems(const PolycrystallineMaterialBase& material,const PlaneNormalContainerType& plN) const;
         SecondPhaseContainerType getSecondPhases(const PolycrystallineMaterialBase& material,const PlaneNormalContainerType& planes) const ;

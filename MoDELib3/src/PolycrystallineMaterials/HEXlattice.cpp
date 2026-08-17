@@ -20,7 +20,7 @@ namespace model
     
         
         HEXlattice<3>::HEXlattice(const MatrixDim& Q,const PolycrystallineMaterialBase& material,const std::string& polyFile) :
-        /* init */ SingleCrystalBase<dim>(getLatticeBasis(),Q)
+        /* init */ SingleCrystalBase<dim>(getLatticeBasis(material),Q)
         /* init */,PlaneNormalContainerType(getPlaneNormals(material,polyFile))
         /* init */,SlipSystemContainerType(getSlipSystems(material,*this))
         /* init */,SecondPhaseContainerType(getSecondPhases(material,*this))
@@ -28,16 +28,43 @@ namespace model
             
         }
         
-        Eigen::Matrix<double,3,3> HEXlattice<3>::getLatticeBasis()
+        Eigen::Matrix<double,3,3> HEXlattice<3>::getLatticeBasis(const PolycrystallineMaterialBase& material)
         {/*!\returns The matrix of lattice vectors (cartesian cooridinates in columns),
           * in units of the crystallographic Burgers vector.
+          *
+          * THE c/a RATIO IS THE MATERIAL'S, NOT THE IDEAL ONE, when the material
+          * file supplies `c_SI`. This used to be hard-coded `sqrt(8.0/3.0)` =
+          * 1.6329932, the ideal hcp value, which for alpha-Zr is 2.4% off:
+          * c/a = 5.15/3.23 = 1.5944272.
+          *
+          * That mattered because the <c> loop Burgers vector is derived from
+          * this basis and nowhere else. `aLoopGenerator` builds a discrete
+          * basal loop's b from the lattice, and `immobileSpeciesBurgers` is
+          * multiplied by it to give `immobileSpeciesBurgersMagnitude`, which
+          * `rloop()` sizes every continuum <c> loop with. With the ideal ratio a
+          * 1/2[0001] loop came out at 2.6397 A instead of the physical
+          * 2.5750 A, and there was no way to correct it from the input files.
+          *
+          * `c_SI` is OPTIONAL and absent means the ideal ratio, so every other
+          * HEX material -- and every result produced before this key existed --
+          * is unchanged bit-for-bit. Only the <a> directions live in the basal
+          * plane, so |b_<a>| = a either way; this key moves the c axis alone.
           */
-            
+
+            double cOverA(sqrt(8.0/3.0));
+            try
+            {
+                cOverA = TextFileParser(material.materialFile).readScalar<double>("c_SI",true)/material.b_SI;
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- keep the ideal ratio
+            }
+
             Eigen::Matrix<double,dim,dim> temp;
             temp << 1.0, 0.5,           0.0,
             /*   */ 0.0, 0.5*sqrt(3.0), 0.0,
-            /*   */ 0.0, 0.0,           sqrt(8.0/3.0);
-            
+            /*   */ 0.0, 0.0,           cOverA;
+
             return temp;
         }
 

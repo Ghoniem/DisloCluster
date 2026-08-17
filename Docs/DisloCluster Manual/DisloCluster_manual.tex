@@ -791,6 +791,82 @@ rather than inherited from the workbook, so that reference runs remain
 reproducible even as the workbook evolves
 (Section~\ref{sec:repro}).
 
+\subsection{Lattice constants and the loop Burgers vectors}
+\label{sec:burgers}
+
+Four numbers fix every loop size in both codes, and they are now the same four
+numbers everywhere:
+
+\begin{center}
+\begin{tabular}{@{}llr@{}}
+\toprule
+ & Burgers vector & $|b|$ \\
+\midrule
+$a$, basal lattice parameter    &                     & $3.23$~\AA{} \\
+$c$, axial lattice parameter    &                     & $5.15$~\AA{} \\
+prismatic \aloop{}, interstitial & $\frac13\langle11\bar{2}0\rangle$ & $a = 3.23$~\AA{} $= 0.323$~nm \\
+basal \cloop{}, vacancy          & $\frac12[0001]$                   & $c/2 = 2.575$~\AA{} $= 0.2575$~nm \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+so $c/a = 5.15/3.23 = 1.5944272$ --- \textbf{the physical ratio, not the ideal
+$\sqrt{8/3} = 1.6329932$} --- and
+$\Omega = \frac{\sqrt3}{4}a^2c = 2.326553\times10^{-29}$~m$^3$ follows from the
+same two constants --- the hcp cell volume over its two atoms --- and is
+cross-checked by the mass-density route
+$M_{\mathrm{Zr}}/(\rho N_A) = 2.323328\times10^{-29}$~m$^3$ at
+$\rho = 6520$~kg/m$^3$, agreeing to $0.139\%$.
+
+\paragraph{\aloop{} needed nothing.} All three prism variants give
+$|b| = a$ exactly on all three sides: the lattice product
+$|\mathrm{lat}\times(1,0,0)| = 1$, the 0-D's $\ell_a = \sqrt{\Omega/\pi b_a}$,
+and \code{b\_cd = b\_dd = 1} in \code{discrete\_loops.FAMILIES}. That is why the
+transfer ledger only ever reported a Burgers discontinuity for \cloop{}.
+
+\paragraph{\cloop{} disagreed three ways.} Before this was reconciled:
+
+\begin{center}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+side & $|b_{\cloop{}}|$ & using \\
+\midrule
+DD, discrete       & $2.6397$~\AA{} & $\frac12\times$ \emph{ideal} $c$ \\
+3-D CD, continuum  & $5.2795$~\AA{} & \emph{full} ideal $c$ \\
+0-D                & $5.1500$~\AA{} & \emph{full} physical $c$ \\
+all now            & $\mathbf{2.5750}$~\AA{} & $\frac12\times$ physical $c$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The dominant error was the \textbf{factor of two} --- only the discrete side
+treated a \cloop{} loop as a $\frac12[0001]$ loop at all --- with a residual
+$2.4\%$ from ideal-versus-physical $c$.
+
+\paragraph{Where the four values live.} The \cloop{} Burgers vector derives from
+the lattice basis and from nothing else: \code{aLoopGenerator} builds a discrete
+basal loop's $b$ from it, and \code{immobileSpeciesBurgers} is multiplied by it
+to give \code{immobileSpeciesBurgersMagnitude}, which \code{rloop()} sizes every
+continuum \cloop{} loop with. So there is no input-file route to the discrete
+side, and \code{HEXlattice::getLatticeBasis} had to change --- it now takes
+$c/a$ from the \emph{optional} material key \code{c\_SI}, absent meaning the
+ideal ratio, so every other HEX material is unchanged bit-for-bit.
+\code{Zr3d\_ghoniem.txt} supplies \code{c\_SI}, sets the \cloop{} column of
+\code{immobileSpeciesBurgers} to $z = 0.5$, and carries
+\code{b\_SI = 0.323e-9} so both codes share one $a$. On the 0-D side a new
+\code{b\_cL} $= b_c/2$ feeds $\ell_c$; \textbf{$b_c$ itself is deliberately left
+alone}, because it is also the lattice constant behind $\Omega$ and halving it
+would halve $\Omega$.
+
+\begin{quote}
+\textbf{The \cloop{} part of the 28-parameter fit is stale.} The continuum
+\cloop{} radius rises by $1.4312$ and the 0-D $\ell_c$ by $1.4142$, and sink
+strength rises with $r$. This is the third such warning, after $\Omega$ and
+\code{loop\_model}, and they compound. What it buys is
+$f_{\text{burgers}} = \sqrt{b_{cd}/b_{dd}} = 1.000000$: no Burgers discontinuity
+at the continuum\,$\to$\,discrete transfer, where it was $1.414214$.
+\end{quote}
+
 \subsection{The state vector}
 \label{sec:statevector}
 

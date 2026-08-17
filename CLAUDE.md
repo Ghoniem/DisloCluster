@@ -1103,6 +1103,63 @@ A surface integral inside MoDELib, where the FE gradients already exist, would
 be the gold standard. This needs no C++ change and works on runs that already
 exist, which is why it came first.
 
+### The loop Burgers vectors — one value per family, four places
+
+α-Zr's two loop families, and the values every part of the code now uses:
+
+| family | Burgers vector | \|b\| |
+|---|---|---:|
+| prismatic ⟨a⟩, interstitial | `⅓⟨11̄20⟩` | `a` = **3.23 Å** = 0.323 nm |
+| basal ⟨c⟩, vacancy | `½[0001]` | `c/2` = **2.575 Å** = 0.2575 nm |
+
+with `a = 3.23 Å`, `c = 5.15 Å`, hence `c/a = 1.5944272` — **the physical ratio, not
+the ideal √(8/3) = 1.6329932**. Ω is `(√3/4)a²c = 2.326553e-29 m³` from the same two
+constants (see below); the mass-density route agrees to 0.139%.
+
+**⟨a⟩ was already right everywhere** — `|lat × (1,0,0)| = 1` exactly for all three
+variants, `l_a = √(Ω/πb_a)`, and `b_cd = b_dd = 1` in `discrete_loops.FAMILIES`. Which
+is why the transfer ledger only ever reported a Burgers discontinuity for ⟨c⟩.
+
+**⟨c⟩ was wrong in three different ways at once**, and the numbers are worth keeping
+because they show how far apart the three sides had drifted:
+
+| side | was | using |
+|---|---:|---|
+| DD (discrete) | 2.6397 Å | ½ × **ideal** c |
+| 3-D CD (continuum) | 5.2795 Å | **full** ideal c |
+| 0-D | 5.1500 Å | **full** physical c |
+| all now | **2.5750 Å** | ½ × physical c |
+
+So the dominant error was the **factor of 2** — only the DD side treated a ⟨c⟩ loop as a
+½[0001] loop at all — and the residual 2.4% was ideal-versus-physical `c`.
+
+Four places, which must stay equal:
+
+| where | what |
+|---|---|
+| `MoDELib3/.../HEXlattice.cpp` | `getLatticeBasis(material)` takes `c/a` from the **optional** material key `c_SI`; absent ⇒ ideal √(8/3), so every other HEX material is unchanged bit-for-bit |
+| `Zr3d_ghoniem.txt` | `c_SI = 5.15e-10`, `b_SI = 0.323e-9`, and `immobileSpeciesBurgers` ⟨c⟩ column z = **0.5** (was 1.0 — the full [0001]) |
+| `post/discrete_loops.py` | `FAMILIES["c"]`: `b_cd = b_dd = 0.7972136`, `d_plane = 1.5944272` |
+| `zerod/input_data.py` | `b_cL = b_c/2` feeds `l_c`. **`b_c` is deliberately NOT reused** — it is also the lattice constant `c` behind Ω, and halving it would halve Ω, the exact error corrected below |
+
+**The ⟨c⟩ Burgers vector derives from the lattice basis and from nowhere else.**
+`aLoopGenerator` builds a discrete basal loop's `b` from it, and
+`immobileSpeciesBurgers` is multiplied by it to give `immobileSpeciesBurgersMagnitude`,
+which `rloop()` sizes every continuum ⟨c⟩ loop with. That is why no input-file edit
+could fix the DD side — `write_microstructure` emits plane IDs, radii, side counts and
+centres, never a Burgers vector.
+
+`b_SI` moved 3.233 → 3.23 Å so the two codes share one `a`. It is MoDELib's length
+unit, so **every staged case re-stages** — automatic, because `domain_key` hashes the
+material content. It also removes a 0.28% error in Ω\_b³: the 3-D was converting an Ω
+built from `a = 3.23` by `b_SI³` with `a = 3.233`.
+
+**THE ⟨c⟩ PART OF THE FIT IS NOW STALE.** The continuum ⟨c⟩ radius rises ×1.4312 and
+the 0-D `l_c` ×1.4142, and sink strength rises with `r`. This is the **third**
+stale-fit warning, alongside Ω and `loop_model`, and they compound. What it buys is
+`f_burgers = √(b_cd/b_dd) = 1.000000` — no Burgers discontinuity at the
+continuum → discrete transfer, where it was 1.414214.
+
 ### Ω was corrected — the fit has NOT been redone
 
 Ω used to read **1.2e-29 m³**, which is `V_cell/4`: four atoms in an hcp

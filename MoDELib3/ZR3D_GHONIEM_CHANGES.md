@@ -858,6 +858,64 @@ stands. It is once loops genuinely enter a solve that the CD block becomes the c
 part only — and the same figure code would then be wrong rather than merely featureless.
 That asymmetry is why the total is published **alongside** the CD block, not folded into it.
 
+### 22. The ⟨c⟩ loop Burgers vector was the FULL [0001], in an IDEAL lattice
+
+**Symptom:** the continuum→discrete transfer ledger reported a sink-strength jump with a
+`f_burgers = √(b_cd/b_dd) = 1.414214` factor in it, for ⟨c⟩ only. ⟨a⟩ was always clean.
+
+**Cause, in two layers.**
+
+`HEXlattice<3>::getLatticeBasis()` hard-coded the **ideal** hcp ratio:
+
+```cpp
+temp << 1.0, 0.5,           0.0,
+        0.0, 0.5*sqrt(3.0), 0.0,
+        0.0, 0.0,           sqrt(8.0/3.0);   // 1.6329932; alpha-Zr is 1.5944272
+```
+
+and `immobileSpeciesBurgers`' ⟨c⟩ column was `(0,0,1)` — the **full** [0001]. So the
+three sides of the model sized the same vacancy loop three different ways:
+
+| side | \|b_⟨c⟩\| | using |
+|---|---:|---|
+| DD (discrete) | 2.6397 Å | ½ × ideal c |
+| 3-D CD (continuum) | 5.2795 Å | full ideal c |
+| 0-D | 5.1500 Å | full physical c |
+| **all now** | **2.5750 Å** | ½ × physical c, `b = ½[0001]`, `c = 5.15 Å` |
+
+The dominant error is the **factor of 2** — only DD treated a ⟨c⟩ loop as ½[0001] at all
+— with a residual 2.4% from ideal-versus-physical `c`.
+
+**Why no input file could fix the discrete side.** The ⟨c⟩ Burgers vector derives from
+the lattice basis and from nothing else: `aLoopGenerator::generateSingle` builds a basal
+loop's **b** from the lattice, and `discrete_loops.write_microstructure` emits only plane
+IDs, radii, side counts, vacancy flags and centres. There is no Burgers vector in the
+microstructure file to override.
+
+**Fix.** `getLatticeBasis` now takes the material and reads an **optional** key:
+
+```cpp
+double cOverA(sqrt(8.0/3.0));
+try { cOverA = TextFileParser(material.materialFile).readScalar<double>("c_SI",true)/material.b_SI; }
+catch(const std::runtime_error&) {}     // absent -> ideal, bit-for-bit unchanged
+```
+
+`Zr3d_ghoniem.txt` gains `c_SI = 5.15e-10`, sets `immobileSpeciesBurgers`' ⟨c⟩ column z
+to **0.5**, and moves `b_SI` from 0.3233e-9 to **0.323e-9** so the 3-D and the workbook
+share one `a = 3.23 Å`. Only the `c` axis moves: the ⟨a⟩ directions lie in the basal
+plane, so `|b_⟨a⟩| = a = 3.23 Å` in either convention, exactly as `⅓⟨11̄20⟩` requires.
+
+**Consequences.** `f_burgers` becomes **1.000000**. The continuum ⟨c⟩ radius rises
+×1.4312 and the 0-D `l_c` ×1.4142, so **the ⟨c⟩ part of the 28-parameter fit is stale** —
+the third such warning after Ω and `loop_model`. `b_SI` is MoDELib's length unit, so
+every staged case re-stages; that is automatic because `domain_key` hashes the material
+content, and it also removes a 0.28% error in Ω\_b³ (the 3-D had been converting an Ω
+built from `a = 3.23` using `a = 3.233`).
+
+**`HEXlattice_OLD.cpp` carries its own `getLatticeBasis()` and was NOT touched** — it is
+absent from `src/PolycrystallineMaterials/CMakeLists.txt` and is not compiled. BCC and
+FCC keep their no-argument signatures.
+
 ---
 
 ## 5b. Verification against the 0-D
