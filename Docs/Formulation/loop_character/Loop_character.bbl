@@ -1,0 +1,92 @@
+\begin{thebibliography}{11}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Jostsons et~al.(1977)Jostsons, Kelly, and Blake]{Jostsons1977Nature}
+A.~Jostsons, P.~M. Kelly, and R.~G. Blake.
+\newblock The nature of dislocation loops in neutron irradiated zirconium.
+\newblock \emph{Journal of Nuclear Materials}, 66\penalty0 (3):\penalty0
+  236--256, 1977.
+\newblock \doi{10.1016/0022-3115(77)90113-1}.
+
+\bibitem[Northwood et~al.(1979)Northwood, Gilbert, Bahen, Kelly, Blake,
+  Jostsons, Madden, Faulkner, Bell, and Adamson]{Northwood1979RoundRobin}
+D.~O. Northwood, R.~W. Gilbert, L.~E. Bahen, P.~M. Kelly, R.~G. Blake,
+  A.~Jostsons, P.~K. Madden, D.~Faulkner, W.~L. Bell, and R.~B. Adamson.
+\newblock Characterization of neutron irradiation damage in zirconium
+  alloys---an international ``round-robin'' experiment.
+\newblock \emph{Journal of Nuclear Materials}, 79\penalty0 (2):\penalty0
+  379--394, 1979.
+
+\bibitem[Liu et~al.(2020)Liu, Ruan, Zheng, et~al.]{Liu2020Platelets}
+Shuming Liu, Hongjiang Ruan, Shuai Zheng, et~al.
+\newblock Two-dimensional vacancy platelets as precursors for basal dislocation
+  loops in hexagonal zirconium.
+\newblock \emph{Nature Communications}, 11:\penalty0 5571, 2020.
+\newblock \doi{10.1038/s41467-020-19629-5}.
+
+\bibitem[Griffiths et~al.(1987)Griffiths, Gilbert, Fidleris, Tucker, and
+  Adamson]{Griffiths1987Neutron}
+M.~Griffiths, R.~W. Gilbert, V.~Fidleris, R.~P. Tucker, and R.~B. Adamson.
+\newblock Neutron damage in zirconium alloys irradiated at 644 to 710 {K}.
+\newblock \emph{Journal of Nuclear Materials}, 150\penalty0 (2):\penalty0
+  159--168, 1987.
+
+\bibitem[Harte et~al.(2017)Harte, J{\"a}dern{\"a}s, Topping, Frankel, Race,
+  Romero, Hallstadius, Darby, and Preuss]{Harte2017Matrix}
+A.~Harte, D.~J{\"a}dern{\"a}s, M.~Topping, P.~Frankel, C.~P. Race, J.~Romero,
+  L.~Hallstadius, E.~C. Darby, and M.~Preuss.
+\newblock The effect of matrix chemistry on dislocation evolution in an
+  irradiated {Zr} alloy.
+\newblock \emph{Acta Materialia}, 130:\penalty0 69--82, 2017.
+\newblock \doi{10.1016/j.actamat.2017.03.024}.
+
+\bibitem[Hulse and Race(2021)]{Hulse2021Atomistic}
+R.~Hulse and C.~P. Race.
+\newblock An atomistic modelling study of the properties of dislocation loops
+  in zirconium.
+\newblock \emph{Journal of Nuclear Materials}, 547:\penalty0 152752, 2021.
+\newblock \doi{10.1016/j.jnucmat.2020.152752}.
+
+\bibitem[Varvenne et~al.(2014)Varvenne, Mackain, and
+  Clouet]{Varvenne2014Vacancy}
+C{\'e}line Varvenne, Olivier Mackain, and Emmanuel Clouet.
+\newblock Vacancy clustering in zirconium: An atomic-scale study.
+\newblock \emph{Acta Materialia}, 78:\penalty0 65--77, 2014.
+\newblock \doi{10.1016/j.actamat.2014.06.012}.
+
+\bibitem[Mayweg et~al.(2024)Mayweg, Eriksson, Sattari, Sundell, Limb{\"a}ck,
+  Panas, Andr{\'e}n, and Thuvander]{Mayweg2024Islands}
+David Mayweg, Johan Eriksson, Mohammad Sattari, Gustav Sundell, Magnus
+  Limb{\"a}ck, Itai Panas, Hans-Olof Andr{\'e}n, and Mattias Thuvander.
+\newblock Formation of pure zirconium islands inside $c$-component loops in
+  high-burnup fuel cladding.
+\newblock \emph{Journal of Nuclear Materials}, 597:\penalty0 155116, 2024.
+\newblock \doi{10.1016/j.jnucmat.2024.155116}.
+
+\bibitem[Frank(1988)]{Frank1988Defects}
+W.~Frank.
+\newblock Intrinsic point defects in hexagonal close-packed metals.
+\newblock \emph{Journal of Nuclear Materials}, 159:\penalty0 122--148, 1988.
+\newblock \doi{10.1016/0022-3115(88)90090-6}.
+
+\bibitem[Woo(1988)]{Woo1988Theory}
+C.~H. Woo.
+\newblock Theory of irradiation deformation in non-cubic metals: Effects of
+  anisotropic diffusion.
+\newblock \emph{Journal of Nuclear Materials}, 159:\penalty0 237--256, 1988.
+\newblock \doi{10.1016/0022-3115(88)90096-7}.
+
+\bibitem[Christiaen et~al.(2021)Christiaen, Mason, Nguyen-Manh, Dudarev,
+  Cottura, and Clouet]{Christiaen2021Influence}
+B.~Christiaen, D.~R. Mason, D.~Nguyen-Manh, S.~L. Dudarev, M.~Cottura, and
+  E.~Clouet.
+\newblock Influence of vacancy diffusional anisotropy on irradiation growth of
+  zirconium.
+\newblock \emph{Acta Materialia}, 203:\penalty0 116494, 2021.
+\newblock \doi{10.1016/j.actamat.2020.11.042}.
+
+\end{thebibliography}

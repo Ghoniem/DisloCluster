@@ -1,0 +1,7 @@
+type=aLoops;
+style=individual;
+planeIDs=8;
+loopRadii_SI=3.901873171e-08;
+loopSides=24;
+loopCenters=767.7 690.87 1214.44;
+isVacancyLoop=0;

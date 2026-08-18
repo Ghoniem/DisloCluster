@@ -167,6 +167,33 @@ struct ClusterDynamicsParameters
      *  continuum-only run, and it is a useful self-check. */
     const int outputSuperposedMobile;
 
+    /*! Solve the climb condition with the LUMPED approximation instead of the
+     *  real one. Optional material key `climbLumpedSolver`, DEFAULT 0 = solve
+     *  the full system, which is the correct behaviour.
+     *
+     *  WHAT THE LUMPING DID. The climb condition (Li et al. Eq. 50) is a line
+     *  integral coupling every segment to every other,
+     *
+     *      K w = F,   F ~ c_eq(line) - c_ambient,   K ~ the anisotropic
+     *                                                   Green's function
+     *
+     *  and `GalerkinClimbSolver` used to evaluate it as
+     *  `w_n = F_n / rowsum(K)_n` -- one division per node, the sparse assembly
+     *  written and commented out. Row lumping is exact only if `w` were uniform
+     *  along and between all lines, and the entire content of a shielded
+     *  multi-loop configuration is that it is not.
+     *
+     *  MEASURED CONSEQUENCE. `F` enforces c = c_eq ON the line, which is a
+     *  LOCAL condition, so the near-line concentration must not depend on how
+     *  many other loops exist. Under lumping it did: on one 500 nm case the
+     *  vacancy concentration at the line came out at +50.7%, +5.9% and -59% of
+     *  the far field for 1, 5 and 62 discrete loops -- under-depleting when
+     *  isolated, driving the total NEGATIVE when crowded. That is the signature
+     *  of the neighbour coupling being folded into a diagonal.
+     *
+     *  Set to 1 only to reproduce a run made before the full solve existed. */
+    const int climbLumpedSolver;
+
     // Reaction map (types: parameters)
     const bool computeReactions;
 //    const int use0DsinkStrength;
@@ -196,6 +223,9 @@ struct ClusterDynamicsParameters
     /*! Whether to publish the superposed mobile field; optional material-file
      *  key `outputSuperposedMobile`, defaulting to 0 = off. */
     static int getOutputSuperposedMobile(const DislocationDynamicsBase<dim>& ddBase);
+    /*! Whether to lump the climb solve; optional material-file key
+     *  `climbLumpedSolver`, defaulting to 0 = solve the full system. */
+    static int getClimbLumpedSolver(const DislocationDynamicsBase<dim>& ddBase);
     std::map<std::pair<int,int>,double> getMap(const Eigen::Array<double,mSize*(mSize+1)/2,3> matrix_in) const;
     Eigen::Matrix<double,mSize,mSize> getR1() const;
     std::vector<Eigen::Matrix<double,mSize,mSize>> getR2() const;

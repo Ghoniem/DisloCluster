@@ -1,0 +1,1582 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts,bm}
+\usepackage{mathtools}
+\usepackage{physics}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,calc}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+% ---- notation ----
+\newcommand{\CM}{\mathbf{C}_{M}}
+\newcommand{\cM}{\mathbf{c}_{M}}
+\newcommand{\CI}{\mathbf{C}_{I}}
+\newcommand{\cI}{\mathbf{c}_{I}}
+\newcommand{\NL}{\mathbf{N}^{\mathcal{L}}}
+\newcommand{\rL}{\mathbf{r}^{\mathcal{L}}}
+\newcommand{\BM}{\mathbf{B}_{M}}
+\newcommand{\BI}{\mathbf{B}_{I}}
+\newcommand{\Dd}{\mathbf{D}_{d}}
+\newcommand{\Kmat}{\mathbf{K}}
+\newcommand{\Rone}{\mathbf{R}_{1}}
+\newcommand{\Rtwo}{\mathbf{R}_{2}}
+\newcommand{\PM}{\mathbf{P}_{M}}
+\newcommand{\sig}{\bm{\sigma}}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\grad}{\nabla}
+\newcommand{\Div}{\nabla\cdot}
+\newcommand{\dt}{\Delta t}
+\newcommand{\dg}{\Delta \gamma}
+\newcommand{\Oh}{\Omega}
+\newcommand{\kb}{k_{B}}
+\newcommand{\Lcal}{\mathcal{L}}
+\newcommand{\V}{\mathcal{V}}
+\newcommand{\dV}{\,dV}
+\newcommand{\dS}{\,dS}
+\newcommand{\ZrMicro}{\texttt{ZrMicro}}
+\newcommand{\MoDELib}{\texttt{MoDELib2-NNL}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\title{A Two-Time-Scale Coupling of the \texttt{ZrMicro} 0-D Cluster-Dynamics
+Model to the \texttt{MoDELib2-NNL} Spatially-Resolved Solver for Irradiation
+Growth and Creep in Zirconium}
+\author{Fluor\_Zr project --- coupling formulation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This document specializes the two-time-scale spatial cluster-dynamics (SR-CD)
+formulation to the two codes in the present project: the \textbf{0-D reduced
+cluster-dynamics model implemented in \ZrMicro{}} (this repository,
+\code{ZrMicro/}) and the \textbf{spatially-resolved finite-element SR-CD /
+dislocation-mechanics solver \MoDELib{}}
+(\url{https://github.com/mlm335/MoDELib2-NNL}), which implements the model of
+Maron \emph{et al.}~\cite{Maron2024}. The mobile point-defect population
+($C_v,C_i,C_{2i},C_{3i}$) is treated as a fast manifold equilibrated by the
+finite-element reaction--diffusion solve in \MoDELib{}, while the immobile
+cluster population is treated as a spatially varying slow manifold marched in
+dose. We adopt throughout the \textbf{crystallographically resolved
+representation (``Option A'')}: the interstitial $\langle a\rangle$ loops are
+resolved into the three prism variants $a_1,a_2,a_3$ and the vacancy
+$\langle c\rangle$ loops into one basal family, and --- \emph{for the present
+stage} --- we do \textbf{not} carry \ZrMicro{}'s internal stress-aligned /
+non-aligned doubling; the stress dependence enters instead through per-variant
+resolved-stress weights. We (i) recast the fast/slow split in the precise state
+variables and growth/creep relations coded in \ZrMicro{}; (ii) place the
+construction on its footing in the numerical multiple-time-scale literature
+(Tikhonov--Fenichel singular perturbation, the quasi-steady-state assumption,
+computational singular perturbation, the heterogeneous multiscale method, and
+projective integration); (iii) give an explicit coupling protocol with a
+schematic (Fig.~\ref{fig:schematic}); (iv) document a concrete exporter,
+\code{dislocluster\_code/coupling/export.py}, that serializes a \ZrMicro{} run as
+the dose-indexed closure table \MoDELib{} consumes; and (v) specify in
+implementation-ready detail the \textbf{adopted operator-split QSSA scheme}
+(\S\ref{sec:opsplit}) --- a steady mobile FEM solve coupled to a \emph{pointwise}
+immobile dose march that reuses the \ZrMicro{} stiff integrator essentially
+unchanged (one \code{freeze\_mobile} flag) and maps onto the existing OpenMP
+batch mode, one case per quadrature point, needing no 0-D seed run.
+This revision aligns the formulation with the D1/M1
+deliverable~\cite{PoGhoniem2026D1M1}, whose \S2 and \S4 supersede the earlier
+treatment on three points: the diffusion-anisotropy-difference bias is expressed
+in \MoDELib{}'s $(Z^0_m,p_m)$ form, with those parameters fitted \emph{exactly}
+to \ZrMicro{}'s empirical symmetric $\delta^{DAD}$ factors so the two models bias
+identically (\S\ref{sec:dad}); the sub-critical vacancy
+bi-pyramid enters as a third immobile sink family (\S\ref{sec:sinks},
+\S\ref{sec:morph}); and vacancy-loop thermal emission is identified as a channel
+the resolved model carries and the reduced model does not
+(\S\ref{sec:emission}). Each is flagged where it bears on the well-mixed
+regression test (\S\ref{sec:verify}).
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Purpose, the Two Codes, and the Coupling at a Glance}
+\label{sec:purpose}
+
+\subsection{What each code is}
+
+\paragraph{\ZrMicro{} (this repository --- the 0-D ``fast slow-kinetics generator'').}
+\ZrMicro{} integrates a stiff system of $12$ coupled rate equations for the
+volume-averaged concentrations of point defects and dislocation loops in
+neutron-irradiated hcp Zr, with additional bookkeeping (six conservation
+accumulators and one evolving network dislocation density), producing
+irradiation growth, irradiation creep, void swelling, and radiation hardening
+versus dose. It is integrated in time by SUNDIALS CVODE (BDF, dense) through a
+C++ executable, with a SciPy \code{LSODA} Python fallback. It is a \emph{point}
+(0-D) model: no spatial transport; grain boundaries and surfaces enter only
+through lumped sink strengths.
+
+\paragraph{\MoDELib{} (the spatial solver).}
+\MoDELib{} is a C++ Mechanics-of-Defect-Evolution library whose
+\code{include/ClusterDynamics/} and \code{include/FEM/} modules implement the
+spatially-resolved cluster-dynamics + crystal-plasticity model of
+Maron~\emph{et al.}~\cite{Maron2024}: a finite-element reaction--diffusion
+boundary-value problem for the \emph{mobile} defect species on a meshed grain or
+polycrystal (\code{Library/Meshes/}), with crystallographically resolved
+\emph{immobile} loop families and a coupled inelastic deformation field. It
+carries Zr material data in \code{Library/Materials/} and shares its elasticity,
+dislocation-mechanics, and FEM infrastructure with the MoDELib2
+discrete-dislocation-dynamics code base of Po and Ghoniem~\cite{Po2014MoDELib}.
+
+\paragraph{The gap this document closes.}
+\ZrMicro{} has the full nonlinear reaction kinetics and the growth/creep closure
+but no spatial resolution; \MoDELib{} has the spatial FEM transport but treats
+the immobile microstructure as a prescribed or saturated sink field. The
+two-time-scale coupling uses \ZrMicro{}'s kinetics as the \emph{local}
+slow-manifold update at each \MoDELib{} integration point, and \MoDELib{}'s FEM
+solve as the \emph{fast} quasi-static mobile-species solver. This restores the
+feedback loop between spatially resolved mobile transport and a spatially
+evolving immobile microstructure while keeping the unknown count far below a full
+spatial population balance.
+
+\subsection{Scale separation}
+
+The essential separation is $\tau_{M}\ll\tau_{I}$, where $\tau_M$ is the
+equilibration time of the mobile species $\{v,i,2i,3i\}$ (sub-second to seconds
+at reactor temperatures and dose rates) and $\tau_I$ is the dose scale over which
+loop densities, radii, and the network density evolve (many dpa, i.e.\
+$10^{6}$--$10^{8}\,$s at $G\sim10^{-7}$--$10^{-6}\,$dpa/s). The ratio
+\begin{equation}
+    \epsilon_{ts} = \frac{\tau_M}{\tau_I} \ll 1
+\end{equation}
+is the small parameter of the singular-perturbation construction of
+\S\ref{sec:tts}. The coupled model carries two evolving manifolds,
+\begin{align}
+    \mathcal{M}_{M}: \quad & \CM(\mathbf{x};\mathbf{Q},\bm{\eta})
+    &&\text{fast mobile concentration manifold (\MoDELib{} FEM)}, \\
+    \mathcal{M}_{I}: \quad & \mathbf{Q}(\mathbf{x},t)
+    &&\text{slow immobile microstructure manifold (\ZrMicro{} kinetics)},
+\end{align}
+with $\mathbf{Q}$ the immobile slow state (\S\ref{sec:slowstate}) and
+$\bm{\eta}$ the environmental fields (temperature $T$, dose rate $G$, stress
+$\sig$, grain orientation $\mathbf{R}_g$, boundary sink coefficients).
+
+\subsection{Coupling architecture}
+
+Figure~\ref{fig:schematic} summarizes the data flow: \ZrMicro{} runs once per
+$(T,G,\sig)$ regime and exports a dose-indexed closure table; \MoDELib{} then
+marches in dose, alternating a fast quasi-static FEM solve for $\CM^\star$ with a
+local slow update of the crystallographically resolved loop state, and feeding
+the resulting inelastic strain to its mechanics solver.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    >=Latex, font=\small, node distance=6mm,
+    box/.style={draw, rounded corners, align=center, inner sep=4pt, minimum height=8mm},
+    zr/.style ={box, fill=blue!8,   draw=blue!55,   text width=33mm},
+    fast/.style={box, fill=orange!12, draw=orange!70, text width=46mm},
+    slow/.style={box, fill=green!10,  draw=green!55,  text width=46mm},
+    mech/.style={box, fill=gray!10,   draw=gray!60,   text width=46mm},
+    lbl/.style ={font=\scriptsize\itshape, align=center},
+]
+% ZrMicro 0-D (offline), left
+\node[zr] (zr) {\textbf{\ZrMicro{} 0-D CD}\\(this repo)\\[2pt]
+  \scriptsize CVODE BDF, 12 ODEs\\
+  $\to \mathbf{Y}_{0D}(\gamma)$};
+\node[zr, below=4mm of zr, fill=blue!4] (exp) {\scriptsize\textbf{exporter}\\
+  \code{modelib\_export.py}\\
+  \code{modelib\_cd\_table.txt}\\ \code{modelib\_cd\_meta.json}};
+\draw[->, blue!60] (zr) -- (exp);
+
+% MoDELib spatial loop, right column
+\node[mech, right=26mm of zr, yshift=6mm] (mechB) {\textbf{Mechanics BVP} (\MoDELib{} FEM)\\
+  $\Rightarrow\ \sig(\mathbf{x})$};
+\node[fast, below=of mechB] (fastB) {\textbf{FAST: mobile FEM solve} (QSSA)\\
+  $\mathcal{R}_M(\CM^\star;\mathbf{Q})=\mathbf{0}\Rightarrow \CM^\star(\mathbf{x})$};
+\node[slow, below=of fastB] (slowB) {\textbf{SLOW: local loop update}\\
+  $a_1,a_2,a_3,\langle c\rangle,\rho_N$: $\;\partial_\gamma\mathbf{Q}$
+  (\ZrMicro{} kinetics)};
+\node[mech, below=of slowB] (LI) {\textbf{Inelastic strain} $\mathbf{L}^{I}$
+  $\Rightarrow \mathbf{F}^{I}_{n+1}$};
+
+\draw[->] (mechB) -- (fastB);
+\draw[->] (fastB) -- (slowB);
+\draw[->] (slowB) -- (LI);
+
+% feedback: next dose step
+\draw[->, gray!70] (LI.east) -- ++(10mm,0) |- node[lbl, pos=0.25, right]{next dose\\$\gamma_{n+1}$} (mechB.east);
+
+% ZrMicro feeds init/guess/calibration into the spatial loop
+\draw[->, dashed, blue!60] (exp.east) -- ++(6mm,0) |-
+  node[lbl, pos=0.25, below, yshift=-1mm]{$\mathbf{Y}_{0D}(\gamma)$:\\ init, Newton guess, calibration}
+  (fastB.west);
+\draw[->, dashed, blue!60] (exp.east) -- ++(6mm,0) |- (slowB.west);
+
+% enclosing box for the MoDELib dose loop
+\begin{scope}[on background layer]
+  \node[draw=orange!40, dashed, rounded corners, fit=(mechB)(fastB)(slowB)(LI),
+        inner sep=6pt, label={[lbl, orange!60!black]above:\MoDELib{} dose loop}] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Two-time-scale coupling. \ZrMicro{} (left) generates a dose-indexed
+closure table via \code{modelib\_export.py}. \MoDELib{} (right) marches in dose,
+alternating the \emph{fast} quasi-static mobile FEM solve (orange) with the
+\emph{slow} local update of the crystallographically resolved loop state
+$a_1,a_2,a_3,\langle c\rangle$ and network density $\rho_N$ (green), then
+converting the microstructure rate to an inelastic strain that drives the
+mechanics solve (gray). The dashed blue arrows show how the \ZrMicro{} output
+initializes the slow state, seeds the Newton guess for the fast solve, and
+calibrates the shared scalar kinetic coefficients.}
+\label{fig:schematic}
+\end{figure}
+
+\section{The \texttt{ZrMicro} 0-D Reduced Cluster-Dynamics Model}
+\label{sec:zrmicro}
+
+This section states the \emph{actual} \ZrMicro{} model in the notation of the
+code; source references are to \code{dislocluster\_code/} and
+\code{ZrMicro/cpp\_utils/}.
+
+\subsection{Mobile species (fast subset)}
+
+The mobile defect concentration vector --- the subset that diffuses in the
+spatial code --- is
+\begin{equation}
+\label{eq:zr_mobile}
+    \CM = \begin{bmatrix} C_{v} & C_{i} & C_{2i} & C_{3i}\end{bmatrix}^{T}
+    \equiv \texttt{y[0:4]},
+    \qquad
+    \cM = \BM \CM,
+    \quad
+    \BM=\mathrm{diag}(-1,1,2,3),
+\end{equation}
+(atom fractions). $\cM$ is the signed defect content of the mobile pool.
+
+\subsection{Immobile species --- as coded, and the collapse used here}
+\label{sec:immobile_coded}
+
+\ZrMicro{} stores interstitial $\langle a\rangle$ loops and vacancy
+$\langle c\rangle$ loops each as a \emph{non-aligned} + \emph{stress-aligned}
+pair, with a number density and a defect content for every variant:
+\begin{equation}
+\label{eq:zr_immobile_state}
+    \underbrace{C_{i\Lcal},C_{ai\Lcal},C_{v\Lcal},C_{av\Lcal}}_{\text{loop number densities}=\,\texttt{y[4:8]}},
+    \qquad
+    \underbrace{C_{i\Lcal}^{i},C_{ai\Lcal}^{i},C_{v\Lcal}^{v},C_{av\Lcal}^{v}}_{\text{defects in loops}=\,\texttt{y[8:12]}}.
+\end{equation}
+A scalar stress-alignment fraction $f_a(\sig,T)$ (\code{input\_data.py};
+Woo's anisotropy~\cite{Woo1988}) partitions production between aligned and
+non-aligned variants. \ZrMicro{} also evolves a network dislocation density
+$\rho_N\equiv\texttt{y[18]}$ and six conservation accumulators
+$\texttt{y[12:18]}$.
+
+\paragraph{Collapse for the coupling (no aligned/non-aligned split).}
+For the present stage of the coupling we do \emph{not} propagate the
+aligned/non-aligned doubling into the spatial code. We collapse each pair into a
+single per-species total,
+\begin{equation}
+\label{eq:collapse}
+    N_{a\Lcal}=C_{i\Lcal}+C_{ai\Lcal},\quad
+    c_{a\Lcal}=C_{i\Lcal}^{i}+C_{ai\Lcal}^{i},\quad
+    N_{c\Lcal}=C_{v\Lcal}+C_{av\Lcal},\quad
+    c_{c\Lcal}=C_{v\Lcal}^{v}+C_{av\Lcal}^{v},
+\end{equation}
+and re-resolve the interstitial total \emph{crystallographically} into the three
+prism variants (\S\ref{sec:resolution}). The stress dependence that \ZrMicro{}
+carried scalarly in $f_a$ is recovered, in the spatial model, through the
+per-variant resolved-stress weights of \eqref{eq:variant_weight}.
+
+\subsection{Reconstructed loop geometry}
+\label{sec:radii}
+
+Loop radii are reconstructed from content and number density
+(\code{post\_process.py}):
+\begin{equation}
+\label{eq:zr_radii}
+    r_{a\Lcal} = l_a\sqrt{\frac{c_{a\Lcal}}{N_{a\Lcal}}},
+    \qquad
+    r_{c\Lcal} = l_c\sqrt{\frac{c_{c\Lcal}}{N_{c\Lcal}}},
+    \qquad
+    l_a = \sqrt{\frac{\Oh}{\pi b_a}},
+    \quad
+    l_c = \sqrt{\frac{\Oh}{\pi b_c}},
+\end{equation}
+the discrete form of $c_I^{\Lcal}=\pi (r^{\Lcal})^2 b^{\Lcal} N^{\Lcal}$; the
+line density a loop family contributes to $\rho_N$ is
+$\rho^{\Lcal}=2\pi r^{\Lcal} N^{\Lcal}/\Oh$.
+
+\subsection{Rate equations (structure)}
+\label{sec:rate_structure}
+
+Each mobile equation has the reaction form (no transport in 0-D),
+\begin{equation}
+\label{eq:zr_mobile_rhs}
+    \frac{dC_M^{\alpha}}{dt}
+    =
+    G^{\alpha}
+    +\tfrac12 R_2^{\alpha\beta\gamma}C_M^{\beta}C_M^{\gamma}
+    + R_1^{\alpha\beta}(\mathbf{Q},\bm\eta)\,C_M^{\beta}
+    + (\text{thermal emission}),
+\end{equation}
+with $R_2$ the binary recombination/clustering reactions, $R_1$ absorption at the
+network and loops plus dissociation, and the generation vector carrying the dose
+rate directly,
+$\mathbf{G}=G\,[\,1-\eps_{vL},\;1-\eps_{2i}-\eps_{3i}-\eps_{iL},\;\eps_{2i},\;\eps_{3i}\,]^{T}$.
+Thus $G$ [dpa/s] appears in \ZrMicro{} only through these constant rates; the
+integration variable is time $t$ and dose is $\gamma=G t$
+(\code{visualization.py}). The immobile equations are nucleation + flux-driven
+growth + annealing; in collapsed form,
+\begin{equation}
+\label{eq:zr_growth_rate}
+    \dot{c}_{a\Lcal}
+    =
+    \underbrace{\tfrac{l_c}{l}\sqrt{c_{a\Lcal}N_{a\Lcal}}\big[Z_{i}^{a}\Phi_i - g(r)Z_{v}^{a}\Phi_v\big]}_{\text{flux-driven growth}}
+    + (\text{nucleation content}) + G_{a\Lcal},
+\end{equation}
+with mobile fluxes $\Phi_i=\omega_i(C_i+2C_{2i}+3C_{3i})$,
+$\Phi_v=\omega_v C_v$, Arrhenius jump frequencies
+$\omega_{i,v}=z_c\nu_{i,v}e^{-E^m_{i,v}/\kb T}$, a minimum-size gate $g(r)$, and
+the diffusion-anisotropy-difference (DAD) bias factors
+\begin{equation}
+\label{eq:zr_DAD}
+    Z_i^{a}=1+\delta^{DAD}_i,\;\;
+    Z_v^{a}=1-\delta^{DAD}_v,\;\;
+    Z_i^{c}=1-\delta^{DAD}_i,\;\;
+    Z_v^{c}=1+\delta^{DAD}_v,
+\end{equation}
+($\delta^{DAD}_i$ interpolated in $T$, \code{input\_data.py}). These are the 0-D
+counterparts of the orientation-resolved bias used in the spatial model
+(\S\ref{sec:sinks}). Note that \eqref{eq:zr_DAD} imposes $Z^a_m+Z^c_m=2$, a
+normalization the resolved bias factors do not share. In the coupled setting
+$\delta^{DAD}_{i,v}$ are \emph{not} independent parameters: they are derived from
+the \MoDELib{} diffusion tensors through \eqref{eq:delta_from_p}, as set out in
+\S\ref{sec:dad}.
+
+\subsection{Growth and creep closure}
+\label{sec:growth_creep}
+
+\ZrMicro{} converts loop contents to macroscopic strain (\code{post\_process.py}),
+which in collapsed form reads
+\begin{equation}
+\label{eq:zr_growth}
+    \eps_a = A_a\,c_{a\Lcal},
+    \qquad
+    \eps_c = -A_c\,c_{c\Lcal},
+    \qquad A_a=1,\;A_c=\tfrac12,
+\end{equation}
+($\langle a\rangle$ loops expand basal dimensions, $\langle c\rangle$ loops
+contract the $c$-axis). In the crystallographically resolved model these scalars
+become a tensor source (\S\ref{sec:mechanics}); the creep response then emerges
+\emph{geometrically} from the per-variant growth rates rather than from a scalar
+aligned/non-aligned closure.
+
+\section{Numerical-Methods Foundation}
+\label{sec:literature}
+
+The reduction --- freeze the fast variables on their quasi-equilibrium, march only
+the slow variables --- is standard and well-analyzed. We record the lineage because
+it dictates which approximations are controlled and how to verify them.
+
+\paragraph{Singular perturbation / geometric reduction.}
+In standard slow--fast form
+$\epsilon_{ts}\dot{\CM}=\mathcal F_M(\CM,\mathbf Q)$,
+$\dot{\mathbf Q}=\mathcal F_I(\CM,\mathbf Q)$,
+Tikhonov's theorem~\cite{Tikhonov1952} guarantees that after a fast transient
+solutions track $\mathcal F_M=\mathbf0$ when that manifold is asymptotically
+stable in the fast variables; Fenichel's geometric singular perturbation
+theory~\cite{Fenichel1979} makes the slow manifold
+$\mathcal M_M=\{\mathcal F_M=\mathbf0\}$ normally hyperbolic and persistent for
+small $\epsilon_{ts}>0$, justifying the $\epsilon_{ts}\to0$ limit of
+\S\ref{sec:tts}. The relevant fast Jacobian is the mobile reaction Jacobian
+\eqref{eq:reaction_jacobian}; its eigenvalues set $\tau_M$ and must stay stable.
+
+\paragraph{Quasi-steady-state assumption (QSSA).}
+Setting $\mathcal F_M=\mathbf0$ is the QSSA. Segel and
+Slemrod's analysis~\cite{SegelSlemrod1989} is the canonical demonstration that
+the QSSA is a singular-perturbation limit with a quantifiable small parameter;
+the present model is the QSSA applied to the mobile defects, which lets us treat
+$\CM^\star$ as an elliptic-BVP function of the slow state.
+
+\paragraph{ILDM and computational singular perturbation.}
+When the split is not obvious it can be computed: the intrinsic low-dimensional
+manifold method of Maas and Pope~\cite{MaasPope1992} and the computational
+singular perturbation method of Lam and Goussis~\cite{LamGoussis1994} identify
+and refine slow/fast subspaces from the Jacobian spectrum. Here the split is
+physical (mobile vs.\ immobile); CSP/ILDM are the tools to \emph{verify} that no
+immobile mode becomes fast (or mobile mode slow) at extreme $T,G,\sig$.
+
+\paragraph{Heterogeneous multiscale and equation-free methods.}
+The macro/micro pattern --- a coarse spatial solver calling a fine local solver for
+closure on demand --- is the heterogeneous multiscale method of E and
+Engquist~\cite{EEngquist2003} and the equation-free framework of Kevrekidis
+\emph{et al.}~\cite{Kevrekidis2003}. Our coupling is an HMM whose ``micro'' solver
+is the local \ZrMicro{} kinetics and whose ``macro'' solver is the \MoDELib{} FEM
+transport plus mechanics. Projective / coarse integration~\cite{GearKevrekidis2003}
+is the formal justification for taking the dose step $\dg$ much larger than
+$\tau_M$.
+
+\paragraph{Operator splitting, IMEX, reduced-order acceleration.}
+Advancing the stiff fast residual separately from the slow update is operator
+splitting~\cite{Strang1968}; treating the stiff reaction implicitly and
+slow/transport terms explicitly is the IMEX strategy of Ascher, Ruuth, and
+Spiteri~\cite{AscherRuuthSpiteri1997} --- \ZrMicro{} already uses an implicit stiff
+integrator (CVODE BDF) for exactly this reason. Because the fast BVP is solved
+repeatedly, proper generalized decomposition / reduced-basis
+surrogates~\cite{Chinesta2011} are a natural accelerator (\S\ref{sec:improvements}).
+
+\section{Two-Time-Scale Reformulation}
+\label{sec:tts}
+
+\subsection{Fast and slow split}
+
+Promoting \ZrMicro{}'s 0-D kinetics to a field theory,
+\begin{align}
+\label{eq:full_fast_slow_1}
+    \epsilon_{ts}\,\partial_t \CM
+    &=
+    \mathcal{F}_{M}(\CM,\mathbf{Q};\bm{\eta})
+    = -\Div\mathbf J_M + \tfrac12 \Rtwo[\CM,\CM] + \Rone(\mathbf Q,\bm\eta)\CM + \PM,
+    \\
+\label{eq:full_fast_slow_2}
+    \partial_t \mathbf{Q}
+    &=
+    \mathcal{F}_{I}(\CM,\mathbf{Q};\bm{\eta}),
+\end{align}
+where \eqref{eq:full_fast_slow_1} differs from the 0-D
+equation~\eqref{eq:zr_mobile_rhs} only by the transport term $-\Div\mathbf J_M$.
+Taking $\epsilon_{ts}\to0$,
+\begin{equation}
+\label{eq:fast_constraint}
+    \mathcal{F}_{M}(\CM^\star,\mathbf{Q};\bm{\eta}) = \mathbf{0}
+    \quad\text{(fast quasi-static BVP, \MoDELib{} FEM)},
+    \qquad
+    \partial_t \mathbf{Q}
+    =
+    \mathcal{F}_{I}(\CM^{\star},\mathbf{Q};\bm{\eta})
+    \;\;\text{(slow, \ZrMicro{})}.
+\end{equation}
+
+\subsection{The crystallographically resolved slow state}
+\label{sec:slowstate}
+
+We adopt the slow state with the three prism $\langle a\rangle$ interstitial-loop
+variants and one basal $\langle c\rangle$ vacancy-loop family per grain,
+\begin{equation}
+\label{eq:Q_state}
+    \mathbf{Q}(\mathbf x,\gamma)
+    =
+    \big\{
+    \underbrace{N_{a_1\Lcal},N_{a_2\Lcal},N_{a_3\Lcal},N_{c\Lcal}}_{\text{number densities}},\;
+    \underbrace{c^{a_1}_I,c^{a_2}_I,c^{a_3}_I,c^{c}_I}_{\text{contents}},\;
+    \rho_N,\;
+    \underbrace{n_v}_{\text{morphology}}
+    \big\},
+\end{equation}
+with habit normals $\hat{\mathbf a}_1,\hat{\mathbf a}_2,\hat{\mathbf a}_3$ (the
+three $\langle 11\bar20\rangle$ a-directions at $120^\circ$ in the basal plane)
+and $\hat{\mathbf c}$. No aligned/non-aligned doubling is carried;
+\eqref{eq:Q_state} has the same number of loop families as \ZrMicro{}
+\eqref{eq:zr_immobile_state} but indexes them by crystallography rather than by
+stress alignment.
+
+\subsection{Fast mobile manifold (the \MoDELib{} solve)}
+
+For fixed $\mathbf Q$ the per-species strong residual is
+\begin{equation}
+\label{eq:mobile_residual}
+    \mathcal{R}_{M}^{\alpha}
+    =
+    -\Div\mathbf{J}_{M}^{\alpha}
+    + \tfrac{1}{2}R_{2}^{\alpha\beta\gamma}C_{M}^{\beta}C_{M}^{\gamma}
+    + R_{1}^{\alpha\beta}(\mathbf{Q},\bm{\eta})C_{M}^{\beta}
+    + P_{M}^{\alpha}(\bm{\eta}),
+    \quad \alpha\in\{v,i,2i,3i\},
+\end{equation}
+with the anisotropic hcp flux
+\begin{equation}
+\label{eq:mobile_flux}
+    \mathbf{J}_{M}^{\alpha}
+    =
+    -\mathbf{D}^{\alpha}(\mathbf x)\grad C_{M}^{\alpha}
+    -\frac{\mathbf{D}^{\alpha}C_{M}^{\alpha}}{\kb T}\grad\Psi^{\alpha},
+    \quad
+    \mathbf{D}^{\alpha}
+    =
+    \mathbf{R}_{g}\,\mathrm{diag}(D_a^\alpha,D_a^\alpha,D_c^\alpha)\,\mathbf{R}_{g}^{T},
+\end{equation}
+$\mathbf R_g(\mathbf x)$ the grain orientation, $\Psi^\alpha$ an optional drift
+potential. The first-order operator $R_1(\mathbf Q,\bm\eta)$ is built from the
+\emph{local} loop sink strengths (\S\ref{sec:sinks}), which is what makes the fast
+solve see a spatially varying microstructure.
+
+\subsection{Slow immobile manifold (the local \ZrMicro{} update)}
+\label{sec:slow_eqs}
+
+Per loop family $X\in\{a_1,a_2,a_3,c\}$,
+\begin{equation}
+\label{eq:slow_content_component}
+    \frac{\partial c_{I}^{X}}{\partial t}
+    =
+    \underbrace{\sum_{m}\langle k^2_{X,m}\rangle D_m B_M^{m} C_M^{m,\star}}_{\text{absorption of local }\CM^\star}
+    + P_I^{X} + S_I^{X,\mathrm{nuc}} - S_I^{X,\mathrm{diss}},
+\end{equation}
+the field form of \ZrMicro{}'s growth equation \eqref{eq:zr_growth_rate} with the
+local $\CM^\star$ in place of the 0-D mean. Number densities evolve by the same
+nucleation/annealing laws,
+\begin{equation}
+\label{eq:nucleation_law}
+    \frac{\partial N^{X}}{\partial t}
+    =
+    \mathcal{J}^{X}_{\mathrm{nuc}}(\CM^{\star},T,\sig,G)
+    - \mathcal{K}^{X}_{\mathrm{anneal}}(N^{X},T)
+    - \mathcal{K}^{X}_{\mathrm{coal}}(N^{X},r^{X})
+    - \mathcal{K}^{X}_{\mathrm{abs}}(N^{X},\Gamma),
+\end{equation}
+where the first three terms are \ZrMicro{}'s nucleation, annealing, and
+coalescence, and $\mathcal K_{\mathrm{abs}}$ is a new spatial sink at grain
+boundaries / interfaces $\Gamma$ (zero recovers \ZrMicro{}). The radius rate
+follows from $c_I^{X}=\pi(r^{X})^2 b^{X}N^{X}$,
+\begin{equation}
+\label{eq:r_evolution_general}
+    \frac{\partial r^{X}}{\partial t}
+    =
+    \frac{1}{2\pi r^{X}b^{X}N^{X}}
+    \left[\frac{\partial c_{I}^{X}}{\partial t} - \pi (r^{X})^{2}b^{X}\frac{\partial N^{X}}{\partial t}\right].
+\end{equation}
+
+\subsection{Dose as the slow march variable}
+
+Evolve the slow manifold in dose,
+\begin{equation}
+\label{eq:dose_slow_update}
+    d\gamma = G\,dt,
+    \qquad
+    \frac{\partial \mathbf{Q}}{\partial \gamma}
+    = \frac{1}{G}\,\mathcal{F}_{I}(\CM^{\star},\mathbf{Q};\bm{\eta}),
+\end{equation}
+matching \ZrMicro{}'s dose-indexed histories and the exporter table of
+\S\ref{sec:exporter}.
+
+\section{Crystallographic Resolution of the Interstitial Loops (Option A)}
+\label{sec:resolution}
+
+This is the single modeling decision of the coupling: how the collapsed
+interstitial total $(N_{a\Lcal},c_{a\Lcal})$ of \eqref{eq:collapse} is resolved
+into the three prism variants.
+
+\subsection{Resolved-stress variant weights}
+
+Production into variant $k$ is weighted by the Boltzmann factor of the resolved
+normal stress $\sigma_{kk}=\hat{\mathbf a}_k\cdot\sig\cdot\hat{\mathbf a}_k$ on
+its habit plane,
+\begin{equation}
+\label{eq:variant_weight}
+    w_k(\sig,T)
+    =
+    \frac{\exp(\sigma_{kk}\Oh/\kb T)}{\sum_{k'}\exp(\sigma_{k'k'}\Oh/\kb T)},
+    \qquad \sum_{k=1}^{3} w_k = 1,
+\end{equation}
+which reduces to the isotropic $w_k=\tfrac13$ at zero deviatoric stress. This
+replaces \ZrMicro{}'s scalar alignment fraction $f_a$ \emph{and removes the need
+for the aligned/non-aligned doubling}: stress anisotropy is expressed directly as
+an imbalance among $w_1,w_2,w_3$.
+
+\paragraph{Relation to the SIPN partition of the resolved model.}
+Equation~\eqref{eq:variant_weight} takes the activation volume to be the scalar
+atomic volume $\Oh$. The resolved model instead uses the full stress-induced
+preferential-nucleation (SIPN) partition, Eq.~(37)
+of~\cite{PoGhoniem2026D1M1}, in which the cascade-produced defects are
+distributed over the immobile families through the \emph{formation-volume
+tensor} $\bm\Omega_k$ of each family,
+\begin{equation}
+\label{eq:sipn}
+    \chi^k_{i}
+    =
+    \frac{\exp\!\big(\sig\!:\!\bm\Omega_k/\kb T\big)\,I^k_{i}}
+         {\sum_{p}\exp\!\big(\sig\!:\!\bm\Omega_p/\kb T\big)\,I^p_{i}},
+    \qquad
+    \chi^k_{v}
+    =
+    \frac{\exp\!\big(\sig\!:\!\bm\Omega_k/\kb T\big)\,I^k_{v}}
+         {\sum_{p}\exp\!\big(\sig\!:\!\bm\Omega_p/\kb T\big)\,I^p_{v}},
+\end{equation}
+where $I^k_i=\tfrac12(1+p_k)$ and $I^k_v=\tfrac12(1-p_k)$ are the interstitial and
+vacancy selectors built from the family polarity $p_k$ ($p=+1$ for the three
+$\langle a\rangle$ variants, $p=-1$ for the $\langle c\rangle$ family), so that
+the two partitions in \eqref{eq:sipn} normalize independently over the
+interstitial and vacancy families. For a pure prismatic loop $\bm\Omega_k$
+reduces to
+$\bm\Omega_k=(\mathbf b_k\otimes\mathbf b_k/\mathbf b_k\!\cdot\!\mathbf b_k)V_k$,
+so $\sig\!:\!\bm\Omega_k=\sigma_{kk}V_k$ and \eqref{eq:sipn} collapses onto
+\eqref{eq:variant_weight} with the activation volume identified as the cluster
+volume $V_k=m_k\Oh_0$ rather than $\Oh$. The two therefore agree in form but not
+in scale, and \eqref{eq:variant_weight} should be read as the single-defect
+($m_k=1$) case. The linearized weights
+$w_{a_k}(\sig)=\tfrac13\big(1+\chi\hat\sigma_{kk}\big)$ of Eq.~(36)
+of~\cite{PoGhoniem2026D1M1} are in turn the small-stress limit of
+\eqref{eq:sipn}; all three forms coincide at $\sig=\mathbf0$, giving the common
+seed $\tfrac13$. Because the pyramid limit
+$\bm\Omega_k=(\mathbf 1/3)V_k$, with $\mathbf 1$ the second-order identity, is
+\emph{spherical}, $\sig\!:\!\bm\Omega_k=-q\,V_k$ then depends only on the
+hydrostatic part of $\sig$: sub-critical vacancy embryos are
+partitioned by pressure alone, and acquire a deviatoric preference only as they
+flatten onto the basal plane (\S\ref{sec:morph}).
+
+\subsection{Initialization and the lumped recovery}
+
+At initialization (and in the offline table of \S\ref{sec:exporter}) the per-variant
+fields are
+\begin{equation}
+\label{eq:variant_split}
+    N_{a_k\Lcal} = w_k\,N_{a\Lcal},
+    \qquad
+    c^{a_k}_I = w_k\,c_{a\Lcal},
+    \qquad
+    r_{a_k\Lcal} = l_a\sqrt{\frac{c^{a_k}_I}{N_{a_k\Lcal}}} = l_a\sqrt{\frac{c_{a\Lcal}}{N_{a\Lcal}}},
+\end{equation}
+so the three variants share the 0-D mean radius (the weight cancels in the
+radius) until the spatial kinetics differentiate them. Summing the variants
+recovers the \ZrMicro{} lumped interstitial loop population,
+$\sum_k N_{a_k\Lcal}=N_{a\Lcal}$ and $\sum_k c^{a_k}_I=c_{a\Lcal}$ --- the basis of
+the well-mixed regression test (\S\ref{sec:verify}). The vacancy
+$\langle c\rangle$ loops are a single family, $N_{c\Lcal}=N_{c\Lcal}$,
+$c^{c}_I=c_{c\Lcal}$, with morphology $n_v=|c^{c}_I|/N_{c\Lcal}$ (vacancies per
+loop).
+
+\subsection{Once resolved, the variants evolve independently}
+
+After initialization, \MoDELib{} integrates each variant with
+\eqref{eq:slow_content_component}--\eqref{eq:r_evolution_general} using its
+\emph{own} habit-plane orientation: the bias factors entering
+$\langle k^2_{a_k,m}\rangle$ depend on the angle between $\hat{\mathbf a}_k$ and
+the local diffusion-anisotropy / stress axes, so the variants diverge in density
+and radius wherever the stress or texture is non-trivial. The shared scalar
+coefficients ($\mathcal J_{\mathrm{nuc}}$, $\tau$, $\delta^{DAD}$, coalescence)
+are calibrated once from \ZrMicro{} and reused across all three variants.
+
+\subsection{Diffusion-anisotropy consistency}
+\label{sec:dad}
+
+The scalar DAD biases $\delta^{DAD}_{i,v}(T)$ \eqref{eq:zr_DAD} and the tensor
+diffusivities $D^\alpha_{a,c}(T)$ \eqref{eq:mobile_flux} describe the same
+physics, but they are \emph{not} two parameterizations of one identity. In
+\MoDELib{} the bias is not a parameter at all: it is generated by the
+anisotropy of the species diffusion tensor through
+\begin{equation}
+\label{eq:pm_dad}
+    p_m=\Big(\tfrac{D_c^m}{D_a^m}\Big)^{1/6},
+    \quad
+    Z_{a\Lcal,m}^{\mathrm{DAD},0}=Z_m^0\,\tfrac{p_m+p_m^{-2}}{2},
+    \quad
+    Z_{c\Lcal,m}^{\mathrm{DAD},0}=Z_m^0\,p_m,
+\end{equation}
+which is Eq.~(15) of the D1/M1 deliverable~\cite{PoGhoniem2026D1M1}. \ZrMicro{}
+instead \emph{posits} $\delta^{DAD}_{i}(T),\delta^{DAD}_{v}$ phenomenologically.
+Section~4.3 of~\cite{PoGhoniem2026D1M1} is explicit that the two coincide only in
+the isotropic limit $p_m\to1$, $\delta\to0$, and that away from it the map
+$\delta\leftrightarrow(p,Z^0)$ ``is a modelling choice and must be interpreted
+rather than taken as an identity.''
+
+\paragraph{Direction of calibration (adopted).}
+We take the \textbf{0-D empirical forms as the reference} and fit the resolved
+model's $(Z^0_m,p_m)$ to reproduce them, rather than deriving $\delta^{DAD}$ from
+the migration tensors. The information therefore flows
+$\delta^{DAD}\!\to\!(Z^0_m,p_m)$, and \eqref{eq:pm_dad} is used as a
+\emph{parameterization} of the bias rather than as a prediction from the
+diffusivities.
+
+The fit is \emph{exact}, not a least-squares compromise: \eqref{eq:pm_dad}
+carries two free parameters per species and \eqref{eq:zr_DAD} imposes two targets
+$(Z^a_m,Z^c_m)$, so the system inverts in closed form. Eliminating $Z^0_m$
+between the two relations of \eqref{eq:pm_dad} gives $2Z^a_m/Z^c_m=1+p_m^{-3}$,
+whence
+\begin{equation}
+\label{eq:delta_from_p}
+    p_m=\Big(\frac{2Z^a_m}{Z^c_m}-1\Big)^{-1/3},
+    \qquad
+    Z^0_m=\frac{Z^c_m}{p_m},
+\end{equation}
+evaluated with the 0-D targets $Z^a_i=1+\delta^{DAD}_i$, $Z^c_i=1-\delta^{DAD}_i$
+for the interstitial species and $Z^a_v=1-\delta^{DAD}_v$,
+$Z^c_v=1+\delta^{DAD}_v$ for the vacancy. At the reference condition
+$T=573$~K, where $\delta^{DAD}_i=0.072113$ and $\delta^{DAD}_v=0.107886$, this
+yields
+\begin{equation}
+\label{eq:dad_fitted}
+    p_v=1.178808,\;\; Z^0_v=0.939836,
+    \qquad
+    p_i=p_{2i}=p_{3i}=0.913720,\;\; Z^0_i=1.015504,
+\end{equation}
+reproducing the four 0-D factors to machine precision ($\sim\!10^{-16}$). The
+fitted anisotropies are moreover physically sensible for h.c.p. Zr: $p_v>1$
+places the faster vacancy diffusion along $c$, and $p_i<1$ places the faster
+interstitial diffusion in the basal plane.
+
+\paragraph{What the fit costs.}
+Two properties of \eqref{eq:delta_from_p} must be recorded, because they are the
+price of exact agreement.
+
+First, \textbf{$p_m$ is no longer the diffusional anisotropy of the material
+file.} In \code{Library/Materials/Zr4.txt} the migration-energy tensors are
+\emph{isotropic for both monomers} --- $E^m_v=0.9$~eV and $E^m_i=0.09$~eV on all
+three diagonal components, with isotropic $D_0$ --- and anisotropic only for the
+di- and tri-interstitials ($0.041$~eV in the basal plane against $0.187$~eV along
+$c$), so the tensors would give
+\begin{equation}
+\label{eq:pm_values}
+    p_v=p_i=1,
+    \qquad
+    p_{2i}=p_{3i}=\exp\!\Big[-\frac{E^{m}_{33}-E^{m}_{11}}{6\kb T}\Big]\simeq0.61
+    \quad(T=573\;\mathrm{K}).
+\end{equation}
+The fitted values \eqref{eq:dad_fitted} differ from these throughout --- most
+starkly for the monomers, where the tensors imply \emph{no} DAD bias at all
+against fitted $p_v=1.179$, $p_i=0.914$. The bias in the coupled model is thus
+\textbf{calibrated to the reduced model, not generated from the tensorial flux}.
+The physical claim of \S2 of~\cite{PoGhoniem2026D1M1} --- that the resolved
+formulation obtains DAD ``naturally'' from the anisotropic diffusion --- is
+therefore \emph{not} what the coupled runs exercise; recovering it would require
+migration tensors consistent with \eqref{eq:dad_fitted}, which is a separate
+materials-data question.
+
+Second, the calibration is \textbf{tied to one temperature}. The 0-D
+$\delta^{DAD}_i(T)$ is interpolated linearly between $300$~K and $600$~K anchors
+\eqref{eq:zr_DAD}, so \eqref{eq:dad_fitted} holds at $573$~K only; $p_m$ and
+$Z^0_m$ must be refitted whenever the run temperature changes. The underlying
+tension is the normalization: \eqref{eq:zr_DAD} forces $Z^a_m+Z^c_m=2$, which
+\eqref{eq:pm_dad} does not satisfy for any $p_m$ unless $Z^0_m$ absorbs the
+difference --- which is exactly what \eqref{eq:delta_from_p} makes it do.
+
+\paragraph{Status.}
+With \eqref{eq:dad_fitted} in \code{Zr4.txt} the two models now bias the same
+channels by the same factors, so the well-mixed regression of
+\S\ref{sec:verify} is meaningful \emph{as it stands} --- no 0-D refit is
+required, and a residual discrepancy in $\eps_a,\eps_c$ between the resolved
+interior and the 0-D reference is now a genuine finding rather than expected
+bookkeeping.
+
+\subsection{Sink strengths from the local slow state}
+\label{sec:sinks}
+
+The first-order operator is assembled locally from $\mathbf Q(\mathbf x)$:
+\begin{equation}
+\label{eq:R1_local}
+    \Rone = \Rone\big[\{N_{a_k\Lcal},r_{a_k\Lcal}\}_{k=1}^3, N_{c\Lcal},r_{c\Lcal},\rho_N,T,\sig\big],
+\end{equation}
+with loop and network sink strengths
+\begin{equation}
+\label{eq:loop_sinks}
+    \langle k^2_{X,m}\rangle
+    =
+    Z_{X,m}^{\mathrm{tot}}(\sig,T,\mathbf D^m)\,\underbrace{2\pi r_{X}N_{X}}_{S^{\mathrm{geo}}_X},
+    \qquad
+    \langle k^2_{N,m}\rangle = Z_{N,m}\,\rho_N,
+\end{equation}
+and the total bias the DAD factor times a stress-induced preferential-absorption
+(SIPA) increment,
+$Z_{X,m}^{\mathrm{tot}}=Z_{X,m}^{\mathrm{DAD},0}\big[1+\Delta Z^{\mathrm{SIPA}}_{X,m}(\sig)/Z_{X,m}^{\mathrm{DAD},0}\big]$.
+Each $\langle a\rangle$ variant evaluates its SIPA increment at its \emph{own}
+resolved stress $\sigma_{kk}$ and the $\langle c\rangle$ family at the basal
+value, which is Eqs.~(46)--(49) of~\cite{PoGhoniem2026D1M1}; all four reduce to
+their stress-free DAD values \eqref{eq:pm_dad} at $\sig=\mathbf0$. The geometric
+factor $S^{\mathrm{geo}}_X=2\pi r_X N_X$ is exactly what the exporter table
+tabulates (\S\ref{sec:exporter}); \MoDELib{} multiplies it by the local
+$Z_{X,m}^{\mathrm{tot}}$.
+
+\paragraph{The bi-pyramid family in the sink sum.}
+The total sink strength seen by mobile species $m$ runs over \emph{three}
+immobile families, not two: Eq.~(11) of~\cite{PoGhoniem2026D1M1} sums over
+$\mathcal I\!\Lcal\in\{c\Lcal,a\Lcal,bp\}$, where the compact sub-critical
+vacancy bi-pyramids contribute
+\begin{equation}
+\label{eq:k2_bp}
+    \langle k^2_{bp,m}\rangle=\alpha_{bp}\,s_{bp}\,\pi r_{bp}N_{bp},
+\end{equation}
+a volumetric (three-dimensional) capture law, in contrast to the planar
+$2\pi r N$ scaling of \eqref{eq:loop_sinks}. This family has no counterpart in
+\ZrMicro{}, whose $\langle c\rangle$ population is a single loop family, and it
+is \emph{not} carried by the present exporter table (\S\ref{sec:exporter}). Two
+consequences follow. First, the closure table as currently written under-reports
+the vacancy sink strength wherever the $\langle c\rangle$ population is still
+sub-critical --- i.e. at low dose, exactly where the denuded-zone structure is
+established. Second, the interpolation of \S\ref{sec:morph} is what connects
+\eqref{eq:k2_bp} to \eqref{eq:loop_sinks}: $\langle k^2_{bp,m}\rangle$ and
+$\langle k^2_{c\Lcal,m}\rangle$ are the two limits between which the vacancy
+sink strength is blended as the embryos flatten.
+
+\subsection{Vacancy bi-pyramid$\to$loop morphology}
+\label{sec:morph}
+
+The $\langle c\rangle$-cluster morphology variable is the mean number of
+vacancies per cluster, $\bar m_{c}=c^{c}_I/N_{c\Lcal}$ (written $n_v$ in the
+exporter table), and a transition $S(\bar m_c)\in[0,1]$ interpolates every
+$\langle c\rangle$ property $Y$ between bi-pyramid and basal-loop limits,
+\begin{equation}
+\label{eq:interp}
+    Y_{cl}=S(\bar m_c)\,Y_{c\Lcal}+[1-S(\bar m_c)]\,Y_{bp},
+    \qquad
+    S(\bar m_c)=\frac{1}{1+\exp[-(\bar m_c-m_0)/w]},
+\end{equation}
+including sink strength, relaxation volume, and eigenstrain. This is the
+transition Maron \emph{et al.}~\cite{Maron2024} identify as necessary for
+breakaway growth; the spatial code carries it per integration point because
+$\bar m_c$ is now a field.
+
+\paragraph{Calibration of the transition (as implemented in the resolved model).}
+Eqs.~(28)--(33) of~\cite{PoGhoniem2026D1M1} fix both the argument and the
+endpoints of \eqref{eq:interp}, and the coupling must adopt them rather than
+treat $a_s,n_s$ as free. The midpoint and width are set by the stability window
+$[m_{\min},m_{\max}]$,
+\begin{equation}
+\label{eq:sigmoid_cal}
+    m_0=\frac{m_{\min}+m_{\max}}{2}-m_s,
+    \qquad
+    w=w_0\big(m_{\max}-m_{\min}\big),
+\end{equation}
+so that clusters with $\bar m_c\lesssim m_{\min}$ are predominantly
+bi-pyramidal and those with $\bar m_c\gtrsim m_{\max}$ predominantly planar. The
+two geometric endpoints are
+\begin{equation}
+\label{eq:radii_limits}
+    R_{bp}=\Big(\frac{\bar m_c\Oh_0}{\sqrt8}\Big)^{1/3},
+    \qquad
+    R_{c\Lcal}=\sqrt{\frac{\bar m_c\Oh_0}{\pi b_c}},
+\end{equation}
+i.e. a volumetric $\bar m_c^{1/3}$ law crossing over to the planar
+$\bar m_c^{1/2}$ law of \eqref{eq:zr_radii}. The \emph{same} sigmoid
+interpolates the formation-volume tensor between its spherical and planar limits,
+\begin{equation}
+\label{eq:omega_interp}
+    \bm\Omega_k=\big[1-S(\bar m_c)\big]\frac{\mathbf 1}{3}V_k
+    + S(\bar m_c)\,\frac{\mathbf b_k\otimes\mathbf b_k}{\mathbf b_k\!\cdot\!\mathbf b_k}V_k,
+    \qquad V_k=\bar m_c\Oh_0,
+\end{equation}
+which is what couples the morphology back into the SIPN partition
+\eqref{eq:sipn}: a sub-critical embryo responds only to pressure, and acquires
+its deviatoric (basal-normal) preference continuously as $S\to1$. Consistently,
+the vacancy sink strength blends \eqref{eq:k2_bp} into \eqref{eq:loop_sinks}
+through the same $S$. A free-energy form,
+$S(\bar m_c,T,\sig)=\{1+\exp[(G_{c\Lcal}-G_{bp})/\kb T]\}^{-1}$, lets the
+transition shift with local stress, temperature, and chemistry.
+
+\subsection{Vacancy-loop thermal emission: a channel the 0-D model omits}
+\label{sec:emission}
+
+The resolved model removes vacancies from the $\langle c\rangle$ family through
+\emph{two} distinct channels, and the distinction matters for the coupling
+because \ZrMicro{} implements only one of them. The first is the dissolution of
+sub-critical embryos that fail to reach the minimum stable size, at the Arrhenius
+lifetime $\tau_{c\Lcal}(T)=\tau^0\exp(E_a/\kb T)$; this removes both density and
+content and is the term \ZrMicro{} carries. The second, Eqs.~(54)--(57)
+of~\cite{PoGhoniem2026D1M1}, is the \emph{thermal emission} of single vacancies
+from an already-stable loop, evaluated at the mean size,
+\begin{equation}
+\label{eq:loop_emission}
+    \alpha_{v,c\Lcal}(\bar m_c)
+    =
+    \beta_{v,c\Lcal}\exp\!\Big[-\frac{E^{b}_{v}(\bar m_c)}{\kb T}\Big],
+\end{equation}
+with $E^{b}_{v}(\bar m_c)$ the size-dependent vacancy binding energy, which grows
+toward its bulk limit so that larger loops emit ever more weakly. This channel
+reduces $c^{c}_I$ \emph{without} removing loops, so it enters the content
+equation but leaves the density equation untouched --- unlike the dissolution
+term, which debits both. The vacancies released by both channels are returned to
+the mobile pool through the source $\mathbf S_{v\Lcal}$, so the exchange is a
+pure transfer and the point-defect budget stays closed: a surviving loop may
+simultaneously grow by absorbing the excess vacancy flux and shrink by thermal
+emission without double counting.
+
+\ZrMicro{} has no analogue of \eqref{eq:loop_emission}: its loop binding energy
+is a single constant $\approx5$~eV surrogate (Table~1
+of~\cite{PoGhoniem2026D1M1}, ``pending a refit''), which is size-independent and
+therefore cannot reproduce the weakening emission of a growing loop. Two
+implications for the coupling. First, the well-mixed regression of
+\S\ref{sec:verify} compares a resolved model that emits against a reduced model
+that does not, so agreement is expected to degrade at high temperature and high
+dose, where $\bar m_c$ is large and \eqref{eq:loop_emission} is most active ---
+in the direction of \MoDELib{} predicting \emph{smaller} $\langle c\rangle$ loops
+than \ZrMicro{}. Second, the material file must supply the binding energies that
+\eqref{eq:loop_emission} and the mobile-species emission matrix require; the key
+\code{mobileSpeciesBindingEnergy\_eV} is referenced by Eq.~(9)
+of~\cite{PoGhoniem2026D1M1} but is absent from the current
+\code{Library/Materials/Zr4.txt}.
+
+\section{Weak Form and Newton Solve of the Fast Manifold}
+\label{sec:weak}
+
+\MoDELib{}'s FEM module assembles the weak form of \eqref{eq:mobile_residual}.
+With test function $\widehat C^\alpha$,
+\begin{equation}
+\label{eq:weak_fast}
+    \int_{\V}\grad\widehat C^{\alpha}\cdot\mathbf J_M^{\alpha}\dV
+    + \int_{\V}\widehat C^{\alpha}\Big[\tfrac12 R_2^{\alpha\beta\gamma}C_M^\beta C_M^\gamma + R_1^{\alpha\beta}C_M^\beta + P_M^\alpha\Big]\dV
+    - \int_{\partial\V}\widehat C^{\alpha}\,\mathbf J_M^{\alpha}\cdot\mathbf n\dS = 0.
+\end{equation}
+
+\subsection{Boundary conditions}
+
+Use the Robin (finite-rate sink) condition
+\begin{equation}
+\label{eq:robin_bc}
+    -\mathbf J_M^\alpha\cdot\mathbf n = h_\alpha\,(C_M^\alpha - C_{\mathrm{eq}}^\alpha)
+    \quad\text{on }\Gamma_h,
+\end{equation}
+which recovers the perfect-sink Dirichlet condition as $h_\alpha\to\infty$ and
+no-flux as $h_\alpha\to0$. \ZrMicro{} corresponds to $h_\alpha\to\infty$ lumped
+into the sinks. A thermodynamically consistent reservoir concentration follows
+from the defect chemical potential
+$\mu^\alpha=\mu_0^\alpha+\kb T\ln C_M^\alpha-\sig:\Delta\bm\Omega^\alpha$,
+\begin{equation}
+\label{eq:ceq_mu}
+    C_{\mathrm{eq}}^\alpha
+    = \exp\!\Big[\frac{\mu_\Gamma^\alpha-\mu_0^\alpha+\sig:\Delta\bm\Omega^\alpha}{\kb T}\Big],
+\end{equation}
+coupling stress through the formation-volume tensor rather than normal traction
+alone.
+
+\subsection{Newton linearization}
+
+The fast BVP is nonlinear through $R_2$. At iteration $j$, solve
+$\mathbf K_{MM}(\CM_j,\mathbf Q)\,\delta\CM = -\mathbf R_M(\CM_j,\mathbf Q)$ with
+the reaction Jacobian (symmetric $R_2$)
+\begin{equation}
+\label{eq:reaction_jacobian}
+    \frac{\partial\mathcal R_M^\alpha}{\partial C_M^\delta}
+    = -\Div\Big(\frac{\partial\mathbf J_M^\alpha}{\partial C_M^\delta}\Big)
+    + R_2^{\alpha\delta\gamma}C_M^\gamma + R_1^{\alpha\delta}.
+\end{equation}
+This is the fast-subsystem Jacobian whose spectrum sets $\tau_M$
+(\S\ref{sec:literature}); monitoring its conditioning checks QSSA validity. For
+positivity, solve for $u^\alpha=\ln C_M^\alpha$ or apply a positivity line
+search; clip only as a last resort and log it.
+
+\section{Mechanics Coupling}
+\label{sec:mechanics}
+
+The inelastic velocity gradient decomposes as
+$\mathbf L^I=\mathbf L^V+\mathbf L^D+\mathbf L^P$. With the loops resolved by
+crystallography, the plastic part is a clean tensor sum over the four habit
+normals,
+\begin{equation}
+\label{eq:LP_Zr}
+    \mathbf L^P
+    =
+    \dot c_I^{a_1}(\hat{\mathbf a}_1\otimes\hat{\mathbf a}_1)
+    +\dot c_I^{a_2}(\hat{\mathbf a}_2\otimes\hat{\mathbf a}_2)
+    +\dot c_I^{a_3}(\hat{\mathbf a}_3\otimes\hat{\mathbf a}_3)
+    +\dot c_I^{c}(\hat{\mathbf c}\otimes\hat{\mathbf c}).
+\end{equation}
+Volume-averaging \eqref{eq:LP_Zr} over a stress-free grain (where
+$\dot c_I^{a_k}=\tfrac13\dot c_{a\Lcal}$) reproduces the \ZrMicro{} scalar growth
+\eqref{eq:zr_growth}: $\tfrac13(\hat{\mathbf a}_1\otimes\hat{\mathbf a}_1+\dots)
+=\tfrac12(\mathbf I-\hat{\mathbf c}\otimes\hat{\mathbf c})$ gives the basal
+$\eps_a$ and $\hat{\mathbf c}\otimes\hat{\mathbf c}$ gives $\eps_c$. Under stress,
+the variant imbalance \eqref{eq:variant_weight} makes \eqref{eq:LP_Zr}
+deviatoric, producing irradiation creep \emph{geometrically} --- no separate creep
+closure is needed. The volumetric and diffusive parts are
+\begin{equation}
+\label{eq:LVD}
+    \mathbf L^V
+    = \sum_n\frac{\Delta\Oh_n^0}{3\Oh_0}\dot c_M^n\,\mathbf I
+    + \sum_{X}f^{X}\partial_t\big[(\mathbf b^{X}\otimes\mathbf A^{X})N^{X}\big],
+    \qquad
+    J^I\,\mathrm{tr}(\mathbf L^D)=\sum_n\Div\mathbf J_M^n.
+\end{equation}
+Swelling and growth rates are the spherical and deviatoric parts of $\mathbf L^I$.
+The stress returned by the \MoDELib{} mechanics solve re-enters the fast manifold
+through the BC \eqref{eq:ceq_mu}, the bias \eqref{eq:loop_sinks}, the variant
+weights \eqref{eq:variant_weight}, and the morphology transition --- closing the
+loop.
+
+\section{Coupling Protocol: \texttt{ZrMicro} $\leftrightarrow$ \texttt{MoDELib2-NNL}}
+\label{sec:coupling}
+
+\subsection{Roles and data exchange}
+
+\begin{table}[h!]
+\centering
+\small
+\begin{tabular}{@{}p{0.28\linewidth} p{0.33\linewidth} p{0.31\linewidth}@{}}
+\toprule
+\textbf{Task} & \textbf{\ZrMicro{} (0-D, this repo)} & \textbf{\MoDELib{} (spatial FEM)} \\
+\midrule
+Fast mobile solve $\CM^\star(\mathbf x)$ & provides $R_1,R_2,\PM$ and a 0-D Newton guess & \code{include/ClusterDynamics/}+\code{include/FEM/}: weak form \eqref{eq:weak_fast}, Newton \eqref{eq:reaction_jacobian} \\
+Local slow update $\partial_\gamma\mathbf Q$ & \code{rate\_equations} RHS \eqref{eq:slow_content_component}--\eqref{eq:nucleation_law} as per-point micro-model & integrates $a_1,a_2,a_3,c$ per integ.\ point \\
+Growth/creep $\to\mathbf L^I$ & \code{post\_process} closure \eqref{eq:zr_growth} & tensor source \eqref{eq:LP_Zr}, mechanics BVP \\
+Init \& calibration & dose table $\mathbf Y_{0D}(\gamma)$ via \code{modelib\_export.py} & seeds $\mathbf Q(\mathbf x,\gamma_0)$ and closure coefficients \\
+Material data & \code{input/*.xlsx} (3 sheets) & \code{Library/Materials/} (Zr), \code{Library/Meshes/} \\
+\bottomrule
+\end{tabular}
+\caption{Division of labor in the two-time-scale coupling (cf.\ Fig.~\ref{fig:schematic}).}
+\end{table}
+
+\subsection{The exporter: \texttt{modelib\_export.py}}
+\label{sec:exporter}
+
+The ``Level 1'' deliverable is \code{dislocluster\_code/coupling/export.py}, which
+serializes a completed \ZrMicro{} run as the closure table \MoDELib{} reads. It
+performs exactly the collapse \eqref{eq:collapse} and the resolved-stress split
+\eqref{eq:variant_split}, and writes two files:
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+\item \code{modelib\_cd\_table.txt} --- a whitespace-delimited, \code{\#}-commented
+table with one row per dose point and columns
+\[
+\big[\,\gamma,t,\;C_v,C_i,C_{2i},C_{3i},\;
+\{N_{a_k},N_c\},\{c^{a_k}_I,c^{c}_I\},\{r_{a_k},r_c\},
+\{S^{\mathrm{geo}}_{a_k},S^{\mathrm{geo}}_c\},\;\rho_N,n_v,\eps_a,\eps_c\,\big],
+\]
+number densities and contents in $\mathrm{m^{-3}}$ (atom fraction $/\Oh$), radii
+in m, $S^{\mathrm{geo}}_X=2\pi r_X N_X$ in $\mathrm{m^{-2}}$;
+\item \code{modelib\_cd\_meta.json} --- scalars \MoDELib{} needs to rebuild $R_1$
+and $\mathbf L^I$: $T,G,\Oh,b_a,b_c,l_a,l_c$, the activation volume, the DAD bias
+factors $Z_i^a,Z_v^a,Z_i^c,Z_v^c,Z_N$, the variant weights $w_k$ and the resolved
+stress used, the habit normals $\hat{\mathbf a}_k,\hat{\mathbf c}$, the column
+schema, and units.
+\end{itemize}
+Both are plain text, parsed trivially by \MoDELib{}'s C++ I/O, numpy, or pandas.
+Usage from the \ZrMicro{} notebook after \code{process\_solution}:
+\begin{verbatim}
+    from dislocluster_code.coupling.export import export_for_modelib
+    export_for_modelib(results, input_data, run_dir)                 # zero stress
+    export_for_modelib(results, input_data, run_dir,                 # uniaxial:
+                       sigma_a_resolved=(s1, s2, s3))                #  resolved
+                                                                     #  on a_k
+\end{verbatim}
+At zero stress the weights are $w_k=\tfrac13$; under a resolved stress they tilt
+toward the more-stressed variant via \eqref{eq:variant_weight}.
+
+\paragraph{Known gaps in the current schema.}
+The table above was fixed before~\cite{PoGhoniem2026D1M1} and does not yet carry
+everything \S\ref{sec:sinks}--\S\ref{sec:emission} require. Three columns/blocks
+are missing, and each is a silent under-report rather than an error the reader
+will notice:
+\begin{enumerate}[label=(\roman*),leftmargin=1.6em,itemsep=1pt]
+\item \textbf{The bi-pyramid family.} No $N_{bp},r_{bp}$ or
+$S^{\mathrm{geo}}_{bp}$, so \eqref{eq:k2_bp} cannot be assembled and the vacancy
+sink strength is under-reported at low dose.
+\item \textbf{The morphology state.} $n_v$ is exported, but not $S(\bar m_c)$ nor
+the calibration $(m_{\min},m_{\max},m_s,w_0)$ of \eqref{eq:sigmoid_cal}, so
+\MoDELib{} cannot reproduce the blend that \eqref{eq:interp} and
+\eqref{eq:omega_interp} depend on.
+\item \textbf{The DAD scalars are the superseded ones.} The exported
+$Z_i^a,Z_v^a,Z_i^c,Z_v^c$ are \ZrMicro{}'s phenomenological values, which
+\S\ref{sec:dad} shows are not realizable from the resolved diffusion tensors.
+Under the adopted calibration direction these should not be exported as inputs to
+\MoDELib{} at all --- \MoDELib{} generates its own bias from $\mathbf D^m$ ---
+and are better retained as \emph{diagnostics} recording what the reduced model
+assumed.
+\end{enumerate}
+Until the schema is extended, the table remains valid for $\mathbf Q$
+initialization and for the geometric factors $S^{\mathrm{geo}}_X$, which is what
+the operator-split scheme of \S\ref{sec:opsplit} actually consumes.
+
+\subsection{Three levels of integration}
+
+\begin{enumerate}[label=(\arabic*),leftmargin=1.6em]
+\item \textbf{Offline table (implemented).} \ZrMicro{} emits
+\code{modelib\_cd\_table.txt} per $(T,G,\sig)$ regime; \MoDELib{} reads it as a
+look-up closure for $\mathbf Q$ initialization and for the shared scalar kinetic
+coefficients, keyed on the local $(T,G,\sig)$.
+\item \textbf{File/array interface.} The same tables drive both initialization and
+the Newton initial guess $\CM^{(0)}=\CM^{0D}(\gamma)$ via the spatial correction
+$\CM=\CM^{0D}+\delta\CM$, with $\mathcal R_M(\CM^{0D}+\delta\CM;\mathbf Q)=\mathbf0$.
+\item \textbf{On-line HMM call.} For tightest coupling, replace the look-up by a
+direct call to \ZrMicro{}'s RHS evaluated with the local $\CM^\star$: expose
+\code{rate\_equations.\_rhs\_full} (Python) or the C++ \code{integrate\_one}
+(\code{rate\_equations.cpp}) as the per-point micro-model. The C++ path is
+preferred and already builds a standalone executable with a \code{--key=value}
+CLI and an OpenMP \code{--batch\_file} mode that can evaluate many integration
+points concurrently in one subprocess.
+\end{enumerate}
+
+\subsection{Dose-stepping algorithm}
+\label{sec:algorithm}
+
+\begin{algorithm}[h!]
+\caption{Two-time-scale coupled SR-CD march (\ZrMicro{} kinetics, \MoDELib{} FEM)}
+\begin{algorithmic}[1]
+\State Run \ZrMicro{} per regime; export $\mathbf Y_{0D}(\gamma)$ with \code{modelib\_export.py}.
+\State Initialize $\mathbf Q_0(\mathbf x)$ from the table: split $\langle a\rangle$ into $a_1,a_2,a_3$ by $w_k(\sig_0)$ \eqref{eq:variant_split}; set $N_c,c^c_I,\rho_N,n_v$.
+\State Initialize mechanics fields $\mathbf F^I_0,\mathbf u_0,\sig_0$.
+\For{$n=0,1,\dots,N-1$}
+    \State $\dg=\gamma_{n+1}-\gamma_n$;\; $\dt=\dg/G_n$.
+    \State Solve the \MoDELib{} mechanics BVP with $\mathbf F^I_n$ to get $\sig_n(\mathbf x)$.
+    \State At each integ.\ point update $\mathbf D^\alpha_n,\mathbf Z_n,\Kmat_n,\Rone_n,R_{2,n}$ from $\mathbf Q_n,T_n,G_n,\sig_n$ (\S\ref{sec:resolution}, \S\ref{sec:sinks}); refresh $w_k(\sig_n)$.
+    \State Build BCs: Robin \eqref{eq:robin_bc} with $C^\alpha_{\mathrm{eq}}$ from \eqref{eq:ceq_mu}.
+    \State \textbf{Fast solve:} $\CM^{(0)}\leftarrow\CM^{0D}(\gamma_n)$; Newton-iterate \eqref{eq:reaction_jacobian} with positivity line search until $\|\mathbf R_M\|<\mathrm{tol}_M$, giving $\CM_n^\star(\mathbf x)$.
+    \State \textbf{Slow update:} for each $X\in\{a_1,a_2,a_3,c\}$ evaluate $\dot c^{X}_I,\dot N^{X}$ from \eqref{eq:slow_content_component}--\eqref{eq:nucleation_law} and $\dot r^{X}$ from \eqref{eq:r_evolution_general}; update $\rho_N$.
+    \State March $\mathbf Q_{n+1}=\mathbf Q_n+\dt\,\dot{\mathbf Q}_n$ (explicit), or projective integration~\cite{GearKevrekidis2003} for large $\dg$.
+    \State Update $n_v,S(n_v)$ and the interpolated $\langle c\rangle$ properties \eqref{eq:interp}.
+    \State Form $\mathbf L^P_{n+1}$ \eqref{eq:LP_Zr}, $\mathbf L^V_{n+1},\mathbf L^D_{n+1},\mathbf L^I_{n+1}$; update $\mathbf F^I_{n+1}=\exp(\dt\,\mathbf L^I_{n+1})\mathbf F^I_n$.
+    \State Output $\CM_n^\star,\mathbf Q_{n+1}$, sink strengths, growth/swelling strain, diagnostics.
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{Adopted Implementation: Operator-Split QSSA
+(Steady Mobile $\oplus$ Pointwise Immobile)}
+\label{sec:opsplit}
+
+This is the implementation the project will build. It is a Lie--Trotter operator
+split~\cite{Strang1968} of the two-time-scale system \eqref{eq:full_fast_slow_1}--\eqref{eq:full_fast_slow_2}:
+the fast (mobile) block is solved to steady state on the FE mesh (spatially
+coupled), and the slow (immobile) block is advanced \emph{pointwise} with the
+\emph{existing} \ZrMicro{} stiff integrator, holding the mobile species frozen at
+their local steady-state values. It requires no 0-D seed run and reuses the
+\ZrMicro{} reaction kinetics and CVODE machinery essentially unchanged.
+
+\subsection{Structure of the split}
+\label{sec:opsplit_structure}
+
+Over one dose step $[\gamma_n,\gamma_{n+1}]$, $\dg=\gamma_{n+1}-\gamma_n$,
+$\dt=\dg/G$, perform a frozen-coefficient sweep:
+\begin{enumerate}[label=\textbf{S\arabic*.},leftmargin=2.2em,itemsep=2pt]
+\item \textbf{Mechanics} (constant here, kept general): solve the \MoDELib{}
+mechanics BVP with $\mathbf F^I_n$ to obtain $\sig_n(\mathbf x)$.
+\item \textbf{Assemble local coefficients} from the current immobile state
+$\mathbf Q_n(\mathbf x)$ and $\sig_n$: diffusivities $\mathbf D^\alpha$, biases
+$\mathbf Z$, the first-order sink operator $\Rone(\mathbf Q_n)$
+\eqref{eq:R1_local}, the quadratic $\Rtwo$, the variant weights $w_k(\sig_n)$
+\eqref{eq:variant_weight}, and the boundary data \eqref{eq:robin_bc}.
+\item \textbf{Fast mobile solve} (FEM, Newton; spatially coupled): with
+$\mathbf Q_n$ \emph{fixed}, solve $\mathcal R_M(\CM^\star;\mathbf Q_n)=\mathbf 0$
+\eqref{eq:weak_fast},\eqref{eq:reaction_jacobian} for $\CM^\star_n(\mathbf x)$.
+\item \textbf{Slow immobile march} (pointwise; the existing \ZrMicro{} integrator):
+at every quadrature point $q$ integrate $d\mathbf Q/dt=\mathbf g(\mathbf Q;\CM^\star_n(\mathbf x_q),\bm\eta_q)$
+\eqref{eq:reduced_rhs} over $[t_n,t_n+\dt]$ with $\CM^\star$ \emph{frozen},
+giving $\mathbf Q_{n+1}(\mathbf x_q)$.
+\item \textbf{Post-process per point}: radii \eqref{eq:zr_radii}, $n_v$,
+$S(n_v)$, and the inelastic source $\mathbf L^I_{n+1}$ \eqref{eq:LP_Zr},
+\eqref{eq:LVD}; update $\mathbf F^I_{n+1}=\exp(\dt\,\mathbf L^I_{n+1})\mathbf F^I_n$.
+\end{enumerate}
+Steps S2--S3 couple space (through diffusion); step S4 does not (loops do not
+diffuse), which is the structural fact exploited in \S\ref{sec:opsplit_batch}.
+
+\subsection{The frozen-mobile reduced right-hand side}
+\label{sec:opsplit_rhs}
+
+At a quadrature point, the slow block is the \ZrMicro{} immobile RHS with the
+mobile concentrations replaced by the local steady value $\CM^\star$. For each
+loop family $X\in\{a_1,a_2,a_3,c\}$,
+\begin{equation}
+\label{eq:reduced_rhs}
+    \mathbf g:\quad
+    \frac{dN^{X}}{dt}
+    = \underbrace{\mathcal J^{X}_{\mathrm{nuc}}(\CM^\star,\sig,G)}_{\text{nucleation, incl.\ }w_k}
+      - \mathcal K^{X}_{\mathrm{anneal}}(N^{X},T)
+      - \mathcal K^{X}_{\mathrm{coal}}(\mathbf Q),
+    \qquad
+    \frac{dc_{I}^{X}}{dt}
+    = \dot c^{X,\mathrm{abs}}_I(\CM^\star) + S^{X,\mathrm{nuc}}_I(\CM^\star) - S^{X,\mathrm{diss}}_I,
+\end{equation}
+together with the network density $d\rho_N/dt=\mathcal C_{\mathrm{LN}}(\mathbf Q)$
+(loop--network coalescence). The absorption source is the \emph{same} sink flux
+that the mobile solve balanced,
+\begin{equation}
+\label{eq:abs_consistent}
+    \dot c^{X,\mathrm{abs}}_I
+    = \sum_{m\in\{v,i,2i,3i\}}\langle k^2_{X,m}\rangle\,D_m\,B_M^{m}\,C_M^{m,\star},
+\end{equation}
+with $\langle k^2_{X,m}\rangle=Z^{\mathrm{tot}}_{X,m}\,2\pi r_X N_X$
+\eqref{eq:loop_sinks}; the growth fluxes $\Phi_i=\omega_i(C_i^\star+2C_{2i}^\star+3C_{3i}^\star)$,
+$\Phi_v=\omega_v C_v^\star$ and the homogeneous nucleation rates
+($\propto R_{i,3i},R_{2i,2i}$, weighted by $w_k$ into the three prism variants)
+are all evaluated at the frozen $\CM^\star$.
+
+\paragraph{Implementation trick (minimal code change).}
+Do \emph{not} write a new RHS. Integrate the full \ZrMicro{} state vector
+$\texttt{y[0:19]}$ as today, but gate the first four entries with a boolean
+\code{freeze\_mobile}: when set, force
+\[
+    \dot{\texttt{y}}[0]=\dot{\texttt{y}}[1]=\dot{\texttt{y}}[2]=\dot{\texttt{y}}[3]=0
+\]
+in \code{rate\_equations.cpp::rhs} (and the Python \code{\_rhs\_full}) \emph{after}
+all reaction terms are evaluated. Initialize $\texttt{y[0:4]}=\CM^\star$. The
+mobile slots then remain exactly $\CM^\star$ for the whole sub-integration, while
+the immobile equations $\texttt{y[4:12]}$, the conservation accumulators
+$\texttt{y[12:18]}$, and $\rho_N=\texttt{y[18]}$ read them as frozen parameters.
+This is the entire change needed to turn the 0-D solver into the local slow
+solver: one flag and a four-line zeroing. The immobile block is also far less
+stiff than the full system (the stiffest modes were mobile recombination), so
+CVODE takes large internal steps and the per-point solve is cheap.
+
+\subsection{Pointwise decoupling and batch-mode mapping}
+\label{sec:opsplit_batch}
+
+Once $\CM^\star(\mathbf x)$ is known, the immobile ODEs at different quadrature
+points are \emph{independent}. Step S4 therefore maps one-to-one onto the
+existing OpenMP \code{--batch\_file} mode of \code{solver.exe}: \textbf{one case
+per quadrature point}. The driver (\code{cpp\_bridge.run\_cpp\_solver\_batch})
+writes one line per point with the tokens
+\begin{verbatim}
+   freeze_mobile=1  t_begin=<t_n>  t_end=<t_n+dt>  n_points=2
+   y0_0=<Cv*>  y0_1=<Ci*>  y0_2=<C2i*>  y0_3=<C3i*>        # frozen mobile
+   y0_4=<N_a1> ... y0_11=<c_c>  y0_18=<rho_N>              # immobile state Q_n(x_q)
+   T=<T>  sigma=<sigma_n(x_q)>  G=<G>  w1=<w1> w2=<w2> w3=<w3>
+\end{verbatim}
+and reads back the endpoint $\mathbf Q_{n+1}(\mathbf x_q)$ (the last output row)
+per case, in input order. All quadrature points integrate concurrently in a
+single subprocess, each on its own \code{SUNContext}/vectors/integrator memory,
+exactly as the temperature batch does today. No SUNDIALS objects are shared
+across threads.
+
+\subsection{Algorithm}
+\label{sec:opsplit_algo}
+
+\begin{algorithm}[h!]
+\caption{Operator-split QSSA march (steady mobile FEM $\oplus$ pointwise immobile CVODE)}
+\begin{algorithmic}[1]
+\State \textbf{Initialize} $\mathbf Q_0(\mathbf x)$ pristine (\S\ref{sec:opsplit_init}); $\mathbf F^I_0=\mathbf I$, $\sig_0$.
+\State Choose dose grid $\{\gamma_n\}$ with small $\dg$ through the early transient (\S\ref{sec:opsplit_dt}).
+\For{$n=0,1,\dots,N-1$}
+    \State $\dg=\gamma_{n+1}-\gamma_n$;\; $\dt=\dg/G$.
+    \State \textbf{[S1]} Solve mechanics with $\mathbf F^I_n\Rightarrow\sig_n(\mathbf x)$.
+    \State \textbf{[S2]} At each integ.\ point assemble $\mathbf D^\alpha,\mathbf Z,\Rone(\mathbf Q_n),\Rtwo,w_k(\sig_n)$ and BCs.
+    \State \textbf{[S3]} \emph{Fast solve:} $\CM^{(0)}\!\leftarrow\!\CM^\star_{n-1}$ (or local reaction balance);
+    \Statex \hspace{2.2em} Newton-iterate \eqref{eq:reaction_jacobian} with positivity line search until $\|\mathbf R_M\|<\mathrm{tol}_M\Rightarrow\CM^\star_n(\mathbf x)$.
+    \State \textbf{[S4]} \emph{Slow march (batch):} for all points $q$ in parallel, integrate \eqref{eq:reduced_rhs}
+    \Statex \hspace{2.2em} with \code{freeze\_mobile=1}, $\texttt{y}[0\!:\!4]=\CM^\star_n(\mathbf x_q)$, over $[t_n,t_n+\dt]\Rightarrow\mathbf Q_{n+1}(\mathbf x_q)$.
+    \State \textbf{[split control]} If $\max_q \|\mathbf Q_{n+1}-\mathbf Q_n\|/\|\mathbf Q_n\|>\eta_{\mathrm{split}}$: halve $\dg$, redo from S3 (\S\ref{sec:opsplit_dt}).
+    \State \textbf{[S5]} Per point: radii, $n_v$, $S(n_v)$; form $\mathbf L^I_{n+1}$ \eqref{eq:LP_Zr},\eqref{eq:LVD}; $\mathbf F^I_{n+1}=\exp(\dt\,\mathbf L^I_{n+1})\mathbf F^I_n$.
+    \State \textbf{Output} $\CM^\star_n,\mathbf Q_{n+1}$, sink strengths, $\eps_a,\eps_c$, conservation residual (\S\ref{sec:opsplit_cons}).
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Splitting error and dose-step control}
+\label{sec:opsplit_dt}
+
+Freezing $\CM^\star$ over the step ignores the drift of $\mathbf Q$ (hence of the
+sinks) within $[\,t_n,t_n+\dt\,]$; this is a first-order Lie--Trotter splitting
+error, $\mathcal O(\dg)$ per step, one-sided (with strengthening sinks the loops
+are slightly over-grown). Control it by the slow state, \emph{not} by CVODE's
+internal step:
+\begin{itemize}[leftmargin=1.4em,topsep=2pt,itemsep=1pt]
+\item \textbf{Step cap.} Accept the step only if the relative change in the sink
+strength is small, e.g.\ $\max_q\,\Delta\langle k^2\rangle/\langle k^2\rangle\le\eta_{\mathrm{split}}$
+with $\eta_{\mathrm{split}}\sim0.05$--$0.1$; otherwise halve $\dg$ and redo from S3.
+The outer $\dg$ is bounded only by this and by how fast $\sig$ moves --- the
+immobile stiffness is absorbed inside CVODE.
+\item \textbf{Strang (second order), optional.} Replace S3--S4 by
+[half immobile step $\dt/2$] $\to$ [re-solve mobile] $\to$ [half immobile step
+$\dt/2$], giving $\mathcal O(\dg^2)$ at the cost of one extra fast solve.
+\item \textbf{In-step Picard (fully coupled step), optional.} Iterate S3$\leftrightarrow$S4
+to convergence of $(\CM^\star,\mathbf Q)$ before advancing; removes the splitting
+error entirely and is the natural fallback if a regime ever needs it.
+\end{itemize}
+For the first implementation use plain Lie--Trotter with the step cap.
+
+\subsection{Conservation across the split}
+\label{sec:opsplit_cons}
+
+In steady state the mobile pool does not accumulate, so production balances
+recombination, loop absorption, and \emph{boundary outflux}:
+\begin{equation}
+\label{eq:cons_split}
+    \int_{\V} G^{\mathrm{tot}}\dV
+    =
+    \int_{\V}\!\Big(\mathcal R_{\mathrm{rec}} + \sum_X \dot c^{X,\mathrm{abs}}_I\Big)\dV
+    + \underbrace{\oint_{\partial\V}\sum_m \mathbf J_M^m\cdot\mathbf n\dS}_{\text{boundary loss (new channel)}}.
+\end{equation}
+Because the immobile absorption \eqref{eq:abs_consistent} uses the same
+$\langle k^2_{X,m}\rangle D_m C_M^{m,\star}$ that the mobile solve balanced, atoms
+are conserved to splitting order \emph{provided} the volume check
+\eqref{eq:cons_split} includes the boundary integral. The 0-D model folded that
+flux into $\rho_N$; here it is explicit. Reuse the \ZrMicro{} accumulators
+$\texttt{y[12:18]}$ for the per-point volumetric terms and add the FE boundary
+integral of $\mathbf J_M\cdot\mathbf n$.
+
+\subsection{Initialization without the 0-D code}
+\label{sec:opsplit_init}
+
+Start pristine at $\gamma_0\approx0$ (after cascade thermalization), letting the
+slow march build the microstructure itself:
+\begin{equation}
+\label{eq:pristine}
+    N^{X}_0 = N_{\mathrm{embryo}}\;(\text{small}),
+    \quad
+    c^{X}_{I,0}\to 0^{+}\;(\Rightarrow r^X=r_{\min}),
+    \quad
+    \rho_{N,0}=\rho_N(T)\;(\text{grown-in}),
+    \quad
+    n_{v,0}=n_{\min},
+\end{equation}
+with accumulated strain $\eps_a=\eps_c=0$ (path-consistent, since contents start
+at zero). No 0-D run is needed: the reduced RHS \eqref{eq:reduced_rhs} \emph{is}
+the \ZrMicro{} nucleation+growth kinetics, so it regenerates the loop population.
+The price is small $\dg$ through the early transient (where, in the 0-D code,
+CVODE took its smallest steps); the step cap of \S\ref{sec:opsplit_dt} sizes this
+automatically. An optional single 0-D run remains useful only to provide the
+well-mixed regression reference (\S\ref{sec:verify}) and a starting $\gamma_0$
+large enough to skip the transient.
+
+\subsection{Per-quadrature-point storage and reuse checklist}
+\label{sec:opsplit_storage}
+
+\paragraph{Persistent (carried across dose steps), per quadrature point:}
+the immobile slow state $\mathbf Q=\{N^{a_1},N^{a_2},N^{a_3},N^{c},c^{a_1}_I,c^{a_2}_I,c^{a_3}_I,c^{c}_I,\rho_N\}$,
+the inelastic deformation $\mathbf F^I$, and the previous mobile solution
+$\CM^\star_{n-1}$ (Newton warm start).
+
+\paragraph{Transient (recomputed each step):}
+$\CM^\star$, fluxes $\mathbf J_M^\alpha$, radii $r^X$, $n_v$, $S(n_v)$, sink
+strengths $\langle k^2_{X,m}\rangle$, and $\mathbf L^P,\mathbf L^V,\mathbf L^D,\mathbf L^I$.
+
+\paragraph{Reuse checklist.}
+\begin{enumerate}[label=(\alph*),leftmargin=1.6em,itemsep=1pt]
+\item Add \code{freeze\_mobile} to \code{parameters.h}, \code{rate\_equations.cpp::rhs},
+and \code{dislocluster\_code/zerod/rate\_equations.py::\_rhs\_full} (four-line zeroing of the
+mobile derivatives, \S\ref{sec:opsplit_rhs}).
+\item Keep \emph{all} immobile terms when frozen --- growth and nucleation (use
+$\CM^\star$) \emph{and} the $\CM$-independent annealing $\tau(T)$, coalescence,
+and $\rho_N$ evolution. Do not silently drop the latter.
+\item Drive step S4 through \code{cpp\_bridge.run\_cpp\_solver\_batch} with one
+case per quadrature point (\S\ref{sec:opsplit_batch}); request only the endpoint
+(\code{n\_points=2}, read the last row).
+\item Resolve $\langle a\rangle$ into $a_1,a_2,a_3$ with $w_k(\sig)$
+\eqref{eq:variant_split} at initialization; thereafter evolve the three variants
+independently (their bias factors differ by habit-plane orientation).
+\item Newton warm start $=\CM^\star_{n-1}$; first step, the diffusion-free local
+reaction balance.
+\item Keep the existing \code{CvL\_v}/\code{CavL\_v} slight-negative clamp inside
+the immobile integration.
+\item Conservation check per \eqref{eq:cons_split}, including the boundary flux.
+\end{enumerate}
+
+\section{Verification and Diagnostics}
+\label{sec:verify}
+
+\paragraph{Recovery of the 0-D model (primary regression test).}
+Set $h_\alpha\to\infty$ lumped into the sinks, $\mathcal K_{\mathrm{abs}}=0$,
+$w_k=\tfrac13$ (zero stress), and uniform fields with periodic BCs. The fast BVP
+then has no transport gradient and \eqref{eq:full_fast_slow_1} collapses to
+\eqref{eq:zr_mobile_rhs}; summing the three prism variants
+($\sum_k N_{a_k\Lcal}=N_{a\Lcal}$, $\sum_k c^{a_k}_I=c_{a\Lcal}$) the spatial
+march should reproduce the \ZrMicro{} mobile concentrations, loop densities,
+radii, and growth $\eps_a,\eps_c$. The exporter writes $\eps_a,\eps_c$ precisely
+so this comparison is one column subtraction.
+
+\paragraph{What this test can and cannot establish.}
+The transport, reaction, production, and emission operators map exactly under the
+volume-average identification, so in the well-mixed limit they agree to
+integrator tolerance and any discrepancy there is a genuine coupling defect.
+Three ingredients, however, do \emph{not} map exactly, and each admits a nonzero
+residual that is physics rather than bug:
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{The DAD bias} (\S\ref{sec:dad}). \emph{No longer a source of
+residual}: $(Z^0_m,p_m)$ are fitted through \eqref{eq:delta_from_p} to reproduce
+\eqref{eq:zr_DAD} exactly, so both models apply identical capture efficiencies to
+identical channels. A discrepancy here now indicates a real defect. Note however
+that the fit is tied to $T=573$~K and must be redone at other temperatures.
+\item \textbf{The bi-pyramid family} (\eqref{eq:k2_bp}). Absent from the reduced
+model and from the exporter, it adds vacancy sink strength at low dose that
+\ZrMicro{} does not carry.
+\item \textbf{Vacancy-loop thermal emission} (\S\ref{sec:emission}). Present only
+in the resolved model, biting hardest at high $T$ and high dose.
+\end{enumerate}
+Accordingly the regression should be run \emph{first} at low temperature, low
+dose, and small $\bar m_c$, where (ii) and (iii) are quiescent and the test is a
+clean check of the coupling machinery, and only then extended. Running it first
+at the $573$~K / high-dose condition of the current closure table conflates all
+three effects with any actual defect.
+
+\paragraph{Per-step monitors.}
+\begin{align}
+    \text{mobile residual / Jacobian cond.:}\;&\|\mathcal R_M\|,\ \kappa(\mathbf K_{MM})
+        &&\text{(QSSA validity, \S\ref{sec:literature})}\\
+    \text{positivity:}\;&\min_{\mathbf x,\alpha}C_M^\alpha(\mathbf x)>0,\\
+    \text{slow-state bounds:}\;&\min N^{X}\ge0,\ \min r^{X}>0,\ 0\le S\le1,\ \textstyle\sum_k w_k=1,\\
+    \text{sign/mass consistency:}\;&\cM=\BM\CM,\ \cI=\BI\CI\ \text{(\ZrMicro{} accumulators \texttt{y[12:18]})},\\
+    \text{mechanics consistency:}\;&\mathbf L^I=\mathbf L^P+\mathbf L^V+\mathbf L^D.
+\end{align}
+
+\paragraph{Staged activation.}
+After the well-mixed regression passes, switch on capabilities one at a time:
+(i) finite-rate boundary sinks $h_\alpha<\infty$; (ii) spatial gradients in
+$T,G,\sig$; (iii) resolved-stress variant imbalance $w_k\neq\tfrac13$ and the
+geometric creep response \eqref{eq:LP_Zr}; (iv) local nucleation and variable
+$N^{X}$; (v) free-energy morphology transition; (vi) reduced-order acceleration.
+Each stage is validated against the previous in its common limit.
+
+\section{Suggested Refinements}
+\label{sec:improvements}
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Reconcile the fitted $(Z^0_m,p_m)$ with the migration tensors.}
+\eqref{eq:dad_fitted} reproduces the 0-D bias exactly but is inconsistent with
+the anisotropy the material file's $E^m_{ij}$ imply \eqref{eq:pm_values}, so the
+coupled runs do not exercise the ``DAD generated from the tensorial flux''
+mechanism of~\cite{PoGhoniem2026D1M1}. Either refit the migration tensors to
+\eqref{eq:dad_fitted}, or accept $(Z^0_m,p_m)$ as an independent
+parameterization and say so.
+\item \textbf{Make the DAD fit temperature-aware.} \eqref{eq:dad_fitted} holds at
+$573$~K only, because $\delta^{DAD}_i(T)$ is $T$-interpolated in \ZrMicro{};
+evaluate \eqref{eq:delta_from_p} at run temperature instead of hard-coding it.
+\item \textbf{Carry the bi-pyramid family through the exporter}
+\eqref{eq:k2_bp} together with the sigmoid calibration
+\eqref{eq:sigmoid_cal}, so the resolved model can assemble the vacancy sink
+strength it expects.
+\item \textbf{Add size-dependent loop binding energies} to replace the constant
+$5$~eV surrogate, enabling \eqref{eq:loop_emission} in the reduced model and
+supplying \code{mobileSpeciesBindingEnergy\_eV} to the material file.
+\item \textbf{Finite-rate boundary sinks} \eqref{eq:robin_bc} for imperfect grain
+boundaries, oxide barriers, and solute-decorated interfaces.
+\item \textbf{Chemical-potential stress coupling} \eqref{eq:ceq_mu} with the
+formation-volume tensor.
+\item \textbf{Per-variant radii from kinetics.} The shared-radius initialization
+\eqref{eq:variant_split} is only a starting condition; once stress differentiates
+the variants, let each $r_{a_k}$ evolve independently via
+\eqref{eq:r_evolution_general}.
+\item \textbf{Boundary-layer mesh refinement} where the depletion length
+$\ell_m\sim(\langle k^2_{\Lcal,m}\rangle+\langle k^2_{N,m}\rangle)^{-1/2}\ll L$.
+\item \textbf{PGD / reduced basis}~\cite{Chinesta2011} for the repeated fast
+solves, optionally with $T,G,k^2$ as parametric coordinates.
+\item \textbf{Re-introduce the aligned/non-aligned split later} if a regime
+demands it: it becomes a second weighting layer \emph{within} each prism variant
+and does not alter the structure above.
+\item \textbf{Verify the fast/slow split} with a CSP/ILDM
+check~\cite{LamGoussis1994,MaasPope1992} at the $T,G$ extremes.
+\end{itemize}
+
+\section{Summary}
+
+The coupling reuses each code for what it does well: \ZrMicro{} supplies the full
+nonlinear cluster-dynamics kinetics and the growth/creep closure as a
+\emph{local} micro-model, and \MoDELib{} supplies the finite-element transport and
+dislocation mechanics as the \emph{spatial} macro-solver. Cast as a
+two-time-scale / heterogeneous-multiscale problem, the mobile point defects form
+a fast quasi-static manifold solved by FEM at each dose checkpoint, while the
+immobile loop population --- resolved into the three prism $\langle a\rangle$
+variants and the basal $\langle c\rangle$ family (Option A), without the
+aligned/non-aligned doubling --- forms a spatially varying slow manifold marched in
+dose. Stress anisotropy enters through resolved-stress variant weights, so
+irradiation creep emerges geometrically from the per-variant growth rather than
+from a scalar closure. The single implemented bridge is
+\code{modelib\_export.py}, which serializes a \ZrMicro{} run as the dose-indexed
+table \MoDELib{} consumes. The adopted implementation (\S\ref{sec:opsplit}) is an
+operator-split QSSA: a steady, spatially-coupled mobile FEM solve alternating
+with a \emph{pointwise} immobile dose march that reuses the \ZrMicro{} stiff
+integrator unchanged (gated by a single \code{freeze\_mobile} flag) and runs one
+case per quadrature point through the existing OpenMP batch mode; it needs no 0-D
+seed --- a pristine start regenerates the microstructure --- and its only
+approximation is a first-order splitting error controlled by the dose-step cap.
+The construction reduces exactly to the validated 0-D model in the well-mixed
+limit, which is the primary regression test, and is grounded in the standard
+numerical theory of singular-perturbation / QSSA reductions, HMM, and projective
+integration.
+
+\begin{thebibliography}{99}
+
+% ---- materials / project references ----
+\bibitem{Maron2024}
+Maron, M., Li, Y., Lalani, I., Baker, K., Ramirez Flores, B., Black, T.,
+Hollenbeck, J., Ghoniem, N., and Po, G. (2024).
+\newblock Spatially-resolved cluster dynamics modeling of irradiation growth in
+zirconium.
+\newblock \emph{International Journal of Plasticity}, \textbf{175}, 103943.
+
+\bibitem{PoGhoniem2026D1M1}
+Po, G. and Ghoniem, N. (2026).
+\newblock Deliverable D1/M1: Simulation of Initial Irradiation Damage.
+\newblock Multiscale Materials Solutions (MMS), 29 July 2026.
+\newblock \code{Docs/Formulation/GW\_Phase4\_D1M1\_NG.pdf}.
+
+\bibitem{LiGhoniem2020}
+Li, Y. and Ghoniem, N. (2020).
+\newblock Cluster dynamics modeling of irradiation growth in single crystal Zr.
+\newblock \emph{Journal of Nuclear Materials}, \textbf{540}, 152312.
+
+\bibitem{Po2022}
+Po, G., Huang, Y., Li, Y., Baker, K., Flores, B. R., Black, T., Hollenbeck, J.,
+and Ghoniem, N. (2022).
+\newblock A model of thermal creep and annealing in finite domains based on
+coupled dislocation climb and vacancy diffusion.
+\newblock \emph{Journal of the Mechanics and Physics of Solids}, \textbf{169}, 105066.
+
+\bibitem{Po2014MoDELib}
+Po, G. and Ghoniem, N. (2014).
+\newblock A variational formulation of constrained dislocation dynamics coupled
+with heat and vacancy diffusion (MoDELib --- Mechanics of Defect Evolution
+Library).
+\newblock \emph{Journal of the Mechanics and Physics of Solids}, \textbf{66}, 103--116.
+
+\bibitem{Woo1988}
+Woo, C. H. (1988).
+\newblock Theory of irradiation deformation in non-cubic metals: effects of
+anisotropic diffusion.
+\newblock \emph{Journal of Nuclear Materials}, \textbf{159}, 237--256.
+
+% ---- numerical multiple-time-scale references ----
+\bibitem{Tikhonov1952}
+Tikhonov, A. N. (1952).
+\newblock Systems of differential equations containing small parameters in the
+derivatives.
+\newblock \emph{Matematicheskii Sbornik}, \textbf{31}(73), 575--586.
+
+\bibitem{Fenichel1979}
+Fenichel, N. (1979).
+\newblock Geometric singular perturbation theory for ordinary differential
+equations.
+\newblock \emph{Journal of Differential Equations}, \textbf{31}, 53--98.
+
+\bibitem{SegelSlemrod1989}
+Segel, L. A. and Slemrod, M. (1989).
+\newblock The quasi-steady-state assumption: a case study in perturbation.
+\newblock \emph{SIAM Review}, \textbf{31}(3), 446--477.
+
+\bibitem{MaasPope1992}
+Maas, U. and Pope, S. B. (1992).
+\newblock Simplifying chemical kinetics: intrinsic low-dimensional manifolds in
+composition space.
+\newblock \emph{Combustion and Flame}, \textbf{88}, 239--264.
+
+\bibitem{LamGoussis1994}
+Lam, S. H. and Goussis, D. A. (1994).
+\newblock The CSP method for simplifying kinetics.
+\newblock \emph{International Journal of Chemical Kinetics}, \textbf{26}, 461--486.
+
+\bibitem{EEngquist2003}
+E, W. and Engquist, B. (2003).
+\newblock The heterogeneous multiscale methods.
+\newblock \emph{Communications in Mathematical Sciences}, \textbf{1}(1), 87--132.
+
+\bibitem{Kevrekidis2003}
+Kevrekidis, I. G., Gear, C. W., Hyman, J. M., Kevrekidis, P. G., Runborg, O.,
+and Theodoropoulos, C. (2003).
+\newblock Equation-free, coarse-grained multiscale computation: enabling
+microscopic simulators to perform system-level analysis.
+\newblock \emph{Communications in Mathematical Sciences}, \textbf{1}(4), 715--762.
+
+\bibitem{GearKevrekidis2003}
+Gear, C. W. and Kevrekidis, I. G. (2003).
+\newblock Projective methods for stiff differential equations: problems with
+gaps in their eigenvalue spectrum.
+\newblock \emph{SIAM Journal on Scientific Computing}, \textbf{24}(4), 1091--1106.
+
+\bibitem{AscherRuuthSpiteri1997}
+Ascher, U. M., Ruuth, S. J., and Spiteri, R. J. (1997).
+\newblock Implicit-explicit Runge-Kutta methods for time-dependent partial
+differential equations.
+\newblock \emph{Applied Numerical Mathematics}, \textbf{25}, 151--167.
+
+\bibitem{Strang1968}
+Strang, G. (1968).
+\newblock On the construction and comparison of difference schemes.
+\newblock \emph{SIAM Journal on Numerical Analysis}, \textbf{5}(3), 506--517.
+
+\bibitem{Chinesta2011}
+Chinesta, F., Ammar, A., and Cueto, E. (2011).
+\newblock Recent advances and new challenges in the use of the proper
+generalized decomposition for solving multidimensional models.
+\newblock \emph{Archives of Computational Methods in Engineering}, \textbf{18}, 395--404.
+
+\end{thebibliography}
+
+\end{document}

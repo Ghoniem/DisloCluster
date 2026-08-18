@@ -11,6 +11,8 @@
 #include <deque>
 #include <limits>       // numeric_limits, for the pair-cutoff distance test
 #include <algorithm>    // min
+#include <vector>
+#include <Eigen/SparseLU>   // the real Eq. (50) solve, in place of row lumping
 
 
 #include <ClusterDynamicsParameters.h>
@@ -91,14 +93,18 @@ namespace model
     template <typename DislocationNetworkType>
     void GalerkinClimbSolver<DislocationNetworkType>::computeClimbScalarVelocitiesBulk()
     {
-//        std::vector<std::vector<Eigen::Triplet<double>>> lhsT(mSize);
-        std::vector<Eigen::VectorXd> Fc(mSize,Eigen::VectorXd::Zero(this->DN.networkNodes().size()));
-        std::vector<Eigen::VectorXd> KKc(mSize,Eigen::VectorXd::Zero(this->DN.networkNodes().size()));
-//        bool useLumpedSolver(true);
-        
+        const size_t nNodes(this->DN.networkNodes().size());
+        std::vector<TripletContainerType> lhsT(mSize);
+        std::vector<Eigen::VectorXd> Fc(mSize,Eigen::VectorXd::Zero(nNodes));
+        std::vector<Eigen::VectorXd> KKc(mSize,Eigen::VectorXd::Zero(nNodes));
+        // The lumped vector KKc is assembled either way: it is cheap, it is the
+        // legacy path under climbLumpedSolver=1, and it is the fallback if the
+        // sparse factorization fails.
+        const bool lumped(this->CD->cdp.climbLumpedSolver!=0);
+
 #ifdef _OPENMP
         const size_t nThreads(omp_get_max_threads());
-//        std::vector<std::vector<std::vector<Eigen::Triplet<double>>>> lhsTV(nThreads,lhsT);
+        std::vector<std::vector<TripletContainerType>> lhsTV(nThreads,lhsT);
         std::vector<std::vector<Eigen::VectorXd>> KKcT(nThreads,KKc);
         std::vector<std::vector<Eigen::VectorXd>> FcT(nThreads,Fc);
         const EqualIteratorRange<typename DislocationNetworkType::NetworkLinkContainerType::const_iterator> eir(this->DN.networkLinks().begin(),this->DN.networkLinks().end(),nThreads);
@@ -107,6 +113,7 @@ namespace model
         {
             auto& Fc_ref(FcT[thread]);
             auto& KKc_ref(KKcT[thread]);
+            auto& lhs_ref(lhsTV[thread]);
             for(auto fieldLinkIter=eir[thread].first;fieldLinkIter!=eir[thread].second;++fieldLinkIter)
 //            for(const auto& fieldLink : this->DN.networkLinks())
             {// sum line-integral part of displacement field per segment
@@ -114,6 +121,7 @@ namespace model
 #else
                 auto& Fc_ref(Fc);
                 auto& KKc_ref(KKc);
+                auto& lhs_ref(lhsT);
                 for(const auto& fieldLink : this->DN.networkLinks())
                 {
 #endif
@@ -205,31 +213,38 @@ namespace model
                             for(int kc=0; kc<mSize; ++kc)
                             {
                                 const Eigen::Matrix<double,2,2> kccs(kcc.template block<2,2>(2*kc,0));
-                                
-//                                if(useLumpedSolver)
-//                                {
-//#ifdef _OPENMP
-//#pragma omp critical
-//#endif
-//                                    {
+
+                                        // Legacy lumped vector: a symmetrized
+                                        // row+column sum, kept for
+                                        // climbLumpedSolver=1 and as the
+                                        // fallback if the factorization fails.
                                         KKc_ref[kc](i0)+=0.5*kccs(0,0)+0.5*kccs(0,1);
                                         KKc_ref[kc](j0)+=0.5*kccs(0,0)+0.5*kccs(1,0);
                                         KKc_ref[kc](i1)+=0.5*kccs(1,0)+0.5*kccs(1,1);
                                         KKc_ref[kc](j1)+=0.5*kccs(0,1)+0.5*kccs(1,1);
 
-                                        
-                                        //lhsT[kc].emplace_back(i0,i0,0.5*kccs(0,0));
-                                        //lhsT[kc].emplace_back(j0,j0,0.5*kccs(0,0));
-                                        
-                                        //lhsT[kc].emplace_back(i0,i0,0.5*kccs(0,1));
-//                                        lhsT[kc].emplace_back(j1,j1,0.5*kccs(0,1));
-                                        
-//                                        lhsT[kc].emplace_back(i1,i1,0.5*kccs(1,0));
-                                        //lhsT[kc].emplace_back(j0,j0,0.5*kccs(1,0));
-                                        
-  //                                      lhsT[kc].emplace_back(i1,i1,0.5*kccs(1,1));
-//                                        lhsT[kc].emplace_back(j1,j1,0.5*kccs(1,1));
-//                                    }
+                                        /* THE ACTUAL OPERATOR of Eq. (50).
+                                         *
+                                         * `clusterStiffnessKernel` forms
+                                         * kccs = m * G_row, an outer product of
+                                         *   m     = [(1-u) bxt.n_i0, u bxt.n_i1]
+                                         * (the field segment's shape functions,
+                                         * i.e. the EQUATION rows i0,i1) with
+                                         *   G_row = concentrationMatrices.row(kc)
+                                         * (the concentration produced at the
+                                         * field point per unit climb velocity of
+                                         * the source segment's nodes, i.e. the
+                                         * UNKNOWN columns j0,j1).
+                                         *
+                                         * So the entry (row, col) mapping is
+                                         * exactly kccs(a,b) -> K(i_a, j_b), and
+                                         * nothing may be collapsed onto the
+                                         * diagonal. F is assembled on the same
+                                         * rows i0,i1 by clusterForceVector. */
+                                        lhs_ref[kc].emplace_back(i0,j0,kccs(0,0));
+                                        lhs_ref[kc].emplace_back(i0,j1,kccs(0,1));
+                                        lhs_ref[kc].emplace_back(i1,j0,kccs(1,0));
+                                        lhs_ref[kc].emplace_back(i1,j1,kccs(1,1));
 //                                }
 //                                else
 //                                {
@@ -277,38 +292,105 @@ namespace model
                 {
                     Fc[kc]+=FcT[thread][kc];
                     KKc[kc]+=KKcT[thread][kc];
-//                    lhsT[kc].insert(lhsT[kc].end(), lhsTV[thread][kc].begin(), lhsTV[thread][kc].end());
+                    lhsT[kc].insert(lhsT[kc].end(), lhsTV[thread][kc].begin(), lhsTV[thread][kc].end());
                 }
             }
 #endif
         
-//        Eigen::SparseMatrix<double> Kcc(this->DN.networkNodes().size(),this->DN.networkNodes().size());
-        std::vector<Eigen::Array<double,1,mSize>> nodeV(this->DN.networkNodes().size(),Eigen::Array<double,1,mSize>::Zero());
-        
+        std::vector<Eigen::Array<double,1,mSize>> nodeV(nNodes,Eigen::Array<double,1,mSize>::Zero());
+
         for(int kc=0; kc<mSize; ++kc)
         {
-//            Kcc.setFromTriplets(lhsT[kc].begin(),lhsT[kc].end());
-            
-//            if(size_t(Kcc.rows())!=this->DN.networkNodes().size() || size_t(Kcc.cols())!=this->DN.networkNodes().size())
-//            {
-//                throw std::runtime_error("the Stiffness Matrix size is not equal to the node size.");
-//            }
-            
-//            if(useLumpedSolver)
-//            {
-//                Eigen::VectorXd Kccd(Kcc.diagonal());
-                for (size_t n=0; n<this->DN.networkNodes().size(); n++)
+            // The lumped answer: computed always, used directly when
+            // climbLumpedSolver=1 and as the fallback below.
+            Eigen::VectorXd vLumped(Eigen::VectorXd::Zero(nNodes));
+            for(size_t n=0; n<nNodes; ++n)
+            {
+                if(std::fabs(KKc[kc](n))>FLT_EPSILON)
                 {
-                    if(std::fabs(KKc[kc](n))>FLT_EPSILON)
+                    vLumped(n)=Fc[kc](n)/KKc[kc](n);
+                }
+            }
+
+            if(lumped)
+            {
+                for(size_t n=0; n<nNodes; ++n)
+                {
+                    nodeV[n](kc)=vLumped(n);
+                }
+                continue;
+            }
+
+            /* SOLVE Eq. (50) AS WRITTEN: K w = F.
+             *
+             * A node that carries no climb equation -- a purely glide node, a
+             * boundary or grain-boundary node, a node on a zero-Burgers or
+             * non-sessile segment -- contributes no triplet and no force, so its
+             * row and column are empty. Left alone that makes K singular. Those
+             * rows are given a unit diagonal against a zero force, which pins
+             * w=0 there: the same answer the lumped path gave them (its
+             * |KKc|>eps test skipped them), and it keeps the participating block
+             * untouched. */
+            SparseMatrixType Kcc(nNodes,nNodes);
+            Kcc.setFromTriplets(lhsT[kc].begin(),lhsT[kc].end());
+            Kcc.makeCompressed();
+
+            std::vector<bool> active(nNodes,false);
+            for(int c=0; c<Kcc.outerSize(); ++c)
+            {
+                for(typename SparseMatrixType::InnerIterator it(Kcc,c); it; ++it)
+                {
+                    if(std::fabs(it.value())>0.0)
                     {
-                        nodeV[n](kc)=Fc[kc](n)/KKc[kc](n);
+                        active[it.row()]=true;
                     }
                 }
-//            }
-//            else
-//            {
-//                throw std::runtime_error("GalerkinClimbSolver: only the lumped solver is implemented.");
-//            }
+            }
+            TripletContainerType pinned;
+            for(size_t n=0; n<nNodes; ++n)
+            {
+                if(!active[n])
+                {
+                    pinned.emplace_back(n,n,1.0);
+                }
+            }
+            if(pinned.size())
+            {
+                TripletContainerType all(lhsT[kc]);
+                all.insert(all.end(),pinned.begin(),pinned.end());
+                Kcc.setZero();
+                Kcc.setFromTriplets(all.begin(),all.end());
+                Kcc.makeCompressed();
+            }
+
+            Eigen::SparseLU<SparseMatrixType,Eigen::COLAMDOrdering<int>> solver;
+            solver.analyzePattern(Kcc);
+            solver.factorize(Kcc);
+            bool ok(solver.info()==Eigen::Success);
+            Eigen::VectorXd w;
+            if(ok)
+            {
+                w=solver.solve(Fc[kc]);
+                ok=(solver.info()==Eigen::Success) && w.allFinite();
+            }
+            if(!ok)
+            {
+                /* NEVER fall through to a wrong answer in silence. A failed
+                 * factorization means the pair assembly is degenerate -- most
+                 * likely a duplicated node position -- and the lumped value is
+                 * the only thing left. Say so loudly, because a run that
+                 * silently reverts to the lumped path is exactly the situation
+                 * this change exists to end. */
+                std::cout<<redBoldColor<<"GalerkinClimbSolver: SparseLU failed for"
+                         <<" mobile species "<<kc<<"; falling back to the LUMPED"
+                         <<" velocity for this species. The climb condition is"
+                         <<" NOT enforced."<<defaultColor<<std::endl;
+                w=vLumped;
+            }
+            for(size_t n=0; n<nNodes; ++n)
+            {
+                nodeV[n](kc)=w(n);
+            }
         }
 
         this->scalarVelocities().resize(this->DN.networkNodes().size(),Eigen::Array<double,1,mSize>::Zero());

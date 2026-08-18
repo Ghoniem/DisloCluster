@@ -1,0 +1,272 @@
+# ===========================================================================
+#  Zr3d_ghoniem -- ZrMicro-based cluster dynamics for MoDELib (DisloCluster)
+# ===========================================================================
+#  This is NOT Po's Zr4.txt. It is a distinct material definition whose
+#  cluster-dynamics equations and parameters are taken from the ZrMicro 0-D
+#  code (DisloCluster/ZrClusterDynamics/ZrMicro), so that the 3-D spatially-resolved solve
+#  reduces to the 0-D result in the well-mixed limit. Zr4.txt is untouched and
+#  remains Po's standalone 3-D calibration; where a value here differs from it,
+#  the original is recorded in the adjacent comment.
+#
+#  Everything outside the "# ClusterDynamics" section below (elasticity,
+#  mobility laws, gamma-surface) is inherited from Zr4.txt unchanged.
+#
+#  0-D reference : ZrMicro/input/Zr_input_parameters.xlsx with the fitted
+#                  override set of run output/20260622_144021_7959445
+#  Conditions    : T = 573 K, G = 1e-7 dpa/s, zero applied stress
+#  Formulation   : Po & Ghoniem, Deliverable D1/M1 (GW_Phase4_D1M1_NG.pdf)
+#
+#  The accompanying C++ changes live on the `zr3d_ghoniem` branch of this repository:
+#  iSize 0 -> 8, the Sec. 2.2 immobile kinetics in ClusterDynamicsFEM.cpp,
+#  ImmobileSinks.h, the optional atomicVolume_SI key, and the r_min unit fix.
+#  Those changes require iSize=8, so Po's Zr4.txt cannot be run from this
+#  branch; check out main for that.
+# ===========================================================================
+materialName=Zr;
+crystalStructure=HEX;
+atomsPerUnitCell=2;
+enabledSlipSystems=fullBasal fullPrismatic; # types of slip systems enabled e.g. enabledSlipSystems=fullBasal ShockleyBasal fullPrismatic fullPyramidal;
+b_SI=0.3233e-9; #0.3615e-9; # [m] 		Burgers vector magnitude 
+mu0_SI=33e9;	# [Pa] 		temperature-independent shear modulus coeff in mu=mu0+mu1*T
+mu1_SI=0.0;		# [Pa/K] 	temperature-dependent shear modulus coeff in mu=mu0+mu1*T
+nu=0.34;		# [-]		Poisson's ratio
+rho_SI=6520.0;	# [kg/m^3]	mass density
+Tm=2128;		# [K]		melting temperature
+
+# Mobility parameters in basal planes
+dislocationMobilityTypeBasal=default; # default or FCC,BCC,HEXbasal,HEXprismatic,HEXpyramidal 
+B0e_SI_b=50.e-6;	# [Pa*s]	temperature-independent drag coefficient for edge  dislocations
+B1e_SI_b=0.0;	# [Pa*s/K]	temperature-dependent drag coefficient for edge  dislocations
+B0s_SI_b=50.e-6;		# [Pa*s]	temperature-independent drag coefficient for screw  dislocations
+B1s_SI_b=0.0;			# [Pa*s/K]	temperature-dependent drag coefficient for screw  dislocations
+Bk_SI_b=50.e-6;		# [Pa*s]	drag coefficient for kinks
+dH0_eV_b=5.06;		# [eV]		enthalpy barrier for kink nucleation
+p_b=0.86;				# [-]		mobility exponent
+q_b=1.69;				# [-]		mobility exponent
+Tf_b=0.8;				# [-]		athermal transition temperature in fraction of Tm 
+tauC_SI_b=137.24e6;		# [Pa]		Peierls stress
+a0_b=1;			# [-]		non-Schmid coefficient
+a1_b=0;			# [-]		non-Schmid coefficient
+a2_b=0;			# [-]		non-Schmid coefficient
+a3_b=0;			# [-]		non-Schmid coefficient
+
+# Mobility parameters in prismatic planes (G.Po et al. A phenomenological dislocation mobility law for bcc metals. Acta Mater 119, 2016)
+dislocationMobilityTypePrismatic=default; # default or FCC,BCC,HEXbasal,HEXprismatic,HEXpyramidal 
+B0e_SI_p=50.e-6;	# [Pa*s]	temperature-independent drag coefficient for edge  dislocations in 
+B1e_SI_p=0.0;	# [Pa*s/K]	temperature-dependent drag coefficient for edge  dislocations
+B0s_SI_p=50.e-6;		# [Pa*s]	temperature-independent drag coefficient for screw  dislocations
+B1s_SI_p=0.0;			# [Pa*s/K]	temperature-dependent drag coefficient for screw  dislocations
+Bk_SI_p=50.e-6;		# [Pa*s]	drag coefficient for kinks
+dH0_eV_p=2.3;		# [eV]		enthalpy barrier for kink nucleation
+p_p=0.86;				# [-]		mobility exponent
+q_p=1.69;				# [-]		mobility exponent
+Tf_p=0.8;				# [-]		athermal transition temperature in fraction of Tm 
+tauC_SI_p=38.22e6;		# [Pa]		Peierls stress
+a0_p=1;			# [-]		non-Schmid coefficient
+a1_p=0;			# [-]		non-Schmid coefficient
+a2_p=0;			# [-]		non-Schmid coefficient
+a3_p=0;			# [-]		non-Schmid coefficient
+
+# Mobility parameters in pyramidal planes
+dislocationMobilityTypePyramidal=default; # default or FCC,BCC,HEXbasal,HEXprismatic,HEXpyramidal 
+B0e_SI_py=50.e20;			# [Pa*s]	temperature-independent drag coefficient for edge  dislocations			
+B1e_SI_py=0.0;	# [Pa*s]	temperature-dependent drag coefficient for edge  dislocations			
+B0s_SI_py=50.e20;			# [Pa*s]	temperature-independent drag coefficient for screw dislocations	
+B1s_SI_py=0.0;	# [Pa*s]	temperature-dependent drag coefficient for screw dislocations	
+
+# Gamma-surface
+ISF_SI=213e-3; 		# [J/m^2]	intrinsic stacking fault energy (E. Cluet data)
+USF_SI=261e-3; 		# [J/m^2]	unstable stacking fault energy (E. Cluet data)
+MSF_SI=653e-3; 		# [J/m^2]	maximum stacking fault energy (E. Cluet data)
+
+# GlidePlane Noise
+solidSolutionNoiseMode=0; # 0=no noise, 1= read noise, 2=compute noise
+stackingFaultNoiseMode=0; # 0=no noise
+
+# Second Phases
+enabledSecondPhases=;
+
+# ClusterDynamics
+doseRate_dpaPerSec=1.0e-7; 		# [dpa/s] irradiation dose rate
+# Atomic volume for the cluster-dynamics equations. OPTIONAL key: without it the
+# code falls back to det(latticeBasis)*b^3 = 1.41421*b^3 = 4.779e-29 m^3, which is
+# the HEX CELL volume (two atoms), ~4x the value the 0-D model uses. Set here to
+# the 0-D value so content <-> radius <-> density conversions agree.
+atomicVolume_SI=2.326553e-29;   # [m^3] ZrMicro physical_props['Omega'].
+# hcp Zr: (sqrt(3)/2)*a^2*c/2 with a=b_a=3.23e-10, c=b_c=5.15e-10 and TWO
+# atoms per primitive cell. Cross-checks against M_Zr/(rho_SI*N_A) =
+# 2.3233e-29 to 0.14%. Was 1.2e-29 = V_cell/4, i.e. four atoms in a cell
+# that holds two -- 0.516x the physical value. MUST stay equal to the
+# workbook's Omega: the 0-D <-> 3-D bridge converts through this key.
+# ===========================================================================
+#  MOBILE SPECIES -- RECONCILED WITH THE ZrMicro 0-D MODEL (T = 573 K)
+#
+#  Everything in this block was reset so that the 3-D SR-CD solve sees exactly
+#  the production rates and diffusivities of the 0-D reduction it is being
+#  verified against. The ORIGINAL MoDELib values are preserved in comments; put
+#  them back to recover the standalone 3-D calibration.
+#
+#  0-D reference: ZrMicro/input/Zr_input_parameters.xlsx with the fitted
+#  override set of run output/20260622_144021_7959445.
+# ===========================================================================
+mobileSpeciesVector=-1 1 2 3;			# single vacancies
+# 0-D: every displaced atom survives as a free point defect except the fractions
+# bound into clusters/loops in-cascade, i.e. efficiency 1 with the fractions
+# carrying eps_vL, eps_iL, eps_2i, eps_3i.  ORIGINAL: 0.01
+mobileSpeciesSurvivingEfficiency=1.0; # Surviving efficiency
+# G_v/G   = 1-eps_vL                       = 1-0.005                        = 0.995
+# G_i/G   = 1-eps_2i-eps_3i-eps_iL         = 1-0.01-0.01-0.00211286  = 0.97788714
+# G_2i/G  = eps_2i/2  (CLUSTER production, 2 SIA per di-interstitial)  = 0.005
+# G_3i/G  = eps_3i/3  (CLUSTER production, 3 SIA per tri-interstitial) = 0.00333333
+# ORIGINAL: 1.0 0.6 0.3212 0.0788
+mobileSpeciesCascadeFractions=0.995 0.97788714 0.005 0.00333333;
+mobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2; 	# [-] relative vacancy relaxation volume
+# 0-D E_F_v = 1.6 eV  (gives C_v_eq = 8.45e-15 at 573 K).  ORIGINAL: 1.5 ...
+mobileSpeciesEnergyFormation_eV=1.6 3.0 6.0 8.0; 	# [eV] vacancy formation energy
+# The 0-D works in jump frequencies, omega_m = z_c*nu_m*exp(-E_m/kT), and forms
+# D_m = (a^2/z_c)*omega_m = a^2*nu_m*exp(-E_m/kT). With a=3.23e-10 m, nu=5e12 1/s
+# that is D0 = a^2*nu = 5.21645e-7 m^2/s for EVERY species, isotropic, with the
+# 0-D migration energies E_m_v=1.2, E_m_i=0.759101, E_m_2i=E_m_3i=1.36292 eV.
+#
+# NOTE this makes the diffusion tensors isotropic, so the DAD anisotropy is no
+# longer generated by them -- consistent with the calibration choice recorded in
+# dadAnisotropy/dadZ0 below, which are fitted to the 0-D symmetric bias forms
+# rather than derived from D_c/D_a. Anisotropic transport is the physics the 3-D
+# model adds; it is deliberately switched off for this verification.
+#
+# ORIGINAL: 0.9 / 0.09 / 0.041..0.187 eV with D0 4.9639e-10 (v), 8.1882e-10 (i).
+# Those gave D_i ~1200x and D_2i ~2.5e8x the 0-D values at 573 K.
+# TRANSPORT of 2i/3i uses the MONOMER migration energy, not E_m_2i=1.36292 eV.
+# This follows ZrMicro, which is inconsistent on the point but unambiguous about
+# which frequency it applies where: R_2i_s / R_3i_s (network sinks) and flux_i
+# (loop absorption) all use omega_i, and omega_2i appears ONLY in the
+# mobile-mobile cluster reactions. Those reaction rates are matched exactly
+# through reactionPrefactorMap below, which carries the omega_2i/omega_i factor.
+# Using E_m_2i for transport instead makes D_2i ~5e-6 of D_i; because the mobile
+# solve is a pure steady-state (QSSA) system with no mass term, the 2i/3i block
+# then has nothing but a vanishing diffusion operator on its diagonal and the
+# sparse LU factorization of the Newton matrix fails outright.
+mobileSpeciesEnergyMigration_eV=1.2 0 0 1.2 0 1.2
+       0.7501902603 0 0 0.7501902603 0 0.7769224795
+       0.7501902603 0 0 0.7501902603 0 0.7769224795
+       0.7501902603 0 0 0.7501902603 0 0.7769224795;  # [eV] components [11 12 13 22 23 33]. GENERATED by staging/anisotropy.py from p_m at T=573 K -- edit p_m, not these.  # [eV] components [11 12 13 22 23 33]. GENERATED by staging/anisotropy.py from p_m at T=573 K -- edit p_m, not these.  # [eV] migration energies, components [11 12 13 22 23 33]
+mobileSpeciesD0_SI=5.21645e-7 0.0 0.0 5.21645e-7 0.0 5.21645e-7
+       5.21645e-7 0.0 0.0 5.21645e-7 0.0 5.21645e-7
+       5.21645e-7 0.0 0.0 5.21645e-7 0.0 5.21645e-7
+       5.21645e-7 0.0 0.0 5.21645e-7 0.0 5.21645e-7; # [m^2/s] pre-exponential diffusion coefficients, components [11 12 13 22 23 33]
+computeReactions=1;
+# --- second-order reaction prefactors, RECONCILED WITH THE 0-D -------------
+# MoDELib forms  K_ab = p_ab*4*pi*(r_a+r_b)*(D_a+D_b)/Omega  (getR2), with
+#   r = (3*Omega/4pi)^(1/3) for |m|=1 and r = sqrt(|m|*Omega/(b*pi)) otherwise.
+# ZrMicro forms  K_ab = f_ab*(omega_a+omega_b) = f_ab*(z_c/a^2)*(D_a+D_b),
+#   f = 0.5 for v+i (physical_props['recom']), 1 otherwise, with the
+#   like-species channels carrying the extra factors of R_i_i = 2*omega_i*Ci^2
+#   and R_2i_2i = 4*omega_2i*C2i^2.
+# Equating the two, with z_c=48, a=3.23e-10 m, Omega=1.2e-29 m^3:
+#   p_ab = f_ab*(z_c/a^2)*Omega/(4*pi*(r_a+r_b))
+# ORIGINAL MoDELib values: v+i 2.856, all others 1.0 or 0.0.
+# v+v and 3i+3i stay at zero: ZrMicro has no such channel.
+# NOTE i+3i has no 4i species to receive its product, so that channel does not
+# conserve interstitials -- this is what triggers "Warning: Sum of R2 is not
+# zero" at start-up. ZrMicro truncates the cluster ladder at the same place.
+# Pairs involving 2i/3i additionally carry (D^0D_a+D^0D_b)/(D^3D_a+D^3D_b), which
+# restores the omega_2i-based ZrMicro rate now that 2i/3i TRANSPORT at the monomer
+# diffusivity (see mobileSpeciesEnergyMigration_eV). omega_2i/omega_i = 4.886e-6.
+reactionPrefactorMap=-1 -1 0.0
+             -1  1 0.773363
+             -1  2 2.039512e-04
+             -1  3 1.826184e-04
+              1  1 1.546726
+              1  2 0.742786
+              1  3 0.665093
+              2  2 1.396465e-05
+              2  3 6.276966e-06
+              3  3 0.0; # Reaction map between species (species,species,reaction prefactor)
+discreteDislocationBias=1.0 1.05 1.05 1.05
+            1.0 1.1 1.1 1.1; # [-] Elastic Bias interaction scaling factor between discrete dislocation loops [v;i] and mobile species [v,i,2i,...]
+otherSinks_SI=1.880000e+14 1.898800e+14 1.898800e+14 1.898800e+14; # NETWORK dislocation sink strength [1/m^2], 0-D Eq.(66): k2_v=rho_N, k2_i=Z_N*rho_N (Z_N=1.01). Enters R1 as -k2*Dbar (getR1). The grain-boundary sink is NOT included here: it is imposed spatially through the Dirichlet BC on the mobile species.
+
+########################################################################
+# Immobile loop families -- Deliverable D1/M1 Sec. 2.2
+# Family order: {vL (basal <c>, vacancy), a1, a2, a3 (prismatic <a>, interstitial)}
+immobileSpeciesVector=-1 1 1 1;                # polarity: -1 vacancy, +1 interstitial
+immobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2;  # [-] relative relaxation volume
+# Columns: Burgers direction of each family, in LATTICE components (they are
+# multiplied by latticeBasis, NOT Cartesian). For HEX with
+#   latticeBasis = [1 0.5 0; 0 0.8660254 0; 0 0 1.632993]
+# the three equivalent <a> prismatic directions are (1,0,0), (0,1,0), (-1,1,0),
+# all of Cartesian length 1; <c> is (0,0,1), of length c/a = 1.632993.
+# Writing Cartesian components here instead gives |b| = 1.0, 0.753, 1.197 for the
+# three <a> families, which makes them INEQUIVALENT -- visible as three different
+# <a> loop densities at zero applied stress, where they must be identical.
+immobileSpeciesBurgers=0.0 1.0 0.0 -1.0
+                       0.0 0.0 1.0  1.0
+                       1.0 0.0 0.0  0.0;
+alpha_bp=1.0;          # [-] bi-pyramid sink-strength coefficient, Eq. (14)
+delVPyramid=1.2e-29;   # [m^3] pyramid formation volume
+w0=0.15;               # [-] sigmoid width factor, Eq. (31)
+n_s=0.0;               # [-] sigmoid midpoint shift, Eq. (31)
+# Index 0 (vacancy) is consumed by the LOOP emission term of Eq. (55)-(56):
+# ZrMicro uses e_v_vL = exp(-5 eV/kT), hence 5.0. Indices 2 and 3 are the MOBILE
+# cluster dissociation energies used by getR1: ZrMicro E_b_2i = 0.957033 (fitted)
+# and E_b_3i = 2.0 eV. Index 1 is unused (monomers do not dissociate).
+# ORIGINAL: 5.0 5.0 5.0 5.0
+Eb_eV=5.0 5.0 0.957033 2.0; # [eV] binding energies, Eq. (9)/(55)
+evc=0.005;             # [-] vacancy cluster generation efficiency
+Nvmax=1.0e24;          # [m^-3] saturation density of vacancy loops
+nmin=100 40 40 40;     # [-] lower end of the bi-pyramid->loop window, Eq. (31)
+nmax=800 300 300 300;  # [-] upper end of the window, Eq. (31)
+r_min=1.0e-9 1.0e-9 1.0e-9 1.0e-9;   # [m] minimum stable radius, gate Eq. (91)
+distanceFactor=1.0;    # [-] discrete loop generation distance factor
+# --- loop kinetics (Sec. 2.2) ---
+loopCascadeFractions=0.005 0.000704 0.000704 0.000704; # eps_k, Eq. (51); a-loops split 3 ways
+nNuc=400 300 300 300;  # [-] defects per cascade-nucleated loop, Eq. (36)
+cLL=0.162483 120.577 120.577 120.577;  # like-loop coalescence coefficient, Eq. (99)
+cLN=2.95829 1130.85 1130.85 1130.85;   # loop-network coalescence coefficient, Eq. (99)
+kappaLL=2.0;           # [-] Avrami overlap, like-loop channel, Eq. (98)
+kappaLN=0.4;           # [-] Avrami overlap, loop-network channel, Eq. (98)
+tau0_vLoop_SI=1.05145; # [s] vacancy-loop dissolution prefactor, Eq. (95)
+Ea_vLoop_eV=0.470079;  # [eV] vacancy-loop dissolution activation energy, Eq. (95)
+rhoNetwork_SI=1.88e14; # [m^-2] network dislocation density
+# --- DAD bias calibration, Eq. (15) ---
+# Fitted (EXACTLY, by inverting Eq.15) to the 0-D empirical symmetric forms of
+# Eqs.(63)-(64) at T=573 K, with delta_i(573K)=0.072113 and delta_v=0.107886:
+#     target  Z^a_v=0.892114  Z^c_v=1.107886   Z^a_i=1.072113  Z^c_i=0.927887
+#     fitted  p = (2*Z_a/Z_c - 1)^(-1/3),  Z0 = Z_c/p   -> residual 1e-16
+# NOTE: delta_i is temperature-interpolated in the 0-D model, so these values are
+# tied to T=573 K; refit if the run temperature changes.
+dadAnisotropy=1 0.91372 0.91372 0.91372;  # p_m per mobile species. GENERATED with the migration energies above from one source, so the tensor and the capture efficiencies cannot disagree.  # p_m per mobile species. GENERATED with the migration energies above from one source, so the tensor and the capture efficiencies cannot disagree.  # p_m per mobile species
+dadZ0=0.939836 1.015504 1.015504 1.015504;          # Z0_m per mobile species
+# Per-family multiplier on the loop sink strength S_k = 2*pi*r_k*N_k, reproducing
+# ZrMicro's convention EXACTLY. Two departures from the purely geometric form:
+#
+#  (a) ZrMicro applies the <c> loop radius prefactor l_c = sqrt(Omega/(pi*b_c)) to
+#      ALL FOUR families -- l_a is computed in input_data.py and never used, and
+#      reaction_rates.loop_absorption() uses lc_l = l_c/l for every family. The 3-D
+#      builds r_k from each family's own |b_k|, so each family needs
+#          sqrt(|b_k|_MoDELib / b_c_ZrMicro)
+#      with b_c = 5.15e-10 m (ZrMicro) against 1.632993*b_SI = 5.279467e-10 m and
+#      1.0*b_SI = 3.233e-10 m (MoDELib).
+#        <c>: sqrt(5.279467/5.15) = 1.012495
+#        <a>: sqrt(3.233/5.15)    = 0.792317
+#
+#  (b) ZrMicro carries the fitted Q = 0.287931 on the <c> channel only:
+#        <c>: 1.012495 * 0.287931 = 0.291528
+#
+# Applied identically to the mobile-species sink and to the loop growth flux, as in
+# the 0-D where both come from the same prefactor. Set to 1 1 1 1 for the purely
+# geometric form.
+loopSinkScale=0.291528 0.792317 0.792317 0.792317;  # [-] <c>, <a>x3
+# Positivity floor on every concentration, as ZrMicro's C_floor
+# (rate_equations.py: y = max(y, C_floor) before each rate evaluation).
+# Applied to the mobile species after each Newton update and to the immobile
+# densities/contents after each sub-step. Stated PER ATOM, exactly as in the 0-D:
+# loop contents (volume fractions) take it directly, number densities take
+# C_floor/Omega since they are carried per b^3.
+# The imposed grain-boundary Dirichlet values are exempt -- for interstitials the
+# equilibrium value is exp(-3.0/kT) = 4.1e-27, below this floor, and flooring it
+# would disable the grain boundary as an interstitial sink.
+concentrationFloor=1.0e-20;   # [-] ZrMicro model_params['C_floor']
+outputSuperposedMobile=1;  # GENERATED by coupling/transition.enable_discrete_climb
+climbNeighborCutoff_b=714.0986296;  # GENERATED by coupling/transition.enable_discrete_climb
+climbLumpedSolver=0;

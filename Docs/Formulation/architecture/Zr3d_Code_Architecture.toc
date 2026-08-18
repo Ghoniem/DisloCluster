@@ -1,0 +1,40 @@
+\contentsline {section}{\numberline {1}General Architecture}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}The problem the architecture has to solve}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Two execution routes}{2}{subsection.1.2}%
+\contentsline {subsection}{\numberline {1.3}The notebook workflow, cell by cell}{3}{subsection.1.3}%
+\contentsline {subsection}{\numberline {1.4}The dose march}{4}{subsection.1.4}%
+\contentsline {section}{\numberline {2}Code Components}{5}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Repositories}{5}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Python components (\texttt {\footnotesize Fluor\_Zr/ZrMicro/py\_utils/})}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}C++ components}{6}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}How the components interact}{7}{subsection.2.4}%
+\contentsline {section}{\numberline {3}Code Input}{8}{section.3}%
+\contentsline {subsection}{\numberline {3.1}\textsf {ZrMicro}{} workbook: \texttt {\footnotesize ZrMicro/input/Zr\_input\_parameters.xlsx}}{8}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Notebook run controls}{8}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}\textsf {MoDELib3}{} material file: \texttt {\footnotesize Library/Materials/Zr3d\_ghoniem.txt}}{8}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}\textsf {MoDELib3}{} simulation files}{10}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Unit systems, and the conversions between them}{10}{subsection.3.5}%
+\contentsline {section}{\numberline {4}Code Flowchart}{10}{section.4}%
+\contentsline {subsection}{\numberline {4.1}The inner loop of Route B}{13}{subsection.4.1}%
+\contentsline {section}{\numberline {5}Code Classes and Data Structures}{13}{section.5}%
+\contentsline {subsection}{\numberline {5.1}The two state vectors}{13}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Python classes}{14}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}C++ structures: \textsf {ZrMicro}{}}{15}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}C++ classes: \textsf {MoDELib3}{}}{15}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Relationships among the structures}{17}{subsection.5.5}%
+\contentsline {section}{\numberline {6}Changes and Differences from Upstream}{17}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Which upstream --- a correction}{17}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}What \textsf {MoDELib2-NNL}{} contains}{18}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Equations added}{19}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Corrections to pre-existing code}{19}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}Input data: the mobile block}{20}{subsection.6.5}%
+\contentsline {subsection}{\numberline {6.6}Input data: the immobile block}{21}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.7}What is unchanged}{21}{subsection.6.7}%
+\contentsline {section}{\numberline {A}Code Manual}{22}{section.A}%
+\contentsline {subsection}{\numberline {A.1}Prerequisites}{22}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}Building}{22}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}Running}{23}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}Post-processing}{23}{subsection.A.4}%
+\contentsline {subsection}{\numberline {A.5}Changing things}{23}{subsection.A.5}%
+\contentsline {subsection}{\numberline {A.6}Troubleshooting}{24}{subsection.A.6}%
+\contentsline {subsection}{\numberline {A.7}Reproducibility}{25}{subsection.A.7}%

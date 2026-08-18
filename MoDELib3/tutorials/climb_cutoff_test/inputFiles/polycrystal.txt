@@ -1,0 +1,12 @@
+materialFile=Zr3d_ghoniem.txt;
+absoluteTemperature=573; # [K] simulation temperature
+meshFile=hexagonal_200nm_10000el_o1_bl_259ca0ea.msh; # mesh file
+F=618.6204763 0 0
+  0 535.7410478 0
+  0 0 989.7927621; # mesh deformation gradient, x = F*(X-X0)
+X0=0 0 0; # mesh shift. Mesh nodes X are mapped to x=F*(X-X0) 
+periodicFaceIDs=; # non-periodic: Dirichlet on the whole surface
+C2G1 =
+1.000000000000000 0.000000000000000 0.000000000000000
+0.000000000000000 1.000000000000000 0.000000000000000
+0.000000000000000 0.000000000000000 1.000000000000000;
