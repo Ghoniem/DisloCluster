@@ -136,9 +136,7 @@ def bootstrap(sim_dir, verbose=True):
     # first attempt's failure would therefore look like a different, much more
     # confusing failure on the second. Clear the empty stubs; a real F_0.txt is
     # never empty.
-    for stub in (sim_dir / "F" / "F_0.txt", sim_dir / "F" / "F_labels.txt"):
-        if stub.is_file() and stub.stat().st_size == 0:
-            stub.unlink()
+    minputs.clear_empty_F(sim_dir)
 
     # in_case_dir: DDomp writes cdNodes.txt to the RELATIVE path
     # "evl/cdNodes.txt", i.e. against its working directory rather than against

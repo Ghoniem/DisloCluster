@@ -50,3 +50,10 @@ Thumbs.db
 
 # ── Cowork cleanup staging ──
 _to_delete/
+
+# Hardening DD cases staged by dislocluster_code.studies.hardening: same rule as
+# the coupled cases above -- mesh, inputFiles and multi-MB evl/F output, all
+# reproducible from the hardening.json each one carries. No trailing slash: a
+# `campaign` run leaves its `<tag>_campaign.json` result file BESIDE the case
+# directories, and that is output too.
+MoDELib3/tutorials/hardening_*

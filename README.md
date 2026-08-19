@@ -265,6 +265,26 @@ wsl -e bash MoDELib3/tutorials/zrmicro_coupled/clean_run.sh
     --doses 1 5 10 30 --max-nm 150
 ```
 
+## Irradiation hardening from a march
+
+`dislocluster_code.studies.hardening` rebuilds a march's interior loop
+population as discrete loops in a periodic cube, ramps a resolved shear on the
+prismatic ⟨a⟩ system, and reports the CRSS increment Δτ(dose). It needs no C++
+change and reuses the continuum→discrete conversion `post/discrete_loops.py`
+already performs.
+
+```bash
+python -m dislocluster_code.studies.hardening verify           # checks against the plan's tables
+python -m dislocluster_code.studies.hardening state <run>      # interior N_k, r_k, rho_k per dose
+python -m dislocluster_code.studies.hardening campaign <root> --doses 0.01 0.1 10 --L 200
+```
+
+The design is [`Docs/DisloCluster Manual/architecture/irradiation_hardening_dd_plan.md`](Docs/DisloCluster%20Manual/architecture/irradiation_hardening_dd_plan.md);
+what running it corrected and measured is
+[`irradiation_hardening_implementation.md`](Docs/DisloCluster%20Manual/architecture/irradiation_hardening_implementation.md)
+beside it. A 200 nm cell is ~0.03 s/step on 8 cores and a 500 nm one ~3 s/step,
+so the production campaign wants a 24-core machine.
+
 `evl/` is already populated in this checkout, so step 2 runs immediately. Output
 goes to `ZrClusterDynamics/ZrMicro/output/<stamp>_<hash>_zr3d_ghoniem/`:
 

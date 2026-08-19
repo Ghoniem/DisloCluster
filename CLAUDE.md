@@ -97,7 +97,7 @@ editable into the venv (`pip install -e .`).
 | `dislocluster_code.staging` | `case` (mesh, stage, bootstrap), `inputs` (DD/polycrystal/ElasticDeformation), `seed` |
 | `dislocluster_code.coupling` | `march` (the operator split), `config` (`MarchConfig`), `qssa`, `field`, `immobile`, `checkpoint`, `progress`, plus the discrete handoff: `transition` (continuum→discrete + the conservation ledger), `neighbors` (screened cutoff, `k²` as `ImmobileSinks` builds it), `ellipse_rom` (the ⟨a⟩ two-parameter loop) |
 | `dislocluster_code.post` | figures, movies, discrete loops, TEM slices, reports, `coarsening` (the `d_coarsen` detector) |
-| `dislocluster_code.studies`, `.fitting`, `.legacy` | comparison drivers, parameter fits, superseded modules. `dad_sweep` / `dad_window` answer which anisotropy lets ⟨a⟩ and ⟨c⟩ grow together; `compare_anisotropy` diffs two marches |
+| `dislocluster_code.studies`, `.fitting`, `.legacy` | comparison drivers, parameter fits, superseded modules. `dad_sweep` / `dad_window` answer which anisotropy lets ⟨a⟩ and ⟨c⟩ grow together; `compare_anisotropy` diffs two marches; `hardening` turns a march into a DD yield test (below) |
 
 **`ZrMicro/py_utils/` still exists as a compatibility shim.**
 Each old module aliases `sys.modules[__name__]` to its new home, so
@@ -686,6 +686,159 @@ Two things the transfer must respect, both measured rather than assumed:
 truncates `GalerkinClimbSolver`'s `O(N_seg²)` pair assembly, which is 100% of the climb
 cost. Use `R_c = 4 L_s` — **not 3**: the measured truncation error is 19.3% / 9.6% / 3.9% /
 0.25% at `n_L` = 1 / 2 / 3 / 4.
+
+## Irradiation hardening — `studies/hardening.py`
+
+Takes the continuum immobile field a march produced, rebuilds it as discrete
+loops in a **periodic cube**, loads that cube and measures the CRSS increment
+Δτ(dose). Implements
+[`Docs/DisloCluster Manual/architecture/irradiation_hardening_dd_plan.md`](Docs/DisloCluster%20Manual/architecture/irradiation_hardening_dd_plan.md);
+what running it corrected and measured is in
+[`irradiation_hardening_implementation.md`](Docs/DisloCluster%20Manual/architecture/irradiation_hardening_implementation.md).
+
+**[`Simulations/hardening_simulation.ipynb`](Simulations/hardening_simulation.ipynb)
+is the entry point**, six control dicts the way `run_simulation.ipynb` has six,
+writing everything into one `Simulations/output/<stamp>_<hash>_<tag>/`: `cases/`,
+`figures/`, `snapshots/`, `movies/`, `provenance.{json,md}`.
+
+```bash
+python -m dislocluster_code.studies.hardening verify              # the plan's tables, as tests
+python -m dislocluster_code.studies.hardening state    [<run>]    # interior N_k, r_k, rho_k
+python -m dislocluster_code.studies.hardening routec --alpha-c 0.4 --alpha-a 0.2 --taylor-M 3
+python -m dislocluster_code.studies.hardening campaign <root> --doses 0.01 0.1 10 --L 200
+```
+
+**Three routes, and only one of them is affordable at every dose.** Route A is a
+stress ramp on a frozen obstacle field and gives Δτ directly; route C is the
+dispersed-barrier law `Δτ_k = α_k μ b √(N_k d_k)` whose **α is fitted on route A
+and then applies at every dose for free**; route D seeds the same cell by
+density instead of per-loop export and is the smoke test. Route B (strain rate,
+the full σ–ε curve) is days per dose and is deliberately not staged.
+
+**The loops are frozen because they are `SESSILELOOP`s and `climbSolverType=none`**
+— `DislocationNode::projectVelocity` zeroes the velocity of every node on one.
+That is the largest modelling assumption in the whole measurement: no
+absorption, no channelling, so it biases hardening high as strain accumulates.
+
+**Everything the module computes is measured; α and the Taylor factor M are
+not.** Neither has a default that would be indistinguishable from a fitted one.
+
+**The interior mean, not the domain mean** — same rule as
+`discrete_loops.populate(region="interior")`, for the same reason: the Dirichlet
+shell is a sink for mobile defects but not for loops.
+
+Six things that make a case that does not run, or runs and measures nothing.
+All were found by running it, and all are in the implementation note:
+
+| | |
+|---|---|
+| `X0 = 0` | `unitCube24.msh` spans [−0.5, 0.5]³, not [0,1]³ as the plan says |
+| `F` to 17 digits | box edges must be lattice vectors; 10 digits leaves `971·c/a` 1.25e-7 short and the run dies with "Input vector is not a lattice vector". `staging/inputs.py:_f_block` had the same limit — no coupled case noticed, none of them is periodic |
+| the source's slip system | `periodicDipolesDensity` picks its own, and picked a **basal** one, whose resolved shear under a prismatic load is exactly zero: 3000 steps, γ_p = 8e-22, reading exactly like a pinned source. One `periodicDipoleIndividual` on slip system 6 instead |
+| `glideSteps ≠ 0` | the generator inserts the sessile prismatic loop unconditionally and the two **glissile arms** only `if(fabs(glideStep)>FLT_EPSILON)`. At 0 the cell contains nothing that can move |
+| sign of `n` | resolving on (s, +y) when the system is (s, −y) leaves τ positive and γ_p negative, so the offset criterion never fires |
+| the ramp rate | the plan's "1 MPa per 1e4 b/cs" and its "~7e11 Pa/s" differ by 1e3; the DD-unit form is the one implemented |
+
+**A few realizations per thousand are refused by MoDELib** — a network node
+lands a few b outside the primary cell and `DislocationNode` rejects it at
+startup. It is a property of the draw (500 nm at 1e-2 dpa: seeds 0 and 1 fail,
+2 and 3 run), so `run_case` raises `PlacementRejected` and `campaign` redraws
+with the next seed and records which one it used.
+
+**A zero-byte `F/F_0.txt` makes the NEXT run segfault**, so any first failure
+turns later attempts into an unrelated-looking crash;
+`staging.inputs.clear_empty_F` removes the stubs and both `case.bootstrap` and
+`hardening.run_case` call it. `microstructureGenerator` is the mirror image — it
+segfaults if `evl/evl_0.txt` already exists — so `run_case` clears `evl/` and
+`F/` first.
+
+**The offset criterion is a choice and it matters.** An irradiated cell creeps
+below its breakaway stress, so on the 200 nm cell at 10 dpa γ_p crosses 1e-4 at
+~3 MPa and the knee is at 25–30 MPa. Every offset in `OFFSETS` is reported;
+`1e-3` is the default and the criterion is quoted with the number.
+
+**`post/dd_frames.py` draws what the SOLVER has**, where `discrete_loops.py`
+draws what a continuum field implies: the `evl_<N>` configurations, two panels
+each (the cell, and the projection along the glide-plane normal where bowing and
+pinning are visible), plus one movie per dose from the solved frames. Four
+things in the evl format decide whether it draws dislocation or nonsense —
+`loopType` is column **11** (column 10 is the grain, and reading it marks the
+gliding dislocation sessile), `hasNetworkLink` separates real segments from the
+links that merely close a periodic loop, wrapped polylines must be cut or
+they draw straight lines across the cell, and **a network link's dislocation is
+the SUM of the loop links on it, which can be zero**.
+
+`hasNetworkLink` is not the whole of that last test. A loop boundary that runs
+out and back along the same node pair — the loop pinched to a sliver of zero
+area — writes both records with `hasNetworkLink = 1` and opposite sense, so the
+link between those two nodes carries `b = 0` and holds no dislocation.
+`periodicDipoleIndividual` makes exactly that: each glissile arm closes back
+onto the anchor node it shares with the sessile prismatic loop, and those
+anchors are pinned for the whole run (`V = 0` in every frame — they sit on a
+SESSILE loop, so `projectVelocity` zeroes them, the same mechanism that freezes
+the irradiation loops). Drawn, it is a straight red segment from the cell centre
+out to wherever the line has bowed to; and because the two arms' anchors differ
+only in `y`, the axis the glide panel projects along, the two segments
+superimpose at the origin and read as **one line joining the two
+dislocations** — which is what a reader reports as "why are these two
+dislocations connected".
+
+`_null_pairs` sums the loop Burgers vectors per network-node pair and
+`drop_null` (default **on**) cuts the polyline wherever the sum is zero. On the
+200 nm case at 0.1 dpa, step 1600, that is **8 pairs of 1576**: the dipole's
+`x = 0` lines, its tie bar along `y`, the two tie-backs, and one contact where
+the gliding line has zipped onto an ⟨a⟩ loop and locally annihilated it — 121 nm
+of the 457 nm the glissile loops appeared to carry. The whole sessile prismatic
+source loop is null and now draws nothing, so the panel's `obstacles` count is
+the irradiation loops alone and agrees with `n_obstacles`; it read one too many
+before. **The control frames never showed the tie-back**, because there the line
+has traversed the cell and the tail runs out to the `x` faces in jumps of
+309.5 b against `_split_wrapped`'s 309.2 b threshold — so which frames showed it
+was the wrap heuristic, not the physics.
+
+**The line walk used to stop one node short, which broke each dislocation into
+disjoint stubs.** `loop_polylines` follows the real-link chain with
+`while node in nxt and node not in visited` and appended only the nodes it
+*entered*, never the sink it exited on, so every open run was one segment short
+at its far end. That alone would only clip a tip — what makes it a gap in the
+MIDDLE of a line is `visited`: a seed landing mid-chain leaves the stretch
+behind it to be walked separately, and that walk then terminates on the
+already-visited node without drawing the segment into it. On the 200 nm case at
+0.1 dpa, step 7950, the gliding dislocation came out as **four disjoint stubs
+with three gaps** — every second segment of it missing. The terminal node is now
+appended, and the check is that each dipole arm spans the cell: the two arms
+draw **exactly 400.0 nm** at step 0 (two straight lines through a 200 nm cell)
+against 366.7 nm before, and 403–448 nm once bowed against 230–290 nm — as
+little as **54%** of the line was being drawn. The piece count rises and the
+drawn length lands on the geometric minimum, which is what says the recovered
+segments are line and not new spurious chords.
+
+**Δτ is NOT monotone in dose on the 200 nm cell, and that is a cell-size
+artifact.** The first notebook run measured Δτ = −0.33 / 8.79 / 8.45 MPa at
+0.01 / 0.1 / 10 dpa (offset 1e-3, control τ = 4.612 MPa). The fall at 10 dpa is
+not saturation: the ⟨c⟩ loops there come out at **r = 55.6 nm, 111 nm across in
+a 200 nm cell**, so most are geometrically refused and the obstacle field
+collapses from 99 loops to 39 while the stored content rises. It is the same
+refusal `transition.fits_in_crystal` reports for the continuum→discrete handoff,
+reaching hardening through `cube_population`. **A ⟨c⟩ hardening number at 10 dpa
+needs the 500 nm cell.**
+
+**`n_loops` counts the source's three loops too.** `evl_0` holds every loop the
+generator wrote, and the periodic dipole adds one sessile prismatic loop plus
+two glissile arms, so quoting it against a dose overstates the obstacle field by
+exactly three. `run_case` records `n_obstacles`/`n_source_loops`, and
+`obstacle_count(row)` recovers the count for older campaigns from the case's
+`hardening.json`. Nothing measured moves: `fit_alpha` takes `N_k` from the
+continuum state.
+
+**Measured, where the plan estimated:** `useSubCycling=1` is **5.4×** on the
+200 nm cell (0.026 vs 0.138 s/step), not the ~100× estimated — the saving is the
+ratio of total to active segments, and this cell has ~600 segments against the
+~25 000 of the 500 nm case at 0.1 dpa, so re-measure before sizing on it. The
+⟨a⟩ loops **do** survive the remesh (46 loops at step 0 and at step 190, through
+20 passes), as §6 predicts from `isGeometricallyRemovable`. Cost on 8 cores:
+0.026 s/step at 200 nm, **2.5–3.3 s/step at 500 nm** — the 500 nm campaign wants
+a 24-core machine.
 
 ## The coupling contract
 

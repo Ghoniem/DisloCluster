@@ -35,7 +35,8 @@ import numpy as np
 
 __all__ = ["set_dd_scalar", "get_dd_scalar", "write_dd", "write_polycrystal",
            "write_elastic_deformation", "read_material_scalar", "material_mu_SI",
-           "copy_lf", "FAST_STEP_SETTINGS", "VOIGT", "elastic_is_trivial"]
+           "copy_lf", "clear_empty_F", "FAST_STEP_SETTINGS", "VOIGT",
+           "elastic_is_trivial"]
 
 VOIGT = ("11", "22", "33", "12", "23", "13")
 
@@ -94,6 +95,24 @@ def elastic_is_trivial(sim_dir):
     if nonzero:
         return False, f"nonzero load: {', '.join(nonzero)}"
     return True, "useDislocations=0 and every applied load is zero"
+
+
+def clear_empty_F(sim_dir):
+    """Remove zero-byte `F/F_0.txt` and `F/F_labels.txt`. Returns what it removed.
+
+    A DDomp run that dies before writing anything leaves both files at zero
+    length, and the NEXT DDomp segfaults reading them: the loader reports
+    "(0 entries)" and the deformation-gradient row is then indexed anyway. So a
+    first failure -- for any reason at all -- turns every later attempt into a
+    different and much more confusing failure. Call this before launching.
+    """
+    gone = []
+    for stub in ("F_0.txt", "F_labels.txt"):
+        f = Path(sim_dir) / "F" / stub
+        if f.is_file() and f.stat().st_size == 0:
+            f.unlink()
+            gone.append(stub)
+    return gone
 
 
 def copy_lf(src, dst):
@@ -159,10 +178,16 @@ def write_dd(sim_dir, n_steps, use_immobile=1, fast_step=None,
 # ── polycrystal.txt ──────────────────────────────────────────────────────────
 
 def _f_block(F):
+    # 17 significant digits rather than 10. On a PERIODIC case MoDELib maps each
+    # periodic shift into lattice coordinates and requires an integer, so a
+    # truncated F is not a rounding difference but a startup failure: ten digits
+    # turn a 971*c/a = 1548.1888112 edge into 1548.188811, short of the lattice
+    # vector by 1.25e-7, and the run dies with "Input vector is not a lattice
+    # vector". Non-periodic cases never noticed, which is why this stood.
     F = np.asarray(F, dtype=float)
-    return (f"F={F[0, 0]:.10g} {F[0, 1]:.10g} {F[0, 2]:.10g}\n"
-            f"  {F[1, 0]:.10g} {F[1, 1]:.10g} {F[1, 2]:.10g}\n"
-            f"  {F[2, 0]:.10g} {F[2, 1]:.10g} {F[2, 2]:.10g}; "
+    return (f"F={F[0, 0]:.17g} {F[0, 1]:.17g} {F[0, 2]:.17g}\n"
+            f"  {F[1, 0]:.17g} {F[1, 1]:.17g} {F[1, 2]:.17g}\n"
+            f"  {F[2, 0]:.17g} {F[2, 1]:.17g} {F[2, 2]:.17g}; "
             f"# mesh deformation gradient, x = F*(X-X0)")
 
 
