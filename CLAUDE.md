@@ -116,12 +116,36 @@ no-op.
 
 ## Python environment
 
-- **Venv:** `.DisloClusterVenv/` at the repository root (Python 3.14)
+- **Venv:** `.DisloClusterVenv/` at the repository root (Python **3.14.3**)
 - **Package:** `pip install -e .` from the repository root (`pyproject.toml`)
 - **Jupyter kernel:** `dislocluster` — "Python 3.14 (DisloCluster)"
   (the kernel keeps its original name; only the Python package was renamed)
 - **Dependencies:** `requirements.txt` at the repository root
 - **Do not use Anaconda Python** — NumPy 1.x/2.x conflict with SciPy
+
+**The PATCH version matters, because a notebook records it.** Jupyter and the
+VS Code extension write the interpreter into every notebook's metadata —
+`kernelspec.display_name` as `.DisloClusterVenv (3.14.3.final.0)` and
+`language_info.version` as `3.14.3` — so a venv built on any other patch release
+dirties `run_simulation.ipynb` and `hardening_simulation.ipynb` the moment they
+are opened, and two machines on different patches churn those lines back and
+forth forever. Homebrew is no help here: it carries only the newest 3.14 (3.14.7
+at the time of writing) and no way to ask for an older one. Pin the interpreter
+instead:
+
+```bash
+uv python install 3.14.3          # exact patch, ~17 MB, into ~/.local/share/uv
+"$(uv python find --system 3.14.3)" -m venv .DisloClusterVenv   # --system: not the venv
+.DisloClusterVenv/bin/python -m pip install -r requirements.txt
+.DisloClusterVenv/bin/python -m pip install -e .
+.DisloClusterVenv/bin/python -m ipykernel install --user --name dislocluster \
+    --display-name "Python 3.14 (DisloCluster)"
+```
+
+Every pin in `requirements.txt` installs on 3.14 from a wheel — numpy, scipy,
+pandas, matplotlib, pillow and rpds-py ship `cp314` arm64 wheels, and pyzmq,
+debugpy, gmsh and fastjsonschema are `abi3` or pure Python — so nothing builds
+from source and nothing had to move off its pin.
 
 ```powershell
 .DisloClusterVenv\Scripts\python.exe -m nbconvert --to notebook --execute `
