@@ -57,3 +57,8 @@ _to_delete/
 # `campaign` run leaves its `<tag>_campaign.json` result file BESIDE the case
 # directories, and that is output too.
 MoDELib3/tutorials/hardening_*
+
+# Office lock/owner files: Word, Excel and PowerPoint write a `~$<name>` stub
+# beside an open document and remove it on close. One was committed with the
+# hardening work (`~$RFQ-2185_Kickoff.pptx`, 165 bytes).
+~$*
