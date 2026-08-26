@@ -482,6 +482,10 @@ template struct InvDscaling<3>;
         }
 
         const Eigen::Array<double,2,mSize> Z(cdp.loopDADbias());   // row0 <c>, row1 <a>
+        // Character factor X_{s,m} of Eq. (Zsk), row 0 interstitial-storing
+        // families and row 1 vacancy-storing ones. Exactly ones when the
+        // material carries no characterSplitting key.
+        const Eigen::Array<double,2,mSize> Xc(cdp.loopCharacterFactor());
 
         // orientationally-averaged diffusivity of each mobile species
         Eigen::Array<double,1,mSize> Dbar(Eigen::Array<double,1,mSize>::Zero());
@@ -498,6 +502,24 @@ template struct InvDscaling<3>;
         for(int k=0;k<nF;++k)
         {
             isVacancyFamily(k)=(cdp.immobileSpeciesVector(k)<0.0)?1:0;
+        }
+
+        // HABIT of each family, which from step 1 is INDEPENDENT of polarity.
+        // Before step 1 the only vacancy family was also the only basal one, so
+        // isVacancyFamily doubled as a habit test and the DAD row selection
+        // below used it. With prismatic VACANCY families present that
+        // coincidence is gone, and using polarity there would give every new
+        // family the basal capture efficiency -- silently, since both rows are
+        // populated and neither is obviously wrong.
+        //
+        // The habit is carried by immobileSpeciesBurgers: a basal loop's Burgers
+        // vector is along [0001], i.e. the third LATTICE component is the
+        // non-zero one. Read from the same array rloop() sizes the family with,
+        // so the two cannot disagree.
+        Eigen::Array<int,1,nF> isBasalFamily(Eigen::Array<int,1,nF>::Zero());
+        for(int k=0;k<nF;++k)
+        {
+            isBasalFamily(k)=(std::fabs(cdp.immobileSpeciesBurgers(2,k))>FLT_EPSILON)?1:0;
         }
 
         const Eigen::VectorXd& mDof(mobileClusters.dofVector());
@@ -618,12 +640,14 @@ template struct InvDscaling<3>;
                 Eigen::Array<double,1,nF> absV(Eigen::Array<double,1,nF>::Zero());
                 for(int k=0;k<nF;++k)
                 {
-                    const int row(isVacancyFamily(k)?0:1);
+                    // Row 0 is the BASAL efficiency and row 1 the PRISMATIC one,
+                    // so this is a habit test, not a polarity test.
+                    const int row(isBasalFamily(k)?0:1);
                     double likeFlux(0.0), oppFlux(0.0);
                     for(int m=0;m<mSize;++m)
                     {
                         const double sz(std::fabs(cdp.msVector(m)));
-                        const double rate(Dbar(m)*Z(row,m)*Sk(k)*cM(m)*sz);
+                        const double rate(Dbar(m)*Z(row,m)*Xc(isVacancyFamily(k)?1:0,m)*Sk(k)*cM(m)*sz);
                         const bool mobileIsVacancy(cdp.msVector(m)<0.0);
                         if(mobileIsVacancy==bool(isVacancyFamily(k)))
                         {

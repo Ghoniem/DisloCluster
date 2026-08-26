@@ -77,9 +77,19 @@ import numpy as np
 
 # MoDELib3 ClusterDynamicsParameters
 M_SIZE = 4          # Cv, Ci, C2i, C3i
-I_SIZE = 8          # 4 families x (number, content)
+# Step 1 of the implementation plan raised iSize from 8 to 16: eight immobile
+# families, each with a (number, content) pair. The CD block is ordered numbers
+# first then contents -- iVal(k) and iVal(nFamilies+k) in ImmobileSinks -- so
+# the eight new columns land at 4..7 (numbers) and 12..15 (contents), NOT
+# appended at the end.
+I_SIZE = 16         # 8 families x (number, content)
 N_FAMILIES = I_SIZE // 2
 N_CD_COLS = M_SIZE + I_SIZE
+
+#: The pre-step-1 width, still accepted on read. Every evl file written before
+#: step 1 carries it, and those runs must stay post-processable: the figures,
+#: the movies and the transfer ledger all read evl_<N>.txt directly.
+N_CD_COLS_LEGACY = M_SIZE + 8
 N_HEADER = 10       # integer header lines in an evl text file
 DISP_COLS = 6       # 2*dim
 
@@ -188,10 +198,21 @@ class EvlFile:
             self.cd = np.array(
                 [[float(x) for x in lines[i].split()] for i in range(d1, c1)],
                 dtype=float)
-            if self.cd.shape[1] != N_CD_COLS:
+            if self.cd.shape[1] == N_CD_COLS_LEGACY:
+                # A pre-step-1 file: four families where there are now eight.
+                # Widen it rather than refuse it, placing the old columns where
+                # they still belong -- numbers 0..3, contents 8..11 -- and
+                # leaving the four families step 1 added empty, which is what
+                # they were.
+                old = self.cd
+                self.cd = np.zeros((old.shape[0], N_CD_COLS))
+                self.cd[:, 0:M_SIZE] = old[:, 0:M_SIZE]
+                self.cd[:, M_SIZE:M_SIZE + 4] = old[:, M_SIZE:M_SIZE + 4]
+                self.cd[:, M_SIZE + N_FAMILIES:M_SIZE + N_FAMILIES + 4] =                     old[:, M_SIZE + 4:M_SIZE + 8]
+            elif self.cd.shape[1] != N_CD_COLS:
                 raise ValueError(
                     f"{path}: CD block has {self.cd.shape[1]} columns, "
-                    f"expected {N_CD_COLS}")
+                    f"expected {N_CD_COLS} (or {N_CD_COLS_LEGACY} pre-step-1)")
         else:
             self.cd = np.zeros((0, N_CD_COLS))
 
@@ -294,8 +315,12 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     but applied POINTWISE instead of to a volume average.
     """
     Y = np.atleast_2d(np.asarray(Y, dtype=float))
-    if Y.shape[1] != 19:
-        raise ValueError(f"expected (N,19) 0-D states, got {Y.shape}")
+    # 19 is the pre-step-1 state; 27 carries the four families step 1 appended
+    # at indices 19..26. Both are accepted, and a 19-wide state simply leaves
+    # the new families empty -- which is what they are in every run made before
+    # the step. Anything else is a layout error and must not be guessed at.
+    if Y.shape[1] not in (19, 27):
+        raise ValueError(f"expected (N,19) or (N,27) 0-D states, got {Y.shape}")
     w = np.asarray(variant_weights, dtype=float)
     if w.shape != (3,):
         raise ValueError("variant_weights must have three entries")
@@ -309,9 +334,18 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
         #
         # The number densities still need the 1/omega conversion: the 0-D
         # carries them per ATOM and MoDELib per b^3.
+        # The 0-D appends its step-1 families at 19..26 (numbers 19..22,
+        # contents 23..26) so that every pre-existing state index keeps its
+        # meaning; the CD block interleaves them instead, numbers 0..7 then
+        # contents 8..15. The two orderings are different and the mapping below
+        # is where that is reconciled -- writing Y[:, 19:27] straight into
+        # out[:, 8:16] would put the new NUMBERS into the old CONTENTS.
         out = np.zeros((Y.shape[0], I_SIZE), dtype=float)
-        out[:, 0:4] = Y[:, 4:8] / omega
-        out[:, 4:8] = Y[:, 8:12]
+        out[:, 0:4] = Y[:, 4:8] / omega                       # n_0..n_3
+        out[:, N_FAMILIES:N_FAMILIES + 4] = Y[:, 8:12]        # c_0..c_3
+        if Y.shape[1] >= 27:
+            out[:, 4:8] = Y[:, 19:23] / omega                 # n_4..n_7
+            out[:, N_FAMILIES + 4:N_FAMILIES + 8] = Y[:, 23:27]   # c_4..c_7
         return out
 
     N_a = Y[:, IDX["CiL"]] + Y[:, IDX["CaiL"]]        # <a> loop number
@@ -422,9 +456,18 @@ def modelib_immobile_to_0d(immob, omega, Y_prev=None, loop_model=0):
     """
     immob = np.atleast_2d(np.asarray(immob, dtype=float))
     if loop_model:
-        out = np.zeros((immob.shape[0], 8), dtype=float)
-        out[:, 0:4] = immob[:, 0:4] * omega
-        out[:, 4:8] = immob[:, 4:8]
+        # Inverse of immobile_0d_to_modelib, and it returns the 0-D's OWN
+        # layout: the original four families at 0..7 (numbers then contents) and
+        # step 1's four at 8..15, which the caller places at state indices
+        # 19..26. Width follows the CD block, so a pre-step-1 evl -- widened on
+        # read -- comes back with its new families empty.
+        nf = immob.shape[1] // 2
+        out = np.zeros((immob.shape[0], 2 * nf), dtype=float)
+        out[:, 0:4] = immob[:, 0:4] * omega            # n_0..n_3
+        out[:, 4:8] = immob[:, nf:nf + 4]              # c_0..c_3
+        if nf > 4:
+            out[:, 8:8 + (nf - 4)] = immob[:, 4:nf] * omega
+            out[:, 8 + (nf - 4):] = immob[:, nf + 4:]
         return out
     n_c = immob[:, 0] * omega
     n_a = immob[:, 1:4].sum(axis=1) * omega

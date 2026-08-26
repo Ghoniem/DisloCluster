@@ -212,31 +212,32 @@
 \contentsline {subsection}{\numberline {C.5}Status of the expanded family set}{96}{subsection.C.5}%
 \contentsline {section}{\numberline {D}Code implementation plan}{96}{section.D}%
 \contentsline {paragraph}{The ordering principle.}{97}{section*.130}%
-\contentsline {paragraph}{Three assertions that must hold at every step.}{97}{section*.131}%
+\contentsline {paragraph}{Two things executing Phase~I corrected in this plan.}{97}{section*.131}%
+\contentsline {paragraph}{Three assertions that must hold at every step.}{97}{section*.132}%
 \contentsline {subsection}{\numberline {D.1}Phase I --- the family set}{97}{subsection.D.1}%
-\contentsline {paragraph}{Step 0: lock the baseline.}{97}{section*.132}%
-\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{97}{section*.133}%
-\contentsline {paragraph}{Step 2: character-resolved capture.}{97}{section*.134}%
-\contentsline {subsection}{\numberline {D.2}Phase II --- thermal channels}{97}{subsection.D.2}%
-\contentsline {paragraph}{Step 3: peripheral emission replaces the lifetimes.}{97}{section*.135}%
-\contentsline {paragraph}{Step 4: the basal chain.}{98}{section*.136}%
+\contentsline {paragraph}{Step 0: lock the baseline.}{97}{section*.133}%
+\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{97}{section*.134}%
+\contentsline {paragraph}{Step 2: character-resolved capture.}{98}{section*.135}%
+\contentsline {subsection}{\numberline {D.2}Phase II --- thermal channels}{98}{subsection.D.2}%
+\contentsline {paragraph}{Step 3: peripheral emission replaces the lifetimes.}{98}{section*.136}%
+\contentsline {paragraph}{Step 4: the basal chain.}{98}{section*.137}%
 \contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{98}{subsection.D.3}%
-\contentsline {paragraph}{Step 5: the second moment.}{98}{section*.137}%
-\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{98}{subsection.D.4}%
-\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{99}{section*.138}%
-\contentsline {paragraph}{Step 7: the trigger.}{99}{section*.139}%
-\contentsline {paragraph}{Step 8: the climb constructions.}{99}{section*.140}%
-\contentsline {paragraph}{Step 9: the smeared discrete sink.}{99}{section*.141}%
+\contentsline {paragraph}{Step 5: the second moment.}{98}{section*.138}%
+\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{99}{subsection.D.4}%
+\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{99}{section*.139}%
+\contentsline {paragraph}{Step 7: the trigger.}{99}{section*.140}%
+\contentsline {paragraph}{Step 8: the climb constructions.}{99}{section*.141}%
+\contentsline {paragraph}{Step 9: the smeared discrete sink.}{100}{section*.142}%
 \contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{100}{subsection.D.5}%
-\contentsline {paragraph}{Step 10: the continuum observables.}{100}{section*.142}%
-\contentsline {paragraph}{Step 11: the discrete observables.}{100}{section*.143}%
-\contentsline {paragraph}{Step 12: the hybrid route.}{100}{section*.144}%
-\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{100}{subsection.D.6}%
-\contentsline {paragraph}{Step 13: emission into the mobile field.}{100}{section*.145}%
-\contentsline {paragraph}{Step 14: the anneal as a run mode.}{101}{section*.146}%
-\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{101}{section*.147}%
-\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{102}{section*.148}%
+\contentsline {paragraph}{Step 10: the continuum observables.}{100}{section*.143}%
+\contentsline {paragraph}{Step 11: the discrete observables.}{100}{section*.144}%
+\contentsline {paragraph}{Step 12: the hybrid route.}{100}{section*.145}%
+\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{101}{subsection.D.6}%
+\contentsline {paragraph}{Step 13: emission into the mobile field.}{101}{section*.146}%
+\contentsline {paragraph}{Step 14: the anneal as a run mode.}{101}{section*.147}%
+\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{102}{section*.148}%
+\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{103}{section*.149}%
 \contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{103}{subsection.D.7}%
-\contentsline {paragraph}{Step 17: refit.}{103}{section*.149}%
-\contentsline {paragraph}{Step 18: performance.}{103}{section*.150}%
-\contentsline {subsection}{\numberline {D.8}Summary}{103}{subsection.D.8}%
+\contentsline {paragraph}{Step 17: refit.}{103}{section*.150}%
+\contentsline {paragraph}{Step 18: performance.}{104}{section*.151}%
+\contentsline {subsection}{\numberline {D.8}Summary}{104}{subsection.D.8}%

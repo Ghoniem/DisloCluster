@@ -283,15 +283,57 @@ def collect_solver_args(sim, solver_config):
         for j, nm in enumerate(names):
             params[f'dad_p_{nm}'] = float(pm[j])
             params[f'dad_Z0_{nm}'] = float(z0[j])
+        # loopSinkScale is per FAMILY, and step 1 took the material file from
+        # four families to eight. Read whatever it carries rather than demanding
+        # a fixed length: asking for 4 against an 8-column file raised, the
+        # blanket `except` below turned that into a silent fall back to 1.0, and
+        # the calibrated 0.291528 / 0.792317 quietly became 1.0 for a whole run.
+        # The step-0 baseline caught it by diffing the resolved CLI, which is the
+        # single reason it compares parameters before it compares trajectories.
         try:
-            ls = read_material_vector(mat, 'loopSinkScale', 4)
-        except Exception:
-            ls = [1.0] * 4
-        for j, fm in enumerate(fams):
+            ls = read_material_vector(mat, 'loopSinkScale')
+        except Exception as exc:
+            # Not silent. A missing sink-strength calibration is a different
+            # model, not a default.
+            raise RuntimeError(
+                f"loopSinkScale unreadable from {mat}: {exc}") from exc
+        all_fams = ('c', 'a1', 'a2', 'a3', 'a1v', 'a2v', 'a3v', 'cp')
+        for j, fm in enumerate(all_fams[:len(ls)]):
             params[f'loop_sink_scale_{fm}'] = float(ls[j])
         w = solver_config.get('variant_weights', (1 / 3, 1 / 3, 1 / 3))
         for j, fm in enumerate(fams[1:]):
             params[f'variant_frac_{fm}'] = float(w[j])
+
+        # ── Step 1: the VACANCY variants weight the other way ───────────────
+        # w_k for an interstitial prism loop is exp(+sigma_k Omega/kT)/Z: it
+        # inserts material, so a tensile resolved stress on its habit normal
+        # favours it. A vacancy loop REMOVES material on that plane, so the same
+        # stress disfavors it by exactly the reciprocal factor. Supplying one
+        # set of weights for both characters would have made the two populations
+        # respond to load identically, which is the single thing the variant
+        # resolution exists to distinguish.
+        #
+        # Reciprocate-then-normalize IS the Boltzmann weight with the sign
+        # flipped: with w_k = e^{x_k}/Z, 1/w_k = Z e^{-x_k}, and the Z cancels on
+        # renormalization to leave e^{-x_k}/sum_j e^{-x_j} exactly.
+        #
+        # At zero deviatoric stress both are (1/3, 1/3, 1/3) and the two
+        # coincide, so nothing an existing run does is changed by this.
+        wv = solver_config.get('variant_weights_vac')
+        if wv is None:
+            a = np.asarray(w, dtype=float)
+            inv = np.where(a > 0.0, 1.0 / np.maximum(a, 1e-300), 0.0)
+            s = float(inv.sum())
+            wv = (inv / s) if s > 0 else np.full(3, 1.0 / 3.0)
+        for j, fm in enumerate(fams[1:]):
+            params[f'variant_frac_v_{fm}'] = float(wv[j])
+        if int(solver_config.get('n_fam', 4)) != 4:
+            params['n_fam'] = int(solver_config['n_fam'])
+        # Step 2's character factor. Emitted only when it is not the degenerate
+        # value, so an unchanged command line stays byte-for-byte what it was
+        # and the step-0/1 artifacts keep comparing.
+        if float(solver_config.get('chi', 1.0)) != 1.0:
+            params['chi'] = float(solver_config['chi'])
 
     return [f'--{k}={v}' for k, v in params.items()]
 

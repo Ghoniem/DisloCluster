@@ -86,6 +86,31 @@ namespace model
         return 0.0;
     }
 
+    /* Character-splitting factor chi of Eq. (chi). Optional material key
+     * `characterSplitting`; absent means 1, the character-degenerate model, so
+     * every material file written before step 2 of the implementation plan is
+     * unchanged bit-for-bit. */
+    template<int dim>
+    double ClusterDynamicsParameters<dim>::getCharacterSplitting(const DislocationDynamicsBase<dim>& ddBase)
+    {
+        if(ddBase.simulationParameters.useClusterDynamics)
+        {
+            try
+            {
+                const double chi(TextFileParser(ddBase.poly.materialFile).template readScalar<double>("characterSplitting",true));
+                if(chi<=0.0)
+                {
+                    throw std::runtime_error("characterSplitting must be positive");
+                }
+                return chi;
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- character-degenerate
+            }
+        }
+        return 1.0;
+    }
+
     /**********************************************************************/
     /* Whether to publish the superposed mobile field. Optional material key;
      * absent means 0 = off, so no existing case writes the extra file or pays
@@ -188,6 +213,7 @@ namespace model
     /* init */ loopSinkScale((ddBase.simulationParameters.useClusterDynamics && iSize>0) ? TextFileParser(ddBase.poly.materialFile).readMatrix<double,1,iSize/2>("loopSinkScale",true).array().eval() : Eigen::Array<double,1,iSize/2>::Ones().eval()),
     /* init */ concentrationFloor(getConcentrationFloor(ddBase)),
     /* init */ climbNeighborCutoff(getClimbNeighborCutoff(ddBase)),
+    /* init */ characterSplitting(getCharacterSplitting(ddBase)),
     /* init */ outputSuperposedMobile(getOutputSuperposedMobile(ddBase)),
     /* init */ climbLumpedSolver(getClimbLumpedSolver(ddBase)),
     /* init */ computeReactions((ddBase.simulationParameters.useClusterDynamics && mSize>0 && mSize+iSize>1)? TextFileParser(ddBase.poly.materialFile).readScalar<int>("computeReactions",true) : 0),
@@ -787,6 +813,26 @@ namespace model
             Z(1,k)=dadZ0(k)*0.5*(pm+std::pow(pm,-2.0));     // <a> loops,  Eq. (15)
         }
         return Z;
+    }
+
+    /**********************************************************************/
+    template<int dim>
+    Eigen::Array<double,2,ClusterDynamicsParameters<dim>::mSize> ClusterDynamicsParameters<dim>::loopCharacterFactor() const
+    {
+        Eigen::Array<double,2,mSize> X(Eigen::Array<double,2,mSize>::Ones());
+        if(characterSplitting==1.0)
+        {// exactly degenerate: return exact ones, so the product is untouched
+            return X;
+        }
+        const double up(std::pow(characterSplitting,0.25));
+        const double down(std::pow(characterSplitting,-0.25));
+        for(int m=0;m<mSize;++m)
+        {
+            const bool mobileIsVacancy(msVector(m)<0.0);
+            X(1,m)=mobileIsVacancy?up:down;   // row 1: family stores VACANCIES
+            X(0,m)=mobileIsVacancy?down:up;   // row 0: family stores INTERSTITIALS
+        }
+        return X;
     }
 
     template struct ClusterDynamicsParameters<3>;

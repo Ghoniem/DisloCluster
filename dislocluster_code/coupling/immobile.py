@@ -96,6 +96,11 @@ from dislocluster_code.zerod.cpp_bridge import run_cpp_solver_batch
 
 # Native ZrMicro state vector length (12 species + 6 accumulators + rho_N).
 N_EQ = 19
+# Step 1 of the implementation plan appended four immobile families at state
+# indices 19..26. A caller may hand over either width: 19 is the pre-step-1
+# state and leaves the new families empty (the solver defaults those y0 slots to
+# zero), 27 carries them. Anything else is a layout error, not something to pad.
+N_EQ_EXT = 27
 IDX_RHO_N = 18
 
 # Convenience slices into the native state vector.
@@ -214,10 +219,14 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     cases = []
     for y0 in y0_list:
         y0 = np.asarray(y0, dtype=float)
-        if y0.shape[0] != N_EQ:
-            raise ValueError(f"each y0 must have length {N_EQ}, got {y0.shape[0]}")
+        if y0.shape[0] not in (N_EQ, N_EQ_EXT):
+            raise ValueError(f"each y0 must have length {N_EQ} or {N_EQ_EXT}, "
+                             f"got {y0.shape[0]}")
         d = dict(base)
-        for k in range(N_EQ):
+        # Emit every component the caller supplied. The solver requires
+        # y0_0..y0_18 and treats y0_19..y0_26 as optional-defaulting-to-zero, so
+        # a 19-wide state produces exactly the command line it always did.
+        for k in range(y0.shape[0]):
             d[f"y0_{k}"] = repr(float(y0[k]))
         cases.append(_dict_to_cli(d))
     return cases

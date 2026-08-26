@@ -57,7 +57,7 @@ int rhs_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector ydot,
     const Parameters& P = *C.P;
     const int n = red_dim(P);
 
-    double yr[N_RLX_FREE], yf[N_EQ], df[N_EQ];
+    double yr[N_RED_MAX], yf[N_EQ], df[N_EQ];
     for (int j = 0; j < n; ++j) yr[j] = NV_Ith_S(y, j);
     red_scatter(P, yr, yf);
 
@@ -94,7 +94,7 @@ int quad_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector yQdot,
     }
 
     ++C.nq_miss;
-    double yr[N_RLX_FREE], yf[N_EQ], df[N_EQ];
+    double yr[N_RED_MAX], yf[N_EQ], df[N_EQ];
     for (int j = 0; j < n; ++j) yr[j] = NV_Ith_S(y, j);
     red_scatter(P, yr, yf);
 
@@ -134,7 +134,21 @@ int jac_zrmicro_reduced(sunrealtype /*t*/, N_Vector y, N_Vector /*fy*/,
                         SUNMatrix J, void* user_data,
                         N_Vector, N_Vector, N_Vector) {
     const Parameters& P = *static_cast<SolverCtx*>(user_data)->P;
-    if (P.acc_mode == ACC_STATE_RELAX) {
+    // Two independent binary choices -- accumulators in the state or not,
+    // mobile frozen or not -- times the active family count, which step 1 made
+    // a run-time quantity. The AD sweep is templated on the block size, so each
+    // combination needs its own instantiation; dispatching here keeps that the
+    // only place the sizes are enumerated.
+    if (P.n_fam == 8) {
+        typedef RedDims<8> D8;
+        if (P.acc_mode == ACC_STATE_RELAX) {
+            if (P.freeze_mobile) jac_reduced_impl<D8::rlx_frozen>(P, y, J);
+            else                 jac_reduced_impl<D8::rlx_free>  (P, y, J);
+        } else {
+            if (P.freeze_mobile) jac_reduced_impl<D8::frozen>(P, y, J);
+            else                 jac_reduced_impl<D8::free_> (P, y, J);
+        }
+    } else if (P.acc_mode == ACC_STATE_RELAX) {
         // Accumulators are part of the state here, so the block is six wider.
         // Their columns are structurally zero (nothing reads an accumulator),
         // which makes J block lower triangular; the dense LU does not exploit

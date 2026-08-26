@@ -166,11 +166,19 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     //   loop_model 0 : iL , aiL , vL , avL      (aligned/non-aligned split)
     //   loop_model 1 : c  , a1  , a2  , a3      (one basal, three prismatic)
     //
-    T f_num[4], f_cont[4];        // state
-    T f_gain[4], f_loss[4];       // like- and opposite-polarity absorption, >=0
-    T f_nucn[4], f_nucc[4];       // nucleation into number and content
-    T f_annn[4], f_annc[4];       // thermal annealing out of number and content
-    double f_lscale[4], f_cLL[4], f_cLN[4];
+    // Step 1 raised the ceiling from 4 slots to 8. `nf` is how many are ACTIVE:
+    // 4 reproduces everything written before it, bit for bit, because the loops
+    // below simply never reach slots 4..7 and nothing at the concentration floor
+    // is allowed to leak into rho_N or the accumulators.
+    const int nf = (P.loop_model != 0) ? P.n_fam : 4;
+
+    T f_num[N_FAM_MAX], f_cont[N_FAM_MAX];   // state
+    T f_gain[N_FAM_MAX], f_loss[N_FAM_MAX];  // like-/opposite-polarity, >= 0
+    T f_nucn[N_FAM_MAX], f_nucc[N_FAM_MAX];  // nucleation into number, content
+    T f_annn[N_FAM_MAX], f_annc[N_FAM_MAX];  // thermal annealing out of both
+    double f_lscale[N_FAM_MAX], f_cLL[N_FAM_MAX], f_cLN[N_FAM_MAX];
+    int    f_is_vac[N_FAM_MAX];              // polarity the family STORES
+    int    f_prismatic[N_FAM_MAX];           // habit: gates on r_min_a
     T loop_abs_i, loop_abs_v, loop_recomb;
     // Legacy net-growth terms. Declared here rather than in the branch because
     // the legacy ydot assembly below is kept verbatim and refers to them.
@@ -217,31 +225,80 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         const double sz[4]  = {1.0, 1.0, 2.0, 3.0};   // |m_m|, atoms per cluster
         const double Dbar[4] = {P.omega_v, P.omega_i, P.omega_2i, P.omega_2i};
 
+        // ── Step 2: the character factor X_{s,m} ───────────────────────────
+        // Indexed [family stores vacancies?][mobile species]. Same-type capture
+        // is the favoured one, so a like pair gets chi^(+1/4) and an unlike pair
+        // chi^(-1/4), giving chi = X_iI X_vV /(X_iV X_vI) exactly.
+        //
+        // At chi = 1 every entry is EXACTLY 1.0 -- pow(1.0, x) is exact -- and
+        // multiplying a double by exactly 1.0 returns it unchanged, so the
+        // regression to step 1 is bit-for-bit rather than merely close.
+        double Xchar[2][4];
+        {
+            const double up   = (P.chi == 1.0) ? 1.0 : std::pow(P.chi,  0.25);
+            const double down = (P.chi == 1.0) ? 1.0 : std::pow(P.chi, -0.25);
+            for (int m = 0; m < 4; ++m) {
+                const int m_vac = (m == 0) ? 1 : 0;
+                Xchar[1][m] = m_vac ? up : down;   // vacancy family
+                Xchar[0][m] = m_vac ? down : up;   // interstitial family
+            }
+        }
+
         f_num[0]  = CiL;  f_num[1]  = CaiL;  f_num[2]  = CvL;   f_num[3]  = CavL;
         f_cont[0] = CiL_i; f_cont[1] = CaiL_i; f_cont[2] = CvL_v; f_cont[3] = CavL_v;
+        for (int k = 4; k < nf; ++k) {
+            f_num[k]  = fl(y[fam_n_idx(k)], C_floor);
+            f_cont[k] = fl(y[fam_c_idx(k)], C_floor);
+        }
 
-        // Slot 0 is the basal <c> family, slots 1-3 the prismatic <a> variants.
-        const int is_vac[4] = {1, 0, 0, 0};
-        f_lscale[0] = P.l_c; f_cLL[0] = P.c_LL_c; f_cLN[0] = P.c_LN_c;
-        for (int k = 1; k < 4; ++k) {
-            f_lscale[k] = P.l_a; f_cLL[k] = P.c_LL_a; f_cLN[k] = P.c_LN_a;
+        // Slot layout:
+        //   0       basal <c>, vacancy            (c_f)
+        //   1..3    prismatic <a>, interstitial   (a1, a2, a3)
+        //   4..6    prismatic <a>, VACANCY        (a1v, a2v, a3v)   -- step 1
+        //   7       basal <c>, vacancy            (c_p)             -- step 4
+        //
+        // Polarity and habit are now INDEPENDENT, where before step 1 they
+        // coincided (every prismatic family was interstitial). Two things that
+        // used to be one test therefore become two: `f_is_vac` selects the Woo
+        // row and which mobile species is the gain channel, `f_prismatic`
+        // selects the length scale, the coalescence coefficients and the
+        // minimum-radius gate. Testing polarity where habit is meant is the
+        // single easiest way to get this step wrong.
+        const int is_vac[N_FAM_MAX]  = {1, 0, 0, 0, 1, 1, 1, 1};
+        const int is_prism[N_FAM_MAX] = {0, 1, 1, 1, 1, 1, 1, 0};
+        for (int k = 0; k < nf; ++k) {
+            f_is_vac[k]    = is_vac[k];
+            f_prismatic[k] = is_prism[k];
+            f_lscale[k] = is_prism[k] ? P.l_a     : P.l_c;
+            f_cLL[k]    = is_prism[k] ? P.c_LL_a  : P.c_LL_c;
+            f_cLN[k]    = is_prism[k] ? P.c_LN_a  : P.c_LN_c;
         }
 
         loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
         const double lc_l_sc = P.l_c / P.l;   // <c> uses the basal length scale
         const double la_l_sc = P.l_a / P.l;
 
-        for (int k = 0; k < 4; ++k) {
-            const int row = is_vac[k] ? 0 : 1;
+        for (int k = 0; k < nf; ++k) {
+            // The Woo row is set by the HABIT PLANE the loop lies in, not by
+            // what it stores: Z_basal and Z_prismatic are properties of the
+            // capture geometry. Before step 1 `is_vac[k]` selected the row
+            // correctly only because the one vacancy family was also the one
+            // basal family; a prismatic vacancy loop breaks that coincidence.
+            const int row = is_prism[k] ? 1 : 0;
             // Geometric sink strength, scaled per family exactly as
             // ImmobileSinks does with loopSinkScale. This replaces the legacy
             // Q, which scaled the <c> channel only.
-            T pref = (is_vac[k] ? lc_l_sc : la_l_sc) * P.loop_sink_scale[k]
+            // Habit again, not polarity: l_c/l is the <c> geometric factor.
+            T pref = (is_prism[k] ? la_l_sc : lc_l_sc) * P.loop_sink_scale[k]
                      * ad_sqrt(f_num[k] * f_cont[k]);
             T gain(0.0), loss(0.0);
             for (int m = 0; m < 4; ++m) {
                 const int m_is_vac = (m == 0);
-                T rate = pref * (Zrow[row][m] * Dbar[m] * sz[m]) * cm[m];
+                // X multiplies Z, per Eq. (Zsk). Written inside the same
+                // parenthesised group so that at chi = 1 the extra factor is an
+                // exact 1.0 and the product is bit-identical to step 1's.
+                T rate = pref * (Zrow[row][m] * Xchar[is_vac[k]][m]
+                                 * Dbar[m] * sz[m]) * cm[m];
                 if (m_is_vac == is_vac[k]) gain = gain + rate;
                 else                       loss = loss + rate;
             }
@@ -249,7 +306,11 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // as ClusterDynamicsFEM applies it: a loop at r_min stops absorbing
             // the defect that would dissolve it, and the un-absorbed defects
             // stay in the free pool so the balance closes.
-            if (!is_vac[k]) {
+            // r_min_a is the PRISMATIC minimum radius, so the gate belongs to
+            // every <a> family. Before step 1 `!is_vac[k]` picked out exactly
+            // the prismatic families; now it would leave the new prismatic
+            // vacancy loops able to shrink through their own floor.
+            if (is_prism[k]) {
                 T rk = f_lscale[k] * ad_sqrt(f_cont[k] / f_num[k]);
                 if (P.r_min_a > 0.0) {
                     T x = (rk / P.r_min_a - 1.0) / P.w_rmin;
@@ -271,20 +332,53 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // immobile_0d_to_modelib performs on the way to the 3-D code -- done
         // here at the source instead of on the way out.
         const double G_iL_tot = P.G_iL + P.G_aiL;
-        const double G_vL_tot = P.G_vL + P.G_avL;
+        // ── The step-1 split of the cascade vacancy-loop source ─────────────
+        // Before step 1 the whole vacancy-loop cascade yield went to the one
+        // basal family, because there was nowhere else for it to go. With the
+        // prismatic vacancy variants present, G_avL -- the ALIGNED (prismatic)
+        // part -- is theirs, shared by the variant weights, which is the
+        // nucleation current J^{a_k}_{vL} = w^v_k G_avL / n^nuc_avL.
+        //
+        // At G_avL = 0 the basal family receives G_vL + 0 = G_vL_tot exactly as
+        // before and the new families receive nothing, which is the plan's
+        // stated regression. Note it recovers the PHYSICS; `n_fam` is what
+        // recovers the bits, because a family sitting at the concentration
+        // floor still feeds floor-level terms into coalescence and rho_N.
+        const double G_vL_basal = (nf > 4) ? P.G_vL : (P.G_vL + P.G_avL);
         T nuc_a_num  = (R_i_3i + R_2i_2i) + T(G_iL_tot / P.n_iL_nuc);
         T nuc_a_cont = nuc_content + T(G_iL_tot);
-        f_nucn[0] = T(G_vL_tot / P.n_vL_nuc);
-        f_nucc[0] = T(G_vL_tot);
+        f_nucn[0] = T(G_vL_basal / P.n_vL_nuc);
+        f_nucc[0] = T(G_vL_basal);
         for (int k = 1; k < 4; ++k) {
             f_nucn[k] = P.variant_frac[k - 1] * nuc_a_num;
             f_nucc[k] = P.variant_frac[k - 1] * nuc_a_cont;
         }
+        for (int k = 4; k < nf; ++k) {
+            const int v = k - 4;                       // 0,1,2 -> a1v,a2v,a3v
+            // The VACANCY weights, not the interstitial ones: under load the
+            // two characters must move in opposite directions.
+            const double w = (v < 3) ? P.variant_frac_v[v] : 0.0;
+            f_nucn[k] = T(w * P.G_avL / P.n_vL_nuc);
+            f_nucc[k] = T(w * P.G_avL);
+        }
 
-        // Thermal annealing: vacancy loops only, one family instead of two.
+        // Thermal annealing acts on the vacancy families -- all of them, now
+        // that there is more than one. tau_vL is the basal lifetime and
+        // tau_avL the prismatic one, which is exactly the pair the legacy model
+        // already carried under its aligned / non-aligned names.
         f_annn[0] = f_num[0] / P.tau_vL;
         f_annc[0] = P.n_vL_nuc * f_num[0] / P.tau_vL;
         for (int k = 1; k < 4; ++k) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); }
+        for (int k = 4; k < nf; ++k) {
+            const double tau = is_vac[k] ? (is_prism[k] ? P.tau_avL : P.tau_vL)
+                                         : 0.0;
+            if (tau > 0.0) {
+                f_annn[k] = f_num[k] / tau;
+                f_annc[k] = P.n_vL_nuc * f_num[k] / tau;
+            } else {
+                f_annn[k] = T(0.0); f_annc[k] = T(0.0);
+            }
+        }
     } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
     // Decomposed into interstitial- and vacancy-absorption components so the
@@ -396,10 +490,19 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         ydot[10] = growth_vL  + P.G_vL  - ann_cont_vL;
         ydot[11] = growth_avL + P.G_avL - ann_cont_avL;
     } else {
-        for (int k = 0; k < 4; ++k) {
-            ydot[4 + k] = f_nucn[k] - f_annn[k];
-            ydot[8 + k] = (f_gain[k] - f_loss[k]) + f_nucc[k] - f_annc[k];
+        for (int k = 0; k < nf; ++k) {
+            ydot[fam_n_idx(k)] = f_nucn[k] - f_annn[k];
+            ydot[fam_c_idx(k)] = (f_gain[k] - f_loss[k])
+                                 + f_nucc[k] - f_annc[k];
         }
+    }
+    // Appended slots that this run does not carry hold no state and must
+    // produce no derivative. Written unconditionally -- including for
+    // loop_model 0, which never touches them -- so the tail of the state can
+    // never be left uninitialised.
+    for (int k = nf; k < N_FAM_MAX; ++k) {
+        ydot[fam_n_idx(k)] = T(0.0);
+        ydot[fam_c_idx(k)] = T(0.0);
     }
 
     // ── Point-defect conservation accumulators (Eq. 12-17) ──────────────────
@@ -466,27 +569,49 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // the families are labelled -- so it runs over the slots. The gain-side
     // absorption f_gain[k] sets the climb speed, which is why it stays positive
     // at steady state and coarsening persists.
-    T coal_num[4], coal_cont[4], numLN[4], r_coal[4];
-    for (int k = 0; k < 4; ++k)
+    T coal_num[N_FAM_MAX], coal_cont[N_FAM_MAX];
+    T numLN[N_FAM_MAX], r_coal[N_FAM_MAX];
+    for (int k = 0; k < nf; ++k) {
+        // An EMPTY family must not coalesce, and the concentration floor is not
+        // enough to make that true. `coal` forms the climb speed as
+        //     drdt = lscale * gain / (2 sqrt(N c))
+        // and `gain` is itself proportional to sqrt(N c) through the sink
+        // prefactor, so the floor CANCELS and a family pinned at C_floor still
+        // reports a finite climb velocity. The loop-network channel then feeds
+        // c_rhoN * (2 pi / Omega) * r * numLN into rho_N, and the 1/Omega turns
+        // what looks like a 1e-20 quantity into a real source.
+        //
+        // Measured on the step-1 regression, where three families carry no
+        // nucleation at all: the basal loop content came out 387x different
+        // from the same run without those slots. Not a rounding-level leak --
+        // a different answer.
+        if (ad_val(f_num[k]) <= C_floor || ad_val(f_cont[k]) <= C_floor) {
+            coal_num[k] = T(0.0); coal_cont[k] = T(0.0);
+            numLN[k]    = T(0.0); r_coal[k]    = T(0.0);
+            continue;
+        }
         coal(f_num[k], f_cont[k], f_lscale[k], f_gain[k], f_cLL[k], f_cLN[k],
              coal_num[k], coal_cont[k], numLN[k], r_coal[k]);
+    }
 
     // The content removed by loop-network coalescence is booked as network sink
     // absorption on the polarity the family stores, so the atom balance closes.
     // In the legacy model slots 0,1 are interstitial and 2,3 vacancy; in the
-    // self-consistent model slot 0 is vacancy and 1..3 interstitial.
-    const int slot_is_vac[2][4] = {{0, 0, 1, 1}, {1, 0, 0, 0}};
+    // self-consistent model slot 0 is vacancy, 1..3 interstitial, and from
+    // step 1 slots 4..7 are vacancy again.
+    const int slot_is_vac[2][N_FAM_MAX] = {{0, 0, 1, 1, 0, 0, 0, 0},
+                                           {1, 0, 0, 0, 1, 1, 1, 1}};
     const int* sv = slot_is_vac[P.loop_model != 0 ? 1 : 0];
-    for (int k = 0; k < 4; ++k) {
-        ydot[4 + k] = ydot[4 + k] - coal_num[k];
-        ydot[8 + k] = ydot[8 + k] - coal_cont[k];
+    for (int k = 0; k < nf; ++k) {
+        ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - coal_num[k];
+        ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - coal_cont[k];
     }
     if (P.loop_model == 0) {
         // Again verbatim: the paired sums associate differently from a loop.
         ydot[14] = ydot[14] + (coal_cont[0] + coal_cont[1]);   // cum_sink_i
         ydot[17] = ydot[17] + (coal_cont[2] + coal_cont[3]);   // cum_sink_v
     } else {
-        for (int k = 0; k < 4; ++k) {
+        for (int k = 0; k < nf; ++k) {
             if (sv[k]) ydot[17] = ydot[17] + coal_cont[k];
             else       ydot[14] = ydot[14] + coal_cont[k];
         }
@@ -497,9 +622,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // length per unit volume. Recovery: first-order relaxation of the
     // irradiation-grown excess toward the grown-in seed, so rho_N saturates.
     const double c_rho_geo = P.c_rhoN * (2.0 * PI / P.Omega);
-    T rho_source = c_rho_geo *
-        (r_coal[0] * numLN[0] + r_coal[1] * numLN[1] +
-         r_coal[2] * numLN[2] + r_coal[3] * numLN[3]);
+    // A left-fold from zero is bit-identical to the four-term left-associated
+    // sum this replaced -- 0 + a == a exactly for every finite a, and these are
+    // products of non-negative quantities -- so the legacy result is unmoved.
+    T rho_acc(0.0);
+    for (int k = 0; k < nf; ++k) rho_acc = rho_acc + r_coal[k] * numLN[k];
+    T rho_source = c_rho_geo * rho_acc;
     T rho_recovery = P.k_rhoN_rec * (rho_N - P.rho_N);
     ydot[IDX_RHO_N] = rho_source - rho_recovery;
 
@@ -510,6 +638,16 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     for (int k = 0; k < N_PHYS; ++k) {
         if (ad_val(y[k]) <= C_floor && ad_val(ydot[k]) < 0.0)
             ydot[k] = T(0.0);
+    }
+    // The appended families are physical concentrations too, and they need the
+    // same protection -- more so, since a family that receives no nucleation
+    // sits ON the floor for the whole run and every shrinkage term would push
+    // it through. Ranged over the ACTIVE slots only; the inactive ones were
+    // already set to exactly zero above.
+    for (int k = 4; k < nf; ++k) {
+        const int in = fam_n_idx(k), ic = fam_c_idx(k);
+        if (ad_val(y[in]) <= C_floor && ad_val(ydot[in]) < 0.0) ydot[in] = T(0.0);
+        if (ad_val(y[ic]) <= C_floor && ad_val(ydot[ic]) < 0.0) ydot[ic] = T(0.0);
     }
 
     // ── Operator-split QSSA: freeze the mobile species ──────────────────────

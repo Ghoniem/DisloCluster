@@ -204,9 +204,22 @@ otherSinks_SI=1.880000e+14 1.898800e+14 1.898800e+14 1.898800e+14; # NETWORK dis
 
 ########################################################################
 # Immobile loop families -- Deliverable D1/M1 Sec. 2.2
-# Family order: {vL (basal <c>, vacancy), a1, a2, a3 (prismatic <a>, interstitial)}
-immobileSpeciesVector=-1 1 1 1;                # polarity: -1 vacancy, +1 interstitial
-immobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2;  # [-] relative relaxation volume
+# Family order (step 1 of the implementation plan raised this from 4 to 8):
+#   0        c_f   basal <c>,      vacancy       -- the original vacancy family
+#   1..3     a1-a3 prismatic <a>,  interstitial  -- the original <a> variants
+#   4..6     a1v-a3v prismatic <a>, VACANCY      -- added by step 1
+#   7        c_p   basal <c>,      vacancy       -- RESERVED for step 4
+#
+# Slots 0..3 are byte-for-byte what they were, so nothing that ran before step 1
+# is altered. Slots 4..7 carry loopCascadeFractions = 0, which is the plan's
+# stated regression state eps_avL = 0: they exist, they are addressable, and
+# they receive no cascade source until someone asks for one.
+#
+# Slot 7's Burgers column is a PLACEHOLDER equal to c_f's. A perfect basal loop
+# is not a faulted one and step 4 must set it deliberately; it is written here
+# only so the column count is right and the slot cannot be silently mis-sized.
+immobileSpeciesVector=-1 1 1 1 -1 -1 -1 -1;    # polarity: -1 vacancy, +1 interstitial
+immobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2 0.405 0.405 0.405 0.405;  # [-] relative relaxation volume
 # Columns: Burgers direction of each family, in LATTICE components (they are
 # multiplied by latticeBasis, NOT Cartesian). For HEX with
 #   latticeBasis = [1 0.5 0; 0 0.8660254 0; 0 0 1.632993]
@@ -222,9 +235,9 @@ immobileSpeciesRelRelaxVol=0.405 1.2 1.2 1.2;  # [-] relative relaxation volume
 # each has Cartesian length 1, so |b_<a>| = a = 3.23 A as 1/3<11-20>
 # requires; writing Cartesian components instead would make the three <a>
 # families inequivalent.
-immobileSpeciesBurgers=0.0 1.0 0.0 -1.0
-                       0.0 0.0 1.0  1.0
-                       0.5 0.0 0.0  0.0;
+immobileSpeciesBurgers=0.0 1.0 0.0 -1.0 1.0 0.0 -1.0 0.0
+                       0.0 0.0 1.0  1.0 0.0 1.0  1.0 0.0
+                       0.5 0.0 0.0  0.0 0.0 0.0  0.0 0.5;
 alpha_bp=1.0;          # [-] bi-pyramid sink-strength coefficient, Eq. (14)
 delVPyramid=1.2e-29;   # [m^3] pyramid formation volume
 w0=0.15;               # [-] sigmoid width factor, Eq. (31)
@@ -237,15 +250,15 @@ n_s=0.0;               # [-] sigmoid midpoint shift, Eq. (31)
 Eb_eV=5.0 5.0 0.957033 2.0; # [eV] binding energies, Eq. (9)/(55)
 evc=0.005;             # [-] vacancy cluster generation efficiency
 Nvmax=1.0e24;          # [m^-3] saturation density of vacancy loops
-nmin=100 40 40 40;     # [-] lower end of the bi-pyramid->loop window, Eq. (31)
-nmax=800 300 300 300;  # [-] upper end of the window, Eq. (31)
-r_min=1.0e-9 1.0e-9 1.0e-9 1.0e-9;   # [m] minimum stable radius, gate Eq. (91)
+nmin=100 40 40 40 40 40 40 100;     # [-] lower end of the bi-pyramid->loop window, Eq. (31)
+nmax=800 300 300 300 300 300 300 800;  # [-] upper end of the window, Eq. (31)
+r_min=1.0e-9 1.0e-9 1.0e-9 1.0e-9 1.0e-9 1.0e-9 1.0e-9 1.0e-9;   # [m] minimum stable radius, gate Eq. (91)
 distanceFactor=1.0;    # [-] discrete loop generation distance factor
 # --- loop kinetics (Sec. 2.2) ---
-loopCascadeFractions=0.005 0.000704 0.000704 0.000704; # eps_k, Eq. (51); a-loops split 3 ways
-nNuc=400 300 300 300;  # [-] defects per cascade-nucleated loop, Eq. (36)
-cLL=0.162483 120.577 120.577 120.577;  # like-loop coalescence coefficient, Eq. (99)
-cLN=2.95829 1130.85 1130.85 1130.85;   # loop-network coalescence coefficient, Eq. (99)
+loopCascadeFractions=0.005 0.000704 0.000704 0.000704 0.0 0.0 0.0 0.0; # eps_k, Eq. (51); a-loops split 3 ways
+nNuc=400 300 300 300 300 300 300 400;  # [-] defects per cascade-nucleated loop, Eq. (36)
+cLL=0.162483 120.577 120.577 120.577 120.577 120.577 120.577 0.162483;  # like-loop coalescence coefficient, Eq. (99)
+cLN=2.95829 1130.85 1130.85 1130.85 1130.85 1130.85 1130.85 2.95829;   # loop-network coalescence coefficient, Eq. (99)
 kappaLL=2.0;           # [-] Avrami overlap, like-loop channel, Eq. (98)
 kappaLN=0.4;           # [-] Avrami overlap, loop-network channel, Eq. (98)
 tau0_vLoop_SI=1.05145; # [s] vacancy-loop dissolution prefactor, Eq. (95)
@@ -279,7 +292,7 @@ dadZ0=0.939836 1.015504 1.015504 1.015504;          # Z0_m per mobile species
 # Applied identically to the mobile-species sink and to the loop growth flux, as in
 # the 0-D where both come from the same prefactor. Set to 1 1 1 1 for the purely
 # geometric form.
-loopSinkScale=0.291528 0.792317 0.792317 0.792317;  # [-] <c>, <a>x3
+loopSinkScale=0.291528 0.792317 0.792317 0.792317 0.792317 0.792317 0.792317 0.291528;  # [-] <c>, <a>x3
 # Positivity floor on every concentration, as ZrMicro's C_floor
 # (rate_equations.py: y = max(y, C_floor) before each rate evaluation).
 # Applied to the mobile species after each Newton update and to the immobile

@@ -69,3 +69,6 @@ MoDELib3/tutorials/hardening_*
 # does track are path-free and reproducible; these two are not.
 *.fls
 *.fdb_latexmk
+
+# latexmk console capture (see the .log the engine writes itself).
+build.log

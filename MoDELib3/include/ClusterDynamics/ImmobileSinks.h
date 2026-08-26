@@ -74,15 +74,18 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
     const ImmobileTrialFunctionType& nI;      // immobile field: [n_k ; c_k]
     const EvalFunctionType nIe;
     const Eigen::Array<double,2,mSizeIn> Z;   // row0 <c> loops, row1 <a> loops
+    const Eigen::Array<double,2,mSizeIn> X;   // character factor, row0 i-loop row1 v-loop
     Eigen::Array<double,1,mSizeIn> Dbar;      // orientation-averaged diffusivity
     Eigen::Array<int,1,nFamilies> vacancyFamily;
+    Eigen::Array<int,1,nFamilies> basalFamily;   // habit, independent of polarity
 
     /**********************************************************************/
     ImmobileSinks(const ImmobileTrialFunctionType& nI_in, const ClusterDynamicsParameters<dim>& cdp_in) :
     /* init */ cdp(cdp_in),
     /* init */ nI(nI_in),
     /* init */ nIe(nI_in),
-    /* init */ Z(cdp_in.loopDADbias())
+    /* init */ Z(cdp_in.loopDADbias()),
+    /* init */ X(cdp_in.loopCharacterFactor())
     {
         Dbar.setZero();
         if(!cdp.detD.empty())
@@ -95,6 +98,13 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
         for(int k=0;k<nFamilies;++k)
         {
             vacancyFamily(k)=(cdp.immobileSpeciesVector(k)<0.0)?1:0;
+            // The DAD bias rows are BASAL (0) and PRISMATIC (1), so selecting
+            // one is a question about the habit plane, not about what the loop
+            // stores. Those coincided while the only vacancy family was the
+            // only basal family; step 1's prismatic vacancy variants break the
+            // coincidence, and polarity would then hand them the basal
+            // efficiency in the k^2 the fast solve diffuses against.
+            basalFamily(k)=(std::fabs(cdp.immobileSpeciesBurgers(2,k))>FLT_EPSILON)?1:0;
         }
     }
 
@@ -130,7 +140,10 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
             {
                 if(std::isfinite(Sk(k)) && Sk(k)>0.0)
                 {
-                    k2+=Z(vacancyFamily(k)?0:1,m)*Sk(k);
+                    // Eq. (Zsk): habit factor times character factor. At
+                    // characterSplitting = 1 every X is exactly 1.0, so the
+                    // product is bit-identical to what it was.
+                    k2+=Z(basalFamily(k)?0:1,m)*X(vacancyFamily(k)?1:0,m)*Sk(k);
                 }
             }
             temp(m,m)=-k2*Dbar(m);      // loss: negative diagonal (cf. getR1)

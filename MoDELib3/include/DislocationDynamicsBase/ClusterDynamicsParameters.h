@@ -30,7 +30,19 @@ template<int dim>
 struct ClusterDynamicsParameters
 {
     static constexpr int mSize=4;     // e.g. Cv, Ci, C2i, C3i
-    static constexpr int iSize=8;  // e.g. Nc, Na1, Na2, Na3, cv, ca1, ca2, ca3
+    // Step 1 of the implementation plan raised this from 8 to 16: eight immobile
+    // families, each with a (number, content) pair. Order matches
+    // Zr3d_ghoniem.txt's immobileSpeciesVector:
+    //   0     c_f     basal <c>,       vacancy
+    //   1..3  a1-a3   prismatic <a>,   interstitial
+    //   4..6  a1v-a3v prismatic <a>,   VACANCY        -- added by step 1
+    //   7     c_p     basal <c>,       vacancy        -- reserved for step 4
+    //
+    // Slots 4..7 carry loopCascadeFractions = 0 in the material file, so they
+    // are present and addressable but receive no source: that is the plan's
+    // eps_avL = 0 regression state, and it is why raising iSize does not by
+    // itself change any result.
+    static constexpr int iSize=16;  // Nc..Nc_p, cc..cc_p (8 families x 2)
 
     typedef Eigen::Matrix<double,dim,1> VectorDim;
     typedef Eigen::Matrix<double,dim,dim> MatrixDim;
@@ -146,6 +158,10 @@ struct ClusterDynamicsParameters
      *  behaviour exactly. The self term is never truncated. */
     const double climbNeighborCutoff;
 
+    /*! Character-splitting factor chi of Eq. (chi). Optional material key
+     *  `characterSplitting`; 1 or absent is the character-degenerate model. */
+    const double characterSplitting;
+
     /*! Write the SUPERPOSED mobile concentration at the CD nodes to
      *  evl/cdTotalMobile_<runID>.txt, in the same node order as
      *  evl/cdNodes.txt. Optional material key `outputSuperposedMobile`,
@@ -220,6 +236,7 @@ struct ClusterDynamicsParameters
     /*! Climb pair-assembly cutoff [b]; optional material-file key
      *  `climbNeighborCutoff_b`, defaulting to 0 = no cutoff. */
     static double getClimbNeighborCutoff(const DislocationDynamicsBase<dim>& ddBase);
+    static double getCharacterSplitting(const DislocationDynamicsBase<dim>& ddBase);
     /*! Whether to publish the superposed mobile field; optional material-file
      *  key `outputSuperposedMobile`, defaulting to 0 = off. */
     static int getOutputSuperposedMobile(const DislocationDynamicsBase<dim>& ddBase);
@@ -252,6 +269,19 @@ struct ClusterDynamicsParameters
      *  posited as a scalar delta as in the 0-D reduction.
      */
     Eigen::Array<double,2,mSize> loopDADbias() const;
+
+    /*! rief Character factor X_{s,m} of Eq. (Zsk), indexed
+     *  [family stores vacancies ? 1 : 0][mobile species].
+     *
+     *  loopDADbias() breaks the ORIENTATION degeneracy through A_h(k)(p_m); this
+     *  breaks the CHARACTER one. Thermal-drift capture radii make same-type
+     *  capture the stronger one, parameterised by the single splitting factor
+     *      chi = X_iI X_vV / (X_iV X_vI)
+     *  with X = chi^(+1/4) for like pairs and chi^(-1/4) for unlike ones.
+     *
+     *  chi = 1 returns all ones EXACTLY, so a material file without the key --
+     *  which is every one of them -- is unchanged bit-for-bit. */
+    Eigen::Array<double,2,mSize> loopCharacterFactor() const;
     Eigen::Array<double,1,iSize/2> clusterDensity(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N) const;
     Eigen::Array<double,dim,dim> sigmoidalMatrixInterpolation(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N, const Eigen::Array<double,dim,dim>& lowValue, const Eigen::Array<double,dim,dim>& highValue, const int& index) const;
     Eigen::Array<double,1,iSize/2> sigmoidalPlotVectorInterpolation(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N, const Eigen::Array<double,1,iSize/2>& lowValue, const Eigen::Array<double,1,iSize/2>& highValue) const;

@@ -30,10 +30,36 @@
 static constexpr int N_PHYS = 12;   // physical species
 static constexpr int N_ACC  = 6;    // conservation accumulators
 static constexpr int N_RHO  = 1;    // evolving network density rho_N
-static constexpr int N_EQ   = N_PHYS + N_ACC + N_RHO;   // total = 19
 static constexpr int IDX_RHO_N = N_PHYS + N_ACC;        // rho_N state index = 18
 static constexpr int N_MOB   = 4;   // mobile species Cv Ci C2i C3i
 static constexpr int N_IMMOB = 8;   // immobile species (loop numbers + contents)
+
+// ── Step 1 of the implementation plan: the appended family slots ─────────────
+// The plan raises the immobile family count from 4 to 8 -- adding the three
+// prismatic VACANCY variants (v,a1..a3) and reserving one slot for the second
+// basal state c_p that step 4 introduces.
+//
+// The four new families are APPENDED at 19..26 rather than inserted after the
+// existing immobile block, so that every pre-existing state index keeps its
+// meaning: mobile stays [0..3], the original four families stay [4..11], the
+// accumulators stay [12..17] and rho_N stays 18. Every Python consumer that
+// reads those columns -- coupling/field.py, post/coarsening.py, the 0-D figure
+// suite, march_state.npz -- therefore keeps working against a longer state
+// unchanged, which an insertion would have broken everywhere at once.
+//
+//   [19..22] numbers  n_a1v n_a2v n_a3v n_cp
+//   [23..26] contents c_a1v c_a2v c_a3v c_cp
+static constexpr int N_XFAM   = 4;              // appended family slots
+static constexpr int N_XIMMOB = 2 * N_XFAM;     // their (number, content) pairs
+static constexpr int IDX_XN   = 19;             // first appended NUMBER index
+static constexpr int IDX_XC   = IDX_XN + N_XFAM;// first appended CONTENT index
+static constexpr int N_FAM_MAX = 8;             // total family slots available
+
+static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB;   // total = 27
+
+// State index of family k's number / content, for k in [0, N_FAM_MAX).
+constexpr int fam_n_idx(int k) { return k < 4 ? 4 + k : IDX_XN + (k - 4); }
+constexpr int fam_c_idx(int k) { return k < 4 ? 8 + k : IDX_XC + (k - 4); }
 
 // ── Reduced (implicit-block) state layout ────────────────────────────────────
 // The six accumulators are PURE QUADRATURES: rows 12..17 of the RHS are written
@@ -48,8 +74,19 @@ static constexpr int N_IMMOB = 8;   // immobile species (loop numbers + contents
 //     otherwise     : 4 mobile + 8 immobile + rho_N  = 13
 // versus 19 before. Dense LU is O(n^3), so 9 vs 19 is ~9.4x fewer flops per
 // Newton solve and the AD Jacobian sweep shrinks in proportion.
-static constexpr int N_RED_FROZEN = N_EQ - N_ACC - N_MOB;   //  9
-static constexpr int N_RED_FREE   = N_EQ - N_ACC;           // 13
+// The implicit block is sized by the ACTIVE family count, not by the slots
+// available. Step 1 raises the ceiling from 4 families to 8, but a run that
+// carries only the original 4 must keep factorising a 9x9, not a 17x17: dense
+// LU is O(n^3), so paying for the empty slots would cost 6.7x per Newton solve
+// for nothing. `n_fam` therefore selects among compile-time sizes at run time.
+template <int NF> struct RedDims {
+    static constexpr int frozen = 2 * NF + N_RHO;            // immobile + rho_N
+    static constexpr int free_  = N_MOB + 2 * NF + N_RHO;    // + mobile
+    static constexpr int rlx_frozen = frozen + N_ACC;
+    static constexpr int rlx_free   = free_  + N_ACC;
+};
+static constexpr int N_RED_FROZEN = RedDims<4>::frozen;   //  9  (default)
+static constexpr int N_RED_FREE   = RedDims<4>::free_;    // 13
 
 // ── How the accumulators are carried (--acc_mode) ────────────────────────────
 //   0 STATE_CTRL   legacy: in the implicit state AND in the error test.
@@ -70,8 +107,14 @@ static constexpr int ACC_QUADRATURE  = 1;
 static constexpr int ACC_STATE_RELAX = 2;
 
 // Newton-block sizes for mode 2: the reduced set plus the six accumulators.
-static constexpr int N_RLX_FROZEN = N_RED_FROZEN + N_ACC;   // 15
-static constexpr int N_RLX_FREE   = N_RED_FREE   + N_ACC;   // 19
+static constexpr int N_RLX_FROZEN = RedDims<4>::rlx_frozen;   // 15 (default)
+static constexpr int N_RLX_FREE   = RedDims<4>::rlx_free;     // 19
+
+// Largest reduced state any `n_fam` can produce. Stack buffers that hold a
+// reduced vector are sized by this, never by the default: at n_fam = 8 the
+// relaxed free block is 27, and sizing those buffers 19 would overflow them
+// silently the first time the appended families were switched on.
+static constexpr int N_RED_MAX = RedDims<N_FAM_MAX>::rlx_free;   // 27
 
 // atol given to the accumulator components in mode 2. Large enough that
 // 1/(rtol*|y| + atol) underflows the error weight to nothing, small enough to
@@ -134,14 +177,55 @@ struct Parameters {
     //     as ImmobileSinks does.
     int    loop_model;
 
-    // Per mobile species (v, i, 2i, 3i). Used only when loop_model == 1.
+    // ── Step 1: how many immobile families are ACTIVE ────────────────────────
+    // 4 (default) is the pre-step-1 set: <c> plus the three prismatic
+    // interstitial variants. 8 adds the three prismatic VACANCY variants
+    // (v,a1..a3) and the reserved second basal slot c_p that step 4 fills.
+    //
+    // This is the step's regression switch, and it is the COUNT rather than the
+    // cascade yield eps_avL for a reason worth stating: a family carrying no
+    // nucleation still sits at the concentration floor C_floor, and a family at
+    // the floor still contributes floor-level terms to loop-network coalescence,
+    // hence to rho_N and to the sink accumulators. eps_avL = 0 therefore
+    // recovers the previous PHYSICS but not the previous BITS. n_fam = 4 skips
+    // the slots entirely and recovers both.
+    int    n_fam;
+
+    // ── Step 2: the character factor X_{s,m} of Eq. (Zsk) ───────────────────
+    // Every capture efficiency is a product Z^0_m * A_h(k)(p_m) * X_{s,m} * SIPA.
+    // A_h breaks the ORIENTATION degeneracy (basal vs prismatic) and is already
+    // carried; X breaks the CHARACTER one (what the loop stores), and without
+    // it an interstitial and a vacancy loop on the same habit plane capture
+    // identically.
+    //
+    // Thermal-drift capture radii make same-type capture the stronger one -- an
+    // interstitial loop's dilatational field reaches interstitials further than
+    // it reaches vacancies, and conversely -- so X is parameterised by the
+    // single character-splitting factor
+    //     chi = X_iI X_vV / (X_iV X_vI)
+    // taking X = chi^(+1/4) for like pairs and chi^(-1/4) for unlike ones. That
+    // reproduces chi exactly, leaves the geometric mean of the four at 1 (so no
+    // overall capture magnitude is smuggled in), and gives X == 1.0 identically
+    // at chi = 1, which is the step's regression.
+    double chi;
+
+    // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
     double dad_Z0[4];   // Z0_m, the isotropic-limit capture efficiency
-    // Per family (c, a1, a2, a3). loop_sink_scale replaces the legacy Q, which
-    // scaled the <c> channel alone; here every family carries its own factor,
-    // as in the material file's loopSinkScale.
-    double loop_sink_scale[4];
-    double variant_frac[3];   // how <a> nucleation splits over a1, a2, a3
+    // Per family. loop_sink_scale replaces the legacy Q, which scaled the <c>
+    // channel alone; here every family carries its own factor, as in the
+    // material file's loopSinkScale. Slots 0..3 are (c, a1, a2, a3) and slots
+    // 4..7 are (a1v, a2v, a3v, c_p).
+    double loop_sink_scale[N_FAM_MAX];
+    double variant_frac[3];   // how INTERSTITIAL <a> nucleation splits
+    // How VACANCY <a> nucleation splits. Distinct from variant_frac because an
+    // interstitial loop inserts material on its habit plane and a vacancy loop
+    // removes it, so a resolved normal stress favours one exactly as much as it
+    // disfavours the other: w^v_k is the Boltzmann weight with the sign flipped.
+    // Defaults to variant_frac, which makes the two identical at zero
+    // deviatoric stress -- where both are 1/3 -- and so changes nothing that ran
+    // before step 1.
+    double variant_frac_v[3];
 
     // ── Pre-computed length scales (InputData.calculate_derived_parameters) ──
     double l;    // z_c*Omega / (2*pi*a^2)
@@ -275,23 +359,38 @@ inline bool is_reduced(const Parameters& P) {
     return P.acc_mode == ACC_QUADRATURE || P.acc_mode == ACC_STATE_RELAX;
 }
 
-// Dimension of the implicit block actually solved.
-inline int red_dim(const Parameters& P) {
-    if (P.acc_mode == ACC_STATE_RELAX)
-        return P.freeze_mobile ? N_RLX_FROZEN : N_RLX_FREE;
-    return P.freeze_mobile ? N_RED_FROZEN : N_RED_FREE;
+// Size of the implicit core (everything but the appended accumulators).
+inline int red_core(const Parameters& P) {
+    return (P.freeze_mobile ? 0 : N_MOB) + 2 * P.n_fam + N_RHO;
 }
 
-// Reduced index j -> index into the full 19-component state.
-//   frozen : j = 0..7  -> 4..11 (immobile),  j = 8  -> 18 (rho_N)
-//   free   : j = 0..11 -> 0..11 (mobile + immobile), j = 12 -> 18
+// Dimension of the implicit block actually solved.
+inline int red_dim(const Parameters& P) {
+    return red_core(P) + (P.acc_mode == ACC_STATE_RELAX ? N_ACC : 0);
+}
+
+// Reduced index j -> index into the full state.
+//
+// Ordered numbers-then-contents, which is what the original layout already was
+// (4..7 are the four numbers, 8..11 the four contents), so at n_fam = 4 this
+// reproduces the previous mapping index for index:
+//   frozen : j = 0..3 -> 4..7, j = 4..7 -> 8..11, j = 8  -> 18
+//   free   : j = 0..3 -> 0..3, then the same, and j = 12 -> 18
+// At n_fam = 8 the appended families follow through fam_n_idx / fam_c_idx.
 inline int red_idx(const Parameters& P, int j) {
-    const int n_core = P.freeze_mobile ? N_RED_FROZEN : N_RED_FREE;
-    if (j >= n_core)            // mode 2 only: the six accumulators, appended
+    const int n_core = red_core(P);
+    if (j >= n_core)            // modes 1/2: the six accumulators, appended
         return N_PHYS + (j - n_core);
-    if (P.freeze_mobile)
-        return (j < N_IMMOB) ? (N_MOB + j) : IDX_RHO_N;
-    return (j < N_PHYS) ? j : IDX_RHO_N;
+    int t = j;
+    if (!P.freeze_mobile) {
+        if (t < N_MOB) return t;
+        t -= N_MOB;
+    }
+    const int nf = P.n_fam;
+    if (t < nf)      return fam_n_idx(t);
+    t -= nf;
+    if (t < nf)      return fam_c_idx(t);
+    return IDX_RHO_N;
 }
 
 // Expand a reduced state into the full 19-vector the physics core expects.
@@ -372,14 +471,54 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
             P.dad_p[m]  = optional_param(p, pk[m],  1.0);
             P.dad_Z0[m] = optional_param(p, z0k[m], 1.0);
         }
-        const char* sk[4] = {"loop_sink_scale_c",  "loop_sink_scale_a1",
-                             "loop_sink_scale_a2", "loop_sink_scale_a3"};
+        // Slots 4..6 are the prismatic VACANCY variants, which share the <a>
+        // habit and therefore default to the <a> sink scale rather than to 1:
+        // the geometric factor belongs to the habit plane, not to the polarity.
+        // Slot 7 is c_p, reserved for step 4, defaulting to the <c> value.
+        const char* sk[N_FAM_MAX] = {
+            "loop_sink_scale_c",   "loop_sink_scale_a1",
+            "loop_sink_scale_a2",  "loop_sink_scale_a3",
+            "loop_sink_scale_a1v", "loop_sink_scale_a2v",
+            "loop_sink_scale_a3v", "loop_sink_scale_cp"};
         for (int k = 0; k < 4; ++k)
             P.loop_sink_scale[k] = optional_param(p, sk[k], 1.0);
+        for (int k = 4; k < 7; ++k)
+            P.loop_sink_scale[k] = optional_param(p, sk[k],
+                                                  P.loop_sink_scale[k - 3]);
+        P.loop_sink_scale[7] = optional_param(p, sk[7], P.loop_sink_scale[0]);
         const char* vk[3] = {"variant_frac_a1", "variant_frac_a2",
                              "variant_frac_a3"};
         for (int j = 0; j < 3; ++j)
             P.variant_frac[j] = optional_param(p, vk[j], 1.0 / 3.0);
+        const char* vvk[3] = {"variant_frac_v_a1", "variant_frac_v_a2",
+                              "variant_frac_v_a3"};
+        for (int j = 0; j < 3; ++j)
+            P.variant_frac_v[j] = optional_param(p, vvk[j], P.variant_frac[j]);
+    }
+
+    // Active family count. 4 is the pre-step-1 set and the default, so every
+    // existing command line reproduces bit-for-bit; 8 switches on the prismatic
+    // vacancy variants of step 1. Anything else is a typo, not a request.
+    // Character splitting. 1.0 is the character-degenerate model and the
+    // default, so every command line written before step 2 is unchanged.
+    P.chi = optional_param(p, "chi", 1.0);
+    if (P.chi <= 0.0) {
+        std::cerr << "chi must be positive, got " << P.chi << "\n";
+        exit(1);
+    }
+
+    P.n_fam = static_cast<int>(optional_param(p, "n_fam", 4.0));
+    if (P.n_fam != 4 && P.n_fam != 8) {
+        std::cerr << "n_fam must be 4 or 8, got " << P.n_fam << "\n";
+        exit(1);
+    }
+    if (P.n_fam != 4 && P.loop_model == 0) {
+        // The legacy slots are (iL, aiL, vL, avL) -- aligned/non-aligned, not
+        // habit-resolved -- so an appended prismatic vacancy family has no
+        // meaning there and would silently be added to a different population.
+        std::cerr << "n_fam=8 requires loop_model>=1 "
+                     "(the legacy slots are not habit-resolved)\n";
+        exit(1);
     }
 
     // Length scales
@@ -446,9 +585,19 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.stats        = (optional_param(p, "stats",        0.0) > 0.5);
     P.euler_nsub   = static_cast<int>(optional_param(p, "euler_nsub", 0.0));
 
-    // Initial conditions
-    for (int k = 0; k < N_EQ; ++k)
+    // Initial conditions.
+    //
+    // The first 19 are required, as they always were. The eight appended by
+    // step 1 are OPTIONAL and default to zero, so every command line written
+    // before step 1 -- and every caller that still builds a 19-component state,
+    // which at this point is all of them -- keeps working unchanged and starts
+    // the new families empty. Requiring them would have made the state length
+    // a breaking change for the whole Python side at once, which is exactly
+    // what appending the slots was meant to avoid.
+    for (int k = 0; k < N_PHYS + N_ACC + N_RHO; ++k)
         P.y0[k] = require_param(p, "y0_" + std::to_string(k));
+    for (int k = N_PHYS + N_ACC + N_RHO; k < N_EQ; ++k)
+        P.y0[k] = optional_param(p, "y0_" + std::to_string(k), 0.0);
 
     // Solver settings
     P.t_begin  = require_param(p, "t_begin");

@@ -480,7 +480,13 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
     // full state from the reduced block, the frozen mobile values and the
     // quadrature accumulators when running reduced.
     auto emit_row = [&](double t) {
-        double full[N_EQ];
+        // Zeroed, not merely declared. The reduced path fills only the slots its
+        // block covers, so any component outside it -- which from step 1 of the
+        // plan includes the eight appended family slots whenever n_fam = 4 --
+        // would otherwise be emitted as whatever was on the stack. It printed
+        // denormals and a stray 1e+08, which read as physical values and would
+        // have been carried into march_state.npz without anything complaining.
+        double full[N_EQ] = {0.0};
         if (reduced) {
             for (int k = 0; k < N_MOB; ++k) full[k] = P.y0[k];   // frozen or seeded
             for (int j = 0; j < NEQ_SOLVE; ++j) full[red_idx(P, j)] = NV_Ith_S(y, j);

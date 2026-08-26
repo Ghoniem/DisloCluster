@@ -8073,6 +8073,42 @@ deliberately --- $\chi=1$, $\varepsilon_{\mathrm{sfp}}=0$, $\nu_\theta=0$,
 $\Delta_k=1$ --- and they are the reason the expansion is verifiable at all
 rather than being a rewrite that must be judged as a whole.
 
+\paragraph{Two things executing Phase~I corrected in this plan.} Both concern the
+regressions rather than the physics, and both were measured rather than argued.
+
+\textbf{A parameter set to zero does not always recover the predecessor's bits.}
+Step~1's stated regression is $\varepsilon_{avL}=0$. That recovers the previous
+\emph{physics} exactly and not the previous \emph{arithmetic}, for two
+independent reasons. A family carrying no nucleation still sits at the
+concentration floor, and a family at the floor is \textbf{not inert}: the
+coalescence climb speed is formed as
+$\dot r=\ell\,\Phi^{\mathrm{gain}}/2\sqrt{n\,c}$ while $\Phi^{\mathrm{gain}}$
+itself carries $\sqrt{n\,c}$ through the sink prefactor, so the floor
+\emph{cancels} and an empty family reports a finite climb velocity, feeding
+$c_{\rho}(2\pi/\Omega)\,r\,\dot n_{LN}$ into $\rho_N$ --- where the $1/\Omega$
+turns an apparent $10^{-20}$ into a real source. Measured before it was guarded:
+the basal loop content came out $387\times$ different. And even guarded, adding
+components to the implicit block changes CVODE's step sequence \emph{when those
+components are identically zero}, because the WRMS error norm divides by the
+block size and padding $9$ to $17$ shrinks it by $\sqrt{9/17}$. The residual
+tracks the tolerance --- $1.05\times10^{-6}$, $1.16\times10^{-8}$,
+$1.56\times10^{-10}$ at $\mathrm{rtol}=10^{-6},10^{-8},10^{-10}$ --- which is
+what identifies it as discretization rather than physics. \textbf{The exact
+regression for step~1 is therefore the family COUNT, not the cascade yield.}
+Step~2's $\chi=1$ \emph{is} bit-for-bit, because it adds a factor and not a
+state.
+
+\textbf{Habit and polarity stop coinciding at step~1, in three places at once.}
+$A_{h(k)}$ of \cref{eq:Zsk} selects on the habit plane, and before step~1 the one
+vacancy family was also the one basal family --- so every implementation selected
+it with a \emph{polarity} test instead, correctly by coincidence. Adding
+prismatic vacancy variants would have handed them the \emph{basal} capture
+efficiency, silently, both rows being populated and neither obviously wrong: in
+the $0$-D growth term, in \code{ClusterDynamicsFEM}'s immobile solve, and in the
+$k^2_m$ that \code{ImmobileSinks} hands the fast solve. The same separation is
+required for the length scale, the coalescence coefficients and the
+minimum-radius gate.
+
 \paragraph{Three assertions that must hold at every step.} These are not
 step-specific and should be wired in once, at the start, as run-time checks that
 can be enabled in a debug build:
@@ -8624,8 +8660,8 @@ optimized.
 
 \Cref{tab:plan} collects the sequence. Two columns matter more than the others:
 ``regression'' is the property that makes a step safe to leave in place, and
-``status'' is what has changed since this plan was first written --- seven of the
-nineteen steps are wholly or partly built, and they are not the first seven.
+``status'' is what has changed since this plan was first written --- nine of the
+nineteen steps are wholly or partly built.
 
 \textbf{Phase VI is the one phase with nothing built in it}, and that is a
 statement about the software rather than about the physics: \cref{sec:annealing}
@@ -8648,8 +8684,8 @@ Step & Change & Regression & Status \\
 \midrule
 0 & Lock and hash a reference trajectory & --- & done \\
 1 & Three prismatic vacancy families, \texttt{iSize} $8\to16$ &
-    $\varepsilon_{avL}=0$ & --- \\
-2 & Character-resolved capture $X_{s,m}$ & $\chi=1$ & --- \\
+    $n_{\mathrm{fam}}=4$ & \textbf{done} \\
+2 & Character-resolved capture $X_{s,m}$ & $\chi=1$ & \textbf{done} \\
 3 & Peripheral emission replaces $\tau_{avL},\tau_{cvL}$ &
     \emph{none --- irreversible} & --- \\
 4 & Basal chain $c_0\to c_f\to c_p$; sigmoid removed &
