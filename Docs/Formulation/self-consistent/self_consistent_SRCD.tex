@@ -8691,7 +8691,7 @@ optimized.
 
 \Cref{tab:plan} collects the sequence. Two columns matter more than the others:
 ``regression'' is the property that makes a step safe to leave in place, and
-``status'' is what has changed since this plan was first written --- ten of the
+``status'' is what has changed since this plan was first written --- eleven of the
 nineteen steps are wholly or partly built.
 
 \textbf{Phase VI is the one phase with nothing built in it}, and that is a
@@ -8720,7 +8720,7 @@ Step & Change & Regression & Status \\
 3 & Peripheral emission replaces $\tau_{avL},\tau_{cvL}$ &
     \texttt{emission\_model}$=0$ & \textbf{done} \\
 4 & Basal chain $c_0\to c_f\to c_p$; sigmoid removed &
-    $\varepsilon_{\mathrm{sfp}}=0$ & --- \\
+    \code{basal\_chain}$=0$ & \textbf{done} ($0$-D) \\
 5 & Second moment $q^k_{sL}$ and log-normal closure & $\Delta_k=1$ & --- \\
 6 & Discrete conversion: drawn sizes, elliptical outlines &
     $e=0$, $\Delta_k=1$ & partial \\

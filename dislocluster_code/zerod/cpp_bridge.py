@@ -39,8 +39,9 @@ _N_CONC = 19
 #: are the prismatic VACANCY variants step 1 added and slot 7 the second basal
 #: state step 4 will fill; both are already addressable here so that step 4 has
 #: nothing to change on this side.
-_EMIS_SLOT_FAMILY = ('c_f', 'a_i', 'a_i', 'a_i', 'a_v', 'a_v', 'a_v', 'c_p')
-_EMIS_SLOT_KEY = ('c', 'a1', 'a2', 'a3', 'a1v', 'a2v', 'a3v', 'cp')
+_EMIS_SLOT_FAMILY = ('c_f', 'a_i', 'a_i', 'a_i', 'a_v', 'a_v', 'a_v', 'c_p',
+                     'c_f')   # slot 8 is the pyramid; it emits with c_f's fault
+_EMIS_SLOT_KEY = ('c', 'a1', 'a2', 'a3', 'a1v', 'a2v', 'a3v', 'cp', 'c0')
 
 
 def _emission_params(material_file, solver_config):
@@ -384,6 +385,16 @@ def collect_solver_args(sim, solver_config):
         # time would be a second place for them to drift.
         if int(solver_config.get('emission_model', 0)) != 0:
             params.update(_emission_params(mat, solver_config))
+
+        # ── Step 4: the basal chain c_0 -> c_f -> c_p ───────────────────────
+        # Emitted only when the chain is switched on, so a step-3 command line
+        # is byte-for-byte what it was.
+        if int(solver_config.get('basal_chain', 0)) != 0:
+            params['basal_chain'] = 1
+            for key in ('eps_sfp', 'n_sfp_nuc', 'tau_sfp',
+                        'nu_col', 'nu_uf', 'alpha_sfp'):
+                if key in solver_config:
+                    params[key] = float(solver_config[key])
 
     return [f'--{k}={v}' for k, v in params.items()]
 

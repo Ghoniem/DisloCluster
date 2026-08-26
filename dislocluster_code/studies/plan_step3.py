@@ -104,7 +104,7 @@ def _state_one_family(slot, R_nm, mat, cv):
     # the family is a tracer and does not move the mobile field.
     n = 1e-12
     c = n * (R / fam.lam) ** 2
-    y = np.zeros(27)
+    y = np.zeros(29)
     y[0] = cv
     y[1] = 1e-30          # interstitials effectively absent
     y[n_idx(slot)] = n
@@ -241,7 +241,7 @@ def check_bulk_limit(mat):
 def check_stress_free_anneal(run_dir, mat):
     """Goal (iii): source off -- contents fall, densities EXACTLY constant."""
     print("GOAL (iii)  stress-free anneal")
-    y = np.zeros(27)
+    y = np.zeros(29)
     y[0] = mat.c_v_inf(T_REF)      # matrix at bulk equilibrium
     y[1] = 1e-30
     for slot in (0, 1, 4):
@@ -281,7 +281,7 @@ def check_stressed_anneal(run_dir, mat):
     sigma_star = dEdm / fam.omega
     print(f"  closed form: Sigma* = (dE/dm)/Omega = {sigma_star / 1e6:.2f} MPa")
 
-    y = np.zeros(27)
+    y = np.zeros(29)
     y[0] = mat.c_v_inf(T_REF)
     y[1] = 1e-30
     n = 1e-10

@@ -49,11 +49,19 @@ static constexpr int N_IMMOB = 8;   // immobile species (loop numbers + contents
 //
 //   [19..22] numbers  n_a1v n_a2v n_a3v n_cp
 //   [23..26] contents c_a1v c_a2v c_a3v c_cp
-static constexpr int N_XFAM   = 4;              // appended family slots
+// Step 4 adds a NINTH family: the stacking-fault pyramid c_0, which is not a
+// loop at all. It has no perimeter, no Burgers vector and no line density; its
+// size is volumetric, R = (m Omega / sqrt 8)^(1/3), and it presents a capture
+// cross-section rather than a sink line. Slot 8 carries it.
+//
+//   [19..23] numbers  n_a1v n_a2v n_a3v n_cp n_c0
+//   [24..28] contents c_a1v c_a2v c_a3v c_cp c_c0
+static constexpr int N_XFAM   = 5;              // appended family slots
 static constexpr int N_XIMMOB = 2 * N_XFAM;     // their (number, content) pairs
 static constexpr int IDX_XN   = 19;             // first appended NUMBER index
 static constexpr int IDX_XC   = IDX_XN + N_XFAM;// first appended CONTENT index
-static constexpr int N_FAM_MAX = 8;             // total family slots available
+static constexpr int N_FAM_MAX = 9;             // total family slots available
+static constexpr int SLOT_SFP  = 8;             // the pyramid, c_0
 
 static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB;   // total = 27
 
@@ -254,6 +262,36 @@ struct Parameters {
     double emis_bdotn[N_FAM_MAX];   // [m]     (b.n)_k, the edge component
     double emis_lam[N_FAM_MAX];     // [m]     lam_k = sqrt(Omega/(pi (b.n)_k))
     double emis_sigma[N_FAM_MAX];   // [Pa]    resolved normal stress on the habit
+
+    // ── Step 4: the basal chain c_0 -> c_f -> c_p ───────────────────────────
+    // The stacking-fault pyramid is a COMPACT cluster, not a loop. Three things
+    // follow and each is a special case in the family loop:
+    //   * its size is volumetric, R = (m Omega/sqrt 8)^(1/3), Eq. (Rsfp) --
+    //     there is no lambda_k and no Burgers vector to form R = lam sqrt(m);
+    //   * it presents a capture cross-section rather than a sink line,
+    //     Pi = alpha_sfp R n /(2 l), Eq. (Pisfp);
+    //   * it has NO coalescence channel at all -- loop-loop and loop-network
+    //     are defined on the loop families, and a compact cluster is neither.
+    //
+    // Its number equation is therefore linear and saturates in closed form,
+    //     n* = J/(1/tau_sfp + nu_col),      f_col = nu_col/(1/tau_sfp + nu_col)
+    // which is Eq. (sfp-saturation) and is validation goal (ii).
+    //
+    // The two transfers move number and content together at the SAME rate, so
+    // nothing is created or destroyed by a conversion: col takes c_0 -> c_f and
+    // uf takes c_f -> c_p. The distribution-fraction gates Phi^(j) of
+    // Eq. (barrier) need the size distribution that step 5 supplies; until then
+    // they are 1, which the formulation names as the barrier-limited limit.
+    //
+    // 0 = no basal chain (the default: the pyramid slot carries nothing and the
+    //     model is exactly step 3); 1 = the chain runs.
+    int    basal_chain;
+    double eps_sfp;      // cascade yield into the pyramid, as a rate [1/s]
+    double n_sfp_nuc;    // vacancies per cascade-nucleated pyramid
+    double tau_sfp;      // [s] pyramid thermal dissolution lifetime
+    double nu_col;       // [1/s] pyramid -> faulted basal loop
+    double nu_uf;        // [1/s] faulted -> perfect basal loop
+    double alpha_sfp;    // [-] pyramid capture prefactor, Eq. (partial_sink_bp)
 
     // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
@@ -525,13 +563,15 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
             "loop_sink_scale_c",   "loop_sink_scale_a1",
             "loop_sink_scale_a2",  "loop_sink_scale_a3",
             "loop_sink_scale_a1v", "loop_sink_scale_a2v",
-            "loop_sink_scale_a3v", "loop_sink_scale_cp"};
+            "loop_sink_scale_a3v", "loop_sink_scale_cp",
+            "loop_sink_scale_c0"};
         for (int k = 0; k < 4; ++k)
             P.loop_sink_scale[k] = optional_param(p, sk[k], 1.0);
         for (int k = 4; k < 7; ++k)
             P.loop_sink_scale[k] = optional_param(p, sk[k],
                                                   P.loop_sink_scale[k - 3]);
         P.loop_sink_scale[7] = optional_param(p, sk[7], P.loop_sink_scale[0]);
+        P.loop_sink_scale[8] = optional_param(p, sk[8], 1.0);
         const char* vk[3] = {"variant_frac_a1", "variant_frac_a2",
                              "variant_frac_a3"};
         for (int j = 0; j < 3; ++j)
@@ -545,6 +585,18 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     // Active family count. 4 is the pre-step-1 set and the default, so every
     // existing command line reproduces bit-for-bit; 8 switches on the prismatic
     // vacancy variants of step 1. Anything else is a typo, not a request.
+    // ── Step 4 ──────────────────────────────────────────────────────────────
+    P.basal_chain = static_cast<int>(optional_param(p, "basal_chain", 0.0));
+    P.eps_sfp   = optional_param(p, "eps_sfp",   0.0);
+    P.n_sfp_nuc = optional_param(p, "n_sfp_nuc", 1.0);
+    P.tau_sfp   = optional_param(p, "tau_sfp",   0.0);
+    P.nu_col    = optional_param(p, "nu_col",    0.0);
+    P.nu_uf     = optional_param(p, "nu_uf",     0.0);
+    P.alpha_sfp = optional_param(p, "alpha_sfp", 1.0);
+    // The n_fam consistency check lives with n_fam's own parsing, below.
+    // Checking it here read P.n_fam before it was set -- value-initialized to
+    // zero -- so basal_chain=1 was rejected unconditionally.
+
     // ── Step 3 ──────────────────────────────────────────────────────────────
     P.emission_model = static_cast<int>(
         optional_param(p, "emission_model", 0.0));
@@ -552,7 +604,7 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.Ef_v  = optional_param(p, "Ef_v", 0.0);
     {
         const char* fk[N_FAM_MAX] = {"c", "a1", "a2", "a3",
-                                     "a1v", "a2v", "a3v", "cp"};
+                                     "a1v", "a2v", "a3v", "cp", "c0"};
         for (int k = 0; k < N_FAM_MAX; ++k) {
             P.emis_gamma[k] = optional_param(p, std::string("emis_gamma_") + fk[k], 0.0);
             P.emis_Kbar[k]  = optional_param(p, std::string("emis_Kbar_")  + fk[k], 0.0);
@@ -590,8 +642,13 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     }
 
     P.n_fam = static_cast<int>(optional_param(p, "n_fam", 4.0));
-    if (P.n_fam != 4 && P.n_fam != 8) {
-        std::cerr << "n_fam must be 4 or 8, got " << P.n_fam << "\n";
+    if (P.n_fam != 4 && P.n_fam != 8 && P.n_fam != 9) {
+        std::cerr << "n_fam must be 4, 8 or 9, got " << P.n_fam << "\n";
+        exit(1);
+    }
+    if (P.basal_chain != 0 && P.n_fam < N_FAM_MAX) {
+        std::cerr << "basal_chain=1 requires n_fam=" << N_FAM_MAX
+                  << " (the pyramid occupies slot " << SLOT_SFP << ")\n";
         exit(1);
     }
     if (P.n_fam != 4 && P.loop_model == 0) {

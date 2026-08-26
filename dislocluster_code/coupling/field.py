@@ -80,9 +80,9 @@ M_SIZE = 4          # Cv, Ci, C2i, C3i
 # Step 1 of the implementation plan raised iSize from 8 to 16: eight immobile
 # families, each with a (number, content) pair. The CD block is ordered numbers
 # first then contents -- iVal(k) and iVal(nFamilies+k) in ImmobileSinks -- so
-# the eight new columns land at 4..7 (numbers) and 12..15 (contents), NOT
-# appended at the end.
-I_SIZE = 16         # 8 families x (number, content)
+# the new columns land among the numbers and among the contents, NOT
+# appended at the end. Step 4 added the ninth family, the pyramid c_0.
+I_SIZE = 18         # 9 families x (number, content)
 N_FAMILIES = I_SIZE // 2
 N_CD_COLS = M_SIZE + I_SIZE
 
@@ -319,8 +319,12 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     # at indices 19..26. Both are accepted, and a 19-wide state simply leaves
     # the new families empty -- which is what they are in every run made before
     # the step. Anything else is a layout error and must not be guessed at.
-    if Y.shape[1] not in (19, 27):
-        raise ValueError(f"expected (N,19) or (N,27) 0-D states, got {Y.shape}")
+    # 19 is the pre-step-1 state; 29 carries the five families appended by
+    # steps 1 and 4 (numbers 19..23, contents 24..28). A 19-wide state simply
+    # leaves them empty, which is what they are in every run made before those
+    # steps. Anything else is a layout error and must not be guessed at.
+    if Y.shape[1] not in (19, 29):
+        raise ValueError(f"expected (N,19) or (N,29) 0-D states, got {Y.shape}")
     w = np.asarray(variant_weights, dtype=float)
     if w.shape != (3,):
         raise ValueError("variant_weights must have three entries")
@@ -343,9 +347,10 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
         out = np.zeros((Y.shape[0], I_SIZE), dtype=float)
         out[:, 0:4] = Y[:, 4:8] / omega                       # n_0..n_3
         out[:, N_FAMILIES:N_FAMILIES + 4] = Y[:, 8:12]        # c_0..c_3
-        if Y.shape[1] >= 27:
-            out[:, 4:8] = Y[:, 19:23] / omega                 # n_4..n_7
-            out[:, N_FAMILIES + 4:N_FAMILIES + 8] = Y[:, 23:27]   # c_4..c_7
+        nx = (Y.shape[1] - 19) // 2                           # appended families
+        if nx:
+            out[:, 4:4 + nx] = Y[:, 19:19 + nx] / omega
+            out[:, N_FAMILIES + 4:N_FAMILIES + 4 + nx] = Y[:, 19 + nx:19 + 2 * nx]
         return out
 
     N_a = Y[:, IDX["CiL"]] + Y[:, IDX["CaiL"]]        # <a> loop number

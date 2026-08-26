@@ -97,10 +97,11 @@ from dislocluster_code.zerod.cpp_bridge import run_cpp_solver_batch
 # Native ZrMicro state vector length (12 species + 6 accumulators + rho_N).
 N_EQ = 19
 # Step 1 of the implementation plan appended four immobile families at state
-# indices 19..26. A caller may hand over either width: 19 is the pre-step-1
+# indices 19..26, and step 4 a fifth at 23/28. A caller may hand over either
+# width: 19 is the pre-step-1
 # state and leaves the new families empty (the solver defaults those y0 slots to
 # zero), 27 carries them. Anything else is a layout error, not something to pad.
-N_EQ_EXT = 27
+N_EQ_EXT = 29
 IDX_RHO_N = 18
 
 # Convenience slices into the native state vector.

@@ -39,14 +39,14 @@ LUMPING_TOL = 5e-3
 
 #: Family slot -> state index, mirroring `parameters.h::fam_n_idx / fam_c_idx`.
 def n_idx(k):
-    return 4 + k if k < 4 else 19 + (k - 4)
+    return 4 + k if k < 4 else 19 + (k - 4)   # IDX_XN = 19
 
 
 def c_idx(k):
-    return 8 + k if k < 4 else 23 + (k - 4)
+    return 8 + k if k < 4 else 24 + (k - 4)   # IDX_XC = 19 + N_XFAM(5)
 
 
-FAMILY_NAMES = ["c_f", "a1", "a2", "a3", "a1v", "a2v", "a3v", "c_p"]
+FAMILY_NAMES = ["c_f", "a1", "a2", "a3", "a1v", "a2v", "a3v", "c_p", "c_0"]
 
 
 def _cli(run_dir, n_fam=4, variant_weights=(1 / 3, 1 / 3, 1 / 3),

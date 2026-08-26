@@ -179,6 +179,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     double f_lscale[N_FAM_MAX], f_cLL[N_FAM_MAX], f_cLN[N_FAM_MAX];
     int    f_is_vac[N_FAM_MAX];              // polarity the family STORES
     int    f_prismatic[N_FAM_MAX];           // habit: gates on r_min_a
+    // Is this family a LOOP? The pyramid is not, and the shared coalescence
+    // block below has to know: loop-loop and loop-network are defined on the
+    // loop families only. Declared out here rather than in the branch because
+    // that block runs outside it. Every slot is a loop in the legacy layout.
+    int    f_is_loop[N_FAM_MAX];
+    for (int k = 0; k < N_FAM_MAX; ++k) f_is_loop[k] = 1;
     T loop_abs_i, loop_abs_v, loop_recomb;
     // Thermal Frenkel-pair generation by climb (step 3). When an INTERSTITIAL
     // loop emits a vacancy it puts that vacancy in the pool and simultaneously
@@ -188,6 +194,10 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // emitting is NOT this: there the loop loses what the pool gains, which is
     // an internal transfer and cancels in the atom-weighted sums.
     T thermal_fp(0.0);
+    // Content moved BETWEEN families by the step-4 basal chain. It appears in
+    // f_annc on the source side, which is also what credits the free pool, so
+    // it has to be taken back out of that credit. Zero unless the chain runs.
+    T xfer_content(0.0);
     // Legacy net-growth terms. Declared here rather than in the branch because
     // the legacy ydot assembly below is kept verbatim and refers to them.
     T growth_iL(0.0), growth_aiL(0.0), growth_vL(0.0), growth_avL(0.0);
@@ -272,11 +282,19 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // selects the length scale, the coalescence coefficients and the
         // minimum-radius gate. Testing polarity where habit is meant is the
         // single easiest way to get this step wrong.
-        const int is_vac[N_FAM_MAX]  = {1, 0, 0, 0, 1, 1, 1, 1};
-        const int is_prism[N_FAM_MAX] = {0, 1, 1, 1, 1, 1, 1, 0};
+        // Slot 8 is the pyramid c_0: vacancy-storing, and basal in the sense
+        // that its base is (0001) -- so h(c_0) = c and it takes the BASAL Woo
+        // row, which is what `is_prism = 0` selects.
+        const int is_vac[N_FAM_MAX]  = {1, 0, 0, 0, 1, 1, 1, 1, 1};
+        const int is_prism[N_FAM_MAX] = {0, 1, 1, 1, 1, 1, 1, 0, 0};
+        // The pyramid is a compact cluster, so it is excluded from every
+        // channel that assumes a line: coalescence, the loop radius R = lam
+        // sqrt(m), and the minimum-radius gate.
+        const int is_loop[N_FAM_MAX] = {1, 1, 1, 1, 1, 1, 1, 1, 0};
         for (int k = 0; k < nf; ++k) {
             f_is_vac[k]    = is_vac[k];
             f_prismatic[k] = is_prism[k];
+            f_is_loop[k]   = is_loop[k];
             f_lscale[k] = is_prism[k] ? P.l_a     : P.l_c;
             f_cLL[k]    = is_prism[k] ? P.c_LL_a  : P.c_LL_c;
             f_cLN[k]    = is_prism[k] ? P.c_LN_a  : P.c_LN_c;
@@ -321,6 +339,14 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         const double la_l_sc = P.l_a / P.l;
 
         for (int k = 0; k < nf; ++k) {
+            // With the basal chain off the pyramid slot exists but carries no
+            // physics at all: no source, no sink, no capture. Skipping it is
+            // what makes basal_chain = 0 reproduce step 3 rather than merely
+            // resemble it -- an "empty" family that still captures is not empty.
+            if (!is_loop[k] && P.basal_chain == 0) {
+                f_gain[k] = T(0.0); f_loss[k] = T(0.0);
+                continue;
+            }
             // The Woo row is set by the HABIT PLANE the loop lies in, not by
             // what it stores: Z_basal and Z_prismatic are properties of the
             // capture geometry. Before step 1 `is_vac[k]` selected the row
@@ -333,6 +359,23 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // Habit again, not polarity: l_c/l is the <c> geometric factor.
             T pref = (is_prism[k] ? la_l_sc : lc_l_sc) * P.loop_sink_scale[k]
                      * ad_sqrt(f_num[k] * f_cont[k]);
+            if (!is_loop[k]) {
+                // The pyramid has no perimeter, so sqrt(n c) -- which is the
+                // line density 2 pi R n divided by 2 pi l -- does not describe
+                // it. Eq. (Pisfp): a capture cross-section alpha_sfp R n /(2 l)
+                // with R volumetric, Eq. (Rsfp).
+                //
+                // n stays an ATOM FRACTION here, matching the loop branch's
+                // sqrt(n c): that convention already carries the 1/Omega
+                // implicitly, so dividing by Omega again turns a floor-level
+                // 1e-20 into a number density of 4e8 and hands an EMPTY family
+                // an enormous sink. Measured before the fix: eleven CVODE step
+                // warnings per case and the integration stalling.
+                T m_bar = f_cont[k] / f_num[k];
+                T Rp = ad_cbrt(m_bar * P.Omega / 2.8284271247461903);
+                pref = P.alpha_sfp * P.loop_sink_scale[k]
+                       * Rp * f_num[k] / (2.0 * P.l);
+            }
             T gain(0.0), loss(0.0);
             for (int m = 0; m < 4; ++m) {
                 const int m_is_vac = (m == 0);
@@ -419,6 +462,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             f_nucc[k] = P.variant_frac[k - 1] * nuc_a_cont;
         }
         for (int k = 4; k < nf; ++k) {
+            if (!is_loop[k]) { f_nucn[k] = T(0.0); f_nucc[k] = T(0.0); continue; }
             const int v = k - 4;                       // 0,1,2 -> a1v,a2v,a3v
             // The VACANCY weights, not the interstitial ones: under load the
             // two characters must move in opposite directions.
@@ -445,6 +489,9 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         f_annc[0] = P.n_vL_nuc * f_num[0] / P.tau_vL;
         for (int k = 1; k < 4; ++k) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); }
         for (int k = 4; k < nf; ++k) {
+            // The pyramid dissolves on tau_sfp, not on a loop lifetime, and
+            // only when the chain runs. Its terms are set in the chain block.
+            if (!is_loop[k]) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); continue; }
             const double tau = is_vac[k] ? (is_prism[k] ? P.tau_avL : P.tau_vL)
                                          : 0.0;
             if (tau > 0.0) {
@@ -454,6 +501,53 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 f_annn[k] = T(0.0); f_annc[k] = T(0.0);
             }
         }
+        }
+
+        // ── Step 4: the basal chain c_0 -> c_f -> c_p ──────────────────────
+        // The pyramid takes its own cascade yield and its own dissolution
+        // lifetime; the two transfers then move number and content at the SAME
+        // rate, so a conversion creates and destroys nothing. Eq. (transfer)
+        // with the distribution gates Phi^(j) set to 1 -- the barrier-limited
+        // limit the formulation names -- because the gates need the size
+        // distribution that step 5 carries.
+        if (P.basal_chain != 0) {
+            const int C0 = SLOT_SFP;   // 8, the pyramid
+            const int CF = 0;          // the faulted basal loop
+            const int CP = 7;          // the perfect basal loop
+
+            f_nucn[C0] = T(P.eps_sfp / P.n_sfp_nuc);
+            f_nucc[C0] = T(P.eps_sfp);
+            // Pyramid dissolution returns its vacancies to the pool, exactly as
+            // the loop lifetimes did, and it is the OTHER arm of the branching
+            // ratio f_col -- the fraction that does not convert.
+            if (P.tau_sfp > 0.0) {
+                f_annn[C0] = f_num[C0] / P.tau_sfp;
+                f_annc[C0] = f_cont[C0] / P.tau_sfp;
+            } else {
+                f_annn[C0] = T(0.0); f_annc[C0] = T(0.0);
+            }
+
+            // col: c_0 -> c_f.  uf: c_f -> c_p.
+            T col_n = P.nu_col * f_num[C0],  col_c = P.nu_col * f_cont[C0];
+            T uf_n  = P.nu_uf  * f_num[CF],  uf_c  = P.nu_uf  * f_cont[CF];
+
+            // Each transfer is a LOSS on its source and a GAIN on its sink, at
+            // the same rate and through the same arrays the rest of the
+            // assembly uses. Written symmetrically -- both losses into f_ann*,
+            // both gains into f_nuc* -- so that a conversion cannot be read as
+            // a creation on one side and a loss on the other.
+            f_annn[C0] = f_annn[C0] + col_n;   f_annc[C0] = f_annc[C0] + col_c;
+            f_nucn[CF] = f_nucn[CF] + col_n;   f_nucc[CF] = f_nucc[CF] + col_c;
+            f_annn[CF] = f_annn[CF] + uf_n;    f_annc[CF] = f_annc[CF] + uf_c;
+            f_nucn[CP] = f_nucn[CP] + uf_n;    f_nucc[CP] = f_nucc[CP] + uf_c;
+
+            // But f_annc is ALSO what credits the free pool (ann_release, below
+            // -- a dissolving loop returns its vacancies to the matrix). A
+            // conversion does not: those vacancies went to the next family in
+            // the chain. Track the transferred content and subtract it back out
+            // there, or the chain would manufacture vacancies at every step --
+            // which is exactly what validation goal (i) tests for.
+            xfer_content = col_c + uf_c;
         }
     } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
@@ -540,6 +634,8 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // there and 0 + x == x for every finite x.
     T ann_release(0.0);
     for (int k = 0; k < nf; ++k) ann_release = ann_release + f_annc[k];
+    // ...minus whatever merely CHANGED FAMILY rather than dissolving.
+    ann_release = ann_release - xfer_content;
     ydot[0] = P.G_v + ann_release
               - (R_i_v + R_2i_v + R_3i_v + R_v_s + loop_abs_v);
 
@@ -681,7 +777,13 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // nucleation at all: the basal loop content came out 387x different
         // from the same run without those slots. Not a rounding-level leak --
         // a different answer.
-        if (ad_val(f_num[k]) <= C_floor || ad_val(f_cont[k]) <= C_floor) {
+        // The pyramid has NO coalescence channel: loop-loop and loop-network
+        // are defined on the loop families, and a compact cluster is neither a
+        // line sink nor an overlapping platelet. Its number is controlled by
+        // dissolution and conversion alone, which is what makes Eq.
+        // (sfp-saturation) exact and testable.
+        if (!f_is_loop[k] || ad_val(f_num[k]) <= C_floor
+            || ad_val(f_cont[k]) <= C_floor) {
             coal_num[k] = T(0.0); coal_cont[k] = T(0.0);
             numLN[k]    = T(0.0); r_coal[k]    = T(0.0);
             continue;
