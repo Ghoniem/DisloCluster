@@ -1,0 +1,1144 @@
+                                                                                     Acta Materialia 288 (2025) 120777
+
+                                                                        Contents lists available at ScienceDirect
+
+                                              Acta Materialia
+
+                                                             journal homepage: www.elsevier.com/locate/actamat
+
+Full length article
+
+Atomistically-informed cluster dynamics modeling of concurrent interstitial
+and vacancy a-loop evolution in irradiated alpha-zirconium
+
+Jose F. March-Rico * , Sophie Blondel , Brian D. Wirth
+
+Department of Nuclear Engineering, University of Tennessee, Knoxville, TN, USA, 37996
+
+ARTICLE INFO      ABSTRACT
+
+Keywords:         A cluster dynamics framework is described that incorporates an extensive database of atomistic simulation re-
+Zirconium         sults to minimize assumptions in microstructure evolution modeling in irradiated alpha-zirconium. This database
+Cluster dynamics  informs mechanisms of: 1) defect production behavior in displacement cascades, 2) thermal dissociation rates for
+Microstructure    all defect clusters, 3) point defect and defect cluster mobility (including anisotropy), 4) spontaneous and thermal
+Dislocation loop  drift defect capture at dislocation loops, and 5) cascade overlap effects on defect generation rates. The proposed
+Modeling          model mechanistically predicts the concurrent nucleation and growth of interstitial and vacancy a-loops; vacancy
+                  loop nucleation is assisted by in-cascade vacancy clustering while vacancy loop growth is stabilized by the
+                  incorporation of thermal drift capture radii. Cascade overlap effects on defect generation rates are found to be a
+                  necessary component for model predictions of a-loop densities and sizes consistent with the experimental
+                  literature. Key characteristics such as average loop diameters, number densities, and the relative ratio of loops
+                  with interstitial and vacancy character are in good agreement with experimental observations for neutron-
+                  irradiated pure, single-crystalline -zirconium. As such, the scale-bridging approach between atomistic simula-
+                  tions and cluster dynamics modeling provides several improvements over the assumptions that are commonly
+                  implemented in cluster dynamics models and set the stage for future experimental validation.
+
+1. Introduction                                                             interaction differences (EID) between interstitial and vacancy absorp-
+                                                                            tion at dislocation loops [16], differences in the anisotropy of diffusion
+    One of the issues concerning zirconium cladding performance in          of point defects (DAD) [17­19], and a production bias of mobile defects
+nuclear applications is irradiation growth, a volume conservative           in displacement cascades [20­23]. Many of these concepts have been
+deformation that occurs in response to an incident irradiation flux [1,2].  included in recent cluster dynamics (CD) models to correlate dislocation
+This phenomenon is a direct consequence of the anisotropic hexagonal        loop microstructure evolution with irradiation growth strains. Christien
+close packed (hcp) crystal structure of -zirconium, the texture from        and Barbu developed the first CD model for -zirconium with an
+cladding manufacturing and the unique microstructure that forms under       emphasis on the anisotropic diffusion of self-interstitial atoms (SIA)
+irradiation. A fascinating microstructural feature of irradiated -zirco-    [24]. That model was later modified to include c-loop nucleation at iron
+nium is the co-existence of interstitial and vacancy dislocation loops      clusters to describe breakaway growth behavior [25]. More recently, Li
+[3­9]. At low-to-moderate fluence, interstitial and vacancy loops with      and Ghoniem developed a reduced set of CD equations that considers the
+{1010} prismatic type I (PPI) habit planes (termed a-loops) dominate        mobility of defect clusters [26].
+the microstructure; and following an incubation dose, faulted vacancy
+loops begin to form on basal planes (termed c-loops) in correlation with        While these models (in addition to those proposed by Golubov et al.
+the onset of breakaway irradiation growth [4,10­15]. Understanding          [22], Barashev et al. [23], and Choi et al. [27]) have reported success in
+how -zirconium microstructure evolves with increasing dose is neces-        reproducing experimental irradiation growth strains, there are several
+sary to improve predictive models of irradiation growth.                    inherent assumptions that are not fully consistent with defect produc-
+                                                                            tion and transport in irradiated zirconium. These assumptions include:
+    Several models have been proposed to explain irradiation growth         1) only point defects are produced at the NRT standard rate [25,27]; 2)
+behavior based on a range of underlying physics, including elastic          defect clusters do not dissociate [22,23,27]; 3) defect clusters are
+
+  * Corresponding author at: Naval Nuclear Laboratory, West Mifflin, PA, USA, 15122.
+     E-mail address: jmarchri@alum.utk.edu (J.F. March-Rico).
+
+https://doi.org/10.1016/j.actamat.2025.120777
+Received 30 June 2024; Received in revised form 23 January 2025; Accepted 24 January 2025
+Available online 28 January 2025
+1359-6454/© 2025 Acta Materialia Inc. Published by Elsevier Inc. All rights are reserved, including those for text and data mining, AI training, and similar
+technologies.
+J.F. March-Rico et al.                                                                                                                Acta Materialia 288 (2025) 120777
+
+immobile [22,23,25,27,28]; 4) manually-adjusted values for point                be incorporated in a future publication. Finally, a-loop characteristics
+defect diffusivities are implemented [25­27]; 5) c-loop densities are           will be compared with experimentally reported values, and the efficacy
+manually adjusted or saturated rather than mechanistically predicted            of this scale-bridging computational model will be demonstrated.
+[22,23,25­27]; and 6) vacancy a-loops either do not grow or are entirely
+ignored [25­28]. The concurrent growth of interstitial and vacancy              2. Description of the cluster dynamics model
+a-loops has been a particular challenge in models of microstructure
+evolution in zirconium. This is a sizeable shortcoming considering that             CD modeling expands upon the classical rate theory approach to
+vacancy a-loops can account for over half of the visible microstructure in      consider defect clusters and their interactions [41,42]. The CD approach
+irradiated zirconium [4,6­9,29]. The model proposed by Christien and            is at its essence a coupled set of reaction-diffusion equations that governs
+Barbu is capable of predicting vacancy a-loop growth, but only for the          defect cluster concentrations as a function of time [42]. For this work,
+case of strong SIA anisotropy and preferential thin foil orientation [24].      only 0-D calculations will be considered such that spatial diffusion and
+Likewise, the models of Golubov and Barashev et al. are capable of              distributions of defect species are ignored. The change in any given
+predicting vacancy a-loop growth, but their model is dependent on a             cluster population is determined through a balance of gains and losses of
+non-isotropic distribution of a-type edge dislocation density [22,23].          that cluster in a given timestep, dt:
+Further, within each of these models, the vacancy a-loop number den-
+sities are not consistent with experimental observations. The                   dCi         - Diki2Ci                                 ki+,jCiCj +        kn- - i,iCn
+co-existence of interstitial a-loops, vacancy a-loops, and vacancy c-loops      dt                              kn+,m Cn Cm
+has been successfully modeled with an object kinetic Monte Carlo                     =  gi             +                     -
+(OKMC) model [30], although the stability of vacancy a-loops is strongly                                  n+mi
+dependent on the parameterization of the model. For many choices of                                                             i+jn               ni+j
+parameters, vacancy a-loops are either unstable, experience limited
+growth, or experience excessive growth within the OKMC model [30].                      -    k-i,j Ci                                                                 (1)
+
+    Recent atomistic simulations have provided a wealth of knowledge                        in+m
+concerning defect production, transport, and interaction with micro-
+structural features. For example, models often assume that only Frenkel         where Ci is the volumetric concentration of defect species i. The right-
+pairs are produced from irradiation damage at the NRT standard rate.            hand-side (RHS) terms correspond to production of cluster i from
+When considering neutron irradiation, significant in-cascade recombi-           displacement cascades, loss at existing sinks, production of i from cluster
+nation and clustering is known to occur [31­34]. Production rates of            interactions, loss of i from cluster interaction, production of i from
+point defects and defect clusters (which directly incorporate recombi-          cluster dissociation, and loss of i from i dissociation, respectively. Each
+nation and clustering effects) have been recently reported [33,34], and         of these terms and the parameters that govern them will be described in
+will certainly improve generation rates in higher-order codes. Another          the following sections. The key parameters, terms, and their values are
+aspect lacking in most current models is the treatment of defect diffu-         tabulated in Table 1 for comprehensive reference.
+sivity. Defect clusters are usually considered immobile, monovacancies
+are generally considered to migrate isotropically, and the diffusivities of     Table 1
+point defects are often used as a fitting parameter to provide better           CD model parameters to describe microstructural evolution in neutron-
+agreement with experimental data. Atomistic simulations have instead            irradiated single-crystalline -zirconium.
+highlighted strong anisotropic diffusion of both SIAs and monovacancies
+[35­37] as well as notable mobility of defect clusters [37­39]. Small SIA       Description                           Symbol Value                       Source/
+clusters are reported to take the form of triangular basal platelets which                                                                               Reference
+migrate predominantly within the basal plane [37,39] while vacancy
+clusters exhibit either quasi-isotropic migration or a preference for           Diffusion within the basal plane Dia                  Varies based on    tables 2 and 3
+c-axis diffusion depending on their configuration [37]. Diffusivity data                                                              Eq. (4)            in [37]
+for the a-axis and c-axis migration of point defects and their clusters         Diffusion along the c-axis            Dci             Varies based on    tables 2 and 3
+have been reported for the direct incorporation into mesoscale or con-                                                                Eq. (4)            in [37]
+tinuum models [37]. Finally, the capture radii of point defects at              Anisotropy factor of diffusion        p               Varies based on    [18]
+interstitial a-loops, vacancy a-loops, and vacancy c-loops have been                                                                  Eq. (6)
+reported for spontaneous and thermal drift capture in an effort to              Anisotropic capture efficiency        P()             Varies based on    [18]
+improve interaction rate calculations [40]. In this context, the sponta-          for dislocation lines               PL ()           Eq. (9)
+neous capture radius is defined as the distance from the dislocation loop                                             e               Varies based on    [18,46]
+at which the point defect binding energy reaches half of its maximum            Anisotropic capture efficiency                        Eq. (13)
+value. The thermal drift capture radius is defined as the distance from           for dislocation loops                               Vacancy a-loops:   [8]
+the loop at which the binding energy falls below 3/2kbT; at this distance,                                                            0.80
+the defect can no longer thermally escape from the sink interaction             Loop ellipticity                                      Interstitial a-    
+gradient. SIA capture is strongly biased to all dislocation loops when                                                                loops: 0.95
+considering spontaneous capture; conversely, the thermal drift capture                                                                23.4 Å3            [47]
+of point defects is sensitive to local stress states near the loops and may                                                           Varies for each    [34]
+encourage vacancy capture at vacancy loops.                                     Atomic volume                                         cluster, Eq. (2)
+                                                                                                                                      Single crystal:    [27,48]
+    The available atomistic modeling database is capable of bridging the          Volumetric defect generation          gi            7.25 × 106 cm-2
+considerable length and time scales between molecular dynamics sim-                                                                   Single crystal:    [27,48]
+ulations and microstructure evolution. In this manuscript, we describe a             rate                                             2.25 × 106 cm-2
+cluster dynamics model that is directly informed by this lower-length                                                                 1.1                [18,24]
+scale simulation database to minimize assumptions. The model will               a-type dislocation line density       da              1.0                [18,24]
+first be overviewed with an emphasis on how this database has been
+implemented. Then, the effect of each of these parameters on the                  c-type dislocation line density     cd              6.45 × 10­8 cm     Based on riv in
+nucleation and growth of vacancy and interstitial a-loops in single-                                                                                     [24­26]
+crystalline, pure -zirconium will be highlighted; vacancy c-loops will          SIA/dislocation line elastic bias Zid                 Varies for each    table 1 in
+                                                                                Vacancy/dislocation line elastic Zvd                  cluster            Ref. [40]
+                                                                                                                                      Varies based on    table 3 in
+                                                                                  bias                                                Eq. (21)           Ref. [40]
+                                                                                                                                      Varies for each    [37]
+                                                                                Spontaneous interaction               ri0j            cluster, Eq. (26)
+                                                                                                                                      8.93 × 10­8 dpa/s  SPECTRA-PKA
+                                                                                     distance for spherical clusters                                     [44]
+                                                                                                                                      1.14 × 1025 n/m2   [2]
+                                                                                  Spontaneous dislocation loop          rd
+
+                                                                                     capture radius
+
+                                                                                Thermal drift dislocation loop        rdth
+
+                                                                                     capture radius
+
+                                                                                Cluster binding energy                Ebn,i
+
+                                                                                Dpa rate for neutron irradiation -
+
+                                                                                  Neutron fluence corresponding         -
+
+                                                                                     to 1 dpa of the NRT standard
+
+                                                                                     dose
+
+                                                                             2
+J.F. March-Rico et al.                                                                                             Acta Materialia 288 (2025) 120777
+
+2.1. Defect generation (gi)
+
+    MD simulations have provided insight into the number of defects of
+each cluster size that may be generated from primary knock-on atom
+(PKA) cascades of a given energy [31­33,43]. To convert this data into a
+meaningful parameter for CD modeling, one must consider the expected
+PKA energy spectrum for a specific neutron flux profile. A representative
+zirconium PKA spectrum is shown in Fig. 1, as calculated by
+SPECTRA-PKA [44] for typical PWR operating conditions. The volu-
+metric generation rate for any given cluster i can then be calculated by:
+
+       EPKA, max
+
+gi =              Ni(E)  (E)          (2)
+
+      Ed= 40 eV
+
+where Ni(E) is the average number of cluster i produced from a PKA of
+
+energy E and (E) is the number of PKAs produced with energy E per
+
+unit time per unit volume. The total volumetric production of i is
+
+determined by summing along the spectrum of possible PKA energies.
+
+The energy range is considered from 40 eV, the recommended threshold
+
+displacement energy in -zirconium [45], up to the maximum PKA en-
+
+ergy in the estimated spectrum, EPKA, max. Ni(E) has been reported for
+
+PKA energies between 1 and 40 keV in Tables 4 and 5 of Ref. [34]. The
+
+defect production for PKAs with greater than 40 keV can be extrapolated          Fig. 2. Volumetric defect generation rates, gi, as a function of cluster size, as
+                                                                                 calculated with Eq. (2), in which the red squares represent vacancy and vacancy
+based on lower PKA energy data. Cascades produced by PKAs with                   clusters, and black circles are interstitial and interstitial clusters. These gener-
+                                                                                 ation rates are based on MD displacement cascades in pristine zirconium [34].
+greater than ~10­20 keV are characterized by subcascade formation                (For interpretation of the references to colour in this figure legend, the reader is
+                                                                                 referred to the web version of this article.)
+[33] and the defect production from these events is approximately
+
+equivalent to the production from several lower-energy cascades. Using
+
+Eq. (2) to sum up the contributions from all PKA energies along the
+
+energy spectrum, the calculated volumetric generation rates are plotted          2.2. Defect diffusivity (Di) and the anisotropy factor
+
+in Fig. 2. For these calculations, we considered the tabulated data that
+
+included electronic stopping effects, which tend to account for a 10­20              Interstitial clusters, denoted as "In" for a size of n, are considered
+                                                                                 mobile in the size range of 1  n < 3. Small interstitial clusters have
+% reduction in the total produced defects [34]. The volumetric rates             basal-plane configurations and are highly anisotropic, sluggish diffusers
+                                                                                 [37,39]. Interstitial clusters with n  3 are characterized by significant
+reported in Fig. 2 for use in Eq. (1) directly account for in-cascade defect     anisotropy factors and are poorly described by the current dislocation
+                                                                                 capture efficiency functions (described in Section 2.3); considering the
+recombination and clustering. The dpa rate calculated by SPECTRA PKA             low mobility of these clusters [37], these clusters are currently consid-
+is 8.93 × 10­8 dpa/s, and this value is used to convert simulation time          ered immobile in this model. Vacancy clusters, denoted as "Vn", are
+                                                                                 considered mobile in the size range of 1 < n < 6. Small vacancy clusters
+into dpa in the figures presented in this paper. The relationship between        assume 3-dimensional configurations and their diffusion anisotropy
+                                                                                 varies with configuration [37]. While MD simulations in pure zirconium
+neutron fluence and dpa is based on the recommended value of Car-                do indicate that larger defect clusters exhibit rapid 1-D migration, the
+                                                                                 thermal mobility of dislocation loops have been shown to be lower than
+penter et al. [2]:                                                               expected in irradiated bcc Fe [49]. Incorporating this behavior in a CD
+                                                                                 framework may require a trap-mediated model to account for ballistic
+      /                                                                          de-trapping events [50]; in this work, these clusters are considered
+1.14x1025n m2 (E > 1MeV) = 1 NRT dpa  (3)                                        immobile, although future models could expand the framework to
+                                                                                 include such behavior. For each of the mobile species, we consider their
+                                                                                 diffusion anisotropy. This is done by calculating the diffusivity within
+                                                                                 the basal plane (Dai ) and along the c-axis (Dic) of each cluster with Eq. (4)
+                                                                                 using the diffusion pre-factors, D0, and migration energies, Em, from
+                                                                                 Tables 2 and 3 of Ref. [37]. Based on these two diffusivity values, a mean
+
+                                                                                 diffusivity, Di, is calculated along with the anisotropy factor of diffusion,
+                                                                                 p:
+
+                                                                                 Di (T)    =    D0exp        - Em                        (4)
+                                                                                                             kb T
+
+                                                                                 Di  =  (  Dai  2  Dic  )1                               (5)
+                                                                                                          3
+
+                                                                                 p  =  (Dci     )1                                       (6)
+                                                                                                   6
+
+                                                                                           Dia
+
+Fig. 1. Estimated zirconium PKA spectrum from a typical PWR neutron flux             In and Vn clusters with n < 9 are assumed sufficiently small to
+profile based on calculations performed with SPECTRA-PKA [44].                   calculate their radii through a spherical approximation using Eq. (7),
+
+                                                                              3
+J.F. March-Rico et al.                                                                                                                          Acta Materialia 288 (2025) 120777
+
+Table 2
+Summary of experimental data of a-loop characteristics in neutron-irradiated -zirconium.
+
+                        Temperature (K)  Neutron fluence (n/m2)         Loop Density (m-3)                 Mean Diameter (nm)               Interstitial Loops (%)             Ref.
+
+Pure Zr                 573              3.8 × 1023                     1.2 × 1022                         9                                ­                                  [8]
+                                         1.3 × 1025                     5.0 × 1021                         18.6
+                                         2.0 × 1023                     8.0 × 1020                         <10                              ­                                  [61]
+                        623              5.3 × 1023                     2.7 × 1021                         23
+                                         3.3 × 1023                     7.0 × 1020                         33                               ­                                  [8]
+                                         6.4 × 1023                     2.0 × 1020                         65
+                        668              18.0 × 1023                    2.0 × 1020                         >62                              47 ­ 63                            [8]
+                                         3.3 × 1023                     7.0 × 1020                         33
+                                         1.0 × 1025                     8.5 × 1020                         54                               23 ­ 33                            [8]
+                                         1.2 × 1025                     5.0 × 1020                         50
+                                         1.3 × 1025                     1.0 × 1018                         ­                                9 ­ 33                             [8]
+Zircaloy-2              673              3.1 × 1024                     2.9 × 1022
+                                         1.0 × 1025                     1.5 × 1021                         8.6                              37 ­ 55                            [8]
+                                         1.3 × 1025                     1.9 × 1022                         5
+                                         1.0 × 1025                     2.6 × 1022                         6.5                              ­                                  [62]
+                                         1.2 × 1025                     2.8 × 1020                         8.7
+                        723              1.0 × 1025                     6.2 × 1021                         60                               32                                 [9]
+Zr-2.5Nb                523              1.3 × 1025                     ­                                  20.1
+                        553 ­ 603        1.2 × 1025                                                        7.0                              53                                 [61]
+                        573                                             ­                                  37
+                        615                                                                                                                 ­                                  [10]
+                        673
+                                                                                                                                            ­                                  [6]
+
+                        573                                                                                                                 ­                                  [29]
+                        673
+                                                                                                                                            ­                                  [61]
+
+                                                                                                                                            ­                                  [6]
+
+                                                                                                                                            ­                                  [61]
+
+                                                                                                                                            33 ­ 45                            [6]
+
+                                                                                                                                            ­                                  [61]
+
+                                                                                                                                            ­                                  [61]
+
+Table 3                                                                                on PPI planes ( = 0) and 2) c-type lines that lie on basal planes ( =
+Mobile defect diffusivities and anisotropy ratios at T = 573 K calculated based on     90). The total sink strength for absorption of mobile cluster i, ki2, is a
+MD data gathered with the BMD19 potential (reported in Tables 2 and 3 in               summation of the sink strengths for these two dislocation types (kai 2 and
+Ref. [37]). The anisotropic capture efficiency for defect capture at interstitial      kci 2, respectively). The dislocation line densities, d, for pre-existing a-
+a-loops, Pa,I(), and vacancy a-loops, Pa,V (), is also listed.                         type and c-type dislocation lines are based on single crystal zirconium
+                                                                                       estimates: 7.25 × 106 cm-2 and 2.25 × 106 cm-2, respectively [48]. The
+Mobile         Da (cm2    Dc (cm2        D (cm2     p  Pa,I () Pa,V()
+Species        s-1)       s-1)                                                         elastic bias for absorption, Zi, is assumed to be 1.1 for interstitials and
+                                         s-1)
+                                                                                       1.0 for vacancies [18,24,25]. Each type of dislocation line is assigned an
+I1             7.8x10- 5  1.6x10- 5      4.6x10- 5  0.77 1.3       1.4
+                                                                                       anisotropic capture efficiency for absorption, P(), for the sink strength
+I2             3.1x10- 5  4.8x10- 7      7.7x10- 6  0.50 2.7       3.0
+                                                                                       calculation:
+I3             2.5x10- 6  4.8x10- 9      3.1x10- 7  0.35 5.4       6.1
+
+V1             1.1x10- 7  3.0x10- 8      7.0x10- 8  0.80 1.2       1.3                 ki2 = kia2 + kci 2                                                                      (10)
+
+V2             2.2x10- 7  5.9x10- 7      3.1x10- 7  1.17 0.95      0.90
+
+V3             2.8x10- 9  2.0x10- 9      2.5x10- 9  0.94 1.1       1.1                 kai 2 = ZidaP( = 0) = Zidap- 2
+
+V4             9.9x10- 6  3.7x10- 8      1.5x10- 6  0.39 4.3       4.8                                                                                                         (11)
+
+V5             1.6x10- 8  1.6x10- 5      1.6x10- 7  3.18 2.1       1.7
+
+V6             2.1x10- 8  2.4x10- 6      2.2x10- 6  1.03 1.0       0.98                kci 2 = Zidc P( = 90) = Zicdp                                                           (12)
+
+where  is the atomic volume, 23.4 Å3. Interstitial clusters In and Vn                      The calculation of the capture efficiencies of dislocation loops are
+clusters with n  9 are considered to be a-loops with PPI habit planes;                 more complex than for dislocation lines; the angle between dislocation
+their radii are calculated based on their disk-like shape through Eq. (8)              loop line segments and the c-axis vary along the perimeter of the loop.
+[47].                                                                                  The CD model of Christien and Barbu approximated dislocation loops as
+                                                                                       hexagons with an equivalent perimeter [24], but this approach has
+      ( )1                                                                             recently been reformulated for a general case. P. Saidi et al. consider a
+         3n 3                                                                          dislocation loop to consist of dislocation lines on a closed path  for
+rn =      4                                                              (7)           which the overall capture efficiency is a summation of the contribution
+                                                                                       from each length segment [46]:
+         
+         acn
+rnPPI =  2                                                               (8)                      P()d        p-  2   /2  (1  -                     1(      e2  sin2    )1  d
+                                                                                                    d                            f () + p6f())2 1 -                   2
+                                                                                       PL()  =             =           0
+                                                                                                                                     (                  )1
+                                                                                                                                 a  2   1-  e2  sin2  2     d
+2.3. Defect absorption at pre-existing dislocation line sinks and                                                                   0
+dislocation loops
+                                                                                                                                                                               (13)
+
+    For inherently anisotropic materials such as -zirconium, mobile                    f ()  =  ((b)4( 1             -   ) )- 1                                                (14)
+                                                                                                    a sin2              1 +1
+defects do not migrate equally in all directions and the concept of an
+
+unbiased sink is no longer applicable. As such, the sink capture effi-                          (b)2
+                                                                                                  a
+ciency depends upon the geometry of the sink; sinks with capture vol-                  cot   =        cot                                                                      (15)
+
+umes or surfaces parallel to the c-axis will preferentially capture basal-
+
+plane diffusing defect species and vice-versa [18]. The capture effi-
+
+ciency, P(), itself will depend upon the angle between the sink surface                where a is the semi-major axis, b is the semi-minor axis, and e is the
+                                                                                       eccentricity of an elliptical loop, respectively [46]. The capture effi-
+(or line direction) and the c-axis, , as well as the anisotropy factor of the          ciency for prismatic a-loops must be determined through numerical
+                                                                                       integration of Eq. (13). For basal c-loops, all dislocation line segments
+mobile defect diffusion, p [18]:                                                       are perpendicular to the c-axis, and P() is simply equal to the anisotropy
+                                                                                       factor, p, as calculated with Eq. (9) using  = 90. Interstitial and va-
+                                                                                       cancy a-loops are considered to have semi-axis ratios of approximately
+
+P() =    cos2 + p6sin2                                                   (9)
+
+               p2
+
+    Two types of dislocation lines are considered: 1) a-type lines that lie
+
+                                                                                    4
+J.F. March-Rico et al.                                                                                                                Acta Materialia 288 (2025) 120777
+
+b/a = 0.95 and b/a = 0.80, respectively [8]. The effect that this has on                       (           (         ri     )2 )-  1
+capture efficiencies is demonstrated graphically in Fig. 3, which com-                           1            (      +     )
+pares the capture efficiencies for interstitial a-loops, vacancy a-loops,             ij    =        +           rj      rd            (19)
+vacancy c-loops, basal dislocation lines, and prismatic dislocation lines                                    3                         (20)
+as a function of the mobile defect diffusional anisotropy factor, p.
+Elliptical a-loops are more likely to capture basal-plane diffusers than                          (                  )
+circular a-loops due to the fact that a greater fraction of the peripheral            zSij = 4 ri + rj + rd
+line segments have small  angles.
+                                                                                      ziTj  =    (   1  +  4/2(ri        +    ))       (21)
+                                                                                               ln          8ri rj           rd
+
+                                                                                            The value of the loop capture radius, rd, can be based on either
+
+2.4. Clustering reactions (k+ij )                                                     spontaneous or thermal drift capture. A spontaneous capture radius is
+
+                                                                                      considered the distance at which a defect binding energy to a sink de-
+
+There are three broad categories of reactions between clusters i and j:               creases to one half of the maximum value, while thermal drift capture is
+
+1) reactions that result in cluster growth (Ii + IjIi+j; Vi + VjVi+j); 2)             related to the long-range drift of a defect along an interaction gradient
+
+reactions that result in cluster shrinkage (Ii + VjIi- j, Vi + IjVi- j,               [40]. For spontaneous capture radii, discrete values are available in
+
+where i > j); and 3) reactions that result in cluster annihilation (Ii +              Table 1 in Ref. [40] and must be interpolated for cluster sizes that are
+
+Vj, where i = j). For clusters with size n < 9, the reaction rate con-                not tabulated. Conversely, spontaneous capture radii are
+
+stant is based on a spherical reaction volume defined by the interaction              temperature-independent. Conversely, thermal drift radii must be
+
+distance, rij [42,51]:                                                                calculated at the selected system temperature using the constants in
+
+(                       )                                                             Ref. [40] with a temperature-dependent expression, where Tm is the
+
+ki+j = 4rij Di + Dj                          (16)                                     melting temperature of zirconium (2128 K):
+
+                                                                                      rdthermal            (     )md
+                                                                                                             Tm
+rij = ri + rj + ri0j                         (17)                                                =   d        T                        (22)
+
+The value of ri0j is set equal to 6.45 × 10­10 m such that the value of                   The capture radii differ based on the size of the defect cluster; the
+                                                                                      expressions used to calculate size-dependent capture radii for interstitial
+the point defect recombination radius, riv, equals the commonly imple-                and vacancy defects are plotted in Fig. 4. Spontaneous radii are smaller
+mented value of 1.0 × 10­9 m [24­27]. Large dislocation loops have                    than thermal drift radii and favor biased interstitial capture; when
+                                                                                      considering thermal drift defect capture, dislocation loops tend to favor
+toroidal reaction volumes due to their disk-like nature and capture                   the capture of the same-type defects (i.e. biased capture of interstitials to
+                                                                                      interstitial loops and vacancies to vacancy loops) [40].
+tendencies [52]. However, this is only true once the loop radius signif-
+
+icantly exceeds the loop defect capture radius, rd. If this condition is not
+
+met, the dislocation loop will either have a spherical or mixed reaction
+
+volume. A transition parameter, ij, allows a smooth transition between
+
+spherical and toroidal interaction rates [51,53]. The toroidal contribu-              2.5. Cluster dissociation
+
+tion to the rate constant is multiplied by the anisotropic capture effi-
+
+ciency of the loop to account for the loop geometry. For a loop i                         In this model, we assume that clusters can only emit monomers of the
+                                                                                      same type (InIn- 1 + I1; VnVn- 1 + V1). All clusters In and Vn can
+interacting with a mobile defect j [51,53]:                                           thermally dissociate. The reaction rate constant can be calculated as a
+                                                                                      function of the cluster binding energy and the rate constant for the
+   ((                      )       )( )                                               reverse reaction (e.g. I1 + In- 1In; V1 + Vn- 1Vn) [42]:
+ki+j , loops = 1 - ij ziTj PL() + ijziSj Dj  (18)
+
+                                                                                      kn-   = k1+,n-    1  exp   - Enb                 (23)
+                                                                                                                 kbT
+
+                                                                                            The binding energy of a monomer i to a cluster of size n can be
+
+                                                                                      estimated based on the difference in formation energies between the
+
+                                                                                      products and reactants. The formation energies as a function of the
+
+                                                                                      cluster size n have been fit to power-law expressions based on MS cal-
+
+                                                                                      culations in Ref. [37]. These expressions capture the energetics of larger
+
+                                                                                      dislocation loops well but extrapolate poorly to small defect cluster
+
+                                                                                      sizes. As such, separate expressions were fit in this work to the formation
+
+                                                                                      energies reported in Ref. [37] for small defect clusters, and are shown in
+
+                                                                                      Fig. 5(a). The expressions used in this model for interstitial and vacancy
+
+                                                                                      clusters, respectively, are:
+
+                                                                                                 {   2.8n0.81, 2  n  7
+                                                                                                       4.6n0.66, n > 7
+                                                                                      ESf IA =                                         (24)
+
+                                                                                                    {   1.9n0.84, 2  n  17
+                                                                                                          3.4n0.70, n > 17
+                                                                                      EVf ,PPI =                                       (25)
+
+                                                                                            The binding energy is then calculated as:
+
+Fig. 3. Capture efficiencies for SIA a-loops (solid red line), vacancy a-loops        Ebn = Ef1 - A(nm - (n - 1)m)                     (26)
+(solid blue line), prismatic <a>-type dislocation lines (solid black line), and
+basal <c>-type dislocation lines and c-loops (dashed black line) are plotted as a     where E1f is the formation energy of the monomer being emitted (2.94 eV
+function of the mobile defect anisotropy factor, p. (For interpretation of the        for a single SIA, and 2.03 eV for a monovacancy based on calculations
+references to colour in this figure legend, the reader is referred to the web         with the BMD19 potential [54]). The size cutoff in Eqs. (24) and (25)
+version of this article.)
+                                                                                      were selected to ensure that the binding energies were continuous as a
+
+                                                                                   5
+J.F. March-Rico et al.                                                      Acta Materialia 288 (2025) 120777
+
+Fig. 4. a) Spontaneous capture radii and b) thermal drift capture radii fits for vacancy (V) and interstitial (SIA) loops. Solid and dashed black lines represent
+interstitial capture to vacancy and interstitial loops, respectively; solid and dashed red lines represent vacancy capture to vacancy and interstitial loops, respectively.
+Spontaneous capture data was taken from Table 1 in Ref. [40] (plotted as markers in a)); thermal drift capture data was calculated with Eq. (22) based on parameters
+from Ref. [40] (plotted as markers in b)). (For interpretation of the references to colour in this figure legend, the reader is referred to the web version of this article.)
+
+Fig. 5. a) Power-law expressions fit to MS calculations of interstitial (black markers) and vacancy (red markers) cluster formation energies from Ref. [37]. Solid and
+dashed lines represent fits for small and large defect clusters, respectively. b) corresponding binding energies calculated with Eq. (26) for interstitial (black) and PPI
+vacancy (red) defects. (For interpretation of the references to colour in this figure legend, the reader is referred to the web version of this article.)
+
+function of size, as plotted in Fig. 5(b).                                  3) Only monomers can be emitted during dissociation events
+                                                                            4) Dislocation line densities do not evolve with fluence
+2.6. Overview of assumptions in the model                                   5) Grain boundary sinks are ignored (single-crystal case)
+
+    A considerable atomistic database is available to inform parameter-         Of these five assumptions, the first is certainly the one which dis-
+ization of key mechanisms related to defect production, transport, and      agrees the most with experiments. Vacancy a-loops are known to align
+interaction; these parameters are summarized in Table 1. The primary        on ordered basal sheets as fluence increases [6­8]. Such spatial ordering
+goal of this work is to directly implement this database in order to        may reduce the incoming SIA flux through self-shielding and may play a
+reduce assumptions in a physically-relevant CD model. Nevertheless, a       role in breakaway irradiation growth [29,55]. As for the second
+few simplifying assumptions are made to reduce the complexity of the        assumption, it has been shown experimentally that dislocation loops are
+model. Each of these points can be improved upon in future work by          far less mobile than MD simulations would imply [37,50,56].
+expanding the framework described here. The five main assumptions           Trap-mediated diffusion may need to be accounted for to include this
+are:                                                                        behavior in the model [50]. Assumption three is valid, as the binding
+                                                                            energy of larger defects increases rapidly with size [37]. Assumption
+1) Defects are randomly and uniformly distributed (0-D)                     four is unlikely to have a large effect considering that
+2) Dislocation loops are considered immobile                                irradiation-induced a-loop and c-loop number densities, and
+
+                                                                         6
+J.F. March-Rico et al.                                                                                                                                  Acta Materialia 288 (2025) 120777
+
+corresponding sink strengths, rapidly exceed the network dislocation            1023 n m-2 to 1.3 × 1025 n m-2 at 573 K results in an increase in the
+density [24,25]. Finally, because we specifically model pure,                   average a-loop diameter from 9 nm to 18.6 nm with a corresponding
+single-crystalline zirconium, grain boundary sinks are currently ignored        decrease in their number densities in pure zirconium. It is clear from this
+and there is no alloying content in this model.                                 experimental data that there is a greater fraction of interstitial loops
+                                                                                (relative to vacancy loops) at lower temperatures; the reverse is true at
+2.7. Cluster dynamics code, Xolotl                                              higher temperatures. Finally, there is clearly a significant effect of
+                                                                                alloying elements, although the modeling results presented in this paper
+    The Xolotl cluster dynamics code has been used to model alpha zir-          will not address trap-mediated defect diffusion. The data in Table 2 in-
+conium microstructure evolution. Xolotl was initially developed to              dicates that a-loops form with notably smaller diameters and higher
+simulate gas bubble and defect microstructure evolution in plasma-              number densities in alloyed zirconium. In this manuscript, we focus on
+facing components and structural materials for fusion applications              the lower-temperature irradiation data for pure zirconium. In particular,
+[57­59]. In O-D, a system of coupled ordinary differential equations            we focus our model predictions on the two data sets at 573K: the low-
+(ODEs) is generated to track the populations of each defect i as described      fluence 3.8 × 1023 n/m-2 (0.033 dpa) data reported by Jostsons et al.
+by Eq. (1). These ODEs are solved using the finite difference method and        [8] and the higher-fluence 1.3 × 1025 n/m-2 (1.15 dpa) data reported by
+implicit time integration using the PETSc solver [60]. Each defect of           Gilbert et al. [61]. The a-loop size distribution histograms reported in
+interest is assigned to a species sub-type and characteristic parameters        these studies are re-produced in Fig. 6 for ease of comparison. At 0.033
+such as the defect radius, diffusivity, anisotropy factor of diffusion,         dpa, we expect a narrow distribution of a-loops with a mean diameter of
+binding energy, and volumetric generation rate are explicitly defined           9 nm (1.2 × 1022 m-3 density); at 1.15 dpa, we expect a wider distri-
+within Xolotl. The possible set of reactions between species sub-types are      bution of a-loops with a mean of 18.6 nm (5 × 1021 m-3 density).
+defined, such as clustering, annihilation, and dissociation. Subsequently,
+the rates governing all reactions are calculated, and the change in cluster     3.1. Xolotl model benchmarking past literature results using commonly
+populations within a user-supplied timestep, dt, can be obtained by time        assumed inputs
+integration of the coupled reaction-diffusion ODEs. In this work, we
+consider only 0-D calculations, although Xolotl is capable of generating            Common assumptions and input values in prior -zirconium micro-
+a spatial grid to extend calculations to 1-D, 2-D, and 3-D. The timestep is     structure evolution models include:
+initially set equal to 1 picosecond; each subsequent timestep is increased
+by a factor of 1.01 to smoothly increase to a maximum timestep of 500           1. Only point defects are produced by neutron damage at the NRT
+ss.                                                                                 standard rate (G = 10- 7 dpa s- 1 = 4.3x1015 point defects s- 1cm- 3)
+                                                                                    [24­27].
+3. Incremental implementation of physics into the CD model
+                                                                                2. Clusters do not dissociate [22,23,27].
+    The CD model proposed here incorporates a wide range of physics             3. Defect clusters are immobile [22­25,27].
+that has often been neglected or simplified. For example, cluster disso-        4. Single interstitials diffuse with a manually adjusted value of Di =
+ciation is ignored in many recent models [22,23,27] or is only included
+for di-interstitials [26]. Despite simulating neutron irradiation, most             10- 6cm2s- 1 and an assumed anisotropy factor of p = 0.765 [24­27].
+models only consider point defect generation [22,23,25,27] or only              5. Monovacancies migrate isotropically with a manually adjusted value
+consider small SIA cluster formation, but with unphysically low clus-
+tering fractions [26]. Point defect diffusion is often assumed to be                of Dv = 3.0x10- 17cm2s- 1 [24­27].
+isotropic [22,23], or only single SIAs are assumed to migrate aniso-
+tropically [25­27]. These models also often use assumed or manually                 In order to demonstrate how well these assumptions and parameters
+adjusted values for important parameters such as defect diffusivities,          represent the underlying mechanisms of irradiation damage evolution,
+clustering fractions in cascades, or loop saturation number densities.          we incorporated these values into our Xolotl CD model described in
+                                                                                Section 2. The resultant damage evolution is demonstrated in Fig. 7 (T =
+    Common assumptions and input parameters that have been imple-               573 K). In agreement with past literature [24­27], the point defect
+mented in recent models are described and applied to our Xolotl CD              concentrations diverge at low fluence and eventually saturate at 1.0 dpa.
+model. This provides for computational verification against literature          The difference in saturated point defect concentrations is driven by the
+results and the insight associated with systematically including, or not,
+common assumptions on the resulting Xolotl CD predictions. Once it is           Fig. 6. Dislocation a-loop size distribution histograms reported in pure -zir-
+demonstrated that these parameters and assumptions do not accurately            conium as reproduced from Jostsons et al. (0.033 dpa, filled grey bars) [8] and
+predict microstructure evolution in irradiated zirconium, the robust            Gilbert (1.15 dpa, open bars) [61] at 573K.
+dataset detailed in Table 1 is incrementally introduced to the CD model.
+As such, the effect of each of the physical parameters will be showcased
+individually. In Section 4.5, the CD model predictions are shown after
+incorporating each of the parameters informed by Table 1. Finally, a key
+modification to the defect production rates is outlined in Section 4.6 to
+account for cascade overlap effects (i.e. when displacement cascades
+overlap an existing density of defects as opposed to traditional simula-
+tions performed in pristine zirconium).
+
+    In order to provide a preliminary comparison of Xolotl CD model
+predictions to experimental results, Table 2 summarizes literature re-
+ports for a-loop number densities, mean diameters, and the relative
+percent of interstitial to vacancy a-loops for a range of temperatures in
+pure and alloyed zirconium. Quite a few factors simultaneously affect a-
+loop characteristics. An increase in irradiation temperature leads to
+increased loop size and decreased density, or loop coarsening. A similar
+effect is noted for an increase in the neutron fluence at a given tem-
+perature. For example, at 573 K, increasing neutron fluence from 3.8 ×
+
+                                                                             7
+J.F. March-Rico et al.                                                                                                                                         Acta Materialia 288 (2025) 120777
+
+                                                                                       3.2. Effect of defect cluster generation rates based on MD cascade data
+                                                                                       (gi)
+
+                                                                                           We first address the common assumption that only point defects are
+                                                                                       produced from neutron irradiation at the standard NRT rate. It is widely
+                                                                                       reported from MD simulations that the surviving fraction of the NRT-
+                                                                                       predicted number of defects is a relatively small percentage (~30 %)
+                                                                                       [31­34]. Applying defect generation at the NRT standard rate corre-
+                                                                                       sponds to a sizeable over-estimation of the defect source term.
+                                                                                       Furthermore, a significant fraction (up to 40 ­ 60 %) of surviving defects
+                                                                                       are contained in defect clusters. In fact, even large dislocation loops can
+                                                                                       directly nucleate from high-energy cascade events [33,34]. Therefore,
+                                                                                       the first improvement that we implement to the CD model is incorpo-
+                                                                                       rating the volumetric defect generation rates presented in Fig. 2.
+                                                                                       Because the volumetric generation rates are based on MD cascade data,
+                                                                                       they inherently incorporate in-cascade recombination and defect clus-
+                                                                                       tering, although these volumetric generation rates do not account for the
+                                                                                       additional correlated recombination that occurs as the mobile species
+                                                                                       diffuse through and ultimately away from the less mobile cascade debris
+                                                                                       of a single displacement cascade.
+
+                                                                                           Fig. 8 demonstrates the effect of incorporating the volumetric gen-
+                                                                                       eration rates of defect production into the model prediction. Vacancy a-
+                                                                                       loop growth is stabilized while interstitial a-loop growth is reduced.
+                                                                                       There are two main contributions that explain this behavior: 1) fewer
+                                                                                       mobile point defects are produced due to in-cascade recombination and
+                                                                                       defect clustering (g1I = 4.14x1014cm- 3s- 1, g1V = 3.0x1014cm- 3s- 1
+                                                                                       compared to the traditional gNRT = 4.3x1015 cm- 3s- 1) and 2) defect
+                                                                                       clusters up to a size of 70 defects are directly generated within the
+                                                                                       cascades. These two factors assist nucleation of vacancy a-loops and
+                                                                                       reduce the growth of interstitial a-loops. The total concentration of
+                                                                                       mobile SIAs is overall reduced due to the higher density of available
+                                                                                       clusters to interact with. However, it is clear that this alone is not suf-
+                                                                                       ficient to accurately model a-loop evolution, as the average diameters
+                                                                                       are much smaller than experimentally-reported values presented in
+                                                                                       Table 2.
+
+Fig. 7. CD model predictions at T = 573 K for a) single vacancy (dotted red            3.3. Effect of dissociation rates
+line) and single interstitial (solid black line) concentrations as a function of
+fluence and b) vacancy (red) and interstitial (black) a-loop size distributions at         The magnitude of the dissociation rate constant is dependent on two
+1.0 dpa when incorporating common assumptions and parameter values from                factors: 1) the monomer binding energy to the parent cluster and 2) the
+literature. (For interpretation of the references to colour in this figure legend,     forward rate constant for the inverse clustering reaction [42]. The
+the reader is referred to the web version of this article.)                            former is calculated with Eq. (26) based on molecular statics calcula-
+                                                                                       tions of defect cluster formation energies (Fig. 6). The forward rate
+considerable discrepancy in their diffusivities (Di = 10- 6cm2s- 1, Dv =               constant is calculated with Eq. (16) assuming either spherical clusters or
+3.0x10- 17cm2s- 1). Monovacancies are largely unable to interact with                  Eq. (18) for dislocation loop geometries; both of these expressions
+surrounding sinks until concentrations grow large enough to compen-                    depend directly on the diffusivity of the monomer being emitted from
+sate for low diffusivities. The effect that this has on a-loop evolution with          the cluster. As the diffusivity of the monomer decreases, the rate of
+fluence is clear in Fig. 7(b)--vacancy a-loops do not nucleate or grow.                dissociation correspondingly decreases; conceptually, a less mobile
+                                                                                       monomer is more likely to be re-captured by the cluster from which it
+    This behavior has been reported with past CD models [25], and due                  was emitted. The dissociation rate constants are compared in Fig. 9 for
+to the difficulty in simultaneously growing vacancy and interstitial                   two different cases: 1) using the commonly-assumed values for point
+a-loops, vacancy a-loops are ignored in most recent modeling studies                   defect diffusivities in literature (dashed lines) and 2) using the diffu-
+[26­28]. It is experimentally established that vacancy a-loops form in                 sivities calculated through MD simulations with the BMD19 potential
+both pure and alloyed zirconium and are even more abundant than                        (solid lines).
+interstitial a-loops for many irradiation conditions [3,4,6­8,11,61]. For
+this reason, we conclude that these common assumptions and parameter                       When considering common literature values for point defect diffu-
+values should not be used in future modeling studies, as they do not                   sivities, the dissociation rate constants for vacancy clusters are several
+accurately produce a physically-relevant damage evolution profile. In                  orders of magnitude lower than equivalent interstitial clusters, despite
+the following sections, we will incrementally incorporate the more                     the lower binding energies of vacancy clusters. Conversely, when per-
+robust dataset described in Table 1 to demonstrate improvements in the                 forming the calculation with diffusivities derived from MD simulations
+Xolotl CD model predictions.                                                           (tables 2 and 3 in Ref. [37]), vacancy clusters show notably larger
+                                                                                       dissociation rates than interstitial clusters. This is now consistent with
+                                                                                       the concept of the production bias theory which relies on the thermal
+                                                                                       dissociation of vacancy clusters at higher temperatures to describe key
+                                                                                       irradiation phenomena [20,21]. It is clear that the common mono-
+                                                                                       vacancy diffusivity value often used in modeling attempts is too low to
+
+                                                                                    8
+J.F. March-Rico et al.                                                                 Acta Materialia 288 (2025) 120777
+
+                                                                                       Fig. 9. Dissociation rate coefficients at T = 573 K for interstitial clusters (black)
+                                                                                       and vacancy clusters (red) as a function of cluster size. Solid curves are based on
+                                                                                       calculations with the defect diffusivities reported in tables 2 and 3 in Ref. [37]
+                                                                                       while dashed curves consider commonly assumed diffusivities in literature
+                                                                                       [24­27]. (For interpretation of the references to colour in this figure legend, the
+                                                                                       reader is referred to the web version of this article.)
+
+Fig. 8. CD model predictions at T = 573 K for a) single vacancy (dotted red            quasi-isotropically (p ~ 1) or with a preference along the c-axis (p > 1)
+line) and single interstitial (solid black line) concentrations as a function of       depending on the cluster size [37]. Mobile defects with low anisotropy
+fluence and b) vacancy (red) and interstitial (black) a-loop size distributions at     factors will preferentially interact with prismatic a-loops; the lower the
+1.0 dpa when incorporating common assumptions and parameter values from                anisotropy factor, the stronger the bias for their capture at a-loops. In
+literature. The simulation is modified from Fig. 7 by using the volumetric defect      addition, vacancy a-loops are more elliptical than interstitial a-loops [8]
+generation rates calculated with MD displacement cascade data (Fig. 2) rather          and this results in an elongation of these loops along the c-axis. As a
+than assuming simple point defect generation at the NRT standard rate. (For            consequence, mobile defects with low anisotropy factors will have a
+interpretation of the references to colour in this figure legend, the reader is        greater bias for capture at vacancy a-loops than interstitial a-loops, as is
+referred to the web version of this article.)                                          seen in Fig. 3 and Table 3. Furthermore, MD simulations [37] and ab
+                                                                                       initio calculations [35] both indicate that vacancy diffusion is more rapid
+properly describe damage evolution behavior. The effect of the updated                 than has been assumed in previous models [24­27]. This is consistent
+dissociation rates shown in Fig. 9 will be demonstrated in the following               with the "anomalous self-diffusion" and "facile vacancy migration" that
+section with the implementation of MD-based point defect and defect                    has been coined based on Hood's experimental observations in -zir-
+cluster mobilities into the CD model.                                                  conium [63].
+
+3.4. Effect of point defect and defect cluster mobility                                    We first analyze the effect of cluster dissociation and defect mobility
+                                                                                       on the concentrations of point defects and small defect clusters in
+    Defect mobility is incorporated into the CD model based on the                     Fig. 10. The most notable differences are for monovacancies and va-
+parameter datasets calculated directly from MD simulations [37]. The                   cancy clusters, for which the average defect concentrations are orders of
+calculated diffusivities, anisotropy factors, and anisotropic capture ef-              magnitude lower than predicted using the manually-adjusted diffusivity
+ficiencies for interstitial and vacancy a-loops at T = 573 K are tabulated             values from literature. The reduction in monovacancy concentrations is
+in Table 3. Both types of point defects migrate with a preference for                  predominantly driven by enhanced interaction with sinks and defect
+basal-plane diffusion (p < 1). Interstitial clusters are predominantly                 clusters due to the larger diffusivity value predicted by MD simulations
+basal plane diffusers (p << 1) while vacancy clusters generally migrate                (Dv = 7.0x10- 8 cm- 2 s- 1 compared to Dv = 3.0x10- 17 cm- 2 s- 1 at 573
+                                                                                       K) which enhances cluster dissociation rates (Fig. 9).
+
+                                                                                           The effect of defect mobility on dislocation loop evolution is high-
+                                                                                       lighted in Fig. 11, which should be compared to Fig. 8. We now observe
+                                                                                       considerable interstitial loop growth and notable vacancy loop growth;
+                                                                                       the number densities of both types of loops are in the range predicted by
+                                                                                       experimental data at 573 K (Table 2). While the average loop diameters
+                                                                                       have also increased, they are still below the experimental measurements
+                                                                                       at a dose of 1.15 dpa. For this irradiation condition, Gilbert et al.
+                                                                                       observed average a-loop diameters of 18.6 nm as seen in Fig. 6 [61]. The
+                                                                                       magnitude of the cluster reaction rate is dependent on the dislocation
+                                                                                       loop defect capture radii (which are still considered to be zero in the CD
+                                                                                       calculation plotted in Fig. 11). In the following section, we demonstrate
+                                                                                       the effect that spontaneous and thermal drift dislocation loop capture
+                                                                                       radii have on the predicted loop size distributions.
+
+                                                                                       3.5. Effect of dislocation loop defect capture radii
+
+                                                                                           Dislocation loop capture radii influence the sharpness of the transi-
+                                                                                       tion between spherical and toroidal clustering kinetics as well as the
+
+                                                                                    9
+J.F. March-Rico et al.                                                                    Acta Materialia 288 (2025) 120777
+
+Fig. 10. Defect concentrations for a) vacancy (dashed curves) and b) interstitial (solid curves) defects in the size range of 1  n  9 is shown before and after
+incorporating cluster dissociation for all clusters and MD-based diffusivities at T = 573K. The legend defines the specific vacancy or interstitial cluster size.
+
+Fig. 11. CD model predictions at 573 K for the vacancy (red) and interstitial             develops for the capture of same-type defects at dislocation loops (i.e.
+(black) a-loop size distributions at 1.0 dpa after incorporating the volumetric           vacancy capture at vacancy loops). The effect of the capture radii on
+defect generation rates, defect mobility, and dissociation rates based on the             point defect interaction rates with a-loops is demonstrated in Fig. 12. In
+dataset outlined in Table 1. (For interpretation of the references to colour in this      this figure, the reaction rates are calculated with no capture radii (rd =
+figure legend, the reader is referred to the web version of this article.)                0), spontaneous capture radii, and thermal drift capture radii. For the
+                                                                                          case with no capture radii, capture rates are simply based on the size of
+magnitude of the toroidal reaction rate. Considering spontaneous defect                   the loop as well as the size and mobility of the captured defect. Incor-
+capture, most dislocation loops experience biased capture of interstitials                porating spontaneous radii increases the interaction rate magnitude as a
+[40]; when considering the thermal drift method, an inherent bias                         result of the larger reaction volume. Because the spontaneous capture
+                                                                                          radii are similar for all dislocation loops, there is a slight bias for point
+                                                                                          defect capture at vacancy a-loops due to the greater anisotropic capture
+                                                                                          efficiency. Conversely, incorporation of thermal drift radii leads to a
+                                                                                          greater deviation depending on the type of captured defect and the type
+                                                                                          of loop. Due to the inherent bias for the capture of same-type defects,
+                                                                                          interaction rates are higher between single SIAs and interstitial a-loops
+                                                                                          as well as between vacancies and vacancy a-loops (Fig. 12(c)).
+
+                                                                                              The resultant size distribution of dislocation loops using spontaneous
+                                                                                          and thermal drift capture radii are plotted in Figs. 13(a) and (b),
+                                                                                          respectively. These simulations were performed with the full dataset
+                                                                                          outlined in Table 1. When incorporating spontaneous capture radii, the
+                                                                                          Xolotl model predictions are similar to the case with no capture radii
+                                                                                          (Fig. 11). While the reaction rates are all larger in magnitude, the SIA
+                                                                                          bias for absorption at dislocation loops drives interstitial loop growth.
+                                                                                          The necessity for a mechanistic bias, then, is evident in order to drive
+                                                                                          simultaneous vacancy loop growth. Incorporating thermal capture radii
+                                                                                          into the CD model results in the simultaneous growth of interstitial and
+                                                                                          vacancy a-loops as seen in Fig. 13(b) at 1.0 dpa and T = 573K. However,
+                                                                                          based on the experimental results of Gilbert et al. [61], the resulting
+
+                                                                                      10
+J.F. March-Rico et al.                                                          Acta Materialia 288 (2025) 120777
+
+Fig. 12. Point defect interaction rates with dislocation loops as a function of the loop radius when calculated using a) no capture radii, b) spontaneous capture radii,
+and c) thermal drift capture radii. Black and red curves represent single interstitial and single vacancy capture, respectively; solid and dashed curves represent defect
+capture at interstitial and vacancy a-loops, respectively. (For interpretation of the references to colour in this figure legend, the reader is referred to the web version of
+this article.)
+
+a-loop number densities and diameters are over-predicted.                       evolution predictions: 1, 2, and 3 which correspond to saturation at
+                                                                                0.01, 0.1, and 1.0 dpa, respectively. The closest agreement with exper-
+3.6. Accounting for defect production saturation due to cascade overlap         imental data is found when implementing the 2 curve; this is fully
+effects                                                                         consistent with the saturation dose estimated in literature for pure W
+                                                                                and -zirconium [64­66]. Approximate values for the C1, C2, and C3
+    The volumetric generation rates for defects shown in Fig. 2 are based       constants can be informed by the MD data presented in Fig. 1 of Ref. [67]
+on MD displacement cascades in a pristine simulation cell free of any           which plots the number of stable defects with increasing dose from
+pre-existing defects. As such, the defect generation data is only repre-        sequential displacement cascades. This data is reproduced in Fig. 15(a)
+sentative of very low doses for which defect concentrations remain              to showcase the difference in the Frenkel pair generation rate at low
+dilute. It has been demonstrated recently in pure W that the reduction in       dose (i.e. pristine zirconium) and at a higher dose once defect pop-
+thermal diffusivity saturates at a dose of ~0.1 dpa under continuous 20         ulations have increased. The residual defect generation fraction can be
+MeV self-ion irradiation at room temperature [64]. When calculating the         estimated based on the slopes of the generation rates in the low-dose and
+Frenkel pair density correlated with the reduction in thermal diffusivity,      higher dose regions; this analysis provides a C3 value of 0.0075 (a re-
+the defect production efficiency deviates from the expected behavior at         sidual generation rate that is 0.75 % of the original rate). The C1 and C2
+~0.005 dpa. Consecutive MD displacement cascades were later per-                constants were then selected such that defect generation would saturate
+formed in a single simulation cell of pure W, and defect production was         within the range of 0.01 to 0.1 dpa as reported in Refs. [64­66]. Values
+found to saturate below a dose of ~0.1 dpa due to cascade overlap ef-           of C1 = 47 and C2 = 1.65 reproduce this behavior well, as can be seen
+fects [65]. In -zirconium, there is experimental evidence that the defect       with the corresponding cascade efficiency curve plotted in Fig. 15(b).
+yield also begins to saturate at a dose on the order of 0.1 dpa [66] and
+sequential displacement cascade simulations predict defect production               With the incorporation of the full dataset in Table 1 and the opti-
+saturation in the range of 0.01 to 0.1 dpa [67]. Based on these obser-          mized defect generation rates accounting for cascade overlap, the
+vations, volumetric generation rates in CD models should not remain             resulting Xolotl predicted prismatic dislocation loop populations are
+constant as defect concentrations increase and should instead begin to          shown in Figs. 16(a),(b) and(c) at 0.033, 1.15, and 5.0 dpa. Corre-
+be reduced as cascades begin to overlap existing defects.                       sponding loop size distribution histograms are shown in Figs. 16(d),(e)
+                                                                                and (f), respectively. These histograms are plotted as stacked vertical
+    Ideally, cascade overlap effects would be incorporated into the CD          bars to demonstrate the total combined contribution of vacancy and
+model in such a way that existing defect populations are affected by            interstitial a-loops. This was done to enable comparison with the
+cascade events. This would require a robust implementation capable of           experimental loop size distributions plotted in Fig. 6 which did not
+tracking cluster growth or shrinkage, but the data required to                  distinguish between interstitial and vacancy a-loop contributions. The
+adequately inform such an implementation has not yet been reported. As          results at 0.033 dpa can be compared to the work of Jostsons et al. at 573
+such, we have included cascade overlap effects in a simpler form:               K for which the average reported a-loop diameter and number density
+namely, with a reduction in the volumetric defect generation rates with         are 9 nm and 1.2x1022 m- 3, respectively [8]. Similarly, the results at
+increasing dose, d. The "effective" generation rates, g(d), are defined in      1.15 dpa can be compared to the work of Gilbert et al. at 573 K, with an
+terms of a cascade efficiency factor, (d), and the original volumetric          average a-loop diameter and number density of 18.6 nm and
+generation rates, g:                                                            5x1021 m- 3, respectively [61]. The experimental size distributions from
+                                                                                Fig. 6 reported by Jostsons et al. and Gilbert et al. are plotted in Fig. 16
+g(d) = g(d)                                                (27)                 (d) and Fig. 16(e), respectively, to facilitate comparisons between the
+                                                                                CD model predictions, which is in good agreement with these reported
+(d) = [1 -  tanh(C1d -  C2 )]    1  - C3  +  C3            (28)                 a-loop characteristics. While the relative fraction of
+                                     2                                          interstitial-to-vacancy a-loops is not typically reported at 573 K, the
+                                                                                general trend from higher-temperature irradiations (Table 2) suggests
+    The constant C1 controls the steepness of the hyperbolic curve with         that a near-equal ratio should be expected, as is predicted by our CD
+increasing dose, C2 controls the onset dose for cascade overlap effects,        model. The model considers a-loop coarsening with increasing irradia-
+and C3 determines the residual defect generation rate once cascade              tion dose, resulting in a decrease in predicted number densities (Fig. 17
+overlap effects have saturated. Three potential hyperbolic tangent fits         (a)) and a corresponding increase in the average loop diameters (Fig. 17
+are plotted in Fig. 14 to demonstrate their effects on microstructural
+
+                                                                            11
+J.F. March-Rico et al.                                                                                                                                           Acta Materialia 288 (2025) 120777
+
+Fig. 13. CD model predictions at 573 K for the vacancy (red) and interstitial            interstitial a-loops, as interstitials usually form smaller defect clusters
+(black) a-loop size distributions at 1.0 dpa using the full dataset and framework        near the cascade periphery. Interstitial clusters predominantly coarsen
+described in this work. These simulations were run using a) spontaneous cap-             into interstitial a-loops through interstitial capture over time. With
+ture radii and b) thermal drift capture radii, respectively. (For interpretation of      additional coarsening, interstitial a-loop number densities decrease with
+the references to colour in this figure legend, the reader is referred to the web        a corresponding increase in average loop diameter (Fig. 17(b)). The
+version of this article.)                                                                difference in a-loop nucleation rates directly from displacement cas-
+(b)). At higher doses, a-loop number densities saturate while average                    cades and the time needed for interstitial clusters to coarsen into large
+diameters continue to grow. Estimates of average loop size and density                   a-loops may both be contributing factors to the delayed saturation of
+consider only loops with diameters greater than 3 nm to account for an                   irradiation growth strains at lower doses.
+approximate resolution limit with TEM. This behavior is predominantly
+driven by the C3 constant in the cascade efficiency factor (Eq. (28))                        It is evident from this work that the defect production rate predicted
+which controls the residual defect generation rate once cascade overlap                  by MD displacement cascades in pristine zirconium (Fig. 2) results in a
+effects have saturated. For lower values of C3, the average a-loop                       significant overprediction of microstructure growth under irradiation.
+diameter grows more slowly with increasing dose.                                         We believe this is due to the fact that the initial production rate is greatly
+                                                                                         reduced through a combination of factors, including point defect
+    The low-dose saturation of irradiation growth strains in irradiated                  recombination that occurs during diffusional timescales [69] and the
+zirconium has been attributed to differences in the growth rates of                      defect reactions that occur once extended defects build up in the ma-
+interstitial and vacancy a-loops [68]. This concept has been investigated                terial (as is supported experimentally in Ref. [66] and through MD
+through CD model predictions of interstitial and vacancy a-loop number                   simulations in Ref. [67]). This is implemented as a reduction in the
+densities with increasing dose in Fig. 18. Interstitial a-loop densities are             cascade efficiency factor with increasing dose (Eq. (27) and Fig. 15(b)).
+initially lower than vacancy a-loops at very low doses (~0.0001 dpa) but                 Realistically, the cascade efficiency factor is likely also compensating for
+quickly outnumber vacancy a-loops at ~0.002 dpa. This behavior in the                    other effects which inhibit defect production, such as correlated
+model is related to differences in loop nucleation rates from displace-                  recombination [69], that are not currently included in the model.
+ment cascades. Vacancy a-loops are capable of nucleating directly from                   Incorporating mechanisms which reduce defect production rates
+displacement cascades due to the large size of vacancy clusters that form                compared to traditional MD cascade predictions is considered as a
+at the vacancy-rich cascade core. This is much less likely to occur for                  necessary component to adequately model dislocation loop micro-
+                                                                                         structure evolution. Without these effects, defect growth is erroneously
+                                                                                         rapid (for example, compare Fig. 13(b) with Fig. 16(b) for defect size
+                                                                                         distributions without and with cascade overlap effects, respectively).
+                                                                                         Future work will continue to elucidate mechanisms affecting defect
+                                                                                         production and should quantify these effects in a manner which can be
+                                                                                         directly incorporated in CD modeling.
+
+                                                                                             The implementation of the cascade efficiency factor chosen in Eq.
+                                                                                         (28) alters the defect generation rate as a function of dose. However,
+                                                                                         overlap effects should realistically depend on the integrated defect
+                                                                                         density or, alternatively, on the total defect volume to physically
+                                                                                         represent the underlying mechanisms. For a given temperature and
+                                                                                         irradiation condition, dose can act as a surrogate for these properties,
+                                                                                         but the chosen efficiency curve in Fig. 15(b) may not be applicable for
+                                                                                         other irradiation conditions as we expect this to depend on irradiation
+                                                                                         temperature and dose rate. In order to inform a generalized efficiency
+                                                                                         curve, the CD model at T = 573 K with the efficiency curve selected in
+                                                                                         Fig. 15(b) was used to calculate the predicted Frenkel pair (FP) density
+                                                                                         at a range of doses between 0.0001 and 10 dpa. The integrated FP
+                                                                                         density at a given dose was calculated by summing up the total number
+                                                                                         of interstitials in the system. The cascade efficiency originally plotted in
+                                                                                         Fig. 15(b) was then plotted against the integrated FP density rather than
+                                                                                         the corresponding dose in Fig. 19. This analysis clearly demonstrates
+                                                                                         that there is a critical defect density (approximately 1024 FP/m3) at
+                                                                                         which cascade overlap effects are expected to initiate. The cascade ef-
+                                                                                         ficiency factor decreases sharply until it saturates at a defect density of
+                                                                                         approximately 1025 FP/m3. This behavior can be reproduced with an
+                                                                                         equation of an equivalent form to Eq. (28) using the constants C1 = 5.3 ×
+                                                                                         10­25, C2 = 3.7 × 1024, and C3 = 0.0075 for FP densities in units of m-3.
+                                                                                         Correlating the reduced efficiency factor with defect density allows
+                                                                                         greater transferability of the model to other irradiation conditions. It is
+                                                                                         recommended that a similar efficiency factor be implemented in future
+                                                                                         CD models for zirconium and other material systems.
+
+                                                                                             The resulting CD framework and complete model (e.g., predictions
+                                                                                         demonstrated in Figs. 16 and 17) described in this work agrees well with
+                                                                                         the selected experimental data for modeling microstructure evolution in
+                                                                                         neutron-irradiated pure zirconium. There are, however, three areas that
+                                                                                         require future work: 1) basal c-loop nucleation and growth, 2) the effect
+                                                                                         of alloying elements and impurities, and 3) spatial dependence,
+                                                                                         including possible extension of the model to account for elastic in-
+                                                                                         teractions, of the defect cluster populations. The current CD model can
+                                                                                         naturally be extended to incorporate basal c-loop nucleation and growth
+
+                                                                                     12
+J.F. March-Rico et al.  Acta Materialia 288 (2025) 120777
+
+Fig. 14. Three representative curves are shown for the cascade efficiency parameter, , as a function of dose. The three  curves correspond to saturation of cascade
+overlap effects at 0.01 dpa (dotted curve), 0.10 dpa (dashed curve), and 1.0 dpa (solid curve) with a residual defect generation rate of 1 %. The resultant vacancy
+(red) and interstitial (black) a-loop size distributions are shown at 1.0 dpa for simulations using these three curves. (For interpretation of the references to colour in
+this figure legend, the reader is referred to the web version of this article.)
+
+Fig. 15. a) The number of Frenkel pair defects generated by sequential displacement cascades in a single -zirconium simulation cell (reproduced from the work of J.
+Tian et al. in Ref. [67] as spherical black markers). Approximate Frenkel pair generation rates are plotted for the pristine and cascade-overlap conditions as solid and
+dashed red lines, respectively. b) a corresponding cascade efficiency factor curve is plotted based on Eq. (28) using the constants C1 = 47, C2 = 1.65, and C3 = 0.0075.
+(For interpretation of the references to colour in this figure legend, the reader is referred to the web version of this article.)
+
+                                                                                                                          13
+J.F. March-Rico et al.                                                          Acta Materialia 288 (2025) 120777
+
+Fig. 16. CD model predictions at T = 573 K for the vacancy (red) and interstitial (black) a-loop size distributions at a) 0.033 dpa, b) 1.14 dpa, and c) 5.0 dpa using
+the full dataset and framework described in this work. Corresponding size distribution histograms are given in d), e), and f), respectively, where vacancy a-loop sizes
+are represented as dashed white bars. Interstitial a-loop sizes are represented as solid grey bars stacked on top of the vacancy a-loop bars to demonstrate the total
+combined contributions to the loop size distribution. Experimental loop size histograms from Jostsons et al. [8] and Gilbert et al. [61] are plotted in d) and e),
+respectively, for comparison. Cascade overlap effects on defect production are incorporated for these simulations based on the cascade efficiency term plotted in
+Fig. 15(b). (For interpretation of the references to colour in this figure legend, the reader is referred to the web version of this article.)
+
+Fig. 17. CD model predictions for a) dislocation loop (dashed line), point defect and small cluster (dotted lines), and total defect (solid line) densities as a function of
+dpa and b) vacancy (red) and interstitial (black) a-loop diameters as a function of dpa. A-loop characteristics reported by Jostsons et al. [8] and Gilbert et al. [61] are
+plotted for comparison. Calculations of average loop size and density only consider loops with diameters greater than 3 nm (an approximate experimental resolution
+limit) to better compare with reported TEM characteristics. (For interpretation of the references to colour in this figure legend, the reader is referred to the web
+version of this article.)
+
+in a similar fashion as demonstrated here for a-loops. As to the effect of      first understand how solutes modify the fundamental mechanisms
+alloying elements, it is clear that the presence of solutes and impurities      introduced here. For example, the migration of Fe-V complexes may be
+influences the loop microstructure evolution behavior. Take for example         facilitated along the c-axis which would alter the diffusion anisotropy
+the differences in a-loop characteristics for pure and alloyed zirconium        ratio of the affected vacancies [70,71]. Similarly, Nb binding with SIAs
+in Table 2. In order to incorporate solute effects into the model, we must      may restrict their migration and reduce their diffusivities [72,73]. A
+
+                                                                            14
+J.F. March-Rico et al.                                                                  Acta Materialia 288 (2025) 120777
+
+Fig. 18. CD model predictions for vacancy and interstitial a-loop densities as a        growth within the model. Lower-length scale simulations have provided
+function of dpa. Calculations of loop densities only consider loops with di-            the necessary parameters to model: 1) defect production from
+ameters greater than 3 nm (an approximate experimental resolution limit).               displacement cascades (including in-cascade defect recombination and
+                                                                                        clustering), 2) dissociation rates for all clusters, 3) point defect and
+                                                                                        defect cluster mobility (including anisotropy), 4) dislocation capture
+                                                                                        radii with spontaneous and thermal drift methods, and 5) cascade
+                                                                                        overlap effects on defect generation rates. Defect clusters and small
+                                                                                        dislocation loops were directly nucleated via a source term in the model.
+                                                                                        The production rates of point defects are notably lower than the stan-
+                                                                                        dard NRT rate due to in-cascade recombination and clustering. Imple-
+                                                                                        menting dissociation rates for all clusters affects cluster growth and the
+                                                                                        availability of point defects through continuous monomer emission.
+                                                                                        Atomistically-informed defect diffusivities affect the rate of cluster
+                                                                                        interaction; this is particularly true for monovacancies for which the
+                                                                                        reported diffusivity is considerably higher than was assumed in previous
+                                                                                        CD models for -zirconium. Accounting for the anisotropy of defect
+                                                                                        diffusion modifies the capture efficiencies for dislocation a-loops which
+                                                                                        varies between interstitial and vacancy a-loops based on their elliptic-
+                                                                                        ities. The incorporation of thermal drift point defect capture radii pro-
+                                                                                        vides an inherent bias for the capture of same-type defects at dislocation
+                                                                                        loops (i.e. interstitials at interstitial loops and vice versa). Finally, defect
+                                                                                        production rates were reduced as a function of dpa based on reported
+                                                                                        behavior for cascade overlap effects.
+
+                                                                                            The resulting atomistically-informed CD model mechanistically
+                                                                                        predicts the concurrent growth of vacancy and interstitial a-loops in
+                                                                                        near-equal fractions at 573 K, an aspect of irradiation microstructure
+                                                                                        that has been challenging to successfully model. The results are
+                                                                                        consistent with reported a-loop diameters, size distributions, and rela-
+                                                                                        tive fractions of interstitial-to-vacancy loops for two separate irradiation
+                                                                                        experiments at low and moderate dose. Vacancy a-loop nucleation is
+                                                                                        stabilized by their direct production in displacement cascades while
+                                                                                        vacancy growth is stabilized by the incorporation of thermal capture
+                                                                                        radii (which favor vacancy capture at vacancy loops). The use of cascade
+                                                                                        overlap effects on defect generation rates was necessary to predict
+                                                                                        experimentally consistent evolving a-loop characteristics in zirconium.
+                                                                                        As such, it is recommended that cascade overlap effects be considered in
+                                                                                        future mechanistic microstructure evolution models of irradiated
+                                                                                        zirconium.
+
+Fig. 19. Proposed cascade efficiency curve (solid line, Eq. (28)) as a function of      CRediT authorship contribution statement
+the integrated Frenkel pair density with C1 = 5.3 × 10­25, C2 = 3.7 × 1024, and
+C3 = 0.0075 for densities in units of m-3. Markers represent the cascade effi-              Jose F. March-Rico: Writing ­ review & editing, Writing ­ original
+ciency from Fig. 15(b) plotted against the integrated Frenkel pair density at the       draft, Validation, Methodology, Investigation, Formal analysis,
+corresponding dose.                                                                     Conceptualization. Sophie Blondel: Writing ­ review & editing, Su-
+                                                                                        pervision, Software, Methodology. Brian D. Wirth: Writing ­ review &
+larger database of lower-length scale data is needed to inform                          editing, Resources, Project administration, Conceptualization.
+solute-driven mechanisms in a CD approach.
+                                                                                        Declaration of competing interests
+    Regarding the spatial dependence of defect clusters, the current 0-D
+Xolotl CD model assumes that all clusters are randomly and homoge-                          The authors declare that they have no known competing financial
+neously distributed. This obviously does not allow for known micro-                     interests or personal relationships that could have appeared to influence
+structure behavior such as vacancy a-loop banding [7,8]. Incorporating                  the work reported in this paper.
+spatial dependence of vacancy loops may cause self-screening of SIA
+capture and potentially facilitate the growth of vacancy c-loops within                 Acknowledgements
+these ordered sheets [29], but future work would be needed to verify
+this hypothesis. However, considering the current CD model for a-loop                       This research was performed under appointment to the Rickover
+nucleation and growth in pure zirconium, the implementation of a wide                   Fellowship Program in Nuclear Engineering sponsored by the Naval
+range of informed physics has facilitated an accurate representation of                 Reactors Division of the U.S. Department of Energy. SB and BDW
+microstructure evolution in -zirconium with minimal assumptions.                        acknowledge funding support from the U.S. Department of Energy, Of-
+                                                                                        fice of Science supporting the development of the Xolotl code through
+4. Summary and conclusions                                                              the SciDAC Plasma Surface Interactions project as well as grant DE-
+                                                                                        SC0006661. This manuscript has been authored by the Naval Nuclear
+    A CD framework is proposed to model microstructure evolution in                     Laboratory, operated by Fluor Marine Propulsion, LLC under contract
+single-crystalline, pure -zirconium under neutron irradiation. In order                 No. 89233018CNR000004 with the U.S. Department of Energy. The
+to reduce the number of assumptions typically implemented in micro-                     United States Government retains and the publisher, by accepting the
+structure modeling, an extensive database of atomistic simulation data                  article for publication, acknowledges that the United States Government
+was described and used to inform the underlying mechanisms of loop
+
+                                                                                    15
+J.F. March-Rico et al.                                                                                                                                                  Acta Materialia 288 (2025) 120777
+
+retains a non-exclusive, paid-up, irrevocable, world-wide license to                            [24] F. Christien, A. Barbu, Effect of self-interstitial diffusion anisotropy in electron-
+publish, distribute, exhibit, and perform the published form of this                                   irradiated zirconium: a cluster dynamics modeling, J. Nucl. Mater. (2005)
+manuscript, or allow others to do so, for United States Government                                     272­281, https://doi.org/10.1016/j.jnucmat.2005.06.024.
+purposes. The authors also wish to acknowledge Nick Militello for his
+assistance in the testing of the CD model proposed in this work, and                            [25] F. Christien, A. Barbu, Cluster dynamics modelling of irradiation growth of
+would like to thank Dr. Richard Smith and Dr. Jesse Carter for invalu-                                 zirconium single crystals, J. Nucl. Mater. (2009) 153­161, https://doi.org/
+able input during the development of this model.                                                       10.1016/j.jnucmat.2009.05.016.
+
+References                                                                                      [26] Y. Li, N. Ghoniem, Cluster dynamics modeling of irradiation growth in single
+                                                                                                       crystal Zr, J. Nucl. Mater. (2020) 152312, https://doi.org/10.1016/j.
+ [1] G.J.C. Carpenter, R.A. Murgatroyd, A. Rogerson, J.F. Watters, Irradiation growth of               jnucmat.2020.152312.
+       zirconium single crystals, J. Nucl. Mater. (1981) 28­37, https://doi.org/10.1016/
+       0022-3115(81)90441-4.                                                                    [27] S.I. Choi, G.-G. Lee, J. Kwon, J.H. Kim, Modeling of sink-induced irradiation
+                                                                                                       growth of single-crystal and polycrystal zirconiums in nuclear reactors, J. Nucl.
+ [2] G.J.C. Carpenter, R.H. Zee, A. Rogerson, Irradiation growth of zirconium single                   Mater. (2016) 56­70, https://doi.org/10.1016/j.jnucmat.2015.11.014.
+       crystals: a review, J. Nucl. Mater. (1988) 86­100, https://doi.org/10.1016/0022-
+       3115(88)90087-6.                                                                         [28] B. Christiaen, C. Domain, L. Thuinet, A. Ambard, A. Legris, Influence of vacancy
+                                                                                                       diffusional anisotropy: understanding the growth of zirconium alloys under
+ [3] M. Griffiths, R.W. Gilbert, V. Fidleris, R.P. Tucker, R.B. Adamson, Neutron damage                irradiation and their microstructure evolution, Acta Mater. (2020) 631­644,
+       in zirconium alloys irradiated at 644 to 710 k, J. Nucl. Mater. (1987) 159­168,                 https://doi.org/10.1016/j.actamat.2020.06.004.
+       https://doi.org/10.1016/0022-3115(87)90071-7.
+                                                                                                [29] A. Harte, D. Ja¨derna¨s, M. Topping, P. Frankel, C.P. Race, J. Romero, L. Hallstadius,
+ [4] M. Griffiths, A review of microstructure evolution in zirconium alloys during                     E.C. Darby, M. Preuss, The effect of matrix chemistry on dislocation evolution in an
+       irradiation, J. Nucl. Mater. (1988) 190­218, https://doi.org/10.1016/0022-3115                  irradiated Zr alloy, Acta Mater. (2017) 69­82, https://doi.org/10.1016/j.
+       (88)90093-1.                                                                                    actamat.2017.03.024.
+
+ [5] M. Griffiths, R.C. Styles, C.H. Woo, F. Phillipp, W. Frank, Study of point defect          [30] C. Saka¨el, C. Domain, A. Ambard, L. Thuinet, A. Legris, Modelling of zirconium
+       mobilities in zirconium during electron irradiation in a high-voltage electron                  growth under irradiation and annealing conditions, Int. J. Plast. (2023) 103699,
+       microscope, J. Nucl. Mater. (1994) 324­334, https://doi.org/10.1016/0022-3115                   https://doi.org/10.1016/j.ijplas.2023.103699.
+       (94)90342-5.
+                                                                                                [31] S.J. Wooding, D.J. Bacon, A molecular dynamics study of displacement cascades in
+ [6] D. Northwood, R.W. Gilbert, L.E. Bahen, P.M. Kelly, R.G. Blake, A. Jostsons, P.                   -zirconium, Philos. Mag. A (1997) 1033­1051, https://doi.org/10.1080/
+       K. Madden, D. Faulkner, W. Bell, R.B. Adamson, Characterization of neutron                      01418619708200013.
+       irradiation damage in zirconium alloys -- An international "round-robin"
+       experiment, J. Nucl. Mater. (1979) 379­394, https://doi.org/10.1016/0022-3115            [32] S.J. Wooding, L.M. Howe, F. Gao, A.F. Calder, D.J. Bacon, A molecular dynamics
+       (79)90103-X.                                                                                    study of high-energy displacement cascades in -zirconium, J. Nucl. Mater. (1998)
+                                                                                                       191­204, https://doi.org/10.1016/s0022-3115(97)00365-6.
+ [7] P.M. Kelly, R.G. Blake, A. Jostsons, An interpretation of corduroy contrast in
+       neutron irradiated zirconium, J. Nucl. Mater. (1976) 307­315, https://doi.org/           [33] W. Zhou, J. Tian, Q. Feng, J. Zheng, X. Liu, J. Xue, D. Qian, S. Peng, Molecular
+       10.1016/0022-3115(76)90063-5.                                                                   dynamics simulations of high-energy displacement cascades in hcp-Zr, J. Nucl.
+                                                                                                       Mater. (2018) 540­545, https://doi.org/10.1016/j.jnucmat.2018.06.002.
+ [8] A. Jostsons, P.M. Kelly, R.G. Blake, The nature of dislocation loops in neutron
+       irradiated zirconium, J. Nucl. Mater. (1977) 236­256, https://doi.org/10.1016/           [34] J.F. March-Rico, C.M. Mcswain, B.D. Wirth, Quantifying the impact of an electronic
+       0022-3115(77)90113-1.                                                                           drag force on defect production from high-energy displacement cascades in
+                                                                                                       -zirconium, J. Nucl. Mater. (2020) 152539, https://doi.org/10.1016/j.
+ [9] P.M.K.R.G.B.K.F.A Jostsons, Neutron Irradiation-Induced Defect Structures in                      jnucmat.2020.152539.
+       Zirconium, ASTM International, 1979, pp. 61­1979, https://doi.org/10.1520/
+       STP38157S.                                                                               [35] G.D. Samolyuk, A.V. Barashev, S.I. Golubov, Y.N. Osetsky, R.E. Stoller, Analysis of
+                                                                                                       the anisotropy of point defect diffusion in hcp Zr, Acta Mater. (2014) 173­180,
+[10] A. Jostsons, R.G. Blake, J.G. Napier, P.M. Kelly, K. Farrell, Faulted loops in                    https://doi.org/10.1016/j.actamat.2014.06.024.
+       neutron-irradiated zirconium, J. Nucl. Mater. (1977) 267­276, https://doi.org/
+       10.1016/0022-3115(77)90251-3.                                                            [36] Y.N. Osetsky, D.J. Bacon, N. De Diego, Anisotropy of point defect diffusion in
+                                                                                                       alpha-zirconium, Metallurgical Mater. Trans. A (2002) 777­782, https://doi.org/
+[11] M. Griffiths, R.W. Gilbert, V. Fidleris, Accelerated irradiation growth of zirconium              10.1007/s11661-002-0144-z.
+       alloys, in: Zirconium in the Nuclear Industry: Eighth International Symposium,
+       1989, pp. 658­677, https://doi.org/10.1520/STP18892S.                                    [37] J.F. March-Rico, B.D. Wirth, Defect cluster configurations and mobilities in -Zr: a
+                                                                                                       comparison of the BMD19 and M07 interatomic potentials, J. Nucl. Mater (2022)
+[12] M. Griffiths, R.W. Gilbert, The formation of c-component defects in zirconium                     153441, https://doi.org/10.1016/j.jnucmat.2021.153441.
+       alloys during neutron irradiation, J. Nucl. Mater. (1987) 169­181, https://doi.org/
+       10.1016/0022-3115(87)90072-9.                                                            [38] N. De Diego, Y.N. Osetsky, D.J. Bacon, Mobility of interstitial clusters in alpha-
+                                                                                                       zirconium.Metallurgical Mater. Trans. A(2002) 783­789. https://doi.org/10.100
+[13] Y. de Carlan, C. Regnard, M. Griffiths, D. Gilbon, C. Lemaignan, Influence of iron in             7/s11661-002-1008-2.
+       the nucleation of <c>component dislocation loops in irradiated zircaloy-4, in:
+       Zirconium in the Nuclear Industry: Eleventh International Symposium, 1996,               [39] N. De Diego, A. Serra, D.J. Bacon, Y.N. Osetsky, On the structure and mobility of
+       pp. 638­653, https://doi.org/10.1520/STP16194S.                                                 point defect clusters in alpha-zirconium: a comparison for two interatomic
+                                                                                                       potential models, modelling and simulation in materials, Sci. Eng. (2011) 035003,
+[14] M. Griffiths, R.A. Holt, A. Rogerson, Microstructural aspects of accelerated                      https://doi.org/10.1088/0965-0393/19/3/035003.
+       deformation of Zircaloy nuclear reactor components during service, J. Nucl. Mater.
+       (1995) 245­258, https://doi.org/10.1016/0022-3115(94)00687-3.                            [40] J.F. March-Rico, B.D. Wirth, Stress states and point defect capture radii of
+                                                                                                       dislocation a-loops and c-loops in alpha-zirconium, Not yet published.
+[15] M. Griffiths, Microstructure evolution in Zr alloys during irradiation: dose, dose
+       rate, and impurity dependence, ASTM Int. (2010) 436­2010, https://doi.org/               [41] A.D. Brailsford, R. Bullough, The rate theory of swelling due to void growth in
+       10.1520/JAI101146.                                                                              irradiated metals, J. Nucl. Mater. (1972) 121­135, https://doi.org/10.1016/0022-
+                                                                                                       3115(72)90091-8.
+[16] G.J.C. Carpenter, D.O. Northwood, The contribution of dislocation loops to
+       radiation growth and creep of Zircaloy - 2, J. Nucl. Mater. (1975) 260­266,              [42] A.A. Kohnert, B.D. Wirth, L. Capolungo, Modeling microstructural evolution in
+       https://doi.org/10.1016/0022-3115(75)90041-0.                                                   irradiated materials with cluster dynamics methods: a review, Comput. Mater. Sci.
+                                                                                                       (2018) 442­459, https://doi.org/10.1016/j.commatsci.2018.02.049.
+[17] C.H. Woo, Modeling irradiation growth of zirconium and its alloys, Radiat. Effects
+       Def. Solids (1998) 145­169, https://doi.org/10.1080/10420159808229674.                   [43] F. Gao, D.J. Bacon, L.M. Howe, C.B. So, Temperature-dependence of defect
+                                                                                                       creation and clustering by displacement cascades in -zirconium, J. Nucl. Mater.
+[18] C.H. Woo, Theory of irradiation deformation in non-cubic metals: effects of                       (2001) 288­298, https://doi.org/10.1016/s0022-3115(01)00483-4.
+       anisotropic diffusion, J. Nucl. Mater. (1988) 237­256, https://doi.org/10.1016/
+       0022-3115(88)90096-7.                                                                    [44] M.R. Gilbert, J.C. Sublet, Differential dpa calculations with SPECTRA-PKA, J. Nucl.
+                                                                                                       Mater. (2018) 101­108, https://doi.org/10.1016/j.jnucmat.2018.03.032.
+[19] R.A. Holt, Mechanisms of irradiation growth of alpha-zirconium alloys, J. Nucl.
+       Mater. (1988) 310­338, https://doi.org/10.1016/0022-3115(88)90099-2.                     [45] ASTM E521, Practice for Neutron Radiation Damage Simulation by Charged
+                                                                                                       Particle Irradiation, Annual Book of ASTM Standards, 1995, p. 8. Vol. 12.02:E521-
+[20] R.A. Holt, C.H. Woo, C.K. Chow, Production bias -- A potential driving force for                  89.
+       irradiation growth, J. Nucl. Mater. (1993) 293­300, https://doi.org/10.1016/
+       0022-3115(93)90092-D.                                                                    [46] P. Saidi, Z. Wang, Y. Mao, L.K. B´eland, Z. Yao, M.R. Daymond, A method for
+                                                                                                       calculation of bias factor in anisotropic mediums, application to - zirconium,
+[21] C.H. Woo, B.N. Singh, Production bias due to clustering of point defects in                       J. Nucl. Mater. (2020) 151882, https://doi.org/10.1016/j.jnucmat.2019.151882.
+       irradiation-induced cascades, Philos. Mag. A (1992) 889­912, https://doi.org/
+       10.1080/01418619208205596.                                                               [47] C. Varvenne, O. Mackain, E. Clouet, Vacancy clustering in zirconium: an atomic-
+                                                                                                       scale study, Acta Mater. (2014) 65­77, https://doi.org/10.1016/j.
+[22] S. Golubov, A. Barashev, R.E. Stoller, B. Singh, Breakthrough in understanding                    actamat.2014.06.012.
+       radiation growth of zirconium, ASTM Spe. Techn. Publ. (2015) 729­758, https://
+       doi.org/10.1520/STP154320130043.                                                         [48] A. Rogerson, Irradiation growth in zirconium and its alloys, J. Nucl. Mater. (1988)
+                                                                                                       43­61, https://doi.org/10.1016/0022-3115(88)90084-0.
+[23] A.V. Barashev, S.I. Golubov, R.E. Stoller, Theoretical investigation of
+       microstructure evolution and deformation of zirconium under neutron irradiation,         [49] K. Arakawa, K. Ono, M. Isshiki, K. Mimura, M. Uchikoshi, H. Mori, Observation of
+       J. Nucl. Mater. (2015) 85­94, https://doi.org/10.1016/j.jnucmat.2015.02.001.                    the one-dimensional diffusion of nanometer-sized dislocation loops, Science (2007)
+                                                                                                       956­959, https://doi.org/10.1126/science.1145386.
+
+                                                                                                [50] A.A. Kohnert, B.D. Wirth, Cluster dynamics models of irradiation damage
+                                                                                                       accumulation in ferritic iron. I. Trap mediated interstitial cluster diffusion, J. Appl.
+                                                                                                       Phys. (2015) 154305, https://doi.org/10.1063/1.4918315.
+
+                                                                                                [51] A. Kohnert, B. Wirth, Cluster dynamics models of irradiation damage accumulation
+                                                                                                       in ferritic iron. II. Effects of reaction dimensionality, J. Appl. Phys. (2015) 154306,
+                                                                                                       https://doi.org/10.1063/1.4918316.
+
+                                                                                            16
+J.F. March-Rico et al.                                                                                                                                                   Acta Materialia 288 (2025) 120777
+
+[52] V. Jansson, L. Malerba, d.b. Andree, C. Becquart, C. Domain, Sink strength                  [63] G.M. Hood, Point defect diffusion in -Zr, J. Nucl. Mater. (1988) 149­175, https://
+       calculations of dislocations and loops using OKMC, J. Nucl. Mater. (2013)                        doi.org/10.1016/0022-3115(88)90091-8.
+       218­226, https://doi.org/10.1016/j.jnucmat.2013.08.052.
+                                                                                                 [64] A. Reza, H. Yu, K. Mizohata, F. Hofmann, Thermal diffusivity degradation and
+[53] A. Seeger, U. Go¨sele, Steady-state diffusion of point defects to dislocation loops,               point defect density in self-ion implanted tungsten, Acta Mater. (2020) 270­279,
+       Phys. Lett. A (1977) 423­425, https://doi.org/10.1016/0375-9601(77)90355-3.                      https://doi.org/10.1016/j.actamat.2020.03.034.
+
+[54] E. Wimmer, M. Christensen, W. Wolf, W.H. Howland, B. Kammenzind, R.W. Smith,                [65] F. Granberg, J. Byggma¨star, K. Nordlund, Molecular dynamics simulations of high-
+       Hydrogen in zirconium: atomistic simulations of diffusion and interaction with                   dose damage production and defect evolution in tungsten, J. Nucl. Mater. (2021)
+       defects using a new embedded atom method potential, J. Nucl. Mater. (2020)                       153158, https://doi.org/10.1016/j.jnucmat.2021.153158.
+       152055, https://doi.org/10.1016/j.jnucmat.2020.152055.
+                                                                                                 [66] Y. Idrees, Z. Yao, M.A. Kirk, M.R. Daymond, In situ study of defect accumulation in
+[55] E. Francis, R.P. Babu, A. Harte, T.L. Martin, P. Frankel, D. Ja¨derna¨s, J. Romero,                zirconium under heavy ion irradiation, J. Nucl. Mater. (2013) 95­107, https://doi.
+       L. Hallstadius, P.A.J. Bagot, M.P. Moody, M. Preuss, Effect of Nb and Fe on damage               org/10.1016/j.jnucmat.2012.09.014.
+       evolution in a Zr-alloy during proton and neutron irradiation, Acta Mater. (2019)
+       603­614, https://doi.org/10.1016/j.actamat.2018.12.021.                                   [67] J. Tian, Q. Feng, J. Zheng, X. Liu, W. Zhou, Radiation damage buildup and basal
+                                                                                                        vacancy cluster formation in hcp zirconium: a molecular dynamics study, J. Nucl.
+[56] T. Hamaoka, Y. Satoh, H. Matsui, One-dimensional motion of interstitial clusters in                Mater. (2021) 152920, https://doi.org/10.1016/j.jnucmat.2021.152920.
+       iron-based binary alloys observed using a high-voltage electron microscope,
+       J. Nucl. Mater. (2013) 180­187, https://doi.org/10.1016/j.jnucmat.2012.09.007.            [68] M. Christensen, W. Wolf, C. Freeman, E. Wimmer, R.B. Adamson, M. Griffiths, E.
+                                                                                                        V. Mader, Vacancy loops in breakaway irradiation growth of zirconium: insight
+[57] S. Blondel, D.E. Bernholdt, K.D. Hammond, L. Hu, D. Maroudas, B.D. Wirth,                          from atomistic simulations, J. Nucl. Mater. (2020) 151946, https://doi.org/
+       Benchmarks and tests of a multidimensional cluster dynamics model of helium                      10.1016/j.jnucmat.2019.151946.
+       implantation in tungsten, Fus. Sci. Technol. (2017) 84­92, https://doi.org/
+       10.13182/fst16-109.                                                                       [69] S.J. Zinkle, R.E. Stoller, Quantifying defect production in solids at finite
+                                                                                                        temperatures: thermally-activated correlated defect recombination corrections to
+[58] D.-U. Kim, S. Blondel, D.E. Bernholdt, P. Roth, F. Kong, D. Andersson, M.R. Tonks,                 DPA (CRC-DPA), J. Nucl. Mater. (2023) 154292, https://doi.org/10.1016/j.
+       B.D. Wirth, Modeling mesoscale fission gas behavior in UO2 by directly coupling                  jnucmat.2023.154292.
+       the phase field method to spatially resolved cluster dynamics, Mater. Theory
+       (2022), https://doi.org/10.1186/s41313-021-00030-8.                                       [70] R.C. Pasianot, R.A. P´erez, V.P. Ramunni, M. Weissmann, Ab initio approach to the
+                                                                                                        effect of Fe on the diffusion in hcp Zr II: the energy barriers, J. Nucl. Mater. (2009)
+[59] Cluster dynamics code, Xolotl. [cited 2022 March 9th]; Available from: https://gith                100­104, https://doi.org/10.1016/j.jnucmat.2009.03.051.
+       ub.com/ORNL-Fusion/xolotl.
+                                                                                                 [71] R.A. Pe´rez, M. Weissmann, Ab-initio approach to the effect of Fe on the diffusion in
+[60] S. Blondel, D.E. Bernholdt, K.D. Hammond, B.D. Wirth, Continuum-scale modeling                     hcp Zr, J. Nucl. Mater. (2008) 95­100, https://doi.org/10.1016/j.
+       of helium bubble bursting under plasma-exposed tungsten surfaces, Nucl. Fus.                     jnucmat.2007.07.012.
+       (2018) 126034, https://doi.org/10.1088/1741-4326/aae8ef.
+                                                                                                 [72] X.K. Xin, W.S. Lai, B.X. Liu, Point defect properties in hcp and bcc Zr with trace
+[61] R.W. Gilbert, K. Farrell, C.E. Coleman, Damage structure in zirconium alloys                       solute Nb revealed by ab initio calculations, J. Nucl. Mater. (2009) 197­202,
+       neutron irradiated at 573 to 923 k, J. Nucl. Mater. (1979) 137­148, https://doi.                 https://doi.org/10.1016/j.jnucmat.2009.06.005.
+       org/10.1016/0022-3115(79)90157-0.
+                                                                                                 [73] M. Tikhonchev, V. Svetukhin, P. Kapustin, Primary radiation damage of Zr-0.5%Nb
+[62] 7 - Radiation, in: J. Koutský, J. Kocik (Eds.), Damage to Zirconium and Its Alloys, in             binary alloy: atomistic simulation by molecular dynamics method, Model. Simul.
+       Materials Science Monographs, Elsevier, 1994, pp. 236­263.                                       Mat. Sci. Eng. (2017) 065017, https://doi.org/10.1088/1361-651x/aa790f.
+
+                                                                                             17
+

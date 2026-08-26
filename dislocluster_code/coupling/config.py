@@ -58,7 +58,7 @@ class MarchConfig:
     max_failed_nodes: int | None = None
 
     # Coarsening detector thresholds. See post/coarsening.py.
-    phi_star: float = 0.15
+    phi_star: float = 0.20        # keep equal to post/coarsening.PHI_STAR
     frac_star: float = 0.10
     coarsen_hold: int = 2
 

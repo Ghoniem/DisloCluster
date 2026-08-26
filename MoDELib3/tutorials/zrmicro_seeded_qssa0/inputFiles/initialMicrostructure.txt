@@ -1,2 +1,0 @@
-microstructureFile=frankLoopsDensity.txt;
-microstructureFile=aLoopsDensity.txt;

@@ -1,0 +1,1070 @@
+%==============================================================================
+%  Vacancy-Loop Thermal Emission and Grain-Boundary Loop Truncation
+%  -- an implementation plan for DisloCluster
+%
+%  Standalone; compiles with pdflatex (tested against MiKTeX).  No external
+%  figures.  lmodern + T1 is deliberate: it supplies Type1 outlines for every
+%  shape, so MiKTeX never has to run METAFONT to build a PK font.
+%
+%  Section 2 transcribes Appendix D ("Dissociation") of the manuscript
+%  (Overleaf project 69f93e73adfca16d5b5fbd4b) into the code's notation, and
+%  reconciles its parameter set against the values the code actually carries.
+%
+%  Scope: two defects in the immobile (slow-step) model, one in each of the
+%  two places the slow step is implemented (ZrMicro's C++ core and MoDELib3's
+%  ClusterDynamicsFEM), plus the Python reference implementation that mirrors
+%  them.
+%==============================================================================
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!50!black,
+            citecolor=blue!50!black}
+
+\sloppy
+\setlength{\emergencystretch}{3em}   % long \verb runs cannot be broken
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+\newcommand{\aloop}{\ensuremath{\langle a\rangle}}
+\newcommand{\cloop}{\ensuremath{\langle c\rangle}}
+\newcommand{\ZrM}{\textsf{ZrMicro}}
+\newcommand{\MoD}{\textsf{MoDELib3}}
+\newcommand{\fbk}{\discretionary{}{}{}}   % zero-width break inside a path
+\newcommand{\file}[1]{\texttt{\small #1}}
+\newcommand{\kB}{k_{\mathrm B}}
+\newcommand{\GSF}{\gamma_{\rm SF}}
+
+\title{Vacancy-Loop Thermal Emission and Grain-Boundary Loop Truncation\\
+       \large An implementation plan for \textsf{DisloCluster}}
+\author{}
+\date{22 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Two changes to the immobile cluster-dynamics model are specified here in
+enough detail to be implemented directly.  \textbf{(I)} Loop thermal emission
+is presently a dead constant --- a placeholder $E_b=5\,$eV that appears in two
+files, is loaded by the 0-D solver and never used, and in \MoD{} suppresses
+the emission channel by 32 orders of magnitude.  It is replaced by the
+size-dependent dissociation energies of Appendix~D of the manuscript, which
+are transcribed into the code's notation in \S\ref{sec:appendixD}, and the
+density and content equations are made mutually consistent in the three
+specific ways in which they currently are not.  \textbf{(II)} A loop whose
+disc intersects the grain boundary is removed together with its stored
+defects; the number and content equations acquire the matching sink, and two
+new conservation accumulators book the defects that leave.
+\end{abstract}
+
+\tableofcontents
+
+%==============================================================================
+\section{Status of the code as found}
+%==============================================================================
+
+\subsection{Where loop emission lives today}
+
+Four independent treatments coexist, and no two of them agree.
+
+\begin{center}\small
+\begin{tabular}{@{}p{0.28\textwidth}p{0.40\textwidth}p{0.22\textwidth}@{}}
+\toprule
+\textbf{Where} & \textbf{What it does} & \textbf{Size dependence}\\
+\midrule
+\file{zerod/\fbk reaction\_\fbk rates.\fbk py:74--76}
+  & \verb|e_v_vL = exp(-5/(k_B T))|, and \verb|phi_v_emission_vL|
+    $=\omega_v(e_{v,vL}-e_v)$
+  & none; \textbf{dead --- called nowhere}\\
+\addlinespace
+\file{cpp\_\fbk utils/\fbk parameters.\fbk h:91--96, 343--347}
+  & \verb|e_v_vL|, \verb|e_sigma_v_vL|, \verb|e_v_iL|, \verb|e_sigma_v_iL|,
+    \verb|e_sigma_v_avL| are \emph{required} CLI parameters, parsed into
+    \verb|Params|
+  & \textbf{never read} by
+    \file{rate\_\fbk equations\_\fbk core.\fbk h}\\
+\addlinespace
+\file{rate\_\fbk equations\_\fbk core.\fbk h:155--159};
+\file{zerod/\fbk rate\_\fbk equations.\fbk py:314--341, 368--389}
+  & the only loop-loss channel that is not coalescence:
+    $\dot N=-N/\tau_{vL}$, $\dot c=-n_{\rm nuc}N/\tau_{vL}$,
+    $\tau_{vL}=\tau_{vL}^{0}e^{E_a/\kB T}$
+  & none\\
+\addlinespace
+\file{ClusterDynamicsFEM.\fbk cpp:739--750}
+  (in \file{MoDELib3/\fbk src/\fbk ClusterDynamics/})
+  & a genuine emission term, $\dot c=-S_k\bar D_v e^{-E_b/\kB T}$, with
+    $E_b=$~\verb|Eb_eV[0]|~$=5.0$~eV from
+    \file{Zr3d\_\fbk ghoniem.\fbk txt:237}
+  & perimeter only, through $S_k$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Three consequences follow, and each is worth stating on its own.
+
+\begin{enumerate}
+\item \textbf{The coupled march has no loop emission at all.}  The march's
+  slow step is \ZrM{}'s (\file{coupling/\fbk immobile.\fbk py}), and \ZrM{}
+  never reads \verb|e_v_vL|.  The standalone 3-D run
+  (\verb|useImmobileSolver=1|) does have the channel.  The two slow steps are
+  therefore not the same model, which contradicts the coupling contract.
+\item \textbf{Even where the channel exists, $5$~eV switches it off.}  At
+  $T=573$~K, $\kB T=0.04938$~eV, so $e^{-5/\kB T}=1.05\times10^{-44}$.  With
+  Appendix~D's $E_b^{v,(c)}$, which runs $1.26$--$1.47$~eV over the entire
+  size range the model visits (\S\ref{sec:numbers}), the factor is
+  $10^{-13}$--$10^{-11}$: the emission rate rises by \textbf{31 to 33 orders
+  of magnitude}.  A term suppressed by $10^{-44}$ is not an approximation, it
+  is an absent term.
+\item \textbf{$\tau_{vL}$ is standing in for the missing physics.}  The two
+  fitted parameters $\tau_{vL}^{0}=0.0237$~s and $E_a=0.268$~eV
+  (\file{input\_\fbk data.\fbk py:188--189}) are the model's only mechanism
+  for dissolving a small vacancy loop.  That is exactly what Appendix~D
+  describes from first principles, so after this change the two channels
+  overlap and a decision must be made about $\tau_{vL}$ (\S\ref{sec:tau}).
+\end{enumerate}
+
+\subsection{Are the density and content equations consistent?}
+\label{sec:consistency}
+
+\textbf{No, in three specific ways.}  The equations as written are
+\begin{align}
+\dot N_{vL} &= \nu_{\rm nuc} - \frac{N_{vL}}{\tau_{vL}} - \Lambda^{\rm coal}_N ,
+\label{eq:currentN}\\
+\dot c_{vL} &= \underbrace{\phi_v - \phi_i}_{\text{net capture}} + G_{vL}
+             - n_{\rm nuc}\frac{N_{vL}}{\tau_{vL}} - \Lambda^{\rm coal}_c .
+\label{eq:currentC}
+\end{align}
+
+\paragraph{(C1) The number and content sinks remove different loops.}
+Equation~\eqref{eq:currentN} deletes loops at rate $N/\tau$;
+\eqref{eq:currentC} removes $n_{\rm nuc}$ defects for each.  But the mean
+content per loop is $\bar n = c/N$, and on the 500\,nm matched leg
+$\bar n_c = 7.4\times10^{4}$ against $n_{\rm nuc}=50$ --- three orders of
+magnitude apart.  The channel therefore deletes loops while leaving
+$99.93\%$ of their defects behind in $c_{vL}$, and the surviving population's
+mean size $\bar n$ \emph{rises} because loops were deleted, not because
+anything was absorbed.  This is a deliberate ``embryo dissolution'' reading of
+$\tau_{vL}$, documented at
+\file{reaction\_\fbk rates.\fbk py:641--649} and mirrored verbatim at
+\file{ClusterDynamicsFEM.\fbk cpp:726--737}, and it is self-consistent only in
+the limit where every dissolving loop really is at its birth size.  It is not
+self-consistent as an emission model, and it does not satisfy
+$\dot c = \bar n\,\dot N$.
+
+\paragraph{(C2) There is no channel by which a loop shrinks by emitting.}
+A \cloop{} loop can currently only shrink by absorbing an interstitial
+(\verb|vL_i|), which is booked as recombination in \verb|cum_recomb|
+(\file{rate\_\fbk equations\_\fbk core.\fbk h:416}).  Emission differs in
+every respect that matters to the bookkeeping: it removes content, returns a
+\emph{vacancy} to the free pool, is not a Frenkel event, and does not remove a
+loop until the loop is gone.  None of that exists in the 0-D, and the
+corresponding SIA channel for \aloop{} loops (Appendix~D, Eq.~(D.12)) exists
+in neither code.
+
+\paragraph{(C3) The 0-D has no critical size for \cloop{} loops.}
+The minimum-stable-size gate \verb|size_gate(r)| / \verb|r_min_a| is applied
+to the \aloop{} families only
+(\file{rate\_\fbk equations\_\fbk core.\fbk h:321--322}, and the
+\verb|if(!is_vac[k])| guard at line 249).  The \cloop{} family has no lower
+size bound at all; nothing stops $\bar n_c$ from falling below one vacancy.
+Emission supplies exactly this bound, and supplies it as physics rather than
+as a gate: $N^{\ast}$ is where $C_v = C_v^{e}(N)$.
+
+\subsection{Where the grain boundary truncates loops today}
+
+Nowhere, in the solve.  The geometric refusal exists only in post-processing
+and in the discrete handoff:
+\file{coupling/\fbk transition.\fbk py:456} (\verb|fits_in_crystal|) predicts
+which loops \verb|microstructureGenerator| will reject, and
+\file{studies/\fbk hardening.\fbk py} inherits it through
+\verb|cube_population|.  The continuum march itself lets a loop of any radius
+sit at a node one Burgers vector from a Dirichlet face.
+
+The measured consequences are already recorded in \file{CLAUDE.\fbk md} as
+artifacts to be worked around rather than as a missing term:
+
+\begin{itemize}
+\item on the 1\,$\mu$m single crystal, 6522 of 24115 CD nodes lie on the six
+  Dirichlet faces and at 21~dpa carry \textbf{99.8\%} of the total \aloop{}
+  density, with $c_a/N_a = 300.8$ against $n_{\rm iL,nuc}=300$ --- every loop
+  there is a fresh nucleus;
+\item the domain mean of any loop quantity is consequently unusable, and the
+  documentation prescribes the interior-quartile mean everywhere instead
+  (\file{post/\fbk report.\fbk py}, \file{studies/\fbk hardening.\fbk py},
+  \file{post/\fbk discrete\_\fbk loops.\fbk py} \verb|region="interior"|);
+\item the \cloop{} handoff at 500\,nm keeps only $0.96\%$ of loops at 1~dpa,
+  measured, because the continuum holds loops that cannot geometrically fit.
+\end{itemize}
+
+The stated cause is correct --- ``the boundary is a sink for mobile defects
+but not for loops'' --- and it is a \emph{missing sink}, not an inevitable
+artifact.  Supplying it is item~(II), and the near-boundary divergence is the
+validation target that decides whether it worked.
+
+%==============================================================================
+\section{Appendix D in the code's notation}
+\label{sec:appendixD}
+%==============================================================================
+
+This section transcribes Appendix~D (``Dissociation'') of the manuscript.
+The equation numbers (D.1)--(D.13) are local to this document; the physics,
+the parameter table and the implementation recipe are the manuscript's.
+\S\ref{sec:reconcile} reconciles its parameters against the values the code
+carries, and \S\ref{sec:queries} lists four points to settle with the author
+before implementation --- one of them blocking.
+
+\subsection{Chemical potential and binding energy}
+
+The bulk equilibrium vacancy concentration is
+\begin{equation*}
+C_v^{0} = \exp\!\left(-\frac{E_v^{f}}{\kB T}\right).
+\tag{D.1}
+\end{equation*}
+At the surface of a \emph{vacancy} cluster of size $\alpha$ it is raised, and
+at the surface of an \emph{interstitial} cluster of size $\beta$ lowered,
+\begin{equation*}
+C_v^{e}(\alpha)=C_v^{0}e^{\mu(\alpha)/\kB T},
+\qquad
+C_v^{e}(\beta)=C_v^{0}e^{-\mu(\beta)/\kB T},
+\tag{D.2--D.3}
+\end{equation*}
+so that with the binding energies
+\begin{equation*}
+E_b^{(v)}(\alpha)=E_v^{f}-\mu(\alpha),
+\qquad
+E_b^{(i)}(\beta)=E_v^{f}+\mu(\beta),
+\tag{D.4--D.5}
+\end{equation*}
+both cases collapse to the single statement
+\begin{equation*}
+\boxed{\;C_v^{e} = \exp\!\left(-\frac{E_b}{\kB T}\right).\;}
+\tag{D.6}
+\end{equation*}
+
+Equation~(D.6) is the object the rate equations need, and it is exactly what
+the original author's dead skeleton was reaching for:
+\verb|phi_v_emission_vL|~$=\omega_v(e_{v,vL}-e_v)$ with
+$e_v=e^{-E_v^{f}/\kB T}$ is the difference between $C_v^{e}$ and $C_v^{0}$.
+This plan restores the intended structure and supplies the missing size
+dependence.
+
+In hcp Zr neither cluster type is a 3-D void: the vacancy population collapses
+onto $\{0001\}$ as faulted \cloop{} loops with
+$\mathbf b=\tfrac16\langle20\bar23\rangle$, and the interstitial population
+assembles into prismatic \aloop{} loops with
+$\mathbf b=\tfrac13\langle11\bar20\rangle$ on $\{10\bar10\}$.  The remainder
+of the appendix is the dissociation kinetics of those two families.
+
+\subsection{Loop geometry and the perimeter chemical potential}
+
+A circular loop of $N$ point defects with Burgers vector $b$ occupies habit
+area $A_N=N\Omega/b$, hence
+\begin{equation*}
+R_L(N)=\sqrt{\frac{A_N}{\pi}}=\sqrt{\frac{N\Omega}{\pi b}} .
+\tag{D.7}
+\end{equation*}
+\textbf{This is already the code's radius.}
+\file{rate\_\fbk equations\_\fbk core.\fbk h:82} forms $r=\ell\sqrt{c/N}$ with
+$\ell=\sqrt{\Omega/\pi b}$ (\file{input\_\fbk data.\fbk py:366, 378}), and
+$\sqrt{c/N}=\sqrt{\bar n}$, so $r\equiv R_L(\bar n)$ identically.  No new
+geometry code is needed.
+
+The defect chemical potential at the loop perimeter --- self-stress, fault
+energy, and applied stress --- is
+\begin{equation*}
+\mu_L(N)=\frac{\Omega}{b}\left[
+  \frac{\mu_s b^{2}}{4\pi(1-\nu)R_L(N)}\ln\!\frac{R_L(N)}{r_0}
+  \;+\;\GSF\;-\;\sigma_{\rm app}\,b\right],
+\tag{D.8}
+\end{equation*}
+with $\mu_s$ the shear modulus, $\nu$ Poisson's ratio, $r_0\simeq b$ the core
+cutoff, $\GSF$ the fault energy of the habit plane (zero for a perfect loop),
+and $\sigma_{\rm app}$ the applied stress resolved on the loop normal.
+
+\begin{quote}\small\color{red!55!black}
+\textbf{Dimensional note.}  As printed in the manuscript the last term is
+$-\sigma_{\rm app}$, not $-\sigma_{\rm app}b$.  $(\Omega/b)\,\sigma_{\rm app}$
+has units $\mathrm{m^{2}\,Pa}=\mathrm{J\,m^{-1}}$, not joules, whereas the
+other two bracket terms give energies; carrying $b$ makes the term
+$-\sigma_{\rm app}\Omega$, the standard climb work per defect.  (D.8) is
+written here in the dimensionally consistent form.  See
+\S\ref{sec:queries}, item~2.
+\end{quote}
+
+\subsection{The two families}
+
+For the SIA-type prismatic \aloop{} loop, with $b=b_a$ and $\GSF^{(a)}$,
+\begin{equation*}
+E_b^{i,(a)}(n)=E_i^{f}+\mu_L^{(a)}(n) ,
+\tag{D.9}
+\end{equation*}
+and for the vacancy-type basal \cloop{} loop, with $b=b_c$ and
+$\GSF^{(c)}$,
+\begin{equation*}
+E_b^{v,(c)}(m)=E_v^{f}-\mu_L^{(c)}(m) .
+\tag{D.10}
+\end{equation*}
+The $-\mu_L$ in (D.10) reflects the vacancy nature of the \cloop{} loop:
+vacancies are bound because removing one from the perimeter requires
+inflating the faulted region.  Cross-channel emission --- an SIA from a
+vacancy \cloop{} loop, a vacancy from an \aloop{} loop --- is energetically
+suppressed and is omitted from the master equations, which matches the
+structure of the code: each family exchanges only its own defect type through
+the emission channel.
+
+\subsection{Small-cluster blend}
+\label{sec:blend}
+
+The continuum form (D.8) holds for $N\gtrsim N_{\rm cont}=20$ and fails below
+it, where the discreteness of the aggregate dominates.  For
+$N\le N_{\rm small}=5$ the binding energies are tabulated from DFT; between
+the two, the same exponential correction used for voids is applied,
+\begin{equation*}
+E_b^{\rm mod}(N)=E_b^{\rm cont}(N)
+  +\bigl[E_b^{\rm DFT}(2)-E_b^{\rm cont}(2)\bigr]\,e^{-\lambda(N-2)},
+\qquad \lambda=\frac{\ln 100}{8}\simeq0.575 ,
+\tag{D.11}
+\end{equation*}
+the decay constant chosen so that the correction is $\sim1\%$ at $N=10$.  The
+evaluation recipe is: tabulated DFT for $N\le5$; (D.11) for $5<N<20$; pure
+(D.8) for $N\ge20$.
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$N$ & $2$ & $3$ & $4$ & $5$\\
+\midrule
+$E_b^{i,(a)}(N)$ [eV], di-SIA \aloop{} configuration
+  & $0.80$ & $1.05$ & $1.30$ & $1.45$\\
+$E_b^{v,(c)}(N)$ [eV], divacancy basal configuration
+  & $0.20$ & $0.45$ & $0.70$ & $0.85$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{quote}\small
+\textbf{The blend is inert in the model as it stands, and that is worth
+knowing before implementing it.}  Loops are born at
+$n_{\rm vL,nuc}=50$ and $n_{\rm iL,nuc}=300$, both above $N_{\rm cont}=20$,
+and the measured mean sizes run from $\bar n_a\simeq300$ to
+$\bar n_c\simeq7.4\times10^{4}$.  The $N<20$ branch can therefore only be
+reached if emission drives a family down toward dissolution --- which is
+precisely the regime this change creates.  Implement it, but expect it to be
+exercised only near dissolution, and treat any run that spends time there as
+a signal in its own right.
+\end{quote}
+
+\subsection{Emission rates, and how they map onto the code}
+\label{sec:emitmap}
+
+\begin{align*}
+\varepsilon_i^{(a)}(n)&=A_{\rm loop}\,(n-1)^{1/2}\,Z_i^{(a)}\,
+  \omega_i^{\rm eff}\exp\!\left(-\frac{E_b^{i,(a)}(n)}{\kB T}\right),
+\tag{D.12}\\
+\varepsilon_v^{(c)}(m)&=A_{\rm loop}^{(c)}\,(m-1)^{1/2}\,Z_v^{(c)}\,
+  \omega_v^{\rm eff}\exp\!\left(-\frac{E_b^{v,(c)}(m)}{\kB T}\right).
+\tag{D.13}
+\end{align*}
+
+\textbf{The $(N-1)^{1/2}$ prefactor is the code's $S_k$, already built.}
+(D.12)--(D.13) are per-loop rates; the master equations need the rate per unit
+volume, which is $\varepsilon\,N_k$.  Since $N^{1/2}\propto R_L$ by (D.7),
+\begin{equation*}
+\varepsilon_k N_k \;\propto\; N_k\sqrt{\bar n_k}\;=\;\sqrt{N_k c_k}
+\;\propto\; S_k,
+\qquad
+S_k=\frac{\ell_c}{\ell}\,s_k\sqrt{N_k c_k},
+\end{equation*}
+where $S_k$ is the sink strength the code assembles as \verb|pref_vL| in
+\file{rate\_\fbk equations\_\fbk core.\fbk h}.  The population-level emission
+is therefore
+\begin{equation}
+\mathcal E_k \;=\; S_k\,\bar D_m\,Z_k\,
+  \exp\!\left(-\frac{E_b(\bar n_k)}{\kB T}\right)
+  \;=\; S_k\,\bar D_m\,Z_k\;C^{e}(\bar n_k),
+\label{eq:Ek}
+\end{equation}
+which is \emph{exactly} \MoD{}'s existing expression at
+\file{ClusterDynamicsFEM.\fbk cpp:745} with the constant $e^{-E_b/\kB T}$
+replaced by the size-dependent (D.6).  $\omega^{\rm eff}$ maps onto
+$\bar D_m$ (the code's \verb|omega_m|~$=(\det D_m)^{1/3}$), $Z$ onto the
+existing capture efficiencies, and $A_{\rm loop}$ is absorbed into $s_k$
+(\verb|loopSinkScale|).  The $(N-1)$ against $N$ is a one-defect correction,
+negligible at $\bar n\ge50$ and subsumed by the blend below it.
+
+\emph{The only genuinely new quantity is $E_b(\bar n_k)$.}  Everything else in
+\eqref{eq:Ek} is already assembled and already validated.
+
+\subsection{Parameters, and reconciliation with the code}
+\label{sec:reconcile}
+
+{\small
+\begin{longtable}{@{}p{0.23\textwidth}p{0.15\textwidth}p{0.12\textwidth}p{0.38\textwidth}@{}}
+\toprule
+\textbf{Quantity} & \textbf{App.~D} & \textbf{Code} & \textbf{Action}\\
+\midrule
+\endhead
+$\GSF^{(c)}$, $\{0001\}$ & $200$ mJ/m$^2$ & $213$ mJ/m$^2$
+  (\verb|ISF_SI|) & \textbf{Already present.}  Agree to $6\%$; adopt
+  Appendix~D's $200$ or keep \verb|ISF_SI| --- state which\\
+\addlinespace
+$\GSF^{(a)}$, $\{10\bar10\}$ & $130$ mJ/m$^2$ & $128$ mJ/m$^2$
+  (\verb|gamma_sf|) & \textbf{Already present, and this resolves an apparent
+  conflict}: the 0-D's \verb|gamma_sf| and the material file's \verb|ISF_SI|
+  are not two values of one fault, they are the two faults.  Label them\\
+\addlinespace
+$\mu_s$ & $35.5$ GPa & $33$ GPa
+  (\verb|mu0_SI|) & \textbf{Reconcile} ($7.6\%$); $\mu_s$ enters $\mu_L$
+  linearly\\
+\addlinespace
+$\nu$ & $0.34$ & $0.34$ & agree\\
+\addlinespace
+$b_a$ & $0.3232$ nm & $0.323$ nm
+  (\verb|b_SI|) & agree to $0.06\%$; the code's value is deliberate, so that
+  \ZrM{} and \MoD{} share one $a$\\
+\addlinespace
+$b_c$ & $0.6173$ nm, stated as
+  $\tfrac16\sqrt{3a_0^2+4c_0^2}$ & $0.2575$ nm, $=c/2$ &
+  \textbf{The largest single discrepancy --- see below}\\
+\addlinespace
+$r_0$ & $\simeq b$ & --- & new; add per family\\
+\addlinespace
+$E_v^{f}$, $E_i^{f}$ & --- & $1.6$, $3.0$ eV &
+  already present, \file{input\_\fbk data.\fbk py:129--130}\\
+\addlinespace
+DFT $E_b(2\ldots5)$ & tabulated, \S\ref{sec:blend} & --- & new: two 4-entry
+  tables\\
+\addlinespace
+$\lambda$, $N_{\rm small}$, $N_{\rm cont}$ & $0.575$, $5$, $20$ & --- & new\\
+\bottomrule
+\end{longtable}
+}
+
+\paragraph{The \cloop{} Burgers vector: three values, and they must be reduced
+to one.}
+Appendix~D's table gives $b_c=0.6173$~nm and its text gives
+$\mathbf b=\tfrac16\langle20\bar23\rangle$.  These do not agree with each
+other, and neither agrees with the code:
+
+\begin{center}\small
+\begin{tabular}{@{}p{0.36\textwidth}p{0.13\textwidth}p{0.40\textwidth}@{}}
+\toprule
+\textbf{Source} & $|b_c|$ & \textbf{Note}\\
+\midrule
+Appendix~D table & $0.6173$ nm & does not follow from the printed formula\\
+Appendix~D formula $\tfrac16\sqrt{3a_0^2+4c_0^2}$ & $0.1955$ nm & evaluated at
+  $a_0=0.3232$, $c_0=0.5153$ nm\\
+$\bigl|\tfrac16\langle20\bar23\rangle\bigr|
+  =\sqrt{a_0^2/3+c_0^2/4}$ & $0.3181$ nm & the magnitude of the stated
+  vector\\
+\textbf{the code, everywhere} & $\mathbf{0.2575}$ \textbf{nm} & $=c/2$,
+  a perfect $\tfrac12[0001]$ loop\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is not a detail.  $b_c$ enters $R_L$ as $b^{-1/2}$ and $\mu_L$ as
+$\Omega/b$ times terms carrying $b$ and $b^{2}$, and it also sets $\ell_c$,
+the loop sink strength, and the continuum$\to$discrete transfer.  Two further
+points bear on the choice:
+
+\begin{itemize}
+\item \textbf{The code was very recently standardized on $c/2$}, in four
+  places that must stay equal (\file{HEXlattice.\fbk cpp},
+  \file{Zr3d\_\fbk ghoniem.\fbk txt} \verb|immobileSpeciesBurgers|,
+  \file{post/\fbk discrete\_\fbk loops.\fbk py},
+  \file{zerod/\fbk input\_\fbk data.\fbk py}), which bought
+  $f_{\rm burgers}=\sqrt{b_{\rm cd}/b_{\rm dd}}=1.000000$ at the transfer and
+  made the \cloop{} part of the fit stale.  Moving to a faulted
+  $\tfrac16\langle20\bar23\rangle$ loop would move all four again, and would
+  make the loop faulted where the code currently treats it as perfect --- at
+  which point $\GSF^{(c)}$ becomes load-bearing rather than decorative.
+\item \textbf{$b_c=0.6173$~nm breaks the continuum branch over part of the
+  range in which it is declared valid.}  With $r_0=b$, $\ln(R_L/r_0)<0$ for
+  $N<\pi b^{3}/\Omega$, which is $N<31.8$ at $b_c=0.6173$~nm --- above
+  $N_{\rm cont}=20$, so $\mu_L$ is negative exactly where (D.8) is supposed to
+  hold ($\mu_L=-0.134$~eV at $N=20$, giving $E_b=1.73$~eV, \emph{higher} than
+  the bulk $E_v^{f}$).  The same threshold is $N=2.3$ at $b_c=c/2$ and
+  $N=4.3$ at $b_c=0.318$~nm, where it is harmless.  Whichever $b_c$ is
+  adopted, $N_{\rm cont}$ must satisfy $N_{\rm cont}>\pi b^{3}/\Omega$.
+\end{itemize}
+
+\subsection{Numbers}
+\label{sec:numbers}
+
+Evaluated from (D.7)--(D.10) at $\mu_s=35.5$~GPa, $\nu=0.34$, $r_0=b$,
+$\Omega=2.326553\times10^{-29}$~m$^3$, $\sigma_{\rm app}=0$, $T=573$~K
+($\kB T=0.04938$~eV).  Sizes span the model's actual range: nucleation
+($n_{\rm vL,nuc}=50$, $n_{\rm iL,nuc}=300$) up to the measured 500\,nm
+interior means.
+
+\begin{center}\small
+\begin{tabular}{@{}rrrrr@{}}
+\toprule
+$N$ & $R_L$ [nm] & $\mu_L$ [eV] & $E_b$ [eV] & $C^{e}=e^{-E_b/\kB T}$\\
+\midrule
+\multicolumn{5}{@{}p{0.93\textwidth}@{}}{\emph{\cloop{} vacancy loop, $b_c=c/2=0.2575$~nm (the
+  code's value), $\GSF^{(c)}=200$ mJ/m$^2$, $E_v^{f}=1.6$ eV}}\\
+$20$    & $0.76$  & $0.3407$ & $1.2593$ & $8.4\times10^{-12}$\\
+$50$    & $1.20$  & $0.3181$ & $1.2819$ & $5.3\times10^{-12}$\\
+$300$   & $2.94$  & $0.2454$ & $1.3546$ & $1.2\times10^{-12}$\\
+$5000$  & $11.99$ & $0.1641$ & $1.4359$ & $2.3\times10^{-13}$\\
+$74281$ & $46.22$ & $0.1308$ & $1.4692$ & $1.2\times10^{-13}$\\
+\addlinespace
+\multicolumn{5}{@{}p{0.93\textwidth}@{}}{\emph{\aloop{} interstitial loop, $b_a=0.3232$~nm,
+  $\GSF^{(a)}=0$ (perfect loop), $E_i^{f}=3.0$ eV, using
+  $E_b=E_i^{f}-\mu_L$ --- see \S\ref{sec:queries} item~1}}\\
+$20$    & $0.68$  & $0.2194$ & $2.7806$ & $3.5\times10^{-25}$\\
+$300$   & $2.62$  & $0.1604$ & $2.8396$ & $1.1\times10^{-25}$\\
+$74281$ & $41.26$ & $0.0236$ & $2.9764$ & $6.6\times10^{-27}$\\
+\midrule
+\multicolumn{3}{@{}l}{bulk vacancy, $E_v^{f}=1.6$ eV}
+  & $1.600$ & $8.4\times10^{-15}$\\
+\multicolumn{3}{@{}l}{\textbf{current placeholder}}
+  & $\mathbf{5.000}$ & $\mathbf{1.1\times10^{-44}}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Four readings of this table matter.
+
+\begin{enumerate}
+\item \textbf{The placeholder sits $10^{31}$--$10^{33}$ below anything
+  physical.}  The present code has no emission channel however the term is
+  wired.
+\item \textbf{$C_v^{e}$ is $14$--$1000\times$ the bulk equilibrium but far
+  below the irradiation-driven $C_v$ over most of the dose range}, so
+  emission is expected to be a \emph{correction} to \cloop{} growth at large
+  $N$ and the \emph{dominant} loss near dissolution.  The change should
+  reshape the small end of the size distribution and barely move the large
+  end.  A change concentrated at large $R$ means $\GSF^{(c)}$ or $b_c$ is
+  wrong.
+\item \textbf{The \aloop{} SIA channel is inert at 573~K.}  $E_b^{i,(a)}$ is
+  pinned near $E_i^{f}=3.0$~eV because $\mu_L^{(a)}\le0.22$~eV, giving
+  $10^{-25}$ --- thirteen orders below the \cloop{} channel.  Implement it for
+  completeness and for higher temperatures, but do not expect it to move any
+  measured quantity, and do not let it hold up item~(I).
+\item \textbf{The size dependence is weak, spanning $0.21$~eV over
+  $N=20\ldots7\times10^{4}$}, i.e.\ only $\sim70\times$ in rate across the
+  model's whole range.  The dominant effect of this change is therefore
+  \emph{switching the channel on}, not its size dependence --- which means the
+  $\GSF$ and $b_c$ choices, which shift the whole curve, matter more than the
+  elastic term, which sets its slope.
+\end{enumerate}
+
+\subsection{Four points to settle with the author}
+\label{sec:queries}
+
+\begin{enumerate}
+\item \textbf{The sign in (D.9).}  As printed, $E_b^{i,(a)}=E_i^{f}+\mu_L$,
+  so $E_b$ \emph{rises} as the loop shrinks ($3.22$~eV at $N=20$ against
+  $3.02$~eV at $N=7\times10^{4}$) and a small \aloop{} loop emits
+  \emph{less} --- the opposite of (D.10)'s behavior for \cloop{}, and the
+  opposite of Gibbs--Thomson.  The $+$ appears to have carried over from
+  (D.5), which is the \emph{cross-species} case (a vacancy at an interstitial
+  cluster).  The like-species form consistent with (D.4) is
+  $E_b^{i,(a)}=E_i^{f}-\mu_L^{(a)}$, which is what \S\ref{sec:numbers} uses.
+  The detailed-balance test of \S\ref{sec:validation} distinguishes the two
+  unambiguously.  \emph{Non-blocking} --- the channel is inert at 573~K
+  either way.
+\item \textbf{The $\sigma_{\rm app}$ term in (D.8)} is dimensionally
+  inconsistent as printed; $-\sigma_{\rm app}b$ inside the bracket
+  ($=-\sigma_{\rm app}\Omega$ overall) is assumed here.  Note also that this
+  convention gives $C_v^{e}\propto e^{-\sigma\Omega/\kB T}$, the
+  \emph{opposite} sign to the existing \verb|update_stress_effects|
+  (\file{reaction\_\fbk rates.\fbk py:104}, $e^{+\sigma_h\Omega/\kB T}$).
+  That code is dead, so nothing conflicts today, but the convention must be
+  stated once and used everywhere --- it is the entry point for SIPA and for
+  the hoop-stress coupling.
+\item \textbf{$b_c$}: three values, \S\ref{sec:reconcile}.  \emph{Blocking},
+  and it is also a decision about whether the \cloop{} loop is perfect
+  ($\tfrac12[0001]$, as the code has it) or faulted
+  ($\tfrac16\langle20\bar23\rangle$, as the appendix text has it).
+\item \textbf{$\GSF^{(a)}$}: the text says the perfect
+  $\tfrac13\langle11\bar20\rangle$ loop is unfaulted ($\GSF^{(a)}=0$) while
+  the table lists $130$~mJ/m$^2$ on $\{10\bar10\}$.  \emph{Non-blocking}: it
+  moves $E_b^{i,(a)}$ by $0.06$~eV in an already inert channel.
+\end{enumerate}
+
+\begin{quote}\small
+\textbf{One deliberate difference from an independent derivation, recorded so
+it is not mistaken for an error.}  (D.8) is the \emph{capillary} chemical
+potential $\propto\Gamma(R)/R$, not the exact derivative
+$\mathrm dE_L/\mathrm dN$ of the loop energy
+$E_L=2\pi R\,\Gamma(R)+\pi R^{2}\GSF$.  The two differ by
+$\Omega\mu_s b/[4\pi(1-\nu)R]$ --- the derivative of the logarithm --- which
+is $0.054$~eV at $N=300$, a factor of $3.0$ in the emission rate.  The
+appendix's form is what is implemented, because it is the manuscript's; the
+difference is noted because a reader deriving it independently will arrive at
+the other one.
+\end{quote}
+
+%==============================================================================
+\section{Item (I): implementing size-dependent emission}
+%==============================================================================
+
+\subsection{Where the term goes}
+
+Emission is written as an additive content sink rather than folded into the
+capture term.  The two are algebraically identical --- writing
+$\phi_v = S_k Z_v^{c}\bar D_v (C_v - C_v^{e})$ and splitting it gives the same
+thing --- but the additive form leaves the legacy expressions
+\emph{character for character} intact when the channel is off, which this
+repository requires: \file{CLAUDE.\fbk md} records that regrouping
+\verb|growth + nuc + G| into \verb|growth + (nuc + G)| moved the tenth
+significant digit and broke the bit-identity of \verb|loop_model = 0|
+(\verb|sha256 ff2980c4| against \verb|8bcc7780|).
+
+For each family $k$, with $\mathcal E_k$ from \eqref{eq:Ek} --- the vacancy
+species for the \cloop{} slot, the interstitial species for the \aloop{}
+slots:
+\begin{align}
+\dot c_k &\mathrel{-}= \mathcal E_k ,
+\label{eq:ck}\\
+\dot C_{v\,\text{or}\,i} &\mathrel{+}= \mathcal E_k ,
+\label{eq:Cv}\\
+\dot N_k &\mathrel{-}= \frac{\mathcal E_k}{\bar n_k}\,g_{\rm dis}(\bar n_k),
+  \qquad \bar n_k=\frac{c_k}{N_k},
+\label{eq:Nk}
+\end{align}
+with $g_{\rm dis}$ a $C^{1}$ smoothstep equal to $1$ at $\bar n_k=n_{\min}$
+and $0$ for $\bar n_k\geq(1+w)n_{\min}$ --- the same $x^{2}(3-2x)$ the code
+already uses for \verb|size_gate|.  $n_{\min}$ is naturally $N_{\rm small}=5$,
+the bottom of the DFT table.
+
+\subsection{Why \texorpdfstring{\eqref{eq:Nk}}{the number sink} closes the number balance}
+
+Emission removes content, not loops --- until a loop has nothing left.  For
+$\bar n_k \gg n_{\min}$ every emitted defect comes off a surviving loop and
+$\dot N=0$; as $\bar n_k\to n_{\min}$ every emitted defect is the last one of
+some loop, and $n_{\min}$ of them delete one loop, giving
+$\dot N = -\mathcal E/\bar n$.  This is the minimal closure consistent with a
+single-moment $(N,c)$ description, and it repairs defect (C1) of
+\S\ref{sec:consistency}: on this channel $\dot c = \bar n\,\dot N$ holds
+identically in the dissolution limit, which the $n_{\rm nuc}N/\tau$ channel
+satisfies nowhere.
+
+\subsection{The accumulators need no new channel for item (I)}
+
+Emission is an \emph{internal transfer}, loop content $\to$ free pool, exactly
+like \verb|ann_cont_vL|.  $V_{\rm stored}=C_v+c_{vL}+c_{avL}$ and
+$I_{\rm stored}=C_i+2C_{2i}+3C_{3i}+c_{iL}+c_{aiL}$ are unchanged by it, so
+\verb|cum_prod_*|, \verb|cum_recomb_*| and \verb|cum_sink_*| are untouched and
+the closure identity still holds.  \textbf{It must not be added to
+\texttt{cum\_recomb}} --- that would double-count, because no defect of the
+opposite type is destroyed.
+
+\subsection{What happens to \texorpdfstring{$\tau_{vL}$}{tau\_vL}}
+\label{sec:tau}
+
+$\tau_{vL}$ and Appendix~D describe the same physics.  Keeping both
+double-counts embryo dissolution; removing $\tau_{vL}$ invalidates two of the
+28 fitted parameters.  The resolution is a switch, defaulting to present
+behavior, so that nothing already published moves:
+
+\begin{center}\small
+\begin{tabular}{@{}clp{0.50\textwidth}@{}}
+\toprule
+\verb|emission_model| & \textbf{Channels} & \textbf{Status}\\
+\midrule
+$0$ & $\tau_{vL}$ only & \textbf{default}; bit-identical to today\\
+$1$ & $\tau_{vL}$ $+$ emission & staged intermediate; double-counts near
+  dissolution, useful only to size the emission term against the existing one\\
+$2$ & emission only, $\tau_{vL}$ disabled & the target model; two fewer fitted
+  parameters, \textbf{requires a refit}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+This is the fourth ``the fit is stale'' item in this code base --- alongside
+$\Omega$, the \cloop{} Burgers vector and \verb|loop_model| --- and they
+compound.  If query~3 of \S\ref{sec:queries} moves $b_c$ as well, it is the
+fifth, and it touches the same four places the last $b_c$ change did.  Mode~2
+must not be compared with experiment before the refit.
+
+\subsection{Files to change}
+
+{\small
+\begin{longtable}{@{}p{0.30\textwidth}p{0.62\textwidth}@{}}
+\toprule
+\textbf{File} & \textbf{Change}\\
+\midrule
+\endhead
+\file{zerod/\fbk input\_\fbk data.\fbk py}
+  & add \verb|mu_s|, \verb|nu|, \verb|r0_a|, \verb|r0_c|, the two DFT tables,
+    $\lambda$, $N_{\rm small}$, $N_{\rm cont}$; \textbf{label the two fault
+    energies} --- \verb|gamma_sf| ($0.128$~J/m$^2$) is $\GSF^{(a)}$ and
+    \verb|ISF_SI| ($0.213$) is $\GSF^{(c)}$; they were never in conflict.
+    Derive $n_{\min}$ per family.  The 0-D currently carries no shear modulus
+    at all\\
+\addlinespace
+\file{zerod/\fbk reaction\_\fbk rates.\fbk py:55--76}
+  & delete the $5$~eV constants; add \verb|mu_L(N, fam)|,
+    \verb|Eb_loop(N, fam)| (with the (D.11) blend) and
+    \verb|C_eq_loop(N, fam)| implementing (D.6)--(D.11); make
+    \verb|phi_v_emission_vL| live and size-dependent; add \verb|emission_k|
+    and \verb|dissolution_num_k| for all four slots\\
+\addlinespace
+\file{zerod/\fbk rate\_\fbk equations.\fbk py}
+  & wire \eqref{eq:ck}--\eqref{eq:Nk} into \verb|dCv_dt|, \verb|dCi_dt| (the
+    \aloop{} channel), and all eight loop equations (lines 203--292 and
+    294--389)\\
+\addlinespace
+\file{cpp\_\fbk utils/\fbk parameters.\fbk h}
+  & replace the five dead \verb|e_*| scalars (lines 87--96, 339--347) with the
+    Appendix~D parameter set and \verb|emission_model|; keep the old keys
+    accepted-and-ignored for one release so existing batch files still parse\\
+\addlinespace
+\file{cpp\_\fbk utils/\fbk rate\_\fbk equations\_\fbk core.\fbk h}
+  & \verb|mu_L|/\verb|Eb_loop|/\verb|C_eq_loop| helpers on the AD type;
+    emission enters through the shared family slots
+    $f_{\rm annc}$/$f_{\rm annn}$, which both loop models already use, so
+    \emph{one} implementation serves both.  The \verb|loop_model == 0|
+    verbatim block gains exactly two subtractions per family, guarded by
+    \verb|if (P.emission_model)|.  The blend makes $E_b$ piecewise --- keep it
+    $C^{1}$ across $N=5$ and $N=20$ or the AD Jacobian is discontinuous\\
+\addlinespace
+\file{zerod/\fbk cpp\_\fbk bridge.\fbk py:72--80}
+  & stop emitting the dead parameters; emit the new ones\\
+\addlinespace
+\file{ClusterDynamicsFEM.\fbk cpp:739--750}
+  & replace \verb|cdp.Eb(0)| with $E_b(\bar n_k)$; the implicit-update
+    structure is unchanged, because the term is still first order in $c$ after
+    the existing division.  Extend from the vacancy family to all four\\
+\addlinespace
+\file{Library/\fbk Materials/\fbk Zr3d\_\fbk ghoniem.\fbk txt}
+  & \verb|Eb_eV| retains its \emph{cluster} entries (indices 2, 3); the loop
+    entries become unused --- annotate rather than silently leave $5.0$ there.
+    Add $\mu_s$ if it is to differ from \verb|mu0_SI|, and the
+    $\{0001\}$/$\{10\bar10\}$ fault energies as a labelled pair\\
+\bottomrule
+\end{longtable}
+}
+
+%==============================================================================
+\section{Item (II): removing loops that intersect the grain boundary}
+%==============================================================================
+
+\subsection{The geometric criterion}
+
+A circular loop of radius $R$ and habit normal $\hat{\mathbf n}$ centred at
+$\mathbf x$ has half-extent
+\begin{equation*}
+h(\hat{\mathbf n},\hat{\mathbf u})
+ =R\sqrt{1-(\hat{\mathbf n}\cdot\hat{\mathbf u})^{2}}
+\end{equation*}
+along $\hat{\mathbf u}$.  It therefore intersects the face of outward normal
+$\hat{\mathbf u}_f$ and offset $b_f$ --- the convex-hull representation
+\verb|fields.domain_faces| already returns, as
+$\mathbf N\mathbf x\le\mathbf b$ --- whenever
+\begin{equation}
+d_f(\mathbf x)\;\equiv\; b_f-\hat{\mathbf u}_f\!\cdot\!\mathbf x
+ \;<\; R_k\sqrt{1-(\hat{\mathbf n}_k\cdot\hat{\mathbf u}_f)^{2}} .
+\label{eq:intersect}
+\end{equation}
+Two pieces are already in place and must be reused rather than re-derived:
+\file{post/\fbk fields.\fbk py:140} \verb|gb_distance| gives $\min_f d_f$ for
+any convex domain (hexagonal prism as well as cube), and
+\file{coupling/\fbk transition.\fbk py:456} \verb|fits_in_crystal| applies the
+same test vertex by vertex to predict \verb|microstructureGenerator|'s
+decision.  After this change those two must agree: the continuum will no
+longer hold loops the generator would refuse.
+
+\paragraph{Periodic faces are not boundaries.}
+\verb|BOUNDARY['periodic_face_ids']| must gate \eqref{eq:intersect} face by
+face.  A fully periodic cell --- the hardening cube of
+\file{studies/\fbk hardening.\fbk py} --- must be bit-identical after this
+change.
+
+\subsection{From a step to a rate}
+
+The model carries one mean size per family per node, so \eqref{eq:intersect}
+is a step in $R$ and would make the ODE discontinuous.  Regularize with the
+physical fact that loop centres are distributed within the node's control
+volume: with local nodal spacing $w(\mathbf x)$,
+\begin{equation*}
+\varphi_k^{\rm GB}(\mathbf x)
+ = \mathrm{clamp}\!\left(
+     \frac{R_k^{\rm eff}(\mathbf x)-d(\mathbf x)+w/2}{w},\,0,\,1\right),
+\qquad
+R_k^{\rm eff}
+ =R_k\sqrt{1-(\hat{\mathbf n}_k\!\cdot\!\hat{\mathbf u}_{f^{\ast}})^{2}},
+\end{equation*}
+$f^{\ast}$ being the nearest non-periodic face.  $\varphi_k^{\rm GB}$ is the
+fraction of that node's loops whose centres already lie within reach of the
+surface.  The removal rate is the rate at which the population is swept
+through the ramp:
+\begin{equation}
+\boxed{\;
+\Gamma_k^{\rm GB}
+ = \varphi_k^{\rm GB}\left[\frac{\max(\dot R_k,0)}{w}
+   + \frac{1}{\tau_{\rm GB}}\right],
+\qquad
+\dot N_k \mathrel{-}= \Gamma_k^{\rm GB} N_k,
+\qquad
+\dot c_k \mathrel{-}= \Gamma_k^{\rm GB} c_k . \;}
+\label{eq:gb}
+\end{equation}
+The floor $1/\tau_{\rm GB}$ (default: one substep) drains a population that is
+already intersecting but no longer growing; without it a node whose loops stop
+growing keeps them forever.
+
+\paragraph{The content sink uses the MEAN content, and that is the point.}
+$\dot c_k = \bar n_k\,\dot N_k$ holds exactly, because a boundary-truncated
+loop leaves \emph{whole}.  This is the opposite of the embryo channel of
+\S\ref{sec:consistency}, where the birth content is the right choice, and of
+the emission channel of \eqref{eq:Nk}, which removes content first and loops
+only at the end.  The contrast deserves a comment in the source: three
+channels remove loops from three different parts of the size distribution and
+none of them may share a formula.
+
+\paragraph{$\dot R_k$ is already available.}  The coalescence lambda at
+\file{rate\_\fbk equations\_\fbk core.\fbk h:441} computes \verb|drdt| $=$
+\verb|lscale*gcont/(2*sqrt(Cnum*Ccont))| from the gain-side absorption.
+Reuse it rather than differentiating $R$ a second time --- and note that once
+item~(I) is in, $\dot R_k$ acquires an emission contribution, so the two items
+are not fully independent at this one point.
+
+\subsection{Conservation: two new accumulators}
+
+Defects that leave with a truncated loop leave the crystal.  They are neither
+recombination nor network-sink absorption, and they must not be allowed to
+fall into the published \verb|grain_boundary| channel, which is defined as the
+closure residual and is independently cross-checked against the \emph{mobile}
+flux by \file{post/\fbk boundary\_\fbk flux.\fbk py}.  Letting loop removal
+land there would corrupt an independent measurement.
+
+Add two accumulators \textbf{after} \verb|rho_N|, so that
+\verb|idx_rhoN = 18| is unchanged and no existing index shifts:
+
+\begin{center}\small
+\begin{tabular}{@{}clp{0.50\textwidth}@{}}
+\toprule
+\textbf{Index} & \textbf{Name} & \textbf{Integrand}\\
+\midrule
+$19$ & \verb|cum_gb_i| & $\sum_{k\in\aloop}\Gamma_k^{\rm GB}c_k$ ---
+  interstitial atoms leaving with truncated \aloop{} loops\\
+$20$ & \verb|cum_gb_v| & $\sum_{k\in\cloop}\Gamma_k^{\rm GB}c_k$ ---
+  vacancy atoms leaving with truncated \cloop{} loops\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The closure identity in \file{zerod/\fbk post\_\fbk process.\fbk py:251--300}
+becomes
+\begin{equation*}
+\big(\text{stored}-\text{stored}_0\big)
+ = \text{prod} - \text{recomb} - \text{sink} - \text{gb\_loop}
+   + \text{residual},
+\end{equation*}
+and \verb|_calculate_conservation| publishes \verb|grain_boundary_loops|
+(measured, from the accumulator) separately from \verb|grain_boundary|
+($=-$residual, the mobile-species flux).  The \verb|*_fractions| figures gain
+one channel and their ``Sum ($=1$)'' line must be re-checked.
+
+\subsection{Getting the geometry into a 0-D ODE}
+
+The slow step is a point model with no notion of position.  Two routes:
+
+\begin{description}
+\item[G1 (recommended) --- per-case CLI parameters.]  Pass $d_{\rm gb}$ and
+  $w$ (both in $b$) as two extra tokens per node through the existing
+  base$+$delta batch protocol
+  (\file{zerod/\fbk cpp\_\fbk bridge.\fbk py:513}, \verb|_batch_lines|),
+  computed once per node in \file{coupling/\fbk immobile.\fbk py} from
+  \verb|fields.gb_distance(nodes, faces=...)|.  The removal term then lives in
+  \file{rate\_\fbk equations\_\fbk core.\fbk h} beside coalescence and is
+  integrated implicitly with everything else.  The two tokens differ per node,
+  so they become deltas rather than base entries; this costs two numbers per
+  case line and \textbf{reduces dedup efficiency} (currently $\times1.25$),
+  because formerly identical boundary-shell nodes now differ.  Measure the
+  slow-step cost before and after.
+\item[G2 --- an operator-split projection.]  Apply the removal in
+  \file{coupling/\fbk march.\fbk py} between substeps.  Simpler, and needs no
+  C++ change, but it adds a second splitting error and cannot see $R_k$
+  crossing $d$ \emph{inside} a substep, which is exactly when truncation
+  happens.
+\end{description}
+
+Absent $d_{\rm gb}$ the channel is off, so the standalone 0-D and every
+existing batch file stay bit-identical.
+
+\paragraph{The 3-D immobile solver needs the same term.}
+\file{ClusterDynamicsFEM.\fbk cpp}'s \verb|solveImmobileClusters| knows the
+nodal position directly, so \eqref{eq:gb} is a few lines there and needs no
+parameter plumbing.  Both slow steps must carry it, or the two routes stop
+being the same model --- the failure this plan opens with.
+
+\subsection{State-length compatibility}
+
+The native state grows $19\to21$.  Each of these hard-codes the old length and
+must be audited:
+
+\begin{center}\small
+\begin{tabular}{@{}p{0.42\textwidth}p{0.50\textwidth}@{}}
+\toprule
+\textbf{Location} & \textbf{What it assumes}\\
+\midrule
+\file{coupling/\fbk immobile.\fbk py:98} & \verb|N_EQ = 19|\\
+\file{coupling/\fbk field.\fbk py:297} & \verb|if Y.shape[1] != 19: raise|\\
+\file{coupling/\fbk seeded\_\fbk march.\fbk py:85} & \verb|y[:19]|,
+  zero-padded to 19\\
+\file{coupling/\fbk checkpoint.\fbk py} & documented 19-column state\\
+\file{post/\fbk fields.\fbk py:677},
+\file{post/\fbk march\_\fbk report.\fbk py:193} & 19-variable form\\
+\file{cpp\_\fbk utils/\fbk rate\_\fbk equations.\fbk cpp} & the index-18
+  contract for \verb|rho_N|\\
+\file{post/\fbk movies.\fbk py}, \file{driver.\fbk py:156} & 19-column reads\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Follow the precedent already in
+\file{zerod/\fbk reaction\_\fbk rates.\fbk py:670--690}
+(\verb|current_rho_N| tolerates 12- and 18-length vectors): make every reader
+length-tolerant rather than switching them all at once, so an existing
+\file{march\_\fbk state.\fbk npz} still loads.  Record the state length in
+\file{summary.\fbk json} beside \verb|loop_model|, for the same reason ---
+\textbf{the array does not say which layout it is in}.
+
+%==============================================================================
+\section{Validation}
+\label{sec:validation}
+%==============================================================================
+
+\subsection{Regression --- nothing may move by default}
+\begin{enumerate}
+\item \verb|emission_model = 0| and no $d_{\rm gb}$ $\Rightarrow$ the
+  \verb|loop_model 0| 25-point integration hash stays \verb|8bcc7780|.  This
+  is the gate, and it is why the legacy assembly must not be tidied.
+\item The fully periodic hardening cube is unchanged in every measured
+  quantity ($\Delta\tau$, $n_{\rm obstacles}$).
+\item \verb|studies/hardening verify| and the existing conservation checks
+  still pass.
+\end{enumerate}
+
+\subsection{Item (I) --- targeted}
+\begin{enumerate}
+\item \textbf{Detailed balance.}  With $G=0$ and $C_v$ pinned at
+  $C_v^{e}(N_0)$, a loop of size $N_0$ must be stationary to solver tolerance.
+  This is a unit test, and it is the one test that catches a sign error in
+  (D.9)/(D.10) --- see \S\ref{sec:queries} item~1.
+\item \textbf{Reproduce \S\ref{sec:numbers}.}  A table test on $\mu_L$, $E_b$
+  and $C^{e}$ at the tabulated sizes, plus continuity of the blend across
+  $N=5$ and $N=20$ and of its first derivative.
+\item \textbf{The $10^{32}$ claim.}  Print $\mathcal E_k$ at $573$~K under the
+  old constant and under $E_b(\bar n)$ on the same state, and confirm the
+  ratio.
+\item \textbf{Shape, not scale.}  Emission should reshape the small end of the
+  \cloop{} size distribution (\file{gb/\fbk size\_\fbk dist\_\fbk c\_*.png})
+  and leave the large end within a few percent.  A change concentrated at
+  large $R$ means $\GSF^{(c)}$ or $b_c$ is wrong.
+\item \textbf{The \aloop{} channel should measure as inert} at 573~K
+  ($\sim10^{-13}$ of the \cloop{} channel).  If it is not, (D.9)'s sign or
+  $E_i^{f}=3.0$~eV is wrong.
+\item \textbf{Mode 2 against mode 0} on the 500\,nm matched leg, interior
+  mean, at the fitted $p_v=1.178808$ and zero applied stress --- the same
+  protocol that isolated \verb|loop_model|.  Report $N_c$, $c_c$, $\bar n_c$
+  and $d_{\rm coarsen}$.
+\end{enumerate}
+
+\subsection{Item (II) --- the artifact is the test}
+\begin{enumerate}
+\item \textbf{The boundary shell must stop diverging.}  On the 1\,$\mu$m
+  single crystal at 21~dpa, the surface nodes' share of total \aloop{} density
+  must fall well below the measured $99.8\%$, and $c_a/N_a$ there must rise
+  above $n_{\rm iL,nuc}=300$.  This is the sharpest available signal and it
+  needs no new diagnostic.
+\item \textbf{The domain mean must become quotable.}  Interior-quartile mean
+  and domain mean should converge toward each other; the recorded $474\times$
+  discrepancy at 21~dpa is the baseline.
+\item \textbf{\texttt{frac\_kept} must rise.}  Re-run the transfer ledger on
+  the 500\,nm matched leg; the \cloop{} figure of $0.96\%$ at 1~dpa should
+  improve, because the continuum will no longer hold loops that cannot fit.
+  If it does not, \eqref{eq:intersect} and \verb|fits_in_crystal| disagree and
+  one of them is wrong.
+\item \textbf{Closure.}  \verb|grain_boundary_loops| must be strictly positive
+  and monotone, and \verb|grain_boundary| (the mobile residual) must still
+  track \file{post/\fbk boundary\_\fbk flux.\fbk py}'s independent integral no
+  worse than before --- on the 200\,nm march, where the agreement is $3.7\%$.
+  If the mobile channel degrades, loop removal is leaking into the residual.
+\end{enumerate}
+
+%==============================================================================
+\section{Sequencing}
+%==============================================================================
+
+\begin{enumerate}
+\item \textbf{Settle the four queries of \S\ref{sec:queries}}, above all
+  $b_c$.  \emph{Query 3 is blocking for item (I); item (II) can proceed in
+  parallel, and queries 1, 2 and 4 can be settled after the machinery is in
+  place, because each is a single constant or sign.}
+\item Add the Appendix~D parameter set to the 0-D; implement
+  \verb|mu_L|/\verb|Eb_loop|/\verb|C_eq_loop| with the blend, plus the table
+  and detailed-balance unit tests.  No ODE change yet.
+\item Item (I) in Python, behind the \verb|emission_model| switch, modes
+  0/1/2; verify mode 0 unchanged.
+\item Mirror into \file{rate\_\fbk equations\_\fbk core.\fbk h},
+  \file{parameters.\fbk h} and \file{cpp\_\fbk bridge.\fbk py}; re-check the
+  25-point hash.
+\item Mirror into \file{ClusterDynamicsFEM.\fbk cpp}; the two slow steps must
+  agree on a single-node comparison.
+\item Item (II): geometry helpers, the two accumulators, state $19\to21$ with
+  length-tolerant readers.
+\item Item (II) in both slow steps, route G1.
+\item The validation campaign of \S\ref{sec:validation}.
+\item \textbf{Refit.}  Mode 2 retires $\tau_{vL}^{0}$ and $E_a$; this is the
+  fourth stale-fit item and they compound with $\Omega$, the \cloop{} Burgers
+  vector and \verb|loop_model|.  Do not compare mode 2 with experiment before
+  the refit.
+\end{enumerate}
+
+%==============================================================================
+\section{Risks}
+%==============================================================================
+
+\begin{center}\small
+\begin{tabular}{@{}p{0.32\textwidth}p{0.60\textwidth}@{}}
+\toprule
+\textbf{Risk} & \textbf{Mitigation}\\
+\midrule
+$b_c$ changes again & Blocking step~1.  A move to the faulted
+  $\tfrac16\langle20\bar23\rangle$ vector touches the same four places the
+  $c/2$ standardization did, re-opens $f_{\rm burgers}=1.000000$ at the
+  transfer, and makes $\GSF^{(c)}$ load-bearing.  Decide once, then land it as
+  its own commit \emph{before} item (I)\\
+$N_{\rm cont}=20$ falls below the validity of (D.8) & Enforce
+  $N_{\rm cont}>\pi b^{3}/\Omega$ per family at construction; at
+  $b_c=0.6173$~nm that threshold is $31.8$\\
+The blend makes $E_b$ non-smooth and the AD Jacobian discontinuous & Match
+  value and first derivative at $N=5$ and $N=20$; the codebase already uses
+  $C^{1}$ smoothsteps for exactly this reason\\
+Emission makes the \cloop{} system stiff near dissolution & The term is first
+  order in $c$, so \MoD{}'s implicit update handles it.  Watch the CVODE step
+  count, $\sim$100 per point per substep today\\
+$\varphi^{\rm GB}$ makes the boundary shell stiff & $\varphi$ is $C^{0}$ by
+  construction; promote it to a smoothstep if the failed-node count rises
+  above today's single deterministic failure (node 41804)\\
+Dedup efficiency falls once $d_{\rm gb}$ varies per node & measure the slow
+  step before and after; if it hurts, quantize $d_{\rm gb}$ onto a coarse
+  ladder --- the ramp width $w$ already sets the resolution that matters\\
+State $19\to21$ breaks an old run & length-tolerant readers, and the length
+  recorded in \file{summary.\fbk json}\\
+Two stale-fit items land together & land items (I) and (II) as separate
+  commits with separate validation runs, so the refit can attribute\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\end{document}

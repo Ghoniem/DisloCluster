@@ -345,7 +345,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         detector = SubstepDetector(
             br.nodes, mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL),
             paths.MODELIB_MATERIAL,
-            phi_star=getattr(cfg, "phi_star", 0.15),
+            phi_star=getattr(cfg, "phi_star", 0.20),
             frac_star=getattr(cfg, "frac_star", 0.10),
             hold=getattr(cfg, "coarsen_hold", 2),
             variant_weights=getattr(cfg, "variant_weights",
@@ -380,7 +380,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     trans_weights = trans_faces = None
     if do_transition and verbose:
         print(f"  discrete transition ARMED for {transition_units} "
-              f"at phi* = {getattr(cfg, 'phi_star', 0.15)}")
+              f"at phi* = {getattr(cfg, 'phi_star', 0.20)}")
 
     def _maybe_transition(Y, dose_now):
         """Convert any crossed unit to discrete loops. Returns the new ``Y``."""

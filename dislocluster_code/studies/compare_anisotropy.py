@@ -138,7 +138,7 @@ def compare(ref_dir, ani_dir):
     L += ["## Coarsening detector", ""]
     ac = (as_.get("diagnostics", {}) or {}).get("coarsening")
     rc = (rs.get("diagnostics", {}) or {}).get("coarsening")
-    phi_star = float(ac["phi_star"]) if ac else 0.15
+    phi_star = float(ac["phi_star"]) if ac else 0.20
     note = []
     if rc is None:
         # The reference predates the in-march detector. Re-derive it from the

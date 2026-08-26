@@ -119,7 +119,17 @@ COUPLING = {
     # it is large the mean-field estimate of coalescence is no longer reliable
     # and the population wants a discrete treatment. Reporting only: the march
     # records the crossing dose, it does not act on it.
-    "phi_star":              0.15,         # threshold on phi
+    # phi* = 0.20 is DEFINED in post/coarsening.py (PHI_STAR), where the
+    # derivation lives: a ~20% error in the coalescence rate from the
+    # neglected pair correlation, landing at 2r/d = 0.597 in the like-loop
+    # channel. FIVE places carry the number and must stay equal --
+    # post/coarsening.PHI_STAR, this dict, CouplingConfig.phi_star,
+    # coupling/config.MarchConfig.phi_star, and the getattr fallbacks in
+    # coupling/march.py. It read 0.15 in the last four until they were
+    # reconciled; the march therefore fired ~23% earlier in dose than the
+    # detector reported, which nothing would have revealed while
+    # discrete_transition stayed off.
+    "phi_star":              0.20,         # threshold on phi
     "frac_star":             0.10,         # share of interior nodes over it
     "coarsen_hold":          2,            # consecutive substeps required
     # Act on d_coarsen instead of only reporting it: at the first fast-solve
@@ -375,7 +385,7 @@ class Coupling:
     variant_weights: tuple
     max_failed_nodes: int
     on_unconverged: str
-    phi_star: float = 0.15
+    phi_star: float = 0.20        # keep equal to post/coarsening.PHI_STAR
     frac_star: float = 0.10
     coarsen_hold: int = 2
     discrete_transition: bool = False

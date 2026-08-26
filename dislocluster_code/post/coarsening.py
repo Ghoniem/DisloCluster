@@ -80,6 +80,14 @@ from dislocluster_code.post.fields import (                        # noqa: E402
 
 # Defaults. phi* = 0.2 is a ~20% error in the coalescence rate from the
 # neglected pair correlation; it lands at 2r/d = 0.597 in the like-loop channel.
+#
+# THIS IS THE DEFINITION. Four other places carry the same number and must
+# stay equal: config.COUPLING_DEFAULTS, config.CouplingConfig.phi_star,
+# coupling/config.MarchConfig.phi_star, and the two getattr fallbacks in
+# coupling/march.py. They read 0.15 until this was reconciled, so the value
+# the march fired on and the value this module reported were different --
+# 0.103 against 0.127 dpa on the reference legacy march, a 23% gap that was
+# invisible only because discrete_transition is off by default.
 # frac* requires a real region of the crystal to have crossed rather than one
 # outlying node, and HOLD requires it to stay crossed, so the switch cannot
 # chatter on a single noisy substep.
@@ -361,7 +369,7 @@ def report(run_dir, phi_star=PHI_STAR, frac_star=FRAC_STAR, hold=HOLD,
           + ", ".join(f"{k} {v:.3f}" for k, v in plateau.items()) + ".",
           "",
           "A `phi*` within ~0.05 of a family's plateau makes its `d_coarsen` "
-          "unstable or unreachable. Check the default 0.20 against the numbers "
+          "unstable or unreachable. Check the default phi* against the numbers "
           "above before trusting a switch dose."]
     return "\n".join(L) + "\n", {"doses": doses, "trajectory": traj,
                                  "d_coarsen": d_c,

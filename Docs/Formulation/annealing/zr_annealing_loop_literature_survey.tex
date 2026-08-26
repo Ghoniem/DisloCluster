@@ -1,0 +1,216 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs,array,longtable,tabularx,ragged2e}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\hypersetup{colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcommand{\aiL}{a_iL}
+\newcommand{\avL}{a_vL}
+\newcommand{\cvL}{c_vL}
+\newcommand{\aloop}{$\langle a\rangle$ loop}
+\newcommand{\cloop}{$\langle c\rangle$ loop}
+\newcommand{\degreeC}{^\circ\mathrm{C}}
+\title{Annealing of Irradiation-Induced Dislocation Loops in Zirconium and Zirconium Alloys:\\A Literature Survey}
+\author{}
+\date{\today}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Post-irradiation annealing of zirconium and zirconium alloys changes irradiation-induced loop populations by three coupled processes: removal of small loops, coarsening of surviving loops, and, at sufficiently high temperature or after high-dose irradiation, rearrangement of basal $\langle c\rangle$-component loops.  The most robust experimental trend is that prismatic $\langle a\rangle$-loop density decreases during annealing while the mean loop size increases.  In low-dose materials whose damage state is dominated by $\langle a\rangle$ loops, this recovery is accompanied by softening and partial recovery of irradiation hardening.  TEM studies further indicate that interstitial $\langle a\rangle$ loops are preferentially removed during long anneals, leaving vacancy loops as the dominant surviving prismatic population.  In situ SXRD/STEM studies show that significant annealing of $\langle a\rangle$-loop line density occurs mainly between approximately $300$ and $450\degreeC$, with onset of loop mobility visible in thin foils near $200\degreeC$.  At higher temperature, particularly above about $400\degreeC$, basal $\langle c\rangle$ loops may transform, merge, or kink; recent in situ TEM work links these kinked basal loops to anomalous annealing hardening in irradiated Zr.  This survey organizes the experimental observations and formulates a compact kinetic interpretation suitable for cluster-dynamics models.
+\end{abstract}
+
+\section{Scope and loop taxonomy}
+
+Irradiated $\alpha$-Zr and Zr alloys contain several loop populations whose response to annealing is not identical.  The usual notation is
+\begin{align}
+\aiL &: \text{prismatic interstitial }\langle a\rangle\text{ loop},\\
+\avL &: \text{prismatic vacancy }\langle a\rangle\text{ loop},\\
+\cvL &: \text{basal or near-basal vacancy }\langle c\rangle\text{-component loop}.
+\end{align}
+The $\langle a\rangle$ loops have Burgers vector of the type
+\begin{equation}
+  \bm b_a=\frac{1}{3}\langle 11\bar{2}0\rangle,
+\end{equation}
+and are usually associated with prismatic planes.  They can be interstitial or vacancy in character.  The $\langle c\rangle$-component loops are usually vacancy type, faulted, and located on or near basal planes, with Burgers vectors commonly described as $\frac{1}{6}\langle20\bar{2}3\rangle$ or related $c$-component forms.  Reviews by Griffiths, Holt, and Adamson et al. establish this taxonomy and connect $\langle c\rangle$-component vacancy loops with accelerated or breakaway irradiation growth in zirconium alloys \citep{Griffiths1988,Holt1988,Adamson2019}.
+
+This survey focuses on post-irradiation annealing experiments, but irradiation-temperature studies are also included when they provide direct evidence for thermal stability, coarsening, or loop character.  The central questions are: what disappears, what grows, what coarsens, what changes character or morphology, and what kinetic mechanisms have been inferred from the experiments?
+
+\section{Summary of experimental observations}
+
+\subsection{Baseline irradiation microstructure before annealing}
+
+At modest fluence and reactor-relevant temperatures, the dominant defects are high-density prismatic $\langle a\rangle$ loops.  The literature commonly reports diameters of order $5$--$20\,\mathrm{nm}$ and number densities of order $10^{21}$--$10^{22}\,\mathrm{m^{-3}}$, depending on temperature, fluence, alloy chemistry, and thermomechanical condition \citep{Jostsons1977,Northwood1979,Gilbert1979,Griffiths1988,Christiaen2019}.  Increasing irradiation temperature generally produces a coarser distribution: larger loops and lower number or line density.  For example, proton irradiation of a Nb-free Zr alloy showed a strong increase in $\langle a\rangle$-loop diameter and a marked reduction in line density as irradiation temperature increased from $280$ to $450\degreeC$, while a Nb-containing low-Sn ZIRLO alloy was much less sensitive over the same range \citep{Harte2017}.
+
+The vacancy/interstitial fraction of $\langle a\rangle$ loops is temperature-dependent.  Experiments and reviews report mostly interstitial $\langle a\rangle$ loops near and below $300\degreeC$, a roughly mixed population near $350\degreeC$, and a larger vacancy fraction near $400\degreeC$ \citep{Jostsons1977,Northwood1979,Gilbert1979,Griffiths1988,Adamson2019,Liu2020}.  This baseline matters because annealing does not act on a single loop population; it acts on a mixed distribution whose vacancy and interstitial components have different thermodynamic and kinetic stability.
+
+\subsection{Main post-irradiation annealing trend: density down, size up}
+
+The most reproducible observation is coarsening during post-irradiation annealing.  TEM and mechanical-property studies of irradiated Zr alloys show that the loop density decreases while the mean loop size increases during heat treatment.  This trend appears in early irradiation-damage recovery studies and was later quantified and modeled in the Ribis--Onimus--B{\'e}chade work on a recrystallized Zr--1Nb--O alloy \citep{HoweThomas1974,Ribis2008,Ribis2010}.  The corresponding hardness recovery is consistent with a reduction in the total barrier density, although hardening models based only on TEM-counted loops may miss changes in loop configuration, solute segregation, or small clusters \citep{Francis2015}.
+
+The phenomenology is therefore not uniform shrinkage of all loops.  Instead, annealing usually produces a broader and coarser population: small loops disappear or shrink below observability, while the surviving loops become larger.  For vacancy loops, this is naturally interpreted as vacancy-mediated Ostwald ripening: smaller vacancy loops emit vacancies, vacancies diffuse through the matrix, and larger vacancy loops absorb the vacancies and grow \citep{Ribis2008,Ribis2010}.  The same experiments report that, after sufficiently long annealing, interstitial loops can disappear entirely, leaving a microstructure dominated by vacancy loops \citep{Ribis2008,Ribis2010}.
+
+\subsection{Temperature window for $\langle a\rangle$-loop annealing}
+
+In situ SXRD and STEM measurements on proton-irradiated Zr--Fe alloys provide particularly useful real-time evidence.  Topping et al. found no significant decrease in $\langle a\rangle$-loop density for a $1\,\mathrm{h}$ hold below $300\degreeC$, rapid annealing of $\langle a\rangle$ loops between $300$ and $450\degreeC$, and an effective activation energy of about $0.46\,\mathrm{eV}$ from the SXRD line-profile analysis \citep{Topping2018}.  On-axis in situ STEM showed that $\langle a\rangle$ loops begin to glide in the trace of the basal plane near $200\degreeC$ in thin foils, with loop-glide events and surface annihilation becoming more frequent between $300$ and $450\degreeC$ \citep{Topping2018}.
+
+This result is important because the in situ thin-foil observation reveals an additional annealing channel: loop mobility and loss to surfaces.  That channel is not identical to bulk vacancy-mediated coarsening.  In bulk specimens or diffraction measurements, the dominant observation is a decrease in line density; in thin foils, direct loop glide to free surfaces can accelerate apparent recovery.
+
+\subsection{Annealing of $\langle c\rangle$-component loops}
+
+The annealing behavior of $\langle c\rangle$ loops is less extensively quantified than that of $\langle a\rangle$ loops.  In high-dose or breakaway-growth regimes, $\langle c\rangle$ loops are larger and less numerous than $\langle a\rangle$ loops.  They are generally vacancy type and may compete with cavities or prismatic vacancy loops for vacancy content \citep{Griffiths1988,Holt1988,Christiaen2019,Liu2020}.  Atomic-scale work and TEM observations increasingly support a mechanism in which basal vacancy platelets or pyramidal/basal precursors form $\langle c\rangle$-component loops, rather than direct coalescence of prismatic vacancy $\langle a\rangle$ loops \citep{Christiaen2019,Liu2020}.
+
+Recent in situ TEM experiments on irradiated high-purity Zr indicate that annealing above about $400\degreeC$ can transform planar basal $\langle c\rangle$ loops into kinked three-dimensional configurations.  Liu et al. report that flat $\langle c\rangle$ loops progressively merge into zig-zag or kinked configurations between approximately $400$ and $500\degreeC$; at $400\degreeC$, many $\langle a\rangle$ loops undergo annihilation and coalescence, whereas by $500\degreeC$ only sparse $\langle a\rangle$ loops and dislocation lines remain \citep{Liu2025}.  The kinked $\langle c\rangle$ loops can act as strong obstacles to prismatic $\langle a\rangle$ dislocation glide and were proposed to explain anomalous annealing hardening in irradiated Zr \citep{Liu2025}.
+
+\begin{table}[htbp]
+\centering
+\caption{Qualitative temperature map for post-irradiation annealing of loop populations in Zr and Zr alloys.  The boundaries are approximate and depend on irradiation dose, alloy chemistry, microstructure, and annealing time.}
+\label{tab:temperature-map}
+\begin{tabularx}{\textwidth}{p{0.17\textwidth}YYY}
+\toprule
+Annealing temperature & Main observations & Dominant loop response & Representative sources \\
+\midrule
+$<300\degreeC$ & Limited recovery in $1\,\mathrm{h}$ in situ SXRD experiments; loop mobility may begin in thin foils near $200\degreeC$. & $\langle a\rangle$ density largely stable in bulk-sensitive measurements; thin-foil surface loss may occur. & \citet{Topping2018}; early hardness recovery context in \citet{HoweThomas1974}. \\
+$300$--$450\degreeC$ & Strong recovery window for irradiation damage and $\langle a\rangle$ loops. & $\langle a\rangle$ loop line density decreases; surviving loops coarsen; hardness generally recovers. & \citet{Ribis2008,Ribis2010,Topping2018,Francis2015}. \\
+$400$--$500\degreeC$ & Coarsening and annihilation continue; some systems show anomalous hardening. & $\langle a\rangle$ loops diminish; flat $\langle c\rangle$ loops may transform/merge into kinked three-dimensional configurations. & \citet{Liu2025}. \\
+$>500\degreeC$ & Recovery of $\langle a\rangle$ population can be extensive; bulk alloy chemistry and precipitation become increasingly important. & Sparse residual $\langle a\rangle$ loops/dislocation lines; vacancy loops and $\langle c\rangle$ features may dominate the residual defect signature in high-dose materials. & \citet{Ribis2008,Ribis2010,Liu2025,Adamson2019}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Representative experimental evidence for loop evolution during thermal exposure after irradiation, or during higher-temperature irradiation used as a proxy for thermal stability.}
+\label{tab:survey}
+\begin{tabularx}{\textwidth}{p{0.18\textwidth}p{0.22\textwidth}p{0.22\textwidth}Y}
+\toprule
+Study & Material and irradiation condition & Annealing/thermal variable & Reported loop response \\
+\midrule
+\citet{HoweThomas1974} & Several Zr alloys; hardness-based recovery study. & Post-irradiation annealing; recovery in roughly $250$--$400\degreeC$ range for some conditions. & Recovery attributed mainly to annealing of irradiation damage rather than ordinary cold-work recovery; alloying and metallurgical condition affect stability. \\
+\citet{Ribis2008,Ribis2010} & RXA Zr--1Nb--O, neutron irradiated; TEM and microhardness. & Isothermal post-irradiation heat treatments over multiple temperatures/times. & Loop density decreases and average size increases; long annealing leaves vacancy loops after interstitial loops disappear; vacancy-diffusion model reproduces coarsening. \\
+\citet{Francis2015} & Low-dose neutron-irradiated Zircaloy-2 and Zircaloy-4 at nominally $358\degreeC$. & Post-irradiation annealing and hardening recovery. & Irradiation at $358\degreeC$ produces coarser $\langle a\rangle$ loops than lower-temperature irradiation; recovery and hardening changes suggest loop coarsening plus possible loop-to-line conversion, solute segregation, or small cluster effects. \\
+\citet{Topping2018} & Proton-irradiated Zr--Fe binary alloys; in situ SXRD and STEM. & In situ heating. & No significant density decrease below $300\degreeC$ for $1\,\mathrm{h}$ holds; rapid $\langle a\rangle$-loop annealing between $300$ and $450\degreeC$; loop mobility observed near $200\degreeC$ in thin foils; activation energy about $0.46\,\mathrm{eV}$. \\
+\citet{Harte2017} & Proton-irradiated Zircaloy-2 and low-Sn ZIRLO. & Irradiation temperature from $280$ to $450\degreeC$. & Nb-free Zircaloy-2 shows much larger $\langle a\rangle$ loops and strongly reduced line density at higher temperature; Nb-containing alloy is more thermally stable. \\
+\citet{Liu2025} & Irradiated high-purity Zr; in situ TEM annealing and simulations. & Heating above $400\degreeC$. & $\langle a\rangle$ loops annihilate/coalesce; planar $\langle c\rangle$ loops transform into kinked 3D basal-loop configurations between $400$ and $500\degreeC$, producing strong barriers and anomalous hardening. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Mechanistic interpretation of density, size, and size-distribution evolution}
+
+\subsection{Vacancy-mediated coarsening}
+
+The dominant ex situ TEM trend---density decreasing while mean size increasing---is naturally described by vacancy-mediated coarsening.  For a vacancy loop of radius $R$, the equilibrium vacancy concentration near the loop is curvature dependent,
+\begin{equation}
+  C_v^{\mathrm{eq}}(R) \simeq C_v^0 \exp\left(\frac{\gamma\Omega}{k_BTR}\right),
+\end{equation}
+where $\gamma$ is an effective loop line or fault energy per unit area/length in the simplified capillarity picture, $\Omega$ is atomic volume, and $T$ is absolute temperature.  Small loops have larger curvature and emit vacancies more readily; large loops have a lower local equilibrium vacancy concentration and absorb vacancies.  The qualitative outcome is
+\begin{equation}
+  \frac{dN_L}{dt}<0, \qquad \frac{d\bar{R}}{dt}>0,
+\end{equation}
+where $N_L$ is number density and $\bar R$ is mean loop radius.  Ribis et al. explicitly used a vacancy-diffusion-based cluster-dynamics model to reproduce the loop-size and loop-density evolution during post-irradiation annealing \citep{Ribis2010}.
+
+This mechanism also explains size-distribution changes.  The lower-size tail is depleted first because small loops are unstable against vacancy emission or annihilation.  The peak of the size distribution shifts to larger size, and the total number density falls.  A purely number-density-based model will miss this physics unless it includes at least one size moment or multiple size classes.
+
+\subsection{Preferential disappearance of interstitial loops}
+
+Ribis and co-workers report that long-term annealing can leave only vacancy loops, with interstitial loops disappearing \citep{Ribis2008,Ribis2010}.  This suggests that the interstitial $\langle a\rangle$ population is less thermally persistent under the annealing conditions, or that it is more efficiently removed by recombination with mobile vacancies, glide/climb to sinks, or transformation into network dislocations.  The likely channels are
+\begin{align}
+  a_iL + V &\rightarrow a_iL^- ,\\
+  a_iL &\rightarrow \text{glissile loop or dislocation segment} \rightarrow \text{surface/grain-boundary annihilation},\\
+  a_iL + a_vL &\rightarrow \text{reduced stored defect content}.
+\end{align}
+The in situ STEM observation of loop glide and surface annihilation is particularly important for thin-foil experiments \citep{Topping2018}; in bulk material, annihilation at grain boundaries or dislocation networks is the closer analogue.
+
+\subsection{Loop glide, loop-to-line conversion, and sink loss}
+
+The post-anneal hardening response is sometimes not fully explained by counting loop diameter and density alone.  Francis et al. note that discrepancies between measured and Orowan-predicted hardening after annealing may arise from changes in $\langle a\rangle$ loop configuration to dislocation lines, solute segregation to loops, or fine clusters of point defects/solute formed during annealing \citep{Francis2015}.  Thus, microstructural recovery is not only a scalar reduction of $N_L$.  Changes in obstacle morphology and line character also matter.
+
+\subsection{Basal-loop transformation and anomalous hardening}
+
+A distinct mechanism applies to basal $\langle c\rangle$ loops.  Instead of simply shrinking or coarsening, planar $\langle c\rangle$ loops may structurally transform during annealing.  Liu et al. proposed that partial dislocations associated with $\frac{1}{6}\langle20\bar{2}3\rangle$ loops can glide on pyramidal planes under inter-loop attraction, creating kinked steps and three-dimensional loop morphologies \citep{Liu2025}.  This can increase obstacle strength even while $\langle a\rangle$ loops are being removed, explaining why annealing may sometimes harden irradiated Zr rather than soften it.
+
+\section{Reduced kinetic model for annealing in cluster dynamics}
+
+A minimal annealing model should track interstitial $\langle a\rangle$ loops, vacancy $\langle a\rangle$ loops, and vacancy $\langle c\rangle$ loops separately:
+\begin{equation}
+ \bm Q_L = \left[N_{aI},\bar R_{aI},N_{aV},\bar R_{aV},N_{cV},\bar R_{cV}\right]^T.
+\end{equation}
+For post-irradiation annealing, the irradiation production terms vanish,
+\begin{equation}
+  G_V=G_I=0,
+\end{equation}
+but mobile vacancies and interstitials are generated by loop emission, loop shrinkage, solute/defect complexes, and residual defect clusters.  A reduced mobile-vacancy balance is
+\begin{equation}
+  \frac{\partial C_v}{\partial t} = \nabla\cdot(D_v\nabla C_v)
+  + S_v^{\mathrm{emit}}(\bm Q_L,T)
+  - C_v\sum_s Z_{s,v}D_v\rho_s
+  - R_{vi}C_vC_i,
+\end{equation}
+with analogous terms for interstitials if they remain mobile during the anneal.  Here $s\in\{aI,aV,cV,d,gb\}$ denotes interstitial loops, vacancy loops, basal loops, network dislocations, and grain-boundary sinks.
+
+For a loop class $s$, the line density is
+\begin{equation}
+  \rho_s = 2\pi \bar R_s N_s,
+\end{equation}
+and a moment-based evolution law can be written schematically as
+\begin{align}
+  \frac{dN_s}{dt} &= J_s^{\mathrm{nuc}} - K_s^{\mathrm{loss}}N_s - K_s^{\mathrm{coal}}N_s^2,\\
+  \frac{d\bar R_s}{dt} &= \frac{1}{\mathcal G_s}\left[Z_{s,v}D_vC_v-Z_{s,i}D_iC_i-\Delta\mu_s(\bar R_s,T)\right] + \dot R_s^{\mathrm{coal}}.
+\end{align}
+The sign convention in the second equation is vacancy-loop oriented; for interstitial loops the signs of vacancy and interstitial absorption are reversed.  The curvature term $\Delta\mu_s$ represents Gibbs--Thomson emission of defects from small loops.  Coalescence changes $N_s$ and $\bar R_s$ while approximately conserving stored defect content within a class.
+
+A more useful engineering representation is to separate three experimentally motivated terms:
+\begin{equation}
+  \frac{dN_s}{dt}= -k_s^{\mathrm{ann}}(T)N_s - k_s^{\mathrm{rip}}(T)N_s f_s(R<R_c) - k_s^{\mathrm{coal}}(T)N_s^2,
+\end{equation}
+\begin{equation}
+  \frac{d\bar R_s}{dt}= \dot R_s^{\mathrm{rip}}(T,\bar R_s,C_v)+\dot R_s^{\mathrm{coal}}(T,N_s,\bar R_s)-\dot R_s^{\mathrm{shrink}}(T,C_i,C_v).
+\end{equation}
+For $\langle a\rangle$ loops in the $300$--$450\degreeC$ recovery window, $k_s^{\mathrm{ann}}$ and $k_s^{\mathrm{rip}}$ should be significant.  For $\langle c\rangle$ loops above about $400\degreeC$, a morphology-state variable is recommended:
+\begin{equation}
+  f_{c}^{\mathrm{kink}}=\frac{N_{cV}^{\mathrm{kink}}}{N_{cV}^{\mathrm{flat}}+N_{cV}^{\mathrm{kink}}},
+\end{equation}
+with
+\begin{equation}
+  \frac{df_c^{\mathrm{kink}}}{dt}=k_{c}^{\mathrm{kink}}(T,\sigma,N_{cV})\left(1-f_c^{\mathrm{kink}}\right)-k_c^{\mathrm{smooth}}(T)f_c^{\mathrm{kink}}.
+\end{equation}
+This term is motivated by the observed flat-to-kinked basal-loop transformation during high-temperature annealing \citep{Liu2025}.
+
+\begin{table}[htbp]
+\centering
+\caption{Recommended reduced-model interpretation of size-distribution evolution during annealing.}
+\label{tab:model-guidance}
+\begin{tabularx}{\textwidth}{p{0.22\textwidth}YYY}
+\toprule
+Loop population & Expected annealing behavior & Size-distribution signature & Modeling recommendation \\
+\midrule
+$\aiL$ & Preferential removal by vacancy absorption, glide/climb to sinks, or loop-to-line conversion. & Lower number density; depletion of small loops; possible disappearance after long anneal. & Track separately from vacancy $\langle a\rangle$ loops; include sink-loss and shrinkage terms. \\
+$\avL$ & Vacancy-mediated ripening; surviving vacancy loops can grow at expense of smaller loops. & Density down, mean radius up; long anneal may leave vacancy loops as residual population. & Include Gibbs--Thomson vacancy emission and vacancy diffusion between loop classes. \\
+$\cvL$ & Less abundant but important in high-dose/breakaway regimes; may coarsen, merge, or kink at high temperature. & Possible transition from flat planar loops to kinked 3D loops; obstacle strength may increase despite reduced $\langle a\rangle$ density. & Add basal-loop morphology variable and separate hardening coefficient for flat versus kinked $\langle c\rangle$ loops. \\
+Network lines & May be generated by loop unfaulting, loop-to-line conversion, or recovery of cold-worked structures. & Reduced loop contrast but persistent line defects; hardening may not follow simple loop count. & Track network density and slip-system family, especially in cold-worked or stress-annealed specimens. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Conclusions and data gaps}
+
+The literature supports the following conclusions.
+\begin{enumerate}[leftmargin=2em]
+\item Post-irradiation annealing of Zr alloys dominated by $\langle a\rangle$ loops usually lowers loop density and increases the mean loop size.  This is a coarsening/recovery process, not uniform shrinkage of all loops.
+\item Significant bulk-sensitive recovery of $\langle a\rangle$ loop density occurs mainly between about $300$ and $450\degreeC$, while thin-foil STEM can show loop glide to surfaces beginning near $200\degreeC$.
+\item Long annealing can preferentially remove interstitial loops, leaving vacancy loops as the dominant residual prismatic-loop population.
+\item Increasing irradiation temperature and post-irradiation annealing produce similar qualitative trends--larger loops and lower line density--but they are not identical experiments because irradiation maintains production while annealing does not.
+\item Basal $\langle c\rangle$ loops require separate treatment.  At high dose and high temperature they may not simply anneal out; they can transform into kinked three-dimensional configurations that strengthen rather than soften irradiated Zr.
+\item The main experimental gaps are quantitative size-distribution data separated by loop character ($a_i$, $a_v$, $c_v$), true bulk in situ data uncontaminated by thin-foil surface loss, and systematic annealing maps that combine TEM, SXRD/CMWP, hardness, and chemistry/segregation measurements.
+\end{enumerate}
+
+For cluster dynamics, the minimum publication-quality model should therefore carry separate populations $N_{aI},N_{aV},N_{cV}$ and their size moments, with separate annealing terms for vacancy-mediated ripening, loop annihilation/sink loss, coalescence, and basal-loop morphological transformation.
+
+\bibliographystyle{unsrtnat}
+\bibliography{zr_annealing_loop_literature_survey}
+\end{document}

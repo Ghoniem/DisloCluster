@@ -62,3 +62,10 @@ MoDELib3/tutorials/hardening_*
 # beside an open document and remove it on close. One was committed with the
 # hardening work (`~$RFQ-2185_Kickoff.pptx`, 165 bytes).
 ~$*
+
+# latexmk's own bookkeeping. Both record ABSOLUTE paths of every input file
+# (`d:/GitHub/DisloCluster/...`), so they churn between machines and between
+# checkouts the way a CMake cache does. The .aux/.log/.out/.toc that this repo
+# does track are path-free and reproducible; these two are not.
+*.fls
+*.fdb_latexmk
