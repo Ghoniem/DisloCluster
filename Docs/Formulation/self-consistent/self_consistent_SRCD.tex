@@ -8168,10 +8168,14 @@ $\tau_{avL}$ and $\tau_{cvL}$ and every term proportional to them. Implement
 $\partial E_k/\partial m$ from \cref{eq:dEdm} using the $\langle K\rangle_k$ of
 \cref{tab:Kfactors}, the binding energy \cref{eq:Eb}, the equilibrium
 concentration \cref{eq:cveq} and the net form \cref{eq:netvac}.
-\textbf{Regression:} none is available --- this step deliberately removes a
-channel rather than generalizing one, so it is the only step in the sequence
-whose predecessor cannot be recovered by a parameter value. It is placed early
-for that reason, while the model is still small.
+\textbf{Regression:} \emph{one was manufactured, and the claim that none exists
+was wrong.} This step removes a channel rather than generalizing one, so no
+value of any \emph{existing} parameter recovers its predecessor --- but keeping
+the deleted channel behind a switch does. \code{emission\_model} selects the
+lifetimes ($0$) or the computed binding energy ($1$), and $0$ reproduces step~2
+bit-for-bit, verified on $192$ states. The step is still placed early, because
+the switch is scaffolding to be removed at the refit and not a permanent
+alternative; but it is no longer irreversible while it is being tested.
 \textbf{Validation goals:} (i) \emph{detailed balance} --- setting
 $c^v=c^{v,\mathrm{eq}}_{sk}(\bar m^k,\bm\sigma)$ makes the net vacancy exchange
 of \cref{eq:netvac} vanish to machine precision, for both characters, at
@@ -8185,6 +8189,33 @@ densities are exactly constant; (iv) \emph{the stressed anneal} --- above the
 threshold $\sigma^\ast_k$ of \cref{eq:climbthreshold} the interstitial families
 grow with no interstitial supply, and the measured threshold agrees with the
 closed form to the accuracy of $\langle K\rangle_k$.
+
+\textbf{What running it measured.} All four goals hold. Detailed balance is the
+sharpest and it is exact to the resolution of the probe: reading the solver's
+own $c^{v,\mathrm{eq}}_k$ back out of it --- by bisecting for the $c^v$ at which
+a family's content rate changes sign, so that nothing is instrumented --- and
+comparing against \cref{eq:cveq} gives $\Delta E_b$ of $+0.000$, $+0.019$,
+$-0.000$, $+0.000$ and $-0.005\,$meV across both characters and
+$R=5$--$25\,$nm. The bulk limit is approached from \emph{below} by both vacancy
+families and from \emph{above} by the interstitial one, which is what checks the
+sign of $\varsigma_s(v)$; the stress-free anneal leaves every density
+\emph{exactly} constant, as it must once the lifetimes are the only channel that
+removed loops; and the climb threshold reproduces
+$\Sigma^\ast=(\partial E/\partial m)/\Omega=615.8\,$MPa, the family shrinking
+below it and growing above with no interstitial supply at all.
+
+\textbf{Two things about the probe, since the first two versions of it were
+wrong in ways that looked like physics.} A one-second window moves the content
+by $\sim10^{-12}$ of itself, below what the solver's printed output resolves, so
+the rate reads as \emph{exactly} zero and the bisection returns whichever
+bracket end it started from --- to the digit, which reads as a confident answer
+rather than a failed measurement. And $C_i$, $C_{2i}$, $C_{3i}$ cannot be set
+below the concentration floor, so they sit at it and keep absorbing; the crossing
+then lands at $c^{v,\mathrm{eq}}+\Phi_I/(\text{vacancy coefficient})$ rather than
+at $c^{v,\mathrm{eq}}$, biased high by $19\%$ at $R=5\,$nm and $3.5\%$ at
+$25\,$nm --- \emph{shrinking with $R$ exactly as an additive contaminant should},
+while the two vacancy families were already right to $6\times10^{-4}$. That
+asymmetry between the characters is what identified it.
 
 \textbf{Goal (iii) now has numbers to hit rather than signs.}
 \Cref{sec:anneal-isolated} integrates that anneal in closed form and
@@ -8660,7 +8691,7 @@ optimized.
 
 \Cref{tab:plan} collects the sequence. Two columns matter more than the others:
 ``regression'' is the property that makes a step safe to leave in place, and
-``status'' is what has changed since this plan was first written --- nine of the
+``status'' is what has changed since this plan was first written --- ten of the
 nineteen steps are wholly or partly built.
 
 \textbf{Phase VI is the one phase with nothing built in it}, and that is a
@@ -8687,7 +8718,7 @@ Step & Change & Regression & Status \\
     $n_{\mathrm{fam}}=4$ & \textbf{done} \\
 2 & Character-resolved capture $X_{s,m}$ & $\chi=1$ & \textbf{done} \\
 3 & Peripheral emission replaces $\tau_{avL},\tau_{cvL}$ &
-    \emph{none --- irreversible} & --- \\
+    \texttt{emission\_model}$=0$ & \textbf{done} \\
 4 & Basal chain $c_0\to c_f\to c_p$; sigmoid removed &
     $\varepsilon_{\mathrm{sfp}}=0$ & --- \\
 5 & Second moment $q^k_{sL}$ and log-normal closure & $\Delta_k=1$ & --- \\

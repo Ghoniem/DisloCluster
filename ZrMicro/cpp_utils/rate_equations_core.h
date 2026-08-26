@@ -180,6 +180,14 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     int    f_is_vac[N_FAM_MAX];              // polarity the family STORES
     int    f_prismatic[N_FAM_MAX];           // habit: gates on r_min_a
     T loop_abs_i, loop_abs_v, loop_recomb;
+    // Thermal Frenkel-pair generation by climb (step 3). When an INTERSTITIAL
+    // loop emits a vacancy it puts that vacancy in the pool and simultaneously
+    // adds an interstitial to itself: one i and one v out of nothing. It is
+    // booked equally into both production integrals, so that I_stored - V_stored
+    // -- the quantity that drives growth -- is untouched by it. A vacancy family
+    // emitting is NOT this: there the loop loses what the pool gains, which is
+    // an internal transfer and cancels in the atom-weighted sums.
+    T thermal_fp(0.0);
     // Legacy net-growth terms. Declared here rather than in the branch because
     // the legacy ydot assembly below is kept verbatim and refers to them.
     T growth_iL(0.0), growth_aiL(0.0), growth_vL(0.0), growth_avL(0.0);
@@ -274,6 +282,40 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             f_cLN[k]    = is_prism[k] ? P.c_LN_a  : P.c_LN_c;
         }
 
+        // ── Step 3: c^{v,eq}_k, the concentration each family is in
+        //            equilibrium WITH ────────────────────────────────────────
+        // Zero when emission_model = 0, which turns the substitution below into
+        // c^v - 0 = c^v, i.e. exactly the pre-step-3 absorption-only channel.
+        T c_eq[N_FAM_MAX];
+        for (int k = 0; k < N_FAM_MAX; ++k) c_eq[k] = T(0.0);
+        if (P.emission_model != 0) {
+            // alpha = 8/e^2, chosen so that <K> b^2 R/2 * ln(alpha R/b) is the
+            // loop self-energy; see loop_annealing.ALPHA_CORE.
+            const double ALPHA_CORE = 8.0 / (2.718281828459045
+                                             * 2.718281828459045);
+            const double EV_J = 1.602176634e-19;
+            for (int k = 0; k < nf; ++k) {
+                // R from the family's OWN length scale, the same radius the
+                // coalescence and gate terms use.
+                T Rk = f_lscale[k] * ad_sqrt(f_cont[k] / f_num[k]);
+                // Below the model's own floor the logarithm turns over and the
+                // capillary term stops meaning anything; clamp rather than
+                // extrapolate into it.
+                if (ad_val(Rk) < P.r_min_a && P.r_min_a > 0.0) Rk = T(P.r_min_a);
+                const double fault = (P.emis_bdotn[k] > 0.0)
+                    ? P.emis_gamma[k] * P.Omega / P.emis_bdotn[k] : 0.0;
+                T cap = (P.emis_Kbar[k] * P.emis_bmag[k] * P.emis_bmag[k]
+                         * P.emis_lam[k] * P.emis_lam[k]) / (4.0 * Rk)
+                        * (1.0 + ad_log(ALPHA_CORE * Rk / P.emis_bmag[k]));
+                // varsigma_s(v): +1 vacancy family, -1 interstitial family.
+                const double zeta = is_vac[k] ? 1.0 : -1.0;
+                T Eb = T(P.Ef_v)
+                       - zeta * (T(fault) + cap) / EV_J
+                       - T(P.emis_sigma[k] * P.Omega / EV_J);
+                c_eq[k] = ad_exp(-Eb / P.kT_eV);
+            }
+        }
+
         loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
         const double lc_l_sc = P.l_c / P.l;   // <c> uses the basal length scale
         const double la_l_sc = P.l_a / P.l;
@@ -297,8 +339,20 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 // X multiplies Z, per Eq. (Zsk). Written inside the same
                 // parenthesised group so that at chi = 1 the extra factor is an
                 // exact 1.0 and the product is bit-identical to step 1's.
+                //
+                // Step 3: on the VACANCY channel the driving concentration is
+                // the departure from the loop's own equilibrium, c^v - c^eq_k,
+                // not c^v. This is the whole of the step. It is SIGNED -- a loop
+                // sitting above its own equilibrium emits -- and it vanishes
+                // identically at c^v = c^eq_k, which is detailed balance by
+                // construction rather than by cancellation of two fitted terms.
+                //
+                // Only the vacancy channel: thermal interstitial emission is
+                // e^{-1.4/kT} = 1e-8 of it at 873 K and is neglected, as the
+                // formulation does.
+                const T drive = m_is_vac ? (cm[m] - c_eq[k]) : cm[m];
                 T rate = pref * (Zrow[row][m] * Xchar[is_vac[k]][m]
-                                 * Dbar[m] * sz[m]) * cm[m];
+                                 * Dbar[m] * sz[m]) * drive;
                 if (m_is_vac == is_vac[k]) gain = gain + rate;
                 else                       loss = loss + rate;
             }
@@ -310,7 +364,13 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // every <a> family. Before step 1 `!is_vac[k]` picked out exactly
             // the prismatic families; now it would leave the new prismatic
             // vacancy loops able to shrink through their own floor.
-            if (is_prism[k]) {
+            // The gate stops a loop SHRINKING through its floor, so it may only
+            // act on a loss that is actually a loss. Under step 3 the vacancy
+            // channel is signed, and for an interstitial family a negative
+            // `loss` is thermal Frenkel-pair growth -- gating that would damp
+            // the one mechanism by which an interstitial loop grows with no
+            // interstitial supply, which is validation goal (iv).
+            if (is_prism[k] && ad_val(loss) > 0.0) {
                 T rk = f_lscale[k] * ad_sqrt(f_cont[k] / f_num[k]);
                 if (P.r_min_a > 0.0) {
                     T x = (rk / P.r_min_a - 1.0) / P.w_rmin;
@@ -322,7 +382,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             f_gain[k] = gain; f_loss[k] = loss;
             if (is_vac[k]) { loop_abs_v = loop_abs_v + gain; loop_abs_i = loop_abs_i + loss; }
             else           { loop_abs_i = loop_abs_i + gain; loop_abs_v = loop_abs_v + loss; }
-            loop_recomb = loop_recomb + loss;   // opposite-polarity capture annihilates
+            // Recombination COUNTS annihilation events, so it takes the
+            // absorptive part only. A net-emitting loop does not un-recombine.
+            if (ad_val(loss) > 0.0) loop_recomb = loop_recomb + loss;
+            // ... and the emitting half of an interstitial family's vacancy
+            // channel is thermal Frenkel generation, not negative recombination.
+            else if (!is_vac[k]) thermal_fp = thermal_fp - loss;
         }
 
         // ── Nucleation, with no aligned/non-aligned split ───────────────────
@@ -366,6 +431,16 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // that there is more than one. tau_vL is the basal lifetime and
         // tau_avL the prismatic one, which is exactly the pair the legacy model
         // already carried under its aligned / non-aligned names.
+        //
+        // STEP 3 DELETES THIS CHANNEL. The lifetimes are a surrogate for
+        // peripheral emission, and with emission computed they would
+        // double-count it -- so they are switched off wholesale rather than
+        // rescaled. The consequence is the step's own validation goal (iii):
+        // with the source off, loop NUMBER becomes exactly constant, because
+        // emission removes content continuously and nothing removes loops.
+        if (P.emission_model != 0) {
+            for (int k = 0; k < nf; ++k) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); }
+        } else {
         f_annn[0] = f_num[0] / P.tau_vL;
         f_annc[0] = P.n_vL_nuc * f_num[0] / P.tau_vL;
         for (int k = 1; k < 4; ++k) { f_annn[k] = T(0.0); f_annc[k] = T(0.0); }
@@ -378,6 +453,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             } else {
                 f_annn[k] = T(0.0); f_annc[k] = T(0.0);
             }
+        }
         }
     } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
@@ -448,7 +524,23 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // ── ODE right-hand side ─────────────────────────────────────────────────
 
     // dCv/dt  (Equations 34-35)
-    ydot[0] = P.G_v + ann_cont_vL + ann_cont_avL
+    //
+    // The vacancies released by dissolving loops are summed over the FAMILY
+    // SLOTS, not read from y[6]/y[7]. Those two slots are CvL and CavL only in
+    // the legacy layout; under loop_model >= 1 they are n_a2 and n_a3, so the
+    // pool was being credited with a release proportional to two prismatic
+    // INTERSTITIAL families while the basal family that actually dissolved was
+    // ignored. On the reference state at 0.1 dpa that is n_a2+n_a3 = 4.7e-7
+    // against n_c = 1.8e-8, i.e. the wrong term is ~26x the right one.
+    //
+    // f_annc[] is filled per slot by both branches and is the release the loop
+    // equations themselves debit, so this makes the pool gain exactly what the
+    // loops lose. In the legacy layout the left fold reproduces
+    // ann_cont_vL + ann_cont_avL bit-for-bit: slots 0 and 1 are exactly zero
+    // there and 0 + x == x for every finite x.
+    T ann_release(0.0);
+    for (int k = 0; k < nf; ++k) ann_release = ann_release + f_annc[k];
+    ydot[0] = P.G_v + ann_release
               - (R_i_v + R_2i_v + R_3i_v + R_v_s + loop_abs_v);
 
     // dCi/dt  (Equations 36-37)
@@ -520,10 +612,14 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     T sink_i = R_i_s + 2.0 * R_2i_s + 3.0 * R_3i_s;     // network absorption
     T sink_v = R_v_s;
 
-    ydot[12] = T(prod_i);   // cum_prod_i
+    // Thermal Frenkel generation adds to BOTH production integrals, equally --
+    // it makes one interstitial and one vacancy per event -- so the ledger
+    // closes and the storage asymmetry that drives growth is untouched.
+    // Identically zero when emission_model = 0.
+    ydot[12] = T(prod_i) + thermal_fp;   // cum_prod_i
     ydot[13] = recomb;      // cum_recomb_i
     ydot[14] = sink_i;      // cum_sink_i
-    ydot[15] = T(prod_v);   // cum_prod_v
+    ydot[15] = T(prod_v) + thermal_fp;   // cum_prod_v
     ydot[16] = recomb;      // cum_recomb_v  (same Frenkel events)
     ydot[17] = sink_v;      // cum_sink_v
 

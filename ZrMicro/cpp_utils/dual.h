@@ -165,6 +165,18 @@ inline Dual<N> cbrt(const Dual<N>& a) {
     return r;
 }
 
+template <int N>
+inline Dual<N> log(const Dual<N>& a) {
+    Dual<N> r; r.v = std::log(a.v);
+    // d/dx ln(x) = 1/x, guarded the way sqrt is: the capillary term of the
+    // step-3 emission channel evaluates ln(alpha R/|b|) on a radius the caller
+    // has already clamped to r_min, but a floored zero must not produce a NaN
+    // derivative and poison the whole Jacobian column.
+    const double c = (a.v > 0.0) ? 1.0 / a.v : 0.0;
+    for (int i = 0; i < N; ++i) r.d[i] = c * a.d[i];
+    return r;
+}
+
 // ── Type-dispatching wrappers used by the templated core ─────────────────────
 // The core calls ad_sqrt / ad_exp / ad_cbrt rather than unqualified sqrt/exp/
 // cbrt. A block-scope `using std::sqrt` would HIDE the Dual overloads above
@@ -175,10 +187,12 @@ inline Dual<N> cbrt(const Dual<N>& a) {
 inline double ad_sqrt(double x) { return std::sqrt(x); }
 inline double ad_exp (double x) { return std::exp(x);  }
 inline double ad_cbrt(double x) { return std::cbrt(x); }
+inline double ad_log (double x) { return std::log(x);  }
 
 template <int N> inline Dual<N> ad_sqrt(const Dual<N>& x) { return sqrt(x); }
 template <int N> inline Dual<N> ad_exp (const Dual<N>& x) { return exp(x);  }
 template <int N> inline Dual<N> ad_cbrt(const Dual<N>& x) { return cbrt(x); }
+template <int N> inline Dual<N> ad_log (const Dual<N>& x) { return log(x);  }
 
 // Value extraction (for comparisons written generically).
 inline double ad_val(double x) { return x; }

@@ -35,6 +35,48 @@ _N_CONC = 19
 
 # ── Parameter collection ─────────────────────────────────────────────────────
 
+#: Which crystallographic family each of the eight immobile slots is. Slots 4-6
+#: are the prismatic VACANCY variants step 1 added and slot 7 the second basal
+#: state step 4 will fill; both are already addressable here so that step 4 has
+#: nothing to change on this side.
+_EMIS_SLOT_FAMILY = ('c_f', 'a_i', 'a_i', 'a_i', 'a_v', 'a_v', 'a_v', 'c_p')
+_EMIS_SLOT_KEY = ('c', 'a1', 'a2', 'a3', 'a1v', 'a2v', 'a3v', 'cp')
+
+
+def _emission_params(material_file, solver_config):
+    """Per-family geometry for the step-3 emission channel.
+
+    Taken from `studies.loop_annealing`, which builds every length from the
+    material file's own constants rather than quoting any of them, and which the
+    manuscript's Sec. 4.1-4.2 tables are produced by. The C++ reproduces its
+    `dEdm` / `binding_energy` / `c_eq_vacancy` exactly; this is where the two are
+    tied to one source.
+    """
+    from dislocluster_code.studies import loop_annealing as la
+
+    mat = la.load_material(material_file)
+    fams = la.families(mat)
+    T = float(solver_config.get('temperature_K', 0.0) or 0.0)
+    if T <= 0.0:
+        raise ValueError("emission_model=1 needs solver_config['temperature_K']")
+
+    out = {
+        'emission_model': 1,
+        'kT_eV': la.KB_EV * T,
+        'Ef_v': mat.Ef_v,
+    }
+    sigma = solver_config.get('emission_sigma_Pa') or {}
+    for slot, (fname, key) in enumerate(zip(_EMIS_SLOT_FAMILY, _EMIS_SLOT_KEY)):
+        f = fams[fname]
+        out[f'emis_gamma_{key}'] = f.gamma
+        out[f'emis_Kbar_{key}'] = f.Kbar
+        out[f'emis_bmag_{key}'] = f.bmag
+        out[f'emis_bdotn_{key}'] = f.bdotn
+        out[f'emis_lam_{key}'] = f.lam
+        out[f'emis_sigma_{key}'] = float(sigma.get(key, 0.0))
+    return out
+
+
 def collect_solver_args(sim, solver_config):
     """
     Build a list of --key=value CLI strings for solver.exe.
@@ -334,6 +376,14 @@ def collect_solver_args(sim, solver_config):
         # and the step-0/1 artifacts keep comparing.
         if float(solver_config.get('chi', 1.0)) != 1.0:
             params['chi'] = float(solver_config['chi'])
+
+        # ── Step 3: peripheral emission ─────────────────────────────────────
+        # The geometry of every family comes from studies/loop_annealing.py,
+        # which is the reference implementation of Sec. 4.1-4.2 and reads its
+        # constants from the SAME material file. Deriving them here a second
+        # time would be a second place for them to drift.
+        if int(solver_config.get('emission_model', 0)) != 0:
+            params.update(_emission_params(mat, solver_config))
 
     return [f'--{k}={v}' for k, v in params.items()]
 

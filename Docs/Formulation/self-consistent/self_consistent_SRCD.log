@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  26 AUG 2026 12:07
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  26 AUG 2026 14:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1703,35 +1703,33 @@ s been already used, duplicate ignored
                                                   \__shipout_drop_firstpage_...
 l.8007 
        ] [96] [97] [98] [99] [100] [101]
-Underfull \hbox (badness 3158) in paragraph at lines 8596--8596
+Underfull \hbox (badness 3158) in paragraph at lines 8627--8627
 []|\T1/lmr/m/n/9 periodic cube; the A1 state
  []
 
 
-Underfull \hbox (badness 1342) in paragraph at lines 8596--8596
+Underfull \hbox (badness 1342) in paragraph at lines 8627--8627
 []|\T1/lmr/m/n/9 that the trans-fer is in-vert-ible
  []
 
 
-Underfull \hbox (badness 1057) in paragraph at lines 8596--8596
+Underfull \hbox (badness 1057) in paragraph at lines 8627--8627
 \T1/lmr/m/n/9 tion into $\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 n; c; q\OT1/lmr/m/n/9 
 )$ \T1/lmr/m/n/9 re-cov-ers the
  []
 
-
-ignored: Infinite glue shrinkage found in box being split [102] [103]
-Underfull \hbox (badness 2547) in paragraph at lines 8721--8721
+[102] [103]
+Underfull \hbox (badness 2547) in paragraph at lines 8752--8752
 []|\T1/lmr/m/n/9 Size-distribution an-neal, both rep-re-sen-ta-tions ([][]Ta-
  []
 
-[104
+[104] (self_consistent_SRCD.bbl [105
 pdfTeX warning (ext4): destination with the same identifier (name{table.25}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.8742 \newpage
-               ] (self_consistent_SRCD.bbl [105] [106]) [107]
-(self_consistent_SRCD.aux)
+l.65 
+     ] [106]) [107] (self_consistent_SRCD.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -1742,11 +1740,11 @@ Package rerunfilecheck Info: File `self_consistent_SRCD.out' has not changed.
 Here is how much of TeX's memory you used:
  40184 strings out of 467691
  851269 string characters out of 5414988
- 1285017 words of memory out of 5000000
+ 1287017 words of memory out of 5000000
  67786 multiletter control sequences out of 15000+600000
  763708 words of font info for 138 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,19n,96p,1512b,1296s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,19n,96p,1512b,1264s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
@@ -1788,9 +1786,9 @@ ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppDa
 ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Use
 rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm
 10.pfb>
-Output written on self_consistent_SRCD.pdf (107 pages, 3608806 bytes).
+Output written on self_consistent_SRCD.pdf (107 pages, 3610903 bytes).
 PDF statistics:
- 3525 PDF objects out of 3580 (max. 8388607)
+ 3526 PDF objects out of 3580 (max. 8388607)
  801 named destinations out of 1000 (max. 500000)
  952 words of extra memory for PDF output out of 10000 (max. 10000000)
 

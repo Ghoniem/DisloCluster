@@ -209,6 +209,52 @@ struct Parameters {
     // at chi = 1, which is the step's regression.
     double chi;
 
+    // ── Step 3: peripheral emission replaces the annealing lifetimes ────────
+    // The pre-step-3 model removes vacancy loops through a fitted dissolution
+    // lifetime tau_vL / tau_avL: a first-order number loss with no dependence on
+    // the loop's size, on the stress, or on how far the matrix is from
+    // equilibrium with it. It is a surrogate, and it cannot satisfy detailed
+    // balance -- setting c^v to the loop's own equilibrium concentration does
+    // not make the exchange vanish, because nothing in tau knows what that
+    // concentration is.
+    //
+    // Step 3 replaces it with the physical channel. Every loop, of EITHER
+    // character, exchanges vacancies with the matrix at the NET rate
+    //
+    //     phi_k = Z_k Dbar_v S_k [ c^v - c^{v,eq}_k(R_k, Sigma_k) ]
+    //
+    // which is identically zero at c^v = c^{v,eq}_k. The equilibrium
+    // concentration comes from the work to detach one vacancy from the loop
+    // periphery,
+    //
+    //     dE_k/dm = gamma_k Omega/(b.n)_k
+    //             + Kbar_k |b|_k^2 lam_k^2 /(4R) [1 + ln(alpha R/|b|_k)]
+    //     E_b     = E^f_v - varsigma_s(v) dE_k/dm - Sigma_k Omega
+    //     c^{v,eq}= exp(-E_b / kT)
+    //
+    // with alpha = 8/e^2 and varsigma_s(v) = +1 for a vacancy family, -1 for an
+    // interstitial one. All of it is Sec. 4.1-4.2 of the formulation, and the
+    // Python reference is studies/loop_annealing.py, which these must reproduce.
+    //
+    // 0 = the legacy lifetimes (the default, so nothing that ran before step 3
+    //     changes); 1 = the computed binding energy.
+    //
+    // THE PLAN SAYS THIS STEP HAS NO REGRESSION, because it removes a channel
+    // rather than generalizing one. Keeping the old channel behind this switch
+    // manufactures one: emission_model = 0 reproduces step 2 bit-for-bit, so
+    // the irreversible step becomes A/B-comparable after all.
+    int    emission_model;
+
+    double kT_eV;        // k_B T in eV -- the solver otherwise never sees T
+    double Ef_v;         // [eV] vacancy formation energy
+    // Per family, in SI. Zero gamma means an unfaulted loop.
+    double emis_gamma[N_FAM_MAX];   // [J/m^2] fault energy on the loop plane
+    double emis_Kbar[N_FAM_MAX];    // [Pa]    orientation-averaged K
+    double emis_bmag[N_FAM_MAX];    // [m]     |b|_k
+    double emis_bdotn[N_FAM_MAX];   // [m]     (b.n)_k, the edge component
+    double emis_lam[N_FAM_MAX];     // [m]     lam_k = sqrt(Omega/(pi (b.n)_k))
+    double emis_sigma[N_FAM_MAX];   // [Pa]    resolved normal stress on the habit
+
     // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
     double dad_Z0[4];   // Z0_m, the isotropic-limit capture efficiency
@@ -499,6 +545,42 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     // Active family count. 4 is the pre-step-1 set and the default, so every
     // existing command line reproduces bit-for-bit; 8 switches on the prismatic
     // vacancy variants of step 1. Anything else is a typo, not a request.
+    // ── Step 3 ──────────────────────────────────────────────────────────────
+    P.emission_model = static_cast<int>(
+        optional_param(p, "emission_model", 0.0));
+    P.kT_eV = optional_param(p, "kT_eV", 0.0);
+    P.Ef_v  = optional_param(p, "Ef_v", 0.0);
+    {
+        const char* fk[N_FAM_MAX] = {"c", "a1", "a2", "a3",
+                                     "a1v", "a2v", "a3v", "cp"};
+        for (int k = 0; k < N_FAM_MAX; ++k) {
+            P.emis_gamma[k] = optional_param(p, std::string("emis_gamma_") + fk[k], 0.0);
+            P.emis_Kbar[k]  = optional_param(p, std::string("emis_Kbar_")  + fk[k], 0.0);
+            P.emis_bmag[k]  = optional_param(p, std::string("emis_bmag_")  + fk[k], 0.0);
+            P.emis_bdotn[k] = optional_param(p, std::string("emis_bdotn_") + fk[k], 0.0);
+            P.emis_lam[k]   = optional_param(p, std::string("emis_lam_")   + fk[k], 0.0);
+            P.emis_sigma[k] = optional_param(p, std::string("emis_sigma_") + fk[k], 0.0);
+        }
+    }
+    if (P.emission_model != 0) {
+        // Refuse to run rather than silently emit at exp(-0/0). Every one of
+        // these has to arrive from the material file; none has a sensible
+        // default, and a wrong c^{v,eq} is not a small error -- it is
+        // exponential in the quantity that is missing.
+        if (P.kT_eV <= 0.0 || P.Ef_v <= 0.0) {
+            std::cerr << "emission_model=1 requires kT_eV>0 and Ef_v>0\n";
+            exit(1);
+        }
+        for (int k = 0; k < P.n_fam; ++k) {
+            if (P.emis_bdotn[k] <= 0.0 || P.emis_bmag[k] <= 0.0
+                || P.emis_lam[k] <= 0.0 || P.emis_Kbar[k] <= 0.0) {
+                std::cerr << "emission_model=1: family " << k
+                          << " is missing its geometry (bdotn/bmag/lam/Kbar)\n";
+                exit(1);
+            }
+        }
+    }
+
     // Character splitting. 1.0 is the character-degenerate model and the
     // default, so every command line written before step 2 is unchanged.
     P.chi = optional_param(p, "chi", 1.0);
