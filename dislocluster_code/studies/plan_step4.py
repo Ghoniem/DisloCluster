@@ -110,8 +110,10 @@ def check_regression(run_dir):
                               retries=0)
     keep = [i for i in range(len(y0))
             if a[i] is not None and b[i] is not None]
-    A = np.array([a[i] for i in keep])[:, :27]
-    B = np.array([b[i] for i in keep])[:, :27]
+    # Compare EVERYTHING, including the pyramid slot: with the chain off it
+    # must be identically zero, and slicing it away would hide that.
+    A = np.array([a[i] for i in keep])
+    B = np.array([b[i] for i in keep])
     exact = np.array_equal(A, B)
     # Not bit-for-bit, and it cannot be, for the reason step 1 established: the
     # implicit block grows with the family count (17 -> 19 here), and CVODE's
@@ -122,7 +124,7 @@ def check_regression(run_dir):
     rel = (np.abs(A - B) / sc).max(1)
     print("REGRESSION  basal_chain = 0 vs the step-3 command line (n_fam 8 vs 9)")
     print(f"  states compared          : {len(keep)}")
-    print(f"  components 0..26 identical: {exact}")
+    print(f"  every component identical : {exact}")
     print(f"  relative difference       : median {np.median(rel):.2e}   "
           f"p90 {np.percentile(rel, 90):.2e}   max {rel.max():.2e}")
     ok = float(np.median(rel)) < 1e-6

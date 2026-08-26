@@ -135,7 +135,7 @@ def check_window_numeric(run_dir, chi=CHI_TEST, G=1e-7, n_x=25):
     base = np.asarray(y0_ref[0], dtype=float).copy()
     # A state with BOTH prismatic characters populated, and the basal family and
     # clusters out of the way so the sweep measures the prismatic pair alone.
-    y = np.zeros(27)
+    y = np.zeros(29)
     y[1] = 1e-10                       # Ci
     for k in (1, 2, 3, 4, 5, 6):
         y[n_idx(k)] = 1e-9

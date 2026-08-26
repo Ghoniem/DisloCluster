@@ -111,6 +111,44 @@ namespace model
         return 1.0;
     }
 
+    /* Step 4: which family slot is the stacking-fault pyramid. Optional
+     * material key `sfpFamilyIndex`; absent means the model carries no pyramid
+     * and every family is a loop, which is what every file said before step 4. */
+    template<int dim>
+    int ClusterDynamicsParameters<dim>::getSfpFamilyIndex(const DislocationDynamicsBase<dim>& ddBase)
+    {
+        if(ddBase.simulationParameters.useClusterDynamics)
+        {
+            try
+            {
+                return TextFileParser(ddBase.poly.materialFile).template readScalar<int>("sfpFamilyIndex",true);
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- no pyramid
+            }
+        }
+        return -1;
+    }
+
+    /* Step 4: whether clusterDensity still interpolates through the morphology
+     * sigmoid. Optional material key `morphologySigmoid`; absent means 1, the
+     * historical behaviour, so no existing material file changes meaning. */
+    template<int dim>
+    int ClusterDynamicsParameters<dim>::getMorphologySigmoid(const DislocationDynamicsBase<dim>& ddBase)
+    {
+        if(ddBase.simulationParameters.useClusterDynamics)
+        {
+            try
+            {
+                return TextFileParser(ddBase.poly.materialFile).template readScalar<int>("morphologySigmoid",true);
+            }
+            catch(const std::runtime_error&)
+            {// key absent -- keep the sigmoid
+            }
+        }
+        return 1;
+    }
+
     /**********************************************************************/
     /* Whether to publish the superposed mobile field. Optional material key;
      * absent means 0 = off, so no existing case writes the extra file or pays
@@ -214,6 +252,8 @@ namespace model
     /* init */ concentrationFloor(getConcentrationFloor(ddBase)),
     /* init */ climbNeighborCutoff(getClimbNeighborCutoff(ddBase)),
     /* init */ characterSplitting(getCharacterSplitting(ddBase)),
+    /* init */ sfpFamilyIndex(getSfpFamilyIndex(ddBase)),
+    /* init */ morphologySigmoid(getMorphologySigmoid(ddBase)),
     /* init */ outputSuperposedMobile(getOutputSuperposedMobile(ddBase)),
     /* init */ climbLumpedSolver(getClimbLumpedSolver(ddBase)),
     /* init */ computeReactions((ddBase.simulationParameters.useClusterDynamics && mSize>0 && mSize+iSize>1)? TextFileParser(ddBase.poly.materialFile).readScalar<int>("computeReactions",true) : 0),
@@ -739,8 +779,22 @@ namespace model
         const Eigen::Array<double,1,iSize/2> n = CI/N/omega;
         const Eigen::Array<double,1,iSize/2> LoopS = 2.0*M_PI*rloop(n)*N;
         const Eigen::Array<double,1,iSize/2> PyrS = a_bp*4.0*M_PI*rpyr(n)*N;
-        
-        return sigmoidalVectorInterpolation(CI,N,PyrS,LoopS);
+
+        if(morphologySigmoid)
+        {// historical behaviour: every family interpolated between the two
+            return sigmoidalVectorInterpolation(CI,N,PyrS,LoopS);
+        }
+        /* Step 4's S^k = 1. A family's morphology is a property of WHICH FAMILY
+         * IT IS, not of its current mean size: the eight loop families are
+         * planar by construction and the pyramid is compact by construction.
+         * Interpolating a loop family toward the compact form on the strength
+         * of a small mean radius was the surrogate the pyramid now replaces. */
+        Eigen::Array<double,1,iSize/2> out(LoopS);
+        if(sfpFamilyIndex>=0 && sfpFamilyIndex<iSize/2)
+        {
+            out(sfpFamilyIndex)=PyrS(sfpFamilyIndex);
+        }
+        return out;
     }
 
     template<int dim>

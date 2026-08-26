@@ -97,7 +97,7 @@ QUIET = {
 
 
 def _state_one_family(slot, R_nm, mat, cv):
-    """A 27-state carrying ONE loop family at radius R, and a chosen c^v."""
+    """A full-width state carrying ONE loop family at R, and a chosen c^v."""
     fam = la.families(mat)[SLOT_FAMILY[slot]]
     R = R_nm * 1e-9
     # n and c chosen so that lam*sqrt(c/n) = R exactly, with n small enough that

@@ -16,7 +16,7 @@ was discarded on the way out.
 
 MoDELib3 does not actually need that. Its cluster-dynamics module already
 carries the immobile population as a finite-element FIELD: ``ClusterDynamicsFEM``
-holds ``immobileClusters``, a trial function with ``iSize = 8`` components per
+holds ``immobileClusters``, a trial function with ``iSize = 18`` components per
 node, and ``ImmobileSinks`` builds the sink strength from the LOCAL value at
 every quadrature point. ``ClusterDynamics::output`` writes that field, together
 with the ``mSize = 4`` mobile components, into the ``evl/evl_<N>.txt`` CD block,
@@ -42,19 +42,24 @@ Ten integer header lines::
     nDisplacement nCD
 
 followed by the corresponding records, then ``nDisplacement`` rows of ``2*dim``
-columns, then ``nCD`` rows of ``mSize + iSize = 12`` columns.
+columns, then ``nCD`` rows of ``mSize + iSize = 22`` columns.
 
-CD COLUMN LAYOUT (``ClusterDynamicsParameters``: mSize=4, iSize=8)
------------------------------------------------------------------
+CD COLUMN LAYOUT (``ClusterDynamicsParameters``: mSize=4, iSize=18)
+------------------------------------------------------------------
 =======  ======================================================
 0 .. 3   mobile    Cv, Ci, C2i, C3i            (atom fraction)
-4 .. 7   immobile  n_c, n_a1, n_a2, n_a3       (number per b^3)
-8 .. 11  immobile  c_c, c_a1, c_a2, c_a3       (atom fraction)
+4 .. 12  immobile  n_k, nine families          (number per b^3)
+13 .. 21 immobile  c_k, nine families          (atom fraction)
 =======  ======================================================
 
-``immobileSpeciesVector = -1 1 1 1`` in ``Zr3d_ghoniem.txt``: family 0 is the
-basal <c> VACANCY loop family, families 1-3 the three prism <a> INTERSTITIAL
-variants. That is the same partition ``modelib_export`` already uses.
+The nine families, in ``immobileSpeciesVector`` order: 0 the faulted basal <c>
+vacancy loop c_f; 1-3 the prismatic <a> INTERSTITIAL variants; 4-6 the prismatic
+<a> VACANCY variants (step 1 of the implementation plan); 7 the perfect basal
+state c_p and 8 the stacking-fault pyramid c_0 (step 4).
+
+**The block is numbers-then-contents, so a family added in the middle MOVES the
+contents.** A narrower block written by an earlier revision is widened on read
+rather than refused, and the relocation is what that widening has to get right.
 
 UNITS
 -----
@@ -86,9 +91,8 @@ I_SIZE = 18         # 9 families x (number, content)
 N_FAMILIES = I_SIZE // 2
 N_CD_COLS = M_SIZE + I_SIZE
 
-#: The pre-step-1 width, still accepted on read. Every evl file written before
-#: step 1 carries it, and those runs must stay post-processable: the figures,
-#: the movies and the transfer ledger all read evl_<N>.txt directly.
+#: The pre-step-1 width, kept as a named reference point. Any narrower block is
+#: accepted on read and widened, not just this one.
 N_CD_COLS_LEGACY = M_SIZE + 8
 N_HEADER = 10       # integer header lines in an evl text file
 DISP_COLS = 6       # 2*dim
@@ -198,21 +202,29 @@ class EvlFile:
             self.cd = np.array(
                 [[float(x) for x in lines[i].split()] for i in range(d1, c1)],
                 dtype=float)
-            if self.cd.shape[1] == N_CD_COLS_LEGACY:
-                # A pre-step-1 file: four families where there are now eight.
-                # Widen it rather than refuse it, placing the old columns where
-                # they still belong -- numbers 0..3, contents 8..11 -- and
-                # leaving the four families step 1 added empty, which is what
-                # they were.
+            got = self.cd.shape[1]
+            if got != N_CD_COLS:
+                # An evl written when the model carried FEWER families. Widen it
+                # rather than refuse it: those runs must stay post-processable,
+                # since the figures, the movies and the transfer ledger all read
+                # evl_<N>.txt directly.
+                #
+                # The CD block is numbers-then-contents, so widening is not a
+                # pad on the end -- the old contents have to MOVE, from
+                # M_SIZE+nf_old to M_SIZE+N_FAMILIES. Getting that wrong would
+                # silently read a stale file's contents as the new families'
+                # numbers.
+                nf_old, rem = divmod(got - M_SIZE, 2)
+                if rem or nf_old <= 0 or nf_old > N_FAMILIES:
+                    raise ValueError(
+                        f"{path}: CD block has {got} columns, which is not "
+                        f"M_SIZE + 2*nf for any nf <= {N_FAMILIES} "
+                        f"(expected {N_CD_COLS})")
                 old = self.cd
                 self.cd = np.zeros((old.shape[0], N_CD_COLS))
                 self.cd[:, 0:M_SIZE] = old[:, 0:M_SIZE]
-                self.cd[:, M_SIZE:M_SIZE + 4] = old[:, M_SIZE:M_SIZE + 4]
-                self.cd[:, M_SIZE + N_FAMILIES:M_SIZE + N_FAMILIES + 4] =                     old[:, M_SIZE + 4:M_SIZE + 8]
-            elif self.cd.shape[1] != N_CD_COLS:
-                raise ValueError(
-                    f"{path}: CD block has {self.cd.shape[1]} columns, "
-                    f"expected {N_CD_COLS} (or {N_CD_COLS_LEGACY} pre-step-1)")
+                self.cd[:, M_SIZE:M_SIZE + nf_old] =                     old[:, M_SIZE:M_SIZE + nf_old]
+                self.cd[:, M_SIZE + N_FAMILIES:M_SIZE + N_FAMILIES + nf_old] =                     old[:, M_SIZE + nf_old:M_SIZE + 2 * nf_old]
         else:
             self.cd = np.zeros((0, N_CD_COLS))
 

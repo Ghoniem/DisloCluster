@@ -42,7 +42,10 @@ struct ClusterDynamicsParameters
     // are present and addressable but receive no source: that is the plan's
     // eps_avL = 0 regression state, and it is why raising iSize does not by
     // itself change any result.
-    static constexpr int iSize=16;  // Nc..Nc_p, cc..cc_p (8 families x 2)
+    // Step 4 adds a NINTH family, the stacking-fault pyramid c_0, so 18.
+    // Slot 8 is not a loop: no perimeter, no Burgers vector, no line density.
+    // Its sink is the compact form and it has no coalescence channel.
+    static constexpr int iSize=18;  // 9 families x (number, content)
 
     typedef Eigen::Matrix<double,dim,1> VectorDim;
     typedef Eigen::Matrix<double,dim,dim> MatrixDim;
@@ -162,6 +165,19 @@ struct ClusterDynamicsParameters
      *  `characterSplitting`; 1 or absent is the character-degenerate model. */
     const double characterSplitting;
 
+    /*! Step 4. Index of the stacking-fault pyramid family, or -1 for none.
+     *  Optional material key `sfpFamilyIndex`. */
+    const int sfpFamilyIndex;
+
+    /*! Step 4. Whether clusterDensity still interpolates every family between
+     *  the compact and planar sink forms through the sigmoid of Eq. (Ssigmoid).
+     *  Optional material key `morphologySigmoid`, DEFAULT 1 = the historical
+     *  behaviour, so no material file changes meaning. Setting it to 0 is the
+     *  step's "S^k = 1": loop families take the planar form outright and the
+     *  pyramid takes the compact one, each because of what it IS rather than
+     *  through an interpolation on its mean size. */
+    const int morphologySigmoid;
+
     /*! Write the SUPERPOSED mobile concentration at the CD nodes to
      *  evl/cdTotalMobile_<runID>.txt, in the same node order as
      *  evl/cdNodes.txt. Optional material key `outputSuperposedMobile`,
@@ -237,6 +253,8 @@ struct ClusterDynamicsParameters
      *  `climbNeighborCutoff_b`, defaulting to 0 = no cutoff. */
     static double getClimbNeighborCutoff(const DislocationDynamicsBase<dim>& ddBase);
     static double getCharacterSplitting(const DislocationDynamicsBase<dim>& ddBase);
+    static int getSfpFamilyIndex(const DislocationDynamicsBase<dim>& ddBase);
+    static int getMorphologySigmoid(const DislocationDynamicsBase<dim>& ddBase);
     /*! Whether to publish the superposed mobile field; optional material-file
      *  key `outputSuperposedMobile`, defaulting to 0 = off. */
     static int getOutputSuperposedMobile(const DislocationDynamicsBase<dim>& ddBase);
