@@ -658,6 +658,50 @@ and `field.to_legacy_layout` maps mode-1 families onto the legacy slots for the
 names — lossless for every aggregate a figure plots, since the aligned/non-aligned
 split it would need does not exist in mode 1.
 
+## The implementation plan's model switches — `SOLVER`, steps 1–5
+
+`loop_model = 1` is the door; these are the rooms behind it. Each defaults to
+the value that reproduces the formulation before its step, and each is
+**rejected without `loop_model = 1`** — they name families and moments the
+legacy slots do not carry, so a run that set one without it would report the new
+model and integrate the old one.
+
+| key | 0 / default | 1 (or >4) |
+|---|---|---|
+| `n_fam` | 4 | 8 adds the three prismatic **vacancy** variants (step 1); 9 adds the stacking-fault pyramid `c_0` (step 4) |
+| `chi` | 1.0 | character splitting `X_iI X_vV/(X_iV X_vI)`; the coexistence window has log-width `ln χ` (step 2) |
+| `emission_model` | 0 | peripheral emission against each family's own `c^{v,eq}`, replacing the two fitted annealing lifetimes (step 3) |
+| `basal_chain` | 0 | `c_0 → c_f → c_p`; needs `n_fam = 9` (step 4) |
+| `moments` | 0 | the second content moment `q_k` per family and the log-normal closure on it (step 5) |
+
+`SOLVER['model_params']` carries the numeric inputs those switches need
+(`eps_sfp`, `n_sfp_nuc`, `tau_sfp`, `nu_col`, `nu_uf`, `alpha_sfp`, `m_min`,
+`m_col`, `m_uf`) straight to the solver command line. It is a dict rather than a
+field per parameter because the C++ already defaults every one of them and an
+unrecognized key must fail *there* rather than be dropped here. **None of the
+basal-chain rates is calibrated** — nothing in `Zr3d_ghoniem.txt` or the
+workbook supplies them, and the formulation gives their Arrhenius form without
+values for the barriers.
+
+**The state width follows the switches, and the march has to allocate it.**
+`immobile.state_width(loop_model, n_fam, moments)` gives 19 / 29 / 38, and the
+checkpoint fingerprint records the **actual** width so a resume across a change
+of it is refused. The solver defaults every appended `y0` slot to zero, so a
+narrower state is always *accepted* — which is exactly why the march allocating
+19 while the command line said nine families and three moments would have been
+silent.
+
+The demonstration case is
+`python -m dislocluster_code.studies.run_200nm_moments` — a 200 nm cube with all
+nine families and three moments, writing `uncalibrated_inputs.md` into its own
+run directory. `--state <run>` prints the interior per-family table of
+`n, c, m̄, Δ` without solving anything.
+
+`Δ_k = q n / c²` on the 0-D side and `q n ω / c²` in `ImmobileSinks` — **one
+explicit ω**, because `n` crosses the bridge converted (per atom → per b³) and
+`c` does not, which is the same asymmetry that makes MoDELib's mean size
+`CI/N/ω`. It reaches the fast solve in exactly one place: `Δ^{-1/8}` on `S_k`.
+
 ## The continuum → discrete handoff
 
 `post/coarsening.py` decides **when** the mean-field treatment of coalescence stops being
@@ -902,6 +946,22 @@ reproducible.
 
 State vector (19): `[Cv, Ci, C2i, C3i, CiL, CaiL, CvL, CavL, CiL_i, CaiL_i,
 CvL_v, CavL_v, 6 accumulators, rho_N]`.
+
+**It grows with the plan's switches, and every index above keeps its meaning.**
+Steps 1 and 4 append five families at 19..28 (numbers 19..23, contents 24..28)
+rather than interleaving them, and step 5 appends nine second moments at 29..37:
+
+| width | carries |
+|---|---|
+| 19 | the four legacy slots — `loop_model = 0`, or `loop_model = 1` at `n_fam = 4` |
+| 29 | `n_fam` 8 or 9 |
+| 38 | plus `moments = 1` |
+
+The CD block is ordered the other way — **moment-major**, all nine numbers, then
+all nine contents, then all nine `q` — so the bridge is a scatter and not a
+copy. `coupling/field.immobile_into_state` is the one place that knows the
+mapping; doing it at a call site is what put an 18-wide block into an 8-wide
+slice.
 
 ### Why ~1.1 M ODEs per substep are tractable at all
 

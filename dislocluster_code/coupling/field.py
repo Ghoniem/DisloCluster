@@ -16,7 +16,7 @@ was discarded on the way out.
 
 MoDELib3 does not actually need that. Its cluster-dynamics module already
 carries the immobile population as a finite-element FIELD: ``ClusterDynamicsFEM``
-holds ``immobileClusters``, a trial function with ``iSize = 18`` components per
+holds ``immobileClusters``, a trial function with ``iSize = 27`` components per
 node, and ``ImmobileSinks`` builds the sink strength from the LOCAL value at
 every quadrature point. ``ClusterDynamics::output`` writes that field, together
 with the ``mSize = 4`` mobile components, into the ``evl/evl_<N>.txt`` CD block,
@@ -42,14 +42,15 @@ Ten integer header lines::
     nDisplacement nCD
 
 followed by the corresponding records, then ``nDisplacement`` rows of ``2*dim``
-columns, then ``nCD`` rows of ``mSize + iSize = 22`` columns.
+columns, then ``nCD`` rows of ``mSize + iSize = 31`` columns.
 
-CD COLUMN LAYOUT (``ClusterDynamicsParameters``: mSize=4, iSize=18)
+CD COLUMN LAYOUT (``ClusterDynamicsParameters``: mSize=4, iSize=27)
 ------------------------------------------------------------------
 =======  ======================================================
 0 .. 3   mobile    Cv, Ci, C2i, C3i            (atom fraction)
 4 .. 12  immobile  n_k, nine families          (number per b^3)
 13 .. 21 immobile  c_k, nine families          (atom fraction)
+22 .. 30 immobile  q_k, nine families          (second content moment)
 =======  ======================================================
 
 The nine families, in ``immobileSpeciesVector`` order: 0 the faulted basal <c>
@@ -79,6 +80,8 @@ import shutil
 from pathlib import Path
 
 import numpy as np
+
+from dislocluster_code import paths as _paths
 
 # MoDELib3 ClusterDynamicsParameters
 M_SIZE = 4          # Cv, Ci, C2i, C3i
@@ -395,13 +398,16 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     N_c = Y[:, IDX["CvL"]] + Y[:, IDX["CavL"]]        # <c> loop number
     c_c = Y[:, IDX["CvL_v"]] + Y[:, IDX["CavL_v"]]    # <c> loop content
 
+    # N_FAMILIES, not the literal 4: the CD block is moment-major, so the
+    # contents start where the numbers end, and that moved when steps 1 and 4
+    # widened it. Writing c_c at column 4 put it in the a1v NUMBER slot.
     out = np.zeros((Y.shape[0], I_SIZE), dtype=float)
     out[:, 0] = N_c / omega                            # n_c
     for k in range(3):
         out[:, 1 + k] = w[k] * N_a / omega             # n_a1..n_a3
-    out[:, 4] = c_c                                    # c_c
+    out[:, N_FAMILIES] = c_c                           # c_c
     for k in range(3):
-        out[:, 5 + k] = w[k] * c_a                     # c_a1..c_a3
+        out[:, N_FAMILIES + 1 + k] = w[k] * c_a        # c_a1..c_a3
     return out
 
 
@@ -661,7 +667,7 @@ class FieldBridge:
     # -- writing -------------------------------------------------------------
     def write_immobile_field(self, Y, evl_src=None, dest=None,
                              variant_weights=(1 / 3, 1 / 3, 1 / 3),
-                             backup=False, mobile=True):
+                             backup=False, mobile=True, loop_model=0):
         """Write the marched per-node 0-D state into an evl CD block.
 
         Both halves of the CD block are written by default. Writing only the
@@ -695,8 +701,15 @@ class FieldBridge:
                 "node set (FieldBridge.n_nodes), not an independent grid.")
         if backup and dest is None:
             shutil.copy2(src, src.with_suffix(".txt.bak"))
-        ev.cd[:, M_SIZE:] = immobile_0d_to_modelib(Y, self.omega,
-                                                   variant_weights)
+        # loop_model MUST be passed through. Without it this took the legacy
+        # path unconditionally, which LUMPS a self-consistent state back into
+        # four families and re-splits it -- so the archived snapshots of a
+        # nine-family march held the four-family answer, with the five appended
+        # families empty and the second moments zero, while the marched state
+        # and the fast solve (which passes it) carried all of them. The
+        # snapshot is the only thing an offline reader has.
+        ev.cd[:, M_SIZE:] = immobile_0d_to_modelib(
+            Y, self.omega, variant_weights, loop_model=loop_model)
         if mobile:
             ev.cd[:, :M_SIZE] = Y[:, :M_SIZE]
         return ev.write(dest if dest is not None else src)
@@ -735,3 +748,41 @@ class FieldBridge:
             lines.append(f"  n_{fam:<3} {nk.min():.4e} .. {nk.max():.4e}   "
                          f"c_{fam:<3} {ck.min():.4e} .. {ck.max():.4e}")
         return "\n".join(lines)
+
+
+def rewrite_snapshots(run_dir, verbose=True):
+    """Rebuild ``evl_coupled/evl_*.txt`` from ``march_state.npz``.
+
+    The archived snapshots are a projection of the marched state, so they can
+    always be regenerated from it without re-solving. This exists because they
+    were being written through the LEGACY lumping on a self-consistent march --
+    ``write_immobile_field`` did not take ``loop_model`` -- so a nine-family run
+    archived the four-family answer with the appended families empty and the
+    second moments zero. Everything the figures draw comes from
+    ``march_state.npz`` through ``movies.cd_blocks``, which does pass it, and so
+    does the fast solve; the snapshots were the one consumer that did not.
+
+    Returns the list of files rewritten.
+    """
+    from pathlib import Path as _P
+    run_dir = _P(run_dir)
+    with np.load(run_dir / "march_state.npz") as z:
+        doses, Y = z["doses"], z["Y"]
+        lm = int(z["loop_model"]) if "loop_model" in z.files else 0
+    evl_dir = run_dir / "evl_coupled"
+    files = sorted(p for p in evl_dir.glob("evl_*.txt"))
+    if len(files) != len(doses):
+        raise ValueError(
+            f"{len(files)} snapshots against {len(doses)} recorded doses in "
+            f"{run_dir.name} -- refusing to guess which is which")
+    omega = cluster_atomic_volume(_paths.MODELIB_MATERIAL)
+    out = []
+    for f, y in zip(files, Y):
+        ev = EvlFile(f)
+        ev.cd[:, M_SIZE:] = immobile_0d_to_modelib(y, omega, loop_model=lm)
+        ev.cd[:, :M_SIZE] = y[:, :M_SIZE]
+        ev.write(f)
+        out.append(f)
+        if verbose:
+            print(f"  rewrote {f.name}")
+    return out

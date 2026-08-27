@@ -832,7 +832,8 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         else:
             used_steps.add(step)
         br.write_immobile_field(Y, evl_src=seed_evl,
-                                dest=evl_out / f"evl_{step}.txt")
+                                dest=evl_out / f"evl_{step}.txt",
+                                loop_model=loop_model)
 
         # The SUPERPOSED mobile field, if the fast solve published one. It is
         # kept beside the snapshot rather than in `history`, because it is not

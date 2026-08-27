@@ -38,9 +38,9 @@ same temperature and dose rate, same dose grid, same solver settings.
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 import time
+from pathlib import Path
 
 from dislocluster_code import config as C
 from dislocluster_code import driver, paths
@@ -129,14 +129,77 @@ def _placeholder_note(run_dir):
         "\n".join(lines), encoding="utf-8")
 
 
+FAMILY_LABEL = ["c_f", "a1", "a2", "a3", "a1v", "a2v", "a3v", "c_p", "c_0"]
+
+
+def state_table(run_dir, quartile=0.25):
+    """Interior mean of n, c, q, mbar and Delta, per family, per dose.
+
+    The INTERIOR mean -- the innermost `quartile` of nodes by distance to the
+    nearest face -- for the reason the project applies everywhere else: the
+    Dirichlet shell is a sink for mobile defects but NOT for loops, so a domain
+    mean of a loop quantity measures the boundary layer rather than the
+    material.
+    """
+    import numpy as np
+    from dislocluster_code.post import fields as pf
+
+    run_dir = Path(run_dir)
+    with np.load(run_dir / "march_state.npz") as z:
+        doses, Y, nodes = z["doses"], z["Y"], z["nodes"]
+    faces = pf.domain_faces(nodes)
+    d = pf.gb_distance(nodes, faces=faces)
+    inner = d >= np.quantile(d, 1.0 - quartile)
+
+    rows = []
+    for i, dose in enumerate(doses):
+        S = Y[i][inner]
+        for k, lab in enumerate(FAMILY_LABEL):
+            n = float(S[:, 4 + k].mean()) if k < 4 else \
+                float(S[:, 19 + (k - 4)].mean())
+            c = float(S[:, 8 + k].mean()) if k < 4 else \
+                float(S[:, 24 + (k - 4)].mean())
+            q = float(S[:, 29 + k].mean()) if S.shape[1] >= 38 else 0.0
+            mbar = c / n if n > 0 else float("nan")
+            delta = q * n / c ** 2 if c > 0 else float("nan")
+            rows.append(dict(dose=float(dose), family=lab, n=n, c=c, q=q,
+                             mbar=mbar, delta=delta))
+    return rows
+
+
+def print_state_table(run_dir, quartile=0.25):
+    rows = state_table(run_dir, quartile)
+    doses = sorted({r["dose"] for r in rows})
+    print(f"interior mean (innermost {quartile:.0%} by distance to a face)\n")
+    for dose in doses:
+        print(f"  {dose:g} dpa")
+        print(f"    {'family':>7} {'n [1/atom]':>13} {'c [1/atom]':>13} "
+              f"{'mbar':>10} {'Delta':>8}")
+        for r in (x for x in rows if x["dose"] == dose):
+            if r["n"] <= 0.0:
+                print(f"    {r['family']:>7} {'-- empty --':>13}")
+                continue
+            print(f"    {r['family']:>7} {r['n']:13.4e} {r['c']:13.4e} "
+                  f"{r['mbar']:10.2f} {r['delta']:8.4f}")
+        print()
+    return rows
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--state", metavar="RUN", default=None,
+                    help="print the interior state table of a finished run "
+                         "and exit; does not solve anything")
     ap.add_argument("--tag", default="200nmCube_Moments")
     ap.add_argument("--lc-nm", type=float, default=25.0)
     ap.add_argument("--doses", type=float, nargs="*", default=None)
     ap.add_argument("--no-report", action="store_true")
     ap.add_argument("--force-stage", action="store_true")
     a = ap.parse_args(argv)
+
+    if a.state:
+        print_state_table(a.state)
+        return 0
 
     cfg = build_config(tag=a.tag, doses=a.doses, lc_nm=a.lc_nm)
     t0 = time.perf_counter()
