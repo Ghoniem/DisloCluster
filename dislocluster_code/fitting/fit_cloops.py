@@ -45,6 +45,7 @@ from dislocluster_code.zerod.reaction_rates import ReactionRates
 from dislocluster_code.zerod.rate_equations import RateEquations
 from dislocluster_code.zerod.cpp_bridge import (run_cpp_solver_batch, collect_solver_args)
 from dislocluster_code.zerod.post_process import calculate_derived_quantities
+from dislocluster_code.coupling import field as _field
 
 XL  = BASE / 'input' / 'Zr_input_parameters.xlsx'
 DEV = contextlib.redirect_stdout(io.StringIO())
@@ -59,11 +60,54 @@ WLOOP = {'A': 1.0, 'C': 1.0}
 NPTS, RTOL, ATOL = 70, 1e-6, 1e-20
 SOLVER = {'backend': 'cvode', 'lmm': 'bdf', 'linsol': 'dense'}
 
+# ── which FORMULATION the objective evaluates ────────────────────────────────
+# Empty is the legacy model, which is what every existing fit was made against
+# and what this harness reproduces byte-for-byte with MODEL untouched.
+#
+# THE 0-D AND THE MARCH RUN THE SAME EQUATIONS. `rate_equations_core.h` is one
+# templated function; the march's slow step and this objective are the same
+# binary with the same switches. The only difference is `freeze_mobile`: the
+# march pins the mobile species to the FEM solve's C_M*(x) and integrates 34
+# equations per point, while a standalone 0-D leaves them free and integrates
+# all 38. So a parameter set fitted here is a parameter set the 3-D code runs,
+# term for term, with no second implementation to drift.
+#
+# Set it with `set_model(...)`, e.g. for the self-consistent nine-family model
+#     set_model(loop_model=1, n_fam=9, emission_model=1, temperature_K=573.0,
+#               basal_chain=1, moments=1, m_min=10.0, ...)
+# and note that the chain's rates are NOT calibrated -- they are among the
+# things a refit has to produce, not consume.
+MODEL = {}
+
+
+def set_model(**kw):
+    """Choose the formulation the objective evaluates. See MODEL above."""
+    MODEL.clear()
+    MODEL.update(kw)
+    return dict(MODEL)
+
 # ── current joint optimum — loaded from the latest fit CSV (freeze point) ─────
-OPT_CSV = sorted((BASE / 'output').glob('fit_*/optimal_parameters.csv'))[-1]
-_optdf = pd.read_csv(OPT_CSV)
-OPT = {str(r['parameter']): float(r['optimal']) for _, r in _optdf.iterrows()}
-print(f"freeze point: {OPT_CSV.relative_to(BASE)}  ({len(OPT)} params)")
+# THE FREEZE POINT FALLS BACK TO THE CALIBRATED SET. This used to be
+# `sorted(glob('fit_*/optimal_parameters.csv'))[-1]`, which raises IndexError at
+# IMPORT time when no previous fit output is present -- and none is in a fresh
+# checkout, because the fit tree was never committed. The module was therefore
+# unimportable, which is a poor way to discover that a refit harness exists.
+#
+# calibration.REFERENCE_OVERRIDES is the same 26-parameter set every driver
+# builds its model from, so falling back to it starts the search exactly where
+# `build_sim()` would. A previous fit's CSV still wins when one is there.
+_fits = sorted((BASE / 'output').glob('fit_*/optimal_parameters.csv'))
+if _fits:
+    OPT_CSV = _fits[-1]
+    _optdf = pd.read_csv(OPT_CSV)
+    OPT = {str(r['parameter']): float(r['optimal']) for _, r in _optdf.iterrows()}
+    print(f"freeze point: {OPT_CSV.relative_to(BASE)}  ({len(OPT)} params)")
+else:
+    from dislocluster_code.zerod.calibration import REFERENCE_OVERRIDES
+    OPT_CSV = None
+    OPT = dict(REFERENCE_OVERRIDES)
+    print(f"freeze point: calibration.REFERENCE_OVERRIDES  ({len(OPT)} params) "
+          f"-- no previous fit output found")
 
 # Derive the frozen Z_v_c implied by the current delta_DAD, so adding Z_v_c as an
 # explicit lever starts EXACTLY where the joint fit left it (continuity check).
@@ -127,6 +171,12 @@ def model_history_batch(pdict, temps_maxdpa):
         cfg = {'t_begin': 1e-1, 't_end': t_end, 'n_points': NPTS,
                'rtol': RTOL, 'atol': ATOL, 'log_time': True,
                'solver_method': SOLVER}
+        cfg.update(MODEL)
+        if MODEL.get('emission_model'):
+            # Emission needs the temperature it is being evaluated at, and this
+            # harness sweeps temperature -- so it is taken from the case and
+            # never from a fixed entry in MODEL.
+            cfg['temperature_K'] = float(T)
         with DEV:
             cases.append(collect_solver_args(SIM, cfg))
         meta.append((T, G))
@@ -138,6 +188,15 @@ def model_history_batch(pdict, temps_maxdpa):
             out[T] = None; continue
         t, y = ty
         _configure(pdict, T)
+        if MODEL.get('loop_model'):
+            # THE SLOTS DO NOT MEAN THE SAME THING. Under loop_model >= 1,
+            # y[4] is the basal <c> family and y[6..7] are prismatic <a>
+            # variants, where the legacy names below read them as CiL and
+            # CvL/CavL -- so `Na` would be built from a basal density and `Nc`
+            # from a prismatic one. `to_legacy_layout` lumps by HABIT into the
+            # slots those names expect and truncates to the legacy 19, which is
+            # exactly what calculate_derived_quantities consumes.
+            y = _field.to_legacy_layout(y.T, 1).T
         with DEV:
             r = calculate_derived_quantities(t, y, SIM.input_data, SIM.rate_equations)
         c, ls = r['concentrations'], r['loop_sizes']
@@ -218,17 +277,27 @@ def objective_full(pdict, want_breakdown=False):
     return J, None
 
 
-# ── 0. Baseline: reproduce the joint optimum J (validation of the replica) ────
-print("=" * 72)
-print("BASELINE  (all params frozen at joint optimum)")
-print("=" * 72)
-t0 = time.time()
-J0, bd0 = objective_full(dict(OPT), want_breakdown=True)
-print(f"J = {J0:.4f}   J_A = {bd0['A']['J']:.4f}  J_C = {bd0['C']['J']:.4f}  "
-      f"J_os = {bd0['J_os']:.4f}   ({time.time()-t0:.0f}s)")
-print(f"   c-loop  density-loss {bd0['C']['lossN']:.4f}  diameter-loss {bd0['C']['lossD']:.4f}")
-print(f"   a-loop  density-loss {bd0['A']['lossN']:.4f}  diameter-loss {bd0['A']['lossD']:.4f}")
-J_A_FROZEN = bd0['A']['J']
+# ── RUNNING THIS MODULE MUST NOT RUN A FIT ──────────────────────────────────
+# The baseline evaluation and the subset search below used to execute at
+# IMPORT, so `import fit_cloops` spent ten minutes doing a full backward
+# elimination before returning. That makes the harness unusable as a
+# library -- which is what it has to be to refit a formulation chosen with
+# `set_model`. Both regions are guarded; running the file as a script is
+# unchanged.
+_RUN_AS_SCRIPT = (__name__ == '__main__')
+
+if _RUN_AS_SCRIPT:
+    # ── 0. Baseline: reproduce the joint optimum J (validation of the replica) ────
+    print("=" * 72)
+    print("BASELINE  (all params frozen at joint optimum)")
+    print("=" * 72)
+    t0 = time.time()
+    J0, bd0 = objective_full(dict(OPT), want_breakdown=True)
+    print(f"J = {J0:.4f}   J_A = {bd0['A']['J']:.4f}  J_C = {bd0['C']['J']:.4f}  "
+          f"J_os = {bd0['J_os']:.4f}   ({time.time()-t0:.0f}s)")
+    print(f"   c-loop  density-loss {bd0['C']['lossN']:.4f}  diameter-loss {bd0['C']['lossD']:.4f}")
+    print(f"   a-loop  density-loss {bd0['A']['lossN']:.4f}  diameter-loss {bd0['A']['lossD']:.4f}")
+    J_A_FROZEN = bd0['A']['J']
 
 
 def cloop_table(pdict, label):
@@ -432,47 +501,48 @@ def fit_subset(names, n_starts=2, maxiter=45):
     return J, bd, dict(zip(names, from_t(best_x)))
 
 
-# ── 1. Full candidate set, then backward elimination to the smallest set ─────
-ALL = list(CAND)
-print("\n" + "=" * 72)
-print("FULL c-loop candidate set:", ', '.join(ALL))
-print("=" * 72)
-Jf, bdf, pf = fit_subset(ALL, n_starts=3, maxiter=70)
-print(f"J = {Jf:.4f}  (J_A {bdf['A']['J']:.4f}  J_C {bdf['C']['J']:.4f}  "
-      f"densN {bdf['C']['lossN']:.4f} diamD {bdf['C']['lossD']:.4f})")
-for k, v in pf.items():
-    print(f"   {k:<11} = {v:.5g}")
-cloop_table(dict(OPT, **pf), 'FULL set optimum')
-
-# Candidate minimal sets ------------------------------------------------------
-# A: my original recommendation (supply + flux).  B/C: the levers that actually
-# moved in the full fit (birth size + annealing lifetime).
-TRIALS = [
-    ['epsilon_vL', 'Z_v_c', 'n_vL_nuc'],            # A — supply + flux + birth
-    ['n_vL_nuc', 'E_a_vL'],                          # B — birth + lifetime (2)
-    ['n_vL_nuc', 'tau_vL0', 'E_a_vL'],              # B+ — birth + lifetime (3)
-    ['n_vL_nuc', 'tau_vL0', 'E_a_vL', 'c_LN_c'],    # B+ + coalescence
-    ['epsilon_vL', 'n_vL_nuc', 'tau_vL0', 'E_a_vL'],# supply + birth + lifetime
-]
-print("\n" + "=" * 72)
-print("SUBSET SEARCH (smallest optimal set)")
-print("=" * 72)
-results = [('FULL(' + str(len(ALL)) + ')', Jf, bdf, pf)]
-for names in TRIALS:
-    J, bd, p = fit_subset(names, n_starts=2, maxiter=45)
-    tag = '{' + ','.join(names) + '}'
-    results.append((tag, J, bd, p))
-    print(f"\n{tag}\n  J = {J:.4f}  (J_A {bd['A']['J']:.4f}  J_C {bd['C']['J']:.4f}  "
-          f"densN {bd['C']['lossN']:.4f} diamD {bd['C']['lossD']:.4f})")
-    for k, v in p.items():
+if _RUN_AS_SCRIPT:
+    # ── 1. Full candidate set, then backward elimination to the smallest set ─────
+    ALL = list(CAND)
+    print("\n" + "=" * 72)
+    print("FULL c-loop candidate set:", ', '.join(ALL))
+    print("=" * 72)
+    Jf, bdf, pf = fit_subset(ALL, n_starts=3, maxiter=70)
+    print(f"J = {Jf:.4f}  (J_A {bdf['A']['J']:.4f}  J_C {bdf['C']['J']:.4f}  "
+          f"densN {bdf['C']['lossN']:.4f} diamD {bdf['C']['lossD']:.4f})")
+    for k, v in pf.items():
         print(f"   {k:<11} = {v:.5g}")
-    cloop_table(dict(OPT, **p), tag)
+    cloop_table(dict(OPT, **pf), 'FULL set optimum')
 
-print("\n" + "=" * 72)
-print(f"{'set':<48}{'J':>8}{'J_A':>8}{'J_C':>8}")
-print("-" * 72)
-print(f"{'BASELINE (joint optimum, frozen)':<48}{J0:>8.4f}{bd0['A']['J']:>8.4f}{bd0['C']['J']:>8.4f}")
-for tag, J, bd, p in results:
-    print(f"{tag:<48}{J:>8.4f}{bd['A']['J']:>8.4f}{bd['C']['J']:>8.4f}")
-print("=" * 72)
-print(f"a-loop J_A must stay ~{J_A_FROZEN:.4f} (frozen) — confirms a-loops undisturbed.")
+    # Candidate minimal sets ------------------------------------------------------
+    # A: my original recommendation (supply + flux).  B/C: the levers that actually
+    # moved in the full fit (birth size + annealing lifetime).
+    TRIALS = [
+        ['epsilon_vL', 'Z_v_c', 'n_vL_nuc'],            # A — supply + flux + birth
+        ['n_vL_nuc', 'E_a_vL'],                          # B — birth + lifetime (2)
+        ['n_vL_nuc', 'tau_vL0', 'E_a_vL'],              # B+ — birth + lifetime (3)
+        ['n_vL_nuc', 'tau_vL0', 'E_a_vL', 'c_LN_c'],    # B+ + coalescence
+        ['epsilon_vL', 'n_vL_nuc', 'tau_vL0', 'E_a_vL'],# supply + birth + lifetime
+    ]
+    print("\n" + "=" * 72)
+    print("SUBSET SEARCH (smallest optimal set)")
+    print("=" * 72)
+    results = [('FULL(' + str(len(ALL)) + ')', Jf, bdf, pf)]
+    for names in TRIALS:
+        J, bd, p = fit_subset(names, n_starts=2, maxiter=45)
+        tag = '{' + ','.join(names) + '}'
+        results.append((tag, J, bd, p))
+        print(f"\n{tag}\n  J = {J:.4f}  (J_A {bd['A']['J']:.4f}  J_C {bd['C']['J']:.4f}  "
+              f"densN {bd['C']['lossN']:.4f} diamD {bd['C']['lossD']:.4f})")
+        for k, v in p.items():
+            print(f"   {k:<11} = {v:.5g}")
+        cloop_table(dict(OPT, **p), tag)
+
+    print("\n" + "=" * 72)
+    print(f"{'set':<48}{'J':>8}{'J_A':>8}{'J_C':>8}")
+    print("-" * 72)
+    print(f"{'BASELINE (joint optimum, frozen)':<48}{J0:>8.4f}{bd0['A']['J']:>8.4f}{bd0['C']['J']:>8.4f}")
+    for tag, J, bd, p in results:
+        print(f"{tag:<48}{J:>8.4f}{bd['A']['J']:>8.4f}{bd['C']['J']:>8.4f}")
+    print("=" * 72)
+    print(f"a-loop J_A must stay ~{J_A_FROZEN:.4f} (frozen) — confirms a-loops undisturbed.")

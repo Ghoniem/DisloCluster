@@ -1148,6 +1148,58 @@ Note what `max_failed_nodes` does before reaching for it: it substitutes an
 **identity step**, freezing the point for that substep. It does not recover the
 point; it declares the march successful without it.
 
+### Refitting: the 0-D IS the march's slow step
+
+**There is no second implementation.** `rate_equations_core.h` is one templated
+function, instantiated for the residual (`double`) and the exact Jacobian
+(`Dual<N>`), and the march's slow step and a standalone 0-D run are the *same
+binary with the same switches*. The only difference is `freeze_mobile`: the
+march pins the mobile species to the fast solve's `C_M*(x)` and integrates 34
+equations per point; a standalone 0-D leaves them free and integrates all 38.
+So a parameter set fitted in 0-D is one the 3-D code runs term for term.
+
+Checked rather than asserted: the standalone 0-D at `loop_model=1, n_fam=9,
+emission_model=1, basal_chain=1, moments=1` gives `N_a/N_c = 0.029` against the
+200 nm march's interior `0.0293` — **1%**.
+
+```python
+from dislocluster_code.fitting import fit_cloops as F
+F.set_model(loop_model=1, n_fam=9, moments=1, emission_model=1,
+            variant_weights=(1/3, 1/3, 1/3))   # {} is the legacy model
+J, bd = F.objective_full(F.OPT, want_breakdown=True)
+```
+
+`MODEL` reaches `collect_solver_args`, and `to_legacy_layout` lumps the state by
+**habit** before the objective reads it — without that, `y[4]` is read as `CiL`
+when under `loop_model >= 1` it is the *basal* family, so `N_a` would be built
+from a basal density. `temperature_K` is taken from the case, never from
+`MODEL`, because the harness sweeps temperature.
+
+**One objective evaluation is 0.2–0.5 s** over 13 temperatures and 78
+experimental points (73 ⟨a⟩, 5 ⟨c⟩ from `Targets_A`/`Targets_C`), which is what
+makes a refit tractable. At the *unrefitted* reference parameters:
+
+| model | J | J_a | J_c |
+|---|---:|---:|---:|
+| legacy | 0.5333 | 0.4537 | 0.1279 |
+| self-consistent, 4 families | 0.5397 | 0.4185 | 0.1020 |
+| 9 families | 0.5375 | 0.4042 | 0.1330 |
+| + moments (step 5) | **0.4735** | 0.3456 | 0.1330 |
+| + emission (step 3) | 0.7790 | 0.4814 | **1.6166** |
+
+The second moment *improves* the fit with nothing refitted. Emission blows the
+⟨c⟩ term up by 12×, which is the same finding as the march's inverted `N_a/N_c`
+arriving independently — against experiment this time, not against a reference
+run.
+
+Two things about `fit_cloops` that made it unusable and are fixed: it took its
+freeze point from `ZrMicro/output/fit_*/optimal_parameters.csv` and raised
+`IndexError` at import when none existed (it now falls back to
+`calibration.REFERENCE_OVERRIDES`), and the baseline plus the whole subset
+search ran at **import**, so `import fit_cloops` spent ten minutes doing a
+backward elimination. Both script regions are behind `_RUN_AS_SCRIPT` now;
+running the file directly is unchanged.
+
 ### Study drivers
 
 | Module | Role |
