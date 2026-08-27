@@ -229,15 +229,15 @@
 \contentsline {paragraph}{The step in a coupled march.}{102}{section*.142}%
 \contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{103}{subsection.D.4}%
 \contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{103}{section*.143}%
-\contentsline {paragraph}{Step 7: the trigger.}{103}{section*.144}%
+\contentsline {paragraph}{Step 7: the trigger.}{104}{section*.144}%
 \contentsline {paragraph}{Step 8: the climb constructions.}{104}{section*.145}%
 \contentsline {paragraph}{Step 9: the smeared discrete sink.}{104}{section*.146}%
 \contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{104}{subsection.D.5}%
 \contentsline {paragraph}{Step 10: the continuum observables.}{104}{section*.147}%
-\contentsline {paragraph}{Step 11: the discrete observables.}{104}{section*.148}%
+\contentsline {paragraph}{Step 11: the discrete observables.}{105}{section*.148}%
 \contentsline {paragraph}{Step 12: the hybrid route.}{105}{section*.149}%
 \contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{105}{subsection.D.6}%
-\contentsline {paragraph}{Step 13: emission into the mobile field.}{105}{section*.150}%
+\contentsline {paragraph}{Step 13: emission into the mobile field.}{106}{section*.150}%
 \contentsline {paragraph}{Step 14: the anneal as a run mode.}{106}{section*.151}%
 \contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{106}{section*.152}%
 \contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{107}{section*.153}%

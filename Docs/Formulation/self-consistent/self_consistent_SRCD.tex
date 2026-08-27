@@ -8608,7 +8608,23 @@ and measured, and what remains is smaller and more specific than the phase
 heading suggests.
 
 \paragraph{Step 6: conversion with a drawn size and an elliptical outline.}
-\emph{Partly implemented.} The construction of \cref{sec:conversion} is in place
+\emph{Done, except the export.} The sizes are drawn from \cref{eq:quantile} and
+rescaled by \cref{eq:rescale}; the ellipse of
+\cref{eq:ellipseaxes,eq:ellipseaxesdir,eq:esize,eq:arclength} is built, and
+\cref{eq:fits} tests the refusal on its \emph{vertices}, so the shape reaches
+the geometry that decides what the domain keeps.
+
+\textbf{It does not reach dislocation dynamics.}
+\code{aLoopIndividualSpecification} carries one \code{loopRadii} and one
+\code{loopSides} per loop and no aspect ratio, so \code{write\_microstructure}
+can only emit a circle of the equal-area radius. Exporting the shape needs
+either a new field on that specification --- an aspect and a major-axis
+direction, which \code{aLoopGenerator} would then have to honour --- or writing
+explicit vertices instead of a radius. Until one of those exists the discrete
+population is elliptical everywhere except in the solver, which is the one place
+the shape would change an answer.
+
+\emph{What follows is the specification as it was written.} The construction of \cref{sec:conversion} is in place
 --- hull-restricted nodal volumes \cref{eq:mcvolumes}, counts and home nodes
 \cref{eq:lambda,eq:homenodes}, the conservation rescale \cref{eq:rescale}, the
 refusal test \cref{eq:fits} and the transfer ledger --- but it runs monodisperse
@@ -9065,7 +9081,7 @@ Step & Change & Regression & Status \\
 5 & Second moment $q^k_{sL}$ and log-normal closure &
     \code{moments}$=0$ & \textbf{done} \\
 6 & Discrete conversion: drawn sizes, elliptical outlines &
-    $e=0$, $\Delta_k=1$ & partial \\
+    $e=0$, $\Delta_k=1$ & \textbf{done} / export \\
 7 & The trigger: $\phi^\ast$ gate, hold, feasibility veto &
     transfer disarmed & \textbf{done} \\
 8 & Climb: boundary integral, and the \aloop{} ROM &
