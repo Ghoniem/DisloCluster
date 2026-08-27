@@ -156,6 +156,11 @@ def _ccol(k):
     return _MS + _NF + k
 
 
+def _qcol(k):
+    """Column of family ``k``'s second content moment (step 5)."""
+    return _MS + 2 * _NF + k
+
+
 # The three prismatic VACANCY variants (slots 4..6) share their interstitial
 # partners' habit plane and Burgers vector exactly -- `immobileSpeciesBurgers`
 # gives columns 4..6 the same lattice directions as 1..3 -- and differ only in
@@ -168,23 +173,27 @@ def _ccol(k):
 # planar loop would hand dislocation dynamics a defect that does not exist.
 FAMILIES = [
     dict(key="c",  label="<c>",   ncol=_ncol(0), ccol=_ccol(0),
-         b_lattice=(0.0, 0.0, 1.0),
+         qcol=_qcol(0),
+         b_lattice=(0.0, 0.0, 1.0), prismatic=False,
          b_cd=0.7972136, b_dd=0.7972136, plane_id=0,  vacancy=1,
          sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
          d_plane=1.5944272, color="#1f4fbf", b_label="1/2[0001]",
          b_tex=r"$\frac{1}{2}[0001]$"),
     dict(key="a1", label="<a>1",  ncol=_ncol(1), ccol=_ccol(1),
-         b_lattice=(1.0, 0.0, 0.0),
+         qcol=_qcol(1),
+         b_lattice=(1.0, 0.0, 0.0), prismatic=True,
          b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#c62828", b_label="1/3[2-1-10]",
          b_tex=r"$\frac{1}{3}[2\bar{1}\bar{1}0]$"),
     dict(key="a2", label="<a>2",  ncol=_ncol(2), ccol=_ccol(2),
-         b_lattice=(0.0, 1.0, 0.0),
+         qcol=_qcol(2),
+         b_lattice=(0.0, 1.0, 0.0), prismatic=True,
          b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#2e7d32", b_label="1/3[11-20]",
          b_tex=r"$\frac{1}{3}[11\bar{2}0]$"),
     dict(key="a3", label="<a>3",  ncol=_ncol(3), ccol=_ccol(3),
-         b_lattice=(-1.0, 1.0, 0.0),
+         qcol=_qcol(3),
+         b_lattice=(-1.0, 1.0, 0.0), prismatic=True,
          b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#e6b800", b_label="1/3[-12-10]",
          b_tex=r"$\frac{1}{3}[\bar{1}2\bar{1}0]$"),
@@ -192,22 +201,26 @@ FAMILIES = [
 if _NF >= 8:
     FAMILIES += [
         dict(key="a1v", label="<a>1v", ncol=_ncol(4), ccol=_ccol(4),
-             b_lattice=(1.0, 0.0, 0.0),
+         qcol=_qcol(4),
+             b_lattice=(1.0, 0.0, 0.0), prismatic=True,
              b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=1, sides=16, dd_sides=16,
              d_plane=0.8660254, color="#00838f", b_label="1/3[2-1-10]",
              b_tex=r"$\frac{1}{3}[2\bar{1}\bar{1}0]$"),
         dict(key="a2v", label="<a>2v", ncol=_ncol(5), ccol=_ccol(5),
-             b_lattice=(0.0, 1.0, 0.0),
+         qcol=_qcol(5),
+             b_lattice=(0.0, 1.0, 0.0), prismatic=True,
              b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=1, sides=16, dd_sides=16,
              d_plane=0.8660254, color="#00695c", b_label="1/3[11-20]",
              b_tex=r"$\frac{1}{3}[11\bar{2}0]$"),
         dict(key="a3v", label="<a>3v", ncol=_ncol(6), ccol=_ccol(6),
-             b_lattice=(-1.0, 1.0, 0.0),
+         qcol=_qcol(6),
+             b_lattice=(-1.0, 1.0, 0.0), prismatic=True,
              b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=1, sides=16, dd_sides=16,
              d_plane=0.8660254, color="#6a1b9a", b_label="1/3[-12-10]",
              b_tex=r"$\frac{1}{3}[\bar{1}2\bar{1}0]$"),
         dict(key="cp", label="<c>p", ncol=_ncol(7), ccol=_ccol(7),
-             b_lattice=(0.0, 0.0, 1.0),
+         qcol=_qcol(7),
+             b_lattice=(0.0, 0.0, 1.0), prismatic=False,
              b_cd=0.7972136, b_dd=0.7972136, plane_id=0, vacancy=1,
              sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
              d_plane=1.5944272, color="#4527a0", b_label="1/2[0001]",
@@ -281,8 +294,85 @@ class LoopPopulation:
         return self.total_area * self.fam["b_dd"] / OMEGA_B3
 
 
+def quantile_sizes(mbar, delta, n_draw, m_min=0.0):
+    """Eq. (quantile): ``n_draw`` stratified draws from the node's log-normal.
+
+    ``mbar`` is the node's mean content per loop and ``delta`` its dispersion
+    ``q n / c^2``; the log-normal parameters follow from Eq. (closure) as
+    ``s = sqrt(ln delta)``, ``mu = ln mbar - s^2/2``.
+
+    STRATIFIED, NOT INDEPENDENT. Independent draws are right in expectation and
+    noisy, and N_j is often a handful of loops per node, so the noise is the
+    signal. Placing the draws at the quantile midpoints removes it
+    deterministically and reproduces the intended distribution to the midpoint
+    rule's O(N^-2) instead of an independent draw's O(N^-1/2).
+
+    The floor is applied by mapping the quantiles onto the TRUNCATED support
+    rather than by rejecting and redrawing. The two describe the same
+    distribution -- the log-normal truncated at ``m_min``, which is the same
+    truncation the floor current of Eq. (floorcurrent) acts on, and they must
+    agree or the transfer will not conserve what the family holds -- but
+    rejection reintroduces exactly the sampling noise stratification exists to
+    remove, and with a deterministic rule there is nothing to redraw WITH.
+
+    At ``delta <= 1`` this returns ``n_draw`` copies of ``mbar``: a delta
+    function has no quantiles to spread over, and that is the monodisperse
+    conversion the module performed before step 5, recovered exactly rather
+    than approximately.
+    """
+    from scipy.special import erfinv, erf
+    n_draw = int(n_draw)
+    if n_draw <= 0:
+        return np.zeros(0)
+    if not np.isfinite(delta) or delta <= 1.0 or mbar <= 0.0:
+        return np.full(n_draw, float(mbar))
+    s = np.sqrt(np.log(delta))
+    mu = np.log(mbar) - 0.5 * s * s
+    # Uniform midpoints, then shifted onto the truncated support.
+    u = (2.0 * np.arange(1, n_draw + 1) - 1.0) / (2.0 * n_draw)
+    if m_min > 0.0:
+        z0 = (np.log(m_min) - mu) / s
+        p0 = 0.5 * (1.0 + erf(z0 / np.sqrt(2.0)))
+        if p0 >= 1.0 - 1e-12:          # the whole family is below the floor
+            return np.full(n_draw, float(mbar))
+        u = p0 + u * (1.0 - p0)
+    z = np.sqrt(2.0) * erfinv(2.0 * u - 1.0)
+    return np.exp(mu + s * z)
+
+
+def rescale_sample(m, mbar, delta):
+    """Eq. (rescale): restore the target mean size AND dispersion exactly.
+
+    ``m -> alpha m^beta`` with ``beta = s/s_hat`` and ``ln alpha = mu -
+    beta*mu_hat`` is the log-normal family's OWN two-parameter group: ln m is
+    affine in ln m_l, so the rescaled sample is log-normal with exactly the
+    target mu and s. A Gaussian admits no such map -- a multiplicative rescale
+    changes its variance and an additive one its mean -- which is the third
+    place the choice of log-normal pays for itself.
+
+    A final multiplicative pass then makes ``sum(m)`` equal ``n_draw*mbar`` to
+    machine precision. THAT PASS CANNOT DISTURB THE DISPERSION: evaluated on a
+    sample, ``delta = N sum(m^2)/(sum m)^2`` is invariant under ``m -> alpha m``.
+    """
+    m = np.asarray(m, dtype=float)
+    if m.size == 0:
+        return m
+    target = float(m.size) * float(mbar)
+    if m.size > 1 and np.isfinite(delta) and delta > 1.0:
+        lm = np.log(m)
+        s_hat = lm.std(ddof=0)
+        if s_hat > 0.0:
+            s = np.sqrt(np.log(delta))
+            mu = np.log(mbar) - 0.5 * s * s
+            beta = s / s_hat
+            m = np.exp((mu - beta * lm.mean()) + beta * lm)
+    tot = m.sum()
+    return m * (target / tot) if tot > 0.0 else m
+
+
 def sample_family(nodes, F, weights, box_volume, fam, mask=None, rng=None,
-                  b_source="dd", positions="field", box=None, faces=None):
+                  b_source="dd", positions="field", box=None, faces=None,
+                  polydisperse=True, m_min=0.0):
     """Draw the discrete loops of one family from its continuum fields.
 
     The count is not a parameter: it is ``sum_j n_j V_j`` over the selected
@@ -314,7 +404,18 @@ def sample_family(nodes, F, weights, box_volume, fam, mask=None, rng=None,
     bmag = fam["b_dd"] if b_source == "dd" else fam["b_cd"]
     m = np.zeros_like(n)
     m[ok] = c[ok] / (n[ok] * OMEGA_B3)
-    r_node = np.sqrt(np.maximum(m, 0.0) * OMEGA_B3 / (np.pi * bmag))
+
+    # Step 6: the DISPERSION of each node's size distribution, from the second
+    # moment step 5 carries. Note the omega, for the same reason ImmobileSinks
+    # needs one -- the CD block holds n per b^3 and c as an atom fraction, so
+    # q n / c^2 is not unit-free here.
+    delta = np.ones_like(n)
+    qcol = fam.get("qcol")
+    if polydisperse and qcol is not None and qcol < F.shape[1]:
+        q = F[:, qcol].astype(float)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            d = q * n * OMEGA_B3 / (c * c)
+        delta = np.where(ok & np.isfinite(d) & (d > 1.0), d, 1.0)
 
     # Deterministic count, stochastic placement: round the expectation rather
     # than drawing Poisson, so repeated calls at the same dose give the same
@@ -362,7 +463,26 @@ def sample_family(nodes, F, weights, box_volume, fam, mask=None, rng=None,
         jitter = 0.5 * dnn[:, 1][:, None] * (rng.random((n_draw, 3)) - 0.5)
         centers = nodes[idx] + jitter
 
-    return LoopPopulation(fam, centers, r_node[idx])
+    # ── the sizes ───────────────────────────────────────────────────────────
+    # EVERY LOOP AT A NODE IS DRAWN FROM THAT NODE'S DISTRIBUTION, NOT SET TO
+    # ITS MEAN. With two moments there was no distribution to draw from and
+    # every loop at a node was identical; the population that produced was
+    # monodisperse by construction -- visible in any exported size histogram,
+    # and wrong in a way no amount of spatial sampling could repair.
+    #
+    # The draw is per node, because mu and s are, and the conservation rescale
+    # is per node too: it restores that node's mean size exactly, so the total
+    # content is still sum_j N_j mbar_j and the global pass that follows has
+    # only the count rounding left to remove.
+    m_loop = np.empty(n_draw, dtype=float)
+    order = np.argsort(idx, kind="stable")
+    js, starts = np.unique(idx[order], return_index=True)
+    for a, j in zip(np.split(order, starts[1:]), js):
+        m_loop[a] = rescale_sample(
+            quantile_sizes(m[j], delta[j], a.size, m_min), m[j], delta[j])
+
+    r_loop = np.sqrt(np.maximum(m_loop, 0.0) * OMEGA_B3 / (np.pi * bmag))
+    return LoopPopulation(fam, centers, r_loop)
 
 
 # ── coalescence ──────────────────────────────────────────────────────────────
@@ -541,6 +661,98 @@ def write_microstructure(pops, out_file, box_shift=None, sides_key="dd_sides"):
     return len(plane)
 
 
+#: Saturating ellipticity, Eq. (esize). ``e_inf`` is the large-size limit and
+#: differs by CHARACTER -- the one place in the whole conversion the two
+#: prismatic characters are treated differently -- while ``R_e`` is a single
+#: length setting where the saturation sets in.
+#:
+#: R_E IS NOT FITTED. The formulation asks for one length fitted to the measured
+#: e(d) trend and no such fit exists here, so 5 nm is a stated placeholder,
+#: chosen only so that loops of a few nm come out near-circular and loops of
+#: tens of nm near the limit. Ellipticity does not move the stored defects --
+#: Eq. (ellipseaxes) is equal-area by construction -- so a wrong R_e changes
+#: the drawn shape and the refusal geometry and nothing else.
+E_INF_INTERSTITIAL = 0.1
+E_INF_VACANCY = 0.4
+R_E_B = 5.0e-9 / 3.23e-10          # [b]
+
+
+def ellipticity(fam, r_area):
+    """Eq. (esize): the size-dependent ellipticity of one loop, 0 for basal.
+
+    BASAL FAMILIES ARE CIRCULAR AND MUST STAY SO. The sixfold symmetry of
+    (0001) leaves no preferred in-plane direction, [0001] is their normal
+    rather than an in-plane axis, and the prismatic aspect ratios must not be
+    transferred to them. A basal loop is drawn circular unless a
+    symmetry-breaking field is modelled explicitly.
+    """
+    if not fam.get("prismatic", False):
+        return np.zeros_like(np.asarray(r_area, dtype=float))
+    e_inf = E_INF_VACANCY if fam["vacancy"] else E_INF_INTERSTITIAL
+    r = np.asarray(r_area, dtype=float)
+    return e_inf * r / (r + R_E_B)
+
+
+def ellipse_axes(fam, r_area):
+    """Eq. (ellipseaxes): equal-area semi-axes ``(A, B)``, A along [0001].
+
+    ``A*B = R^2`` exactly, so ELLIPTICITY LEAVES THE STORED DEFECTS UNTOUCHED:
+    ``pi A B (b.n)/Omega = m`` whatever ``e`` is. The shape is free precisely
+    because the area is not.
+    """
+    r = np.asarray(r_area, dtype=float)
+    rho = 1.0 - ellipticity(fam, r)
+    return r / np.sqrt(rho), r * np.sqrt(rho)
+
+
+def ellipse_perimeter(fam, r_area):
+    """Eq. (arclength)'s ``P = 4 A E(1-rho^2)``, the drawn line length."""
+    from scipy.special import ellipe
+    A, B = ellipse_axes(fam, r_area)
+    rho = np.where(A > 0, B / A, 1.0)
+    return 4.0 * A * ellipe(1.0 - rho * rho)
+
+
+def _equal_arc_angles(rho, n_sides):
+    """Eq. (arclength): parametric angles at equal increments of ARC LENGTH.
+
+    EQUAL-ANGLE IS WRONG FOR AN ELLIPSE. It gives segments whose lengths differ
+    by up to A/B = 1/rho -- a factor 1.67 at e = 0.4 -- so the remesh splits and
+    merges unevenly around the loop and the line tension is misrepresented
+    exactly at the ends of the major axis, which is where the shape is.
+
+    Solved by Newton from the equal-angle guess; two or three steps, as the
+    formulation says, and the residual is reported by the step-6 acceptance.
+    """
+    from scipy.special import ellipeinc, ellipe
+    m = 1.0 - rho * rho
+    if m <= 1e-14:
+        return np.arange(n_sides) * 2.0 * np.pi / n_sides
+    Em = ellipe(m)
+    # THE STANDARD INTEGRAL MEASURES FROM THE MINOR AXIS, and the polygon below
+    # starts on the MAJOR one. For the point (A cos t, B sin t) the arc length
+    # from t = 0 is A * int_0^theta sqrt(1 - m cos^2 t) dt, which carries a
+    # COSINE where E(phi|m) carries a sine -- so it is not E(theta|m) at all.
+    # Substituting t -> pi/2 - tau turns it into
+    #     s(theta) = A [ E(m) - E(pi/2 - theta | m) ],
+    # and equal arc increments s = nu P / n with P = 4 A E(m) give
+    #     E(phi | m) = E(m) (1 - 4 nu / n),      theta = pi/2 - phi.
+    # Inverting E(theta|m) directly instead is a different curve's spacing: it
+    # measured 1.44 in segment-length spread at e = 0.4, worse than the
+    # equal-angle 0.66 it was supposed to improve on.
+    nu = np.arange(n_sides)
+    target = Em * (1.0 - 4.0 * nu / n_sides)
+    phi = 0.5 * np.pi - nu * 2.0 * np.pi / n_sides      # equal-angle guess
+    for _ in range(60):
+        f = ellipeinc(phi, m) - target
+        df = np.sqrt(1.0 - m * np.sin(phi) ** 2)
+        step = f / np.maximum(df, 1e-30)
+        phi = phi - step
+        if np.max(np.abs(step)) < 1e-14:
+            break
+    return 0.5 * np.pi - phi
+
+
 def loop_polygon(fam, center, r_area, in_plane_ref=None):
     """Vertices of one loop, closed, in units of b.
 
@@ -556,6 +768,24 @@ def loop_polygon(fam, center, r_area, in_plane_ref=None):
     n_sides = int(fam["sides"])
     _, n_hat = family_geometry(fam)
     R = polygon_circumradius(r_area, n_sides)
+
+    e = float(np.asarray(ellipticity(fam, r_area)).reshape(-1)[0])
+    if e > 0.0:
+        # ORIENTATION IS FIXED BY THE HABIT PLANE, NOT CHOSEN, Eq.
+        # (ellipseaxesdir): the major axis is [0001] and the minor is
+        # n_hat x [0001]. Both are exact unit vectors of the lattice and the
+        # major lies IN the plane for every prismatic variant, so no projection
+        # is needed -- but it is orthonormalized anyway, because a habit normal
+        # read from a material file is only as exact as that file.
+        u = np.array([0.0, 0.0, 1.0])
+        u = u - n_hat * float(n_hat @ u)
+        u /= np.linalg.norm(u)
+        v = np.cross(n_hat, u)
+        rho = 1.0 - e
+        A, B = R / np.sqrt(rho), R * np.sqrt(rho)
+        th = _equal_arc_angles(rho, n_sides)
+        return center[None, :] + (A * np.cos(th)[:, None] * u[None, :]
+                                  + B * np.sin(th)[:, None] * v[None, :])
 
     # In-plane frame. The starting vertex is placed along the a1 direction. It
     # mattered while <c> was a hexagon, whose edges then ran along <10-10> as
