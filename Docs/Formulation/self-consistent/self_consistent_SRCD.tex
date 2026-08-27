@@ -2546,6 +2546,51 @@ $\dot q^k_{sL}=\Pi^k_{sL}\Sigma^{\mathrm{gro}}_k\Delta_k^{-1/8}>0$: the
 distribution keeps broadening at fixed mean size and fixed number. There is no
 value of the two carried fields that expresses that.
 
+\paragraph{\Cref{eq:qdot} is incomplete, and the missing channel is the
+dominant one.} It lists the Fokker--Planck part, nucleation, the floor current
+and the transfers --- but the density and content equations also carry
+\emph{annealing} and \emph{coalescence}, and a moment that ignores a channel the
+other two moments obey does not stay a moment. Coalescence is the one that
+matters, because it carries $98\%$ of the loop-number loss. It must be written
+with care and it is easy to write backwards:
+
+\begin{quote}
+\textbf{A coalescing loop does not leave the family.} It \emph{merges}, so its
+defects stay and only $\dot c^k_{sL}|_{\mathrm{coal}}$ is genuinely lost. Fewer
+loops holding the same content are \emph{larger} loops, so coalescence
+\textbf{raises} the second moment. Debiting $\dot q$ by
+$\langle m^2\rangle$ per departing loop --- the natural-looking reading, and the
+one first implemented --- has the sign inverted on the largest single term in the
+equation.
+\end{quote}
+
+Neither channel carries a distribution of its own, so both are closed
+\emph{shape-preserving}: from $q=\Delta_k c^2/n$, a channel moving $(n,c)$ by
+$(\mathrm dn,\mathrm dc)$ at fixed $\Delta_k$ moves $q$ by
+\begin{equation}
+  \mathrm dq=\Delta_k\left(2\bar m^k_{sL}\,\mathrm dc
+    -\bigl(\bar m^k_{sL}\bigr)^{2}\mathrm dn\right),
+  \label{eq:shapepreserving}
+\end{equation}
+which for coalescence at conserved content integrates to $q\propto1/n$ exactly.
+It is a conservative closure --- merging really broadens a distribution, so the
+true dispersion grows faster than this --- but it is what keeps the moment set
+inside $\Delta_k\ge1$. Written with the inverted sign instead, $q$ crosses zero
+at $1$\,dpa on the $200$\,nm demonstration march and is negative on $40\%$ of
+the $c_p$ nodes by $10$\,dpa.
+
+\textbf{One channel cannot be made consistent at all, and it is worth saying
+why.} The pre-\cref{sec:emission} annealing surrogate removes loops at rate
+$1/\tau$ while debiting content at the \emph{fixed} size $n^{\mathrm{nuc}}_{vL}$,
+so the pair it declares is a removed sub-population of mean $M\ne\bar m^k_{sL}$.
+Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
+Cauchy--Schwarz permits for the removed part --- lowers $\Delta_k$ by
+$a\,(M/\bar m^k_{sL}-1)^2$ on a narrow family. \emph{No} debit keeps the triple
+realizable, because the surrogate is removing loops of a size that is not there.
+That is one more argument for the peripheral-emission channel of
+\cref{eq:Semit}: it deletes the lifetimes outright, and step~3 precedes step~5
+for exactly this kind of reason.
+
 
 \paragraph{Log-normal closure, and the one exponent it produces.} Close
 \cref{eq:qdot} by taking $f_k$ log-normal in $m$,
@@ -8292,8 +8337,18 @@ ripens unconditionally. The pair of cases is specified as
 pair is needed rather than either case is that the two differ only in what
 \emph{else} is in the cell.
 
-\paragraph{Five things executing step 5 corrected, and one measurement.} The
-first is a sign in this document. \Cref{eq:floorcurrent} is written
+\paragraph{Six things executing step 5 corrected, and one measurement.} The
+first is the largest and is recorded where it belongs, beside \cref{eq:qdot}:
+\textbf{that equation omits the coalescence and annealing channels the other two
+moments carry}, and coalescence is $98\%$ of the loop-number loss. Written the
+natural-looking way --- debiting $\dot q$ by $\langle m^2\rangle$ per departing
+loop --- the sign is inverted, because a coalescing loop \emph{merges} rather
+than leaving, so its defects stay and the second moment must \emph{rise}. With
+the inverted sign, $q$ crosses zero at $1$\,dpa on the demonstration march and
+is negative on $40\%$ of the $c_p$ nodes by $10$\,dpa. Both channels are closed
+shape-preserving, \cref{eq:shapepreserving}.
+
+The second is a sign in this document too. \Cref{eq:floorcurrent} is written
 $D\,\partial_m f+(\partial_m D-F)f$, which is \emph{minus} the Fokker--Planck
 flux in $+m$ --- that is, it is \emph{already} the outflow through the floor and
 must be subtracted from the moments as it stands. Reading it as the flux and
@@ -8301,7 +8356,7 @@ negating it removes loops only when they are \emph{arriving} from below, where
 there is nothing to arrive from, so $\Phi^k_{\min}$ measured identically zero at
 every $\Delta_k$ and goal~(iv) passed for the wrong reason.
 
-The second is that goal~(iv)'s \emph{exponentially} is literal rather than
+The third is that goal~(iv)'s \emph{exponentially} is literal rather than
 rhetorical, and a test has to be written for it. At $\Delta_k=1.001$ the floor
 sits $94$ standard deviations into the lower tail, $\exp(-94^2/2)$ underflows,
 and the current is exactly $0.0$ in double precision --- so a criterion
@@ -8310,7 +8365,7 @@ sequence over $\Delta_k=1.001,1.05,1.5,4$ is $0$, $0$, $5.0\times10^{-27}$,
 $4.8\times10^{-24}$, and \emph{non-decreasing, vanishing at the left end} is the
 statement the formulation actually makes.
 
-The third is a spelling. Every family count in the $3$-D code was written as
+The fourth is a spelling. Every family count in the $3$-D code was written as
 $\texttt{iSize}/2$, correct only while there were two fields per family; the
 third moment makes it $13$ by integer division and every per-family loop then
 runs off the end of its array. \texttt{iFam} and \texttt{iMom} are now named
@@ -8320,7 +8375,7 @@ components stay where they were and an \texttt{evl} written before this step
 widens into it with $q=0$, which reads back as $\Delta_k=1$: the monodisperse
 limit those runs were computed in.
 
-The fourth is that $\Delta_k$ is \emph{not} $qn/c^2$ on the $3$-D side. The
+The fifth is that $\Delta_k$ is \emph{not} $qn/c^2$ on the $3$-D side. The
 $0$-D carries all three moments per atom, so the ratio is unit-free there; the
 CD block carries the number per $b^3$ and the content as an atom fraction, which
 is why MoDELib spells the mean size $\mathrm{CI}/N/\omega$. Exactly one factor of
@@ -8328,7 +8383,7 @@ $\omega$ is therefore needed, and without it the dispersion --- and with it the
 $\Delta_k^{-1/8}$ correction, the one place the second moment enters the fast
 solve at all --- is a different number on the two sides of the coupling.
 
-The fifth is that three of the validation probes were under-driven, each in a way
+The sixth is that three of the validation probes were under-driven, each in a way
 that read as a failure of the step. Vacancies left at the concentration floor
 give no traffic at all, so every current measures zero; a prismatic family used
 for the spreading test has an equilibrium concentration four decades below the

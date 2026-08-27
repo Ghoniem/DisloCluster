@@ -463,7 +463,14 @@ def to_legacy_layout(Y, loop_model=0):
     # The PYRAMID (family 8) has no legacy slot and gets none. It is not a loop
     # -- no perimeter, no lambda sqrt(m) radius -- so a figure that reduces a
     # slot to a loop diameter would report a number that means nothing for it.
-    return out
+    #
+    # Truncated to the legacy 19. This function's whole promise is "a state in
+    # the layout the 0-D names address", and everything those names reach lives
+    # below 19 -- the four slots, the six accumulators and rho_N. Returning the
+    # appended families and the second moments as a tail would hand the 0-D
+    # post-processing a state it has no reading for, in the one place that
+    # exists to keep it from having to.
+    return out[:, :19] if out.shape[1] > 19 else out
 
 
 def run_loop_model(run_dir):
