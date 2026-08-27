@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  26 AUG 2026 18:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  26 AUG 2026 19:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1384,353 +1384,355 @@ s been already used, duplicate ignored
 l.1568       \end{equation}
                            ] [22] [23] [24] [25] [26] [27] [28] [29] [30]
 [31] [32] [33]
-Underfull \hbox (badness 10000) in paragraph at lines 2762--2762
+Underfull \hbox (badness 10000) in paragraph at lines 2824--2824
 []|\T1/lmr/m/n/9 Content-conserving by con-struc-tion,
  []
 
-[34
+[34] [35
 pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.2776 \end{equation}
-                     ] [35] [36] [37] [38] [39] [40] [41] [42
+l.2851 
+       ] [36] [37] [38] [39] [40] [41] [42
 pdfTeX warning (ext4): destination with the same identifier (name{table.6}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.3419 \end{enumerate}
-                      ] [43] [44
+l.3455 
+       ] [43] [44
 pdfTeX warning (ext4): destination with the same identifier (name{table.7}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.3602 
-       ] [45] [46] [47] [48] [49]
-Underfull \hbox (badness 10000) in paragraph at lines 4112--4112
+l.3633 
+       ] [45] [46] [47] [48] [49] [50]
+Underfull \hbox (badness 10000) in paragraph at lines 4174--4174
 \T1/lmr/m/n/9 shape free-dom is
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 4112--4112
+Underfull \hbox (badness 10000) in paragraph at lines 4174--4174
 \T1/lmr/m/n/9 contact, junc-tions
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 4112--4112
+Underfull \hbox (badness 10000) in paragraph at lines 4174--4174
 \T1/lmr/m/n/9 and non-elliptic
  []
 
-[50
+[51
 pdfTeX warning (ext4): destination with the same identifier (name{table.8}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4157 
-       ] [51] [52] [53] [54
+l.4234 \end{center}
+                   ] [52] [53] [54
 pdfTeX warning (ext4): destination with the same identifier (name{table.9}) has
  been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4486 
-       ] [55
+l.4495 \item \textbf
+                    {Size, not character, is what sets the magnitude.} The p...
+] [55] [56
 pdfTeX warning (ext4): destination with the same identifier (name{table.10}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4588 
-       ]
-<annealing_isolated_loops.png, id=1927, 910.602pt x 278.2395pt>
+l.4670 \paragraph
+                 {What comes out.} \Cref{fig:anneal-isolated} and]
+<annealing_isolated_loops.png, id=1939, 910.602pt x 278.2395pt>
 File: annealing_isolated_loops.png Graphic file (type png)
 <use annealing_isolated_loops.png>
-Package pdftex.def Info: annealing_isolated_loops.png  used on input line 4639.
+Package pdftex.def Info: annealing_isolated_loops.png  used on input line 4701.
 
 (pdftex.def)             Requested size: 443.57848pt x 135.53612pt.
- [56
+ [57
 pdfTeX warning (ext4): destination with the same identifier (name{table.11}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4689 \item \textbf
+l.4751 \item \textbf
                     {Both prismatic characters anneal, and the vacancy one g...
-] [57
+
 pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4739 \begin{equation}
-                        <./annealing_isolated_loops.png>]
-Overfull \hbox (4.44228pt too wide) detected at line 4749
+l.4751 \item \textbf
+                    {Both prismatic characters anneal, and the vacancy one g...
+ <./annealing_isolated_loops.png>]
+Overfull \hbox (4.44228pt too wide) detected at line 4811
 [][][][]\OMS/lmsy/m/n/10 r  ^^A  []\OML/lmm/b/it/10 D[]\OMS/lmsy/m/n/10 r\OML/l
 mm/m/it/10 c[][] \OT1/lmr/m/n/10 = 0 []\OML/lmm/m/it/10 r[];  []
  []
 
-[58] [59
+[58] [59]
+<annealing_isolated_greens.png, id=2047, 968.418pt x 295.94565pt>
+File: annealing_isolated_greens.png Graphic file (type png)
+<use annealing_isolated_greens.png>
+Package pdftex.def Info: annealing_isolated_greens.png  used on input line 5002
+.
+(pdftex.def)             Requested size: 443.57848pt x 135.55411pt.
+ [60
 pdfTeX warning (ext4): destination with the same identifier (name{table.12}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.4930 \end{center}
-                   ]
-<annealing_isolated_greens.png, id=2046, 968.418pt x 295.94565pt>
-File: annealing_isolated_greens.png Graphic file (type png)
-<use annealing_isolated_greens.png>
-Package pdftex.def Info: annealing_isolated_greens.png  used on input line 4940
-.
-(pdftex.def)             Requested size: 443.57848pt x 135.55411pt.
- [60
+l.5061 \item \textbf
+                    {\Cref{eq:romselfstress} has the two axis curvatures swa...
+] [61
 pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5022 \item \textbf
-                    {The two characters behave oppositely, and the exponenti...
- <./annealing_isolated_greens.png>]
-<annealing_loop_shape.png, id=2084, 968.418pt x 592.25266pt>
-File: annealing_loop_shape.png Graphic file (type png)
-<use annealing_loop_shape.png>
-Package pdftex.def Info: annealing_loop_shape.png  used on input line 5040.
-(pdftex.def)             Requested size: 443.57848pt x 271.27374pt.
- [61
+l.5061 \item \textbf
+                    {\Cref{eq:romselfstress} has the two axis curvatures swa...
+
 pdfTeX warning (ext4): destination with the same identifier (name{table.13}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5116 \item \textbf
-                    {The consequence is that the two elongation drives diver...
-] [62
+l.5061 \item \textbf
+                    {\Cref{eq:romselfstress} has the two axis curvatures swa...
+ <./annealing_isolated_greens.png>]
+<annealing_loop_shape.png, id=2092, 968.418pt x 592.25266pt>
+File: annealing_loop_shape.png Graphic file (type png)
+<use annealing_loop_shape.png>
+Package pdftex.def Info: annealing_loop_shape.png  used on input line 5102.
+(pdftex.def)             Requested size: 443.57848pt x 271.27374pt.
+ [62] [63
 pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5116 \item \textbf
-                    {The consequence is that the two elongation drives diver...
+l.5187 \item \textbf
+                    {Capillarity is \emph{not} the explanation, and this is ...
 
 pdfTeX warning (ext4): destination with the same identifier (name{table.14}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5116 \item \textbf
-                    {The consequence is that the two elongation drives diver...
- <./annealing_loop_shape.png>] [63] [64]
+l.5187 \item \textbf
+                    {Capillarity is \emph{not} the explanation, and this is ...
+ <./annealing_loop_shape.png>] [64] [65]
 
 Package natbib Warning: Author undefined for citation`ghoniem_thesis' 
-(natbib)                on page 65 on input line 5309.
+(natbib)                on page 66 on input line 5371.
 
-[65]
-<annealing_ladder.png, id=2181, 910.602pt x 390.258pt>
+<annealing_ladder.png, id=2182, 910.602pt x 390.258pt>
 File: annealing_ladder.png Graphic file (type png)
 <use annealing_ladder.png>
-Package pdftex.def Info: annealing_ladder.png  used on input line 5384.
+Package pdftex.def Info: annealing_ladder.png  used on input line 5446.
 (pdftex.def)             Requested size: 443.57848pt x 190.10262pt.
 
-
 Package natbib Warning: Author undefined for citation`ghoniem_thesis' 
-(natbib)                on page 66 on input line 5434.
+(natbib)                on page 66 on input line 5496.
 
-[66
+[66] [67
 pdfTeX warning (ext4): destination with the same identifier (name{figure.6}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5444 \item \textbf
-                    {The ambient is not a constant, because the microstructu...
+l.5500 \item \textbf
+                    {The separation between the two families is amplified, n...
 
 pdfTeX warning (ext4): destination with the same identifier (name{table.15}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5444 \item \textbf
-                    {The ambient is not a constant, because the microstructu...
+l.5500 \item \textbf
+                    {The separation between the two families is amplified, n...
  <./annealing_ladder.png>]
-<annealing_population_reference.png, id=2203, 1055.142pt x 317.988pt>
+<annealing_population_reference.png, id=2212, 1055.142pt x 317.988pt>
 File: annealing_population_reference.png Graphic file (type png)
 <use annealing_population_reference.png>
 Package pdftex.def Info: annealing_population_reference.png  used on input line
- 5460.
+ 5522.
 (pdftex.def)             Requested size: 443.57848pt x 133.68019pt.
- [67
+ [68
 pdfTeX warning (ext4): destination with the same identifier (name{figure.7}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5527 
+l.5574 
         <./annealing_population_reference.png>]
-<annealing_ripening.png, id=2231, 1084.05pt x 332.08064pt>
+<annealing_ripening.png, id=2240, 1084.05pt x 332.08064pt>
 File: annealing_ripening.png Graphic file (type png)
 <use annealing_ripening.png>
-Package pdftex.def Info: annealing_ripening.png  used on input line 5530.
+Package pdftex.def Info: annealing_ripening.png  used on input line 5592.
 (pdftex.def)             Requested size: 443.57848pt x 135.88031pt.
- [68
+ [69
 pdfTeX warning (ext4): destination with the same identifier (name{figure.8}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5584 \item \textbf
-                    {The distribution width is assumed.} The model carries o...
- <./annealing_ripening.png>]
+l.5640 \item \textbf
+                    {$\bar c_v$ is spatially uniform.} \Cref{eq:cbar} is a <./a
+nnealing_ripening.png>]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 5648.
- [69] [70]
-Underfull \hbox (badness 10000) in paragraph at lines 5780--5780
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 5710.
+ [70] [71]
+Underfull \hbox (badness 10000) in paragraph at lines 5842--5842
 []|\T1/lmr/m/n/9 neighbor re-absorption be-yond the
  []
 
-[71
+[72
 pdfTeX warning (ext4): destination with the same identifier (name{table.16}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.5837 
-       ] [72] [73] [74] [75
+l.5888 \end{equation}
+                     ] [73] [74] [75] [76
 pdfTeX warning (ext4): destination with the same identifier (name{table.17}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.6211 I
-        ts strength is that it is defined at every dose, including doses at ...
-] [76
+l.6238 
+       ] [77
 pdfTeX warning (ext4): destination with the same identifier (name{table.18}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.6283 \end{enumerate}
-                      ] [77] [78]
+l.6332       \item $
+                    \Upsilon_{h(k)}$, by comparing $\bm\beta^{P}_{\mathcal D...
+] [78] [79]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 6443.
-
-
-Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 6443.
+(hyperref)                removing `math shift' on input line 6505.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 6443.
+(hyperref)                removing `superscript' on input line 6505.
 
-[79]
+
+Package hyperref Warning: Token not allowed in a PDF string (Unicode):
+(hyperref)                removing `math shift' on input line 6505.
+
+[80]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
-put line 6546.
- [80] [81]
+put line 6608.
+ [81] [82]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 6730.
+(Font)              <14.4> on input line 6792.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\langle' on input line 6730.
+(hyperref)                removing `\langle' on input line 6792.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\rangle' on input line 6730.
+(hyperref)                removing `\rangle' on input line 6792.
 
-[82] [83] [84] [85]
-Underfull \hbox (badness 2035) in paragraph at lines 7196--7196
+[83] [84] [85] [86]
+Underfull \hbox (badness 2035) in paragraph at lines 7258--7258
 []|\T1/lmr/m/n/9 Approximately $\OT1/lmr/m/n/9 2\OML/lmm/m/it/9 =\OT1/lmr/m/n/9
  3$ \T1/lmr/m/n/9 va-cancy and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7196--7196
+Underfull \hbox (badness 10000) in paragraph at lines 7258--7258
 []|\T1/lmr/m/n/9 Low-dose pop-u-la-tion pre-dom-i-
  []
 
-[86
+[87] [88
 pdfTeX warning (ext4): destination with the same identifier (name{table.19}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7217 \end{equation}
-                     ] [87] [88] [89]
-Underfull \hbox (badness 10000) in paragraph at lines 7588--7588
+l.7322 \end{equation}
+                     ] [89] [90] [91]
+Underfull \hbox (badness 10000) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 March-Rico and Wirth
  []
 
 
-Underfull \hbox (badness 8151) in paragraph at lines 7588--7588
+Underfull \hbox (badness 8151) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 Infinitesimal edge loop,
  []
 
 
-Underfull \hbox (badness 7981) in paragraph at lines 7588--7588
+Underfull \hbox (badness 7981) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 Explicit re-laxed atomic
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7588--7588
+Underfull \hbox (badness 10000) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 Saddle-point \T1/lmr/m/it/9 shape
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7588--7588
+Underfull \hbox (badness 10000) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 Defect--loop \T1/lmr/m/it/9 bind-ing
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7588--7588
+Underfull \hbox (badness 10000) in paragraph at lines 7650--7650
 []|\T1/lmr/m/n/9 Thermal-drift ra-dius
  []
 
-[90] [91
+[92
 pdfTeX warning (ext4): destination with the same identifier (name{table.20}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7678 A
-         direct atomistic test in $\alpha$-Zr would therefore need $E_g(\bm ...
-] [92] [93
+l.7682 
+       ] [93] [94
 pdfTeX warning (ext4): destination with the same identifier (name{table.21}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7853 \subsection
-                  {Mapping the rate coefficients between the two codes}]
+l.7858 \end{itemize}
+                    ]
 LaTeX Font Info:    Trying to load font information for T1+lmss on input line 7
-856.
+918.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmss.fd
 File: t1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-) [94
+) [95]
+[96
 pdfTeX warning (ext4): destination with the same identifier (name{table.22}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7937 \item \textbf
-                    {Atomic volume.} The polycrystal class returned] [95
+l.8026 \item \textbf
+                    {Units.} The minimum stable radius was compared in meter...
+] [97
 pdfTeX warning (ext4): destination with the same identifier (name{table.23}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.8007 
-       ] [96] [97] [98] [99] [100] [101] [102]
-Underfull \hbox (badness 3158) in paragraph at lines 8690--8690
+l.8096 \item \textbf
+                    {A vacancy-loop nucleation current on the prismatic fami...
+] [98] [99] [100] [101] [102] [103] [104]
+Underfull \hbox (badness 3158) in paragraph at lines 8813--8813
 []|\T1/lmr/m/n/9 periodic cube; the A1 state
  []
 
 
-Underfull \hbox (badness 1342) in paragraph at lines 8690--8690
+Underfull \hbox (badness 1342) in paragraph at lines 8813--8813
 []|\T1/lmr/m/n/9 that the trans-fer is in-vert-ible
  []
 
 
-Underfull \hbox (badness 1057) in paragraph at lines 8690--8690
+Underfull \hbox (badness 1057) in paragraph at lines 8813--8813
 \T1/lmr/m/n/9 tion into $\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 n; c; q\OT1/lmr/m/n/9 
 )$ \T1/lmr/m/n/9 re-cov-ers the
  []
 
 
-ignored: Infinite glue shrinkage found in box being split [103] [104]
-Underfull \hbox (badness 2547) in paragraph at lines 8816--8816
+ignored: Infinite glue shrinkage found in box being split [105] [106]
+Underfull \hbox (badness 2547) in paragraph at lines 8939--8939
 []|\T1/lmr/m/n/9 Size-distribution an-neal, both rep-re-sen-ta-tions ([][]Ta-
  []
 
-[105
+[107] (self_consistent_SRCD.bbl [108
 pdfTeX warning (ext4): destination with the same identifier (name{table.25}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.8837 \newpage
-               ] (self_consistent_SRCD.bbl [106] [107]) [108]
-(self_consistent_SRCD.aux)
+l.65 
+     ] [109]) [110] (self_consistent_SRCD.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -1739,13 +1741,13 @@ Package rerunfilecheck Info: File `self_consistent_SRCD.out' has not changed.
 (rerunfilecheck)             Checksum: 0D386D83DB922B1D040CC5CE68193C79;25123.
  ) 
 Here is how much of TeX's memory you used:
- 40188 strings out of 467691
- 851351 string characters out of 5414988
- 1286017 words of memory out of 5000000
- 67788 multiletter control sequences out of 15000+600000
+ 40195 strings out of 467691
+ 851448 string characters out of 5414988
+ 1287158 words of memory out of 5000000
+ 67790 multiletter control sequences out of 15000+600000
  763708 words of font info for 138 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,19n,96p,1512b,1296s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,19n,96p,1512b,1306s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
@@ -1787,9 +1789,9 @@ ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppDa
 ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Use
 rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm
 10.pfb>
-Output written on self_consistent_SRCD.pdf (108 pages, 3618294 bytes).
+Output written on self_consistent_SRCD.pdf (110 pages, 3628393 bytes).
 PDF statistics:
- 3533 PDF objects out of 3580 (max. 8388607)
- 803 named destinations out of 1000 (max. 500000)
+ 3556 PDF objects out of 3580 (max. 8388607)
+ 808 named destinations out of 1000 (max. 500000)
  952 words of extra memory for PDF output out of 10000 (max. 10000000)
 

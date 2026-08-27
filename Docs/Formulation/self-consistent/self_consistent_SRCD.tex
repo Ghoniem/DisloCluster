@@ -2597,7 +2597,7 @@ at $1$\,dpa on the $200$\,nm demonstration march and is negative on $40\%$ of
 the $c_p$ nodes by $10$\,dpa.
 
 \textbf{One channel cannot be made consistent at all, and it is worth saying
-why.} The pre-\cref{sec:emission} annealing surrogate removes loops at rate
+why.} The annealing surrogate that \cref{eq:Semit} replaces removes loops at rate
 $1/\tau$ while debiting content at the \emph{fixed} size $n^{\mathrm{nuc}}_{vL}$,
 so the pair it declares is a removed sub-population of mean $M\ne\bar m^k_{sL}$.
 Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
@@ -8444,25 +8444,39 @@ together, and two of them are visible in the state itself:
 \toprule
 family & $n$ [1/atom] & $c$ [1/atom] & $\bar m$ & $\Delta_k$ \\
 \midrule
-$c_f$      & $5.97\times10^{-7}$ & $7.24\times10^{-4}$ & $525.2$ & $1.206$ \\
-$a_{1..3}$ & $8.55\times10^{-8}$ & $4.01\times10^{-5}$ & $599.6$ & $1.398$ \\
-$a^v_{1..3}$ & $5.06\times10^{-8}$ & $1.77\times10^{-5}$ & $171.0$ & $1.635$ \\
-$c_p$      & $4.20\times10^{-8}$ & $9.09\times10^{-5}$ & $636.3$ & $1.109$ \\
-$c_0$      & $4.07\times10^{-7}$ & $1.43\times10^{-4}$ & $160.6$ & $1.437$ \\
+$c_f$        & $2.150\times10^{-6}$ & $5.909\times10^{-3}$ & $2748$  & $9.38$ \\
+$a_{1..3}$   & $4.791\times10^{-8}$ & $6.403\times10^{-5}$ & $1336$  & $2.95$ \\
+$a^v_{1..3}$ & $3.739\times10^{-8}$ & $4.839\times10^{-6}$ & $129.4$ & $2.64$ \\
+$c_p$        & $2.756\times10^{-6}$ & $1.003\times10^{-1}$ & $36397$ & $81.9$ \\
+$c_0$        & $3.911\times10^{-7}$ & $6.807\times10^{-5}$ & $174.1$ & $2.07$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Every $\Delta_k$ is strictly greater than $1$, so no family has collapsed back to
-the monodisperse limit --- relative widths $\sqrt{\Delta_k-1}$ of $0.33$ to
-$0.80$. And the gates are legible in two numbers rather than being taken on
-trust: $c_p$ has the LARGEST mean of any family, $636.3$ against the $525.2$ of
-the $c_f$ it is fed by, because $\Phi^{(1)}_{\mathrm{uf}}>\Phi^{(0)}_{\mathrm{uf}}$
-selects loops above the source mean at $m_{\mathrm{uf}}=400$; and it has the
-NARROWEST distribution, $\Delta=1.109$, because what it receives is a truncated
-tail rather than a whole population. The pyramid sits at $\bar m=160.6$ against
-its own threshold $m_{\mathrm{col}}=150$, so $\Phi_{\mathrm{col}}$ is a genuine
-fraction of the distribution and not saturated at either end.
+interior mean at $10$\,dpa, the innermost quartile by distance to a face. Every
+$\Delta_k$ is strictly greater than $1$ --- no family has collapsed back to the
+monodisperse limit --- and the bound holds far more strongly than at the means:
+over all $47\,828$ nodes, all nine doses and all nine families, some
+$3.4\times10^{6}$ triples, the \emph{minimum} $\Delta_k$ is $1.000000000$. That
+is the realizability statement of \cref{eq:closure} surviving a real march, and
+it is what the corrected coalescence closure buys: written the other way, $q$ is
+negative on $40\%$ of the $c_p$ nodes at this dose.
+
+The prismatic variants are the clean case. All three carry the same field, as
+they must at zero applied stress, and the interstitial and vacancy variants sit
+at $\bar m=1336$ and $129$ with $\Delta$ of $2.95$ and $2.64$ --- relative widths
+near $1.4$ and $1.3$, which is a genuinely broad distribution and not a
+perturbation about a mean.
+
+\textbf{The basal families say something else, and it is about the chain rather
+than about the numbers.} $c_p$ ends the march holding almost all of the stored
+basal content, at $\bar m=36397$ and $\Delta=82$. That is \cref{eq:NcpL} doing
+what it says: $c_p$ is terminal, coalescence is its only number loss, and with
+$\tau_{\mathrm{uf}}=3\times10^{6}$\,s against a $10^{8}$\,s run --- thirty
+$e$-foldings, and a placeholder --- everything upstream of it arrives and stays.
+\textbf{No basal loop density should be read off this run.} What the run does
+establish is that the mechanism is live end to end, and that the open question
+identified after \cref{eq:NcpL} is not academic.
 
 \subsection{Phase IV --- the discrete handoff}
 
