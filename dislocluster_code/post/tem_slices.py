@@ -218,8 +218,20 @@ LINE_NM = 2.0              # drawn width of a dislocation line, nm
 ARROW_NM = 13.0            # drawn length of a Burgers-vector marker, nm
 
 # Family labels in mathtext, so the panels read the same way as the titles.
-FAM_TEX = {"c": r"$\langle c\rangle$", "a1": r"$\langle a\rangle_1$",
-           "a2": r"$\langle a\rangle_2$", "a3": r"$\langle a\rangle_3$"}
+# One label per family the CD block carries -- NOT the four it carried before
+# steps 1 and 4. A missing key here raises at the very END of a report, after
+# the march and every other figure have already been paid for, which is exactly
+# where it was found. The lookup below is total as well, so a family added later
+# degrades to its own key instead of killing the run.
+FAM_TEX = {"c":   r"$\langle c\rangle_f$",
+           "a1":  r"$\langle a\rangle_1$",
+           "a2":  r"$\langle a\rangle_2$",
+           "a3":  r"$\langle a\rangle_3$",
+           "a1v": r"$\langle a\rangle_1^{v}$",
+           "a2v": r"$\langle a\rangle_2^{v}$",
+           "a3v": r"$\langle a\rangle_3^{v}$",
+           "cp":  r"$\langle c\rangle_p$",
+           "c0":  r"$\mathrm{pyr}$"}
 
 
 def view_frame(view):
@@ -428,7 +440,7 @@ def _burgers_key(fig, ax, e1, e2, counts):
                                          mutation_scale=13))
 
     handles = [plt.Line2D([], [], color=f["color"], lw=3.2,
-                          label=f"{FAM_TEX[f['key']]}  {f['b_tex']}"
+                          label=f"{FAM_TEX.get(f['key'], f['key'])}  {f['b_tex']}"
                                 f"   ({counts.get(f['key'], 0)})")
                for f in FAMILIES]
     leg = ax.legend(handles=handles, loc="upper right", fontsize=10,

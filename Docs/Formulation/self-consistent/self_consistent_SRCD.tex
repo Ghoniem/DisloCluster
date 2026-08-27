@@ -8266,6 +8266,66 @@ removed loops; and the climb threshold reproduces
 $\Sigma^\ast=(\partial E/\partial m)/\Omega=615.8\,$MPa, the family shrinking
 below it and growing above with no interstitial supply at all.
 
+\paragraph{And a consequence of this step that is not a test failure but is
+easy to mistake for one.} Goal~(iii) is stated as a virtue --- every density
+exactly constant --- and it is, as a test. In a \emph{driven} run it is a gap:
+\textbf{after step~3 no vacancy loop family has any direct number sink at all.}
+The lifetimes were it; peripheral emission replaces them on \emph{content} and
+never on number, because emission moves vacancies out of a loop and does not
+remove the loop. What is left is coalescence.
+
+Measured on one interior node of the $200$\,nm case, integrated $0\to10\,$dpa
+with the mobile species frozen, changing one switch at a time:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & $N_{\langle a\rangle}$ & $N_{\langle c\rangle}$ & ratio\\
+\midrule
+step 2 (\code{emission\_model}$=0$) & $1.04\times10^{-7}$ & $1.18\times10^{-8}$ & $8.83$\\
+step 3 (emission on)                & $5.51\times10^{-7}$ & $5.45\times10^{-7}$ & $1.01$\\
+steps 4--6 (chain on as well)       & $2.13\times10^{-7}$ & $1.14\times10^{-6}$ & $0.19$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+so step~3 alone raises $N_{\langle c\rangle}$ by $46\times$ and inverts a ratio
+that should be $\sim10$. \textbf{The basal chain is a minor contributor}, and
+$\varepsilon_{\mathrm{sfp}}$ is almost irrelevant --- two decades of it move
+$N_{\langle c\rangle}$ by $1.5\times$.
+
+\textbf{Coalescence is working, and it is doing the whole job.} Switching it off
+raises $N_{\langle a\rangle}$ by $371\times$ and $N_{\langle c\rangle}$ by
+$116\times$; multiplying every coefficient by $10$ lowers them by $7.5\times$ and
+$2.8\times$. The problem is not that the channel is absent but that its
+\cloop{} coefficients are the wrong size for the job it has just inherited:
+$c_{LL}$ and $c_{LN}$ read $0.162$ and $2.96$ for the basal families against
+$121$ and $1131$ for the prismatic ones, roughly $700\times$ smaller, because
+they were fitted in a model where $\tau_{cvL}$ removed the basal loops and they
+did not have to.
+
+\textbf{This gives the refit a testable prediction rather than a free
+parameter.} Scaling the two basal coefficients alone --- $N_{\langle a\rangle}$
+is insensitive to them to five digits, so the families decouple:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+scale on $c_{LL},c_{LN}$ (basal) & $1$ & $10$ & $100$ & $1000$\\
+$N_{\langle a\rangle}/N_{\langle c\rangle}$ & $0.19$ & $0.53$ & $1.37$ & $5.92$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Recovering the step-2 ratio needs a factor of order $10^{3}$, which lands the
+basal coefficients at $\sim160$ and $\sim2960$ --- within about $30\%$ of the
+prismatic values. That is a coincidence worth taking seriously: it says the
+basal coefficients were suppressed by exactly the amount $\tau_{cvL}$ was
+supplying, and that the geometric channel does not in fact distinguish the two
+habits by much. \textbf{If the refit lands anywhere else, the missing sink is
+physical and not a coefficient} --- and \cref{eq:NcpL}'s terminal $c_p$ is where
+to look first.
+
 \textbf{Two things about the probe, since the first two versions of it were
 wrong in ways that looked like physics.} A one-second window moves the content
 by $\sim10^{-12}$ of itself, below what the solver's printed output resolves, so

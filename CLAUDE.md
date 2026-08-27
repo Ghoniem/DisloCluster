@@ -736,6 +736,45 @@ so an inconsistent channel is precisely the one never exercised alongside the
 rest. Goal (vi) runs five successive steps with coalescence, nucleation,
 emission and the basal chain all live and reports the minimum `Δ` per family.
 
+### After step 3, coalescence is the ONLY sink on vacancy loop number
+
+`emission_model = 1` deletes `tau_avL`/`tau_cvL`, and peripheral emission
+replaces them on **content only** — emission moves vacancies out of a loop, it
+does not remove the loop. Step 3's own goal (iii) states this as a virtue ("every
+density exactly constant"), which it is *as a test*; in a driven run it is a gap.
+
+Measured on one interior node, 0 → 10 dpa, mobile frozen, one switch at a time:
+
+| | `N_a` | `N_c` | ratio |
+|---|---:|---:|---:|
+| step 2 (`emission_model=0`) | 1.04e-07 | 1.18e-08 | **8.83** |
+| step 3 (emission on) | 5.51e-07 | 5.45e-07 | 1.01 |
+| steps 4–6 (chain on too) | 2.13e-07 | 1.14e-06 | 0.19 |
+
+**⟨a⟩ should exceed ⟨c⟩ by about an order of magnitude, and step 3 alone
+inverts it** — `N_c` rises 46×. The basal chain is a minor contributor and
+`eps_sfp` is nearly irrelevant (two decades move `N_c` by 1.5×). If a run shows
+⟨c⟩ outnumbering ⟨a⟩, this is why; it is not the placeholders.
+
+**Coalescence is not broken — it is doing the whole job.** Switching it off
+raises `N_a` 371× and `N_c` 116×; ×10 on the coefficients lowers them 7.5× and
+2.8×. What is wrong is the *size* of the basal coefficients for the job they
+just inherited: `cLL`/`cLN` are **0.162 / 2.96** for basal against **121 / 1131**
+for prismatic — ~700× smaller, because they were fitted where `tau_cvL` removed
+the basal loops for them.
+
+**A testable prediction for the refit**, not a free parameter. Scaling the two
+basal coefficients alone (`N_a` is insensitive to five digits, so the families
+decouple):
+
+| scale | 1 | 10 | 100 | 1000 |
+|---|---:|---:|---:|---:|
+| `N_a/N_c` | 0.19 | 0.53 | 1.37 | 5.92 |
+
+Recovering the step-2 ratio needs ~10³, landing basal at ~160 / ~2960 — within
+30% of the prismatic values. **If the refit lands anywhere else, the missing sink
+is physical rather than a coefficient**, and `c_p` below is where to look.
+
 **`c_p` is a terminal population.** Coalescence is its only number loss — it
 cannot unfault further, has no dissolution lifetime, and peripheral emission
 acts on content and never on number. Under a sustained vacancy supply it is
