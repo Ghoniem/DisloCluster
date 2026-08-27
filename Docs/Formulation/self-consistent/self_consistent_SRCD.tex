@@ -4185,7 +4185,7 @@ population's sink strength to the continuum as a nodal field built from where th
 loops actually are:
 \begin{equation}
   k^{2}_{m,\mathcal D}(\bm x_j)
-   =\frac{1}{V_j}\sum_{\ell}Z_{sk,m}\,\varsigma^{\mathrm{sink}}_k\,
+   =\sum_{\ell}Z_{sk,m}\,\varsigma^{\mathrm{sink}}_k\,
      P_\ell\;W\!\left(\bm x_j-\bm x_\ell\right),
   \qquad
   \sum_j V_j\,W(\bm x_j-\bm x_\ell)=1,
@@ -4198,6 +4198,42 @@ $\max(h,L_s)$ --- \emph{not} narrower, by the resolution argument above.
 \cref{sec:refusal} removed the transferred family from it, so the mobile solve
 sees the transferred loops through the same channel as every other sink. It costs
 $O(N_{\mathrm{seg}})$ against the $O(N_{\mathrm{seg}}^{2})$ of \cref{eq:Kclimb}.
+
+\textbf{An earlier revision of \cref{eq:kdiscrete} carried a $1/V_j$ in front of
+the sum as well}, which divides by the nodal volume twice: the normalization
+$\sum_jV_jW=1$ already makes $W$ a density, so $\sum_\ell P_\ell W$ is a length
+per volume and hence a sink strength, and the extra factor leaves
+length/volume$^2$. Implementing it as printed made the population total come out
+low by exactly a factor of $V$. The two consistent readings --- a dimensionless
+allocation $\sum_jw_j=1$ followed by $k^2=(1/V_j)\sum_\ell P_\ell w$, or the
+density kernel above with no prefactor --- give the same field under $W=w/V_j$,
+which is what identifies this as a transcription slip rather than a choice.
+
+\textbf{The normalization must be imposed per loop, on the nodes actually within
+reach.} A kernel normalized once analytically leaks wherever the node cloud is
+irregular or truncated, and it is truncated at the surface --- which is precisely
+where the refused loops sit. Imposed loop by loop, the total is conserved on any
+node set: measured at $2\times10^{-16}$ relative, with $\sum_jV_jW-1$ below
+$6\times10^{-16}$ for loops in the interior, on a face, at a corner, and outside
+the domain alike.
+
+\textbf{And the gap it fills is now measured rather than argued.} Take a uniform
+population, refuse every loop within $150\,$b of a face --- so
+$f_{\mathrm{kept}}=0.346$ --- and compare the field the surviving loops actually
+make against the scalar $f_{\mathrm{kept}}$ applied to the whole domain. The two
+carry the \emph{same total} to four decimals, which is why the ledger of
+\cref{sec:transfer-ledger} closes on either; but the scalar route
+\textbf{overstates the sink in the shell by $3.90\times$ and understates it in
+the interior by $0.36\times$}. That is the spatial information the compensation
+discards, and it is a factor of eleven across the domain.
+
+\textbf{What remains of this step is the ingestion, not the field.}
+\code{ImmobileSinks} builds $k^2$ from the immobile field at the quadrature
+points and has no channel for an externally supplied nodal one. Adding it is a
+design decision --- a trial function of its own, or an equivalent $(n,c)$
+written back into the family's own slots, which would then also evolve as a
+continuum family and double-count the physics --- and it is deliberately left
+open rather than settled by whichever is easier to write.
 
 \textbf{Two things make this a real gap and not a refinement.} First, the two
 routes are not the same channel: $c^m_{\mathcal D}$ reaches the continuum problem
@@ -8976,7 +9012,7 @@ Step & Change & Regression & Status \\
 8 & Climb: boundary integral, and the \aloop{} ROM &
     no cutoff & \textbf{done} / module \\
 9 & Smeared discrete sink $k^{2}_{m,\mathcal D}$ &
-    no transferred population & --- \\
+    no transferred population & \textbf{done} / field \\
 10 & Continuum observables $\bm\beta^{P}$, $\Delta\tau$ &
     --- & partial \\
 11 & Discrete observables; measure $\Upsilon_{h(k)}$ &

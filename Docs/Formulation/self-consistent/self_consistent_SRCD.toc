@@ -98,30 +98,30 @@
 \contentsline {paragraph}{What $\Xi _k\lesssim 2$ does and does not say.}{50}{section*.62}%
 \contentsline {paragraph}{On the reference case both families are in the merged-halo regime.}{50}{section*.63}%
 \contentsline {paragraph}{The missing cell, and the spatial sink strength it needs.}{51}{section*.64}%
-\contentsline {paragraph}{The cost this buys.}{51}{section*.65}%
+\contentsline {paragraph}{The cost this buys.}{52}{section*.65}%
 \contentsline {paragraph}{The interface the split imposes.}{52}{section*.66}%
 \contentsline {subsection}{\numberline {3.18}Implementation status}{52}{subsection.3.18}%
-\contentsline {section}{\numberline {4}Thermal Annealing Simulations}{52}{section.4}%
+\contentsline {section}{\numberline {4}Thermal Annealing Simulations}{53}{section.4}%
 \contentsline {subsection}{\numberline {4.1}The binding energy per vacancy of the loop variants}{53}{subsection.4.1}%
 \contentsline {paragraph}{The energy of a loop under load.}{53}{section*.67}%
-\contentsline {paragraph}{The work to detach one defect.}{53}{section*.68}%
-\contentsline {paragraph}{Evaluated for the families.}{54}{section*.69}%
+\contentsline {paragraph}{The work to detach one defect.}{54}{section*.68}%
+\contentsline {paragraph}{Evaluated for the families.}{55}{section*.69}%
 \contentsline {subsection}{\numberline {4.2}Thermal emission from each family}{55}{subsection.4.2}%
-\contentsline {paragraph}{The capture efficiency is not the irradiation one.}{55}{section*.70}%
+\contentsline {paragraph}{The capture efficiency is not the irradiation one.}{56}{section*.70}%
 \contentsline {paragraph}{The implemented code does not yet use \cref {eq:Ebstress}.}{56}{section*.71}%
 \contentsline {subsection}{\numberline {4.3}An isolated basal loop: the faulted and the perfect state}{56}{subsection.4.3}%
 \contentsline {paragraph}{The calculation.}{56}{section*.72}%
-\contentsline {paragraph}{The parameters, and why these.}{56}{section*.73}%
+\contentsline {paragraph}{The parameters, and why these.}{57}{section*.73}%
 \contentsline {paragraph}{What comes out.}{57}{section*.74}%
 \contentsline {paragraph}{What the applied stress does to it.}{58}{section*.75}%
 \contentsline {paragraph}{Three limits of this calculation, which \cref {sec:anneal-discrete} exists to remove.}{58}{section*.76}%
 \contentsline {subsection}{\numberline {4.4}The same anneal by the boundary-integral Green's function}{58}{subsection.4.4}%
-\contentsline {paragraph}{The diffusion problem, written out.}{58}{section*.77}%
+\contentsline {paragraph}{The diffusion problem, written out.}{59}{section*.77}%
 \contentsline {paragraph}{What is held fixed, so that only the transport differs.}{59}{section*.78}%
 \contentsline {paragraph}{The kernel test, which has to come first.}{59}{section*.79}%
-\contentsline {paragraph}{$Z^{\mathrm {iso}}_k$ becomes an output, and is refitted.}{59}{section*.80}%
+\contentsline {paragraph}{$Z^{\mathrm {iso}}_k$ becomes an output, and is refitted.}{60}{section*.80}%
 \contentsline {paragraph}{What that does to \cref {fig:anneal-isolated} and \cref {tab:anneal-lifetime}.}{60}{section*.81}%
-\contentsline {paragraph}{The loop shape during shrinkage.}{60}{section*.82}%
+\contentsline {paragraph}{The loop shape during shrinkage.}{61}{section*.82}%
 \contentsline {paragraph}{Why the two shapes differ, and by how much.}{62}{section*.83}%
 \contentsline {paragraph}{Which capture-diffusivity closure, settled.}{64}{section*.84}%
 \contentsline {paragraph}{One further correction the comparison forces.}{65}{section*.85}%
@@ -137,7 +137,7 @@
 \contentsline {paragraph}{The setup.}{70}{section*.93}%
 \contentsline {paragraph}{The split is more comfortable here, not less.}{70}{section*.94}%
 \contentsline {paragraph}{The boundary condition is not a free choice.}{70}{section*.95}%
-\contentsline {paragraph}{Option 1: annealing through the growth equation.}{71}{section*.96}%
+\contentsline {paragraph}{Option 1: annealing through the growth equation.}{70}{section*.96}%
 \contentsline {paragraph}{Option 2: annealing through the Green's-function solve.}{71}{section*.97}%
 \contentsline {paragraph}{The selection rule runs backwards during an anneal, and that is the operational result.}{71}{section*.98}%
 \contentsline {paragraph}{Losing loops, and why this is the calibration experiment for \cref {sec:moments}.}{72}{section*.99}%
@@ -150,18 +150,18 @@
 \contentsline {paragraph}{Creep.}{74}{section*.104}%
 \contentsline {paragraph}{Where it enters the solver.}{74}{section*.105}%
 \contentsline {paragraph}{Hardening.}{74}{section*.106}%
-\contentsline {subsection}{\numberline {5.2}The discrete representation}{75}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.2}The discrete representation}{74}{subsection.5.2}%
 \contentsline {paragraph}{Growth and creep are measured, not modelled.}{75}{section*.107}%
 \contentsline {paragraph}{Hardening is measured by loading the cell.}{75}{section*.108}%
 \contentsline {paragraph}{Composing the two representations.}{75}{section*.109}%
-\contentsline {subsection}{\numberline {5.3}Mechanics observables options}{77}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.3}Mechanics observables options}{76}{subsection.5.3}%
 \contentsline {paragraph}{(1) Continuum.}{77}{section*.110}%
 \contentsline {paragraph}{(2) Discrete.}{77}{section*.111}%
 \contentsline {paragraph}{(3) Hybrid.}{77}{section*.112}%
 \contentsline {paragraph}{Which to use.}{78}{section*.113}%
 \contentsline {section}{\numberline {6}Solution Method: the Two-Time-Scale Operator Split}{78}{section.6}%
 \contentsline {subsection}{\numberline {6.1}Scale separation}{78}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Structure of the split}{79}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.2}Structure of the split}{78}{subsection.6.2}%
 \contentsline {subsection}{\numberline {6.3}The fast step}{79}{subsection.6.3}%
 \contentsline {paragraph}{The fast step must be inside the loop.}{79}{section*.114}%
 \contentsline {paragraph}{Both routes must share the fast step's solver settings.}{79}{section*.115}%
@@ -169,10 +169,10 @@
 \contentsline {subsection}{\numberline {6.4}The slow step, and why the mobile field must be frozen}{79}{subsection.6.4}%
 \contentsline {paragraph}{The integrator.}{80}{section*.117}%
 \contentsline {subsection}{\numberline {6.5}Why of order $10^{6}$ ODEs per substep is tractable}{80}{subsection.6.5}%
-\contentsline {subsection}{\numberline {6.6}Splitting error and its control}{81}{subsection.6.6}%
+\contentsline {subsection}{\numberline {6.6}Splitting error and its control}{80}{subsection.6.6}%
 \contentsline {subsection}{\numberline {6.7}The algorithm}{81}{subsection.6.7}%
 \contentsline {paragraph}{A point can fail the slow step, and where it fails is diagnostic.}{81}{section*.118}%
-\contentsline {paragraph}{Checkpointing has exactly one consistent point.}{82}{section*.119}%
+\contentsline {paragraph}{Checkpointing has exactly one consistent point.}{81}{section*.119}%
 \contentsline {paragraph}{The staged case is keyed on the domain, not on the run.}{82}{section*.120}%
 \contentsline {subsection}{\numberline {6.8}Conservation across the split, and the open-system balance}{82}{subsection.6.8}%
 \contentsline {paragraph}{An independent measurement of the same channel.}{82}{section*.121}%
@@ -190,58 +190,58 @@
 \contentsline {subsection}{\numberline {A.7}Experiments showing predominantly interstitial loops}{85}{subsection.A.7}%
 \contentsline {subsection}{\numberline {A.8}Influence of alloying and irradiation particle}{86}{subsection.A.8}%
 \contentsline {subsection}{\numberline {A.9}Modern quantitative ion-irradiation measurements}{86}{subsection.A.9}%
-\contentsline {subsection}{\numberline {A.10}Temperature dependence}{87}{subsection.A.10}%
+\contentsline {subsection}{\numberline {A.10}Temperature dependence}{86}{subsection.A.10}%
 \contentsline {subsection}{\numberline {A.11}Dependence on neutron fluence and local microstructure}{87}{subsection.A.11}%
 \contentsline {subsection}{\numberline {A.12}Summary of representative experimental observations}{87}{subsection.A.12}%
 \contentsline {subsection}{\numberline {A.13}Experimental conclusions}{87}{subsection.A.13}%
-\contentsline {subsection}{\numberline {A.14}Implication for microstructure-evolution models}{89}{subsection.A.14}%
-\contentsline {section}{\numberline {B}Point-defect capture bias of dislocation loops in zirconium}{89}{section.B}%
+\contentsline {subsection}{\numberline {A.14}Implication for microstructure-evolution models}{88}{subsection.A.14}%
+\contentsline {section}{\numberline {B}Point-defect capture bias of dislocation loops in zirconium}{88}{section.B}%
 \contentsline {paragraph}{Two bias conventions.}{89}{section*.125}%
-\contentsline {subsection}{\numberline {B.1}Woo (1981): the bias is calculable}{90}{subsection.B.1}%
+\contentsline {subsection}{\numberline {B.1}Woo (1981): the bias is calculable}{89}{subsection.B.1}%
 \contentsline {subsection}{\numberline {B.2}Woo (1982): what breaks the symmetry between characters}{90}{subsection.B.2}%
-\contentsline {subsection}{\numberline {B.3}March-Rico and Wirth (2023): the atomistic realization}{91}{subsection.B.3}%
-\contentsline {subsection}{\numberline {B.4}How the three fit together, and where they do not}{92}{subsection.B.4}%
-\contentsline {subsection}{\numberline {B.5}A unified formulation, and the calculation that would settle it}{93}{subsection.B.5}%
+\contentsline {subsection}{\numberline {B.3}March-Rico and Wirth (2023): the atomistic realization}{90}{subsection.B.3}%
+\contentsline {subsection}{\numberline {B.4}How the three fit together, and where they do not}{91}{subsection.B.4}%
+\contentsline {subsection}{\numberline {B.5}A unified formulation, and the calculation that would settle it}{92}{subsection.B.5}%
 \contentsline {subsection}{\numberline {B.6}Summary}{93}{subsection.B.6}%
-\contentsline {section}{\numberline {C}Current code structure}{94}{section.C}%
-\contentsline {subsection}{\numberline {C.1}The implemented family set, and the two loop models}{94}{subsection.C.1}%
-\contentsline {subsection}{\numberline {C.2}Immobile equations as implemented}{95}{subsection.C.2}%
+\contentsline {section}{\numberline {C}Current code structure}{93}{section.C}%
+\contentsline {subsection}{\numberline {C.1}The implemented family set, and the two loop models}{93}{subsection.C.1}%
+\contentsline {subsection}{\numberline {C.2}Immobile equations as implemented}{94}{subsection.C.2}%
 \contentsline {subsection}{\numberline {C.3}Mapping the rate coefficients between the two codes}{95}{subsection.C.3}%
-\contentsline {subsection}{\numberline {C.4}Changes made to the spatial code}{96}{subsection.C.4}%
+\contentsline {subsection}{\numberline {C.4}Changes made to the spatial code}{95}{subsection.C.4}%
 \contentsline {subparagraph}{Cluster transport.}{97}{section*.129}%
 \contentsline {subparagraph}{Loop sink convention.}{97}{section*.130}%
 \contentsline {subsection}{\numberline {C.5}Status of the expanded family set}{97}{subsection.C.5}%
-\contentsline {section}{\numberline {D}Code implementation plan}{98}{section.D}%
+\contentsline {section}{\numberline {D}Code implementation plan}{97}{section.D}%
 \contentsline {paragraph}{The ordering principle.}{98}{section*.131}%
 \contentsline {paragraph}{Two things executing Phase~I corrected in this plan.}{98}{section*.132}%
-\contentsline {paragraph}{Three assertions that must hold at every step.}{99}{section*.133}%
-\contentsline {subsection}{\numberline {D.1}Phase I --- the family set}{99}{subsection.D.1}%
-\contentsline {paragraph}{Step 0: lock the baseline.}{99}{section*.134}%
-\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{99}{section*.135}%
+\contentsline {paragraph}{Three assertions that must hold at every step.}{98}{section*.133}%
+\contentsline {subsection}{\numberline {D.1}Phase I --- the family set}{98}{subsection.D.1}%
+\contentsline {paragraph}{Step 0: lock the baseline.}{98}{section*.134}%
+\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{98}{section*.135}%
 \contentsline {paragraph}{Step 2: character-resolved capture.}{99}{section*.136}%
 \contentsline {subsection}{\numberline {D.2}Phase II --- thermal channels}{99}{subsection.D.2}%
 \contentsline {paragraph}{Step 3: peripheral emission replaces the lifetimes.}{99}{section*.137}%
-\contentsline {paragraph}{And a consequence of this step that is not a test failure but is easy to mistake for one.}{100}{section*.138}%
-\contentsline {paragraph}{Step 4: the basal chain.}{101}{section*.139}%
-\contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{101}{subsection.D.3}%
-\contentsline {paragraph}{Step 5: the second moment.}{101}{section*.140}%
+\contentsline {paragraph}{And a consequence of this step that is not a test failure but is easy to mistake for one.}{99}{section*.138}%
+\contentsline {paragraph}{Step 4: the basal chain.}{100}{section*.139}%
+\contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{100}{subsection.D.3}%
+\contentsline {paragraph}{Step 5: the second moment.}{100}{section*.140}%
 \contentsline {paragraph}{Six things executing step 5 corrected, and one measurement.}{101}{section*.141}%
 \contentsline {paragraph}{The step in a coupled march.}{102}{section*.142}%
-\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{103}{subsection.D.4}%
-\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{103}{section*.143}%
+\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{102}{subsection.D.4}%
+\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{102}{section*.143}%
 \contentsline {paragraph}{Step 7: the trigger.}{103}{section*.144}%
 \contentsline {paragraph}{Step 8: the climb constructions.}{103}{section*.145}%
-\contentsline {paragraph}{Step 9: the smeared discrete sink.}{104}{section*.146}%
-\contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{104}{subsection.D.5}%
+\contentsline {paragraph}{Step 9: the smeared discrete sink.}{103}{section*.146}%
+\contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{103}{subsection.D.5}%
 \contentsline {paragraph}{Step 10: the continuum observables.}{104}{section*.147}%
 \contentsline {paragraph}{Step 11: the discrete observables.}{104}{section*.148}%
 \contentsline {paragraph}{Step 12: the hybrid route.}{104}{section*.149}%
-\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{105}{subsection.D.6}%
-\contentsline {paragraph}{Step 13: emission into the mobile field.}{105}{section*.150}%
+\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{104}{subsection.D.6}%
+\contentsline {paragraph}{Step 13: emission into the mobile field.}{104}{section*.150}%
 \contentsline {paragraph}{Step 14: the anneal as a run mode.}{105}{section*.151}%
-\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{106}{section*.152}%
-\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{107}{section*.153}%
+\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{105}{section*.152}%
+\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{106}{section*.153}%
 \contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{107}{subsection.D.7}%
 \contentsline {paragraph}{Step 17: refit.}{107}{section*.154}%
-\contentsline {paragraph}{Step 18: performance.}{108}{section*.155}%
-\contentsline {subsection}{\numberline {D.8}Summary}{108}{subsection.D.8}%
+\contentsline {paragraph}{Step 18: performance.}{107}{section*.155}%
+\contentsline {subsection}{\numberline {D.8}Summary}{107}{subsection.D.8}%
