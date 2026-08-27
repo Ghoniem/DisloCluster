@@ -101,7 +101,7 @@ N_EQ = 19
 # width: 19 is the pre-step-1
 # state and leaves the new families empty (the solver defaults those y0 slots to
 # zero), 27 carries them. Anything else is a layout error, not something to pad.
-N_EQ_EXT = 29
+N_EQ_EXT = 38
 IDX_RHO_N = 18
 
 # Convenience slices into the native state vector.
@@ -220,7 +220,7 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     cases = []
     for y0 in y0_list:
         y0 = np.asarray(y0, dtype=float)
-        if y0.shape[0] not in (N_EQ, N_EQ_EXT):
+        if y0.shape[0] not in (N_EQ, 29, N_EQ_EXT):
             raise ValueError(f"each y0 must have length {N_EQ} or {N_EQ_EXT}, "
                              f"got {y0.shape[0]}")
         d = dict(base)

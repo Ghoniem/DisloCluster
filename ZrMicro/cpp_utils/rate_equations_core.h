@@ -185,6 +185,18 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // that block runs outside it. Every slot is a loop in the legacy layout.
     int    f_is_loop[N_FAM_MAX];
     for (int k = 0; k < N_FAM_MAX; ++k) f_is_loop[k] = 1;
+    // ── Step 5 ──────────────────────────────────────────────────────────────
+    // Delta_k = q n / c^2 is the DISPERSION: 1 is a Dirac delta and the
+    // two-moment model, and sqrt(Delta-1) is the relative width. Every closure
+    // integral is <m^j> = mbar^j Delta^{j(j-1)/2}, so the half-integer moments
+    // the growth law needs are closed form on a strictly positive support --
+    // which is why the closure is log-normal and not Gaussian.
+    T f_delta[N_FAM_MAX], f_mbar[N_FAM_MAX], f_gro[N_FAM_MAX], f_q[N_FAM_MAX];
+    T pref_mono[N_FAM_MAX];   // the sink prefactor the capture loop used
+    for (int k = 0; k < N_FAM_MAX; ++k) {
+        f_delta[k] = T(1.0); f_mbar[k] = T(1.0);
+        f_gro[k] = T(0.0);   f_q[k] = T(0.0);  pref_mono[k] = T(1.0);
+    }
     T loop_abs_i, loop_abs_v, loop_recomb;
     // Thermal Frenkel-pair generation by climb (step 3). When an INTERSTITIAL
     // loop emits a vacancy it puts that vacancy in the pool and simultaneously
@@ -334,6 +346,19 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             }
         }
 
+        // Delta and mbar, from the carried moments alone. Clamped at 1 from
+        // below: Delta < 1 is Cauchy-Schwarz-impossible for a real
+        // distribution, so it is a solver excursion, not a state -- and
+        // ln(Delta) would go negative and s^2 with it.
+        if (P.moments) {
+            for (int k = 0; k < nf; ++k) {
+                f_q[k]    = fl(y[fam_q_idx(k)], C_floor);
+                f_mbar[k] = f_cont[k] / f_num[k];
+                T d = f_q[k] * f_num[k] / (f_cont[k] * f_cont[k]);
+                f_delta[k] = ad_val(d) > 1.0 ? d : T(1.0);
+            }
+        }
+
         loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
         const double lc_l_sc = P.l_c / P.l;   // <c> uses the basal length scale
         const double la_l_sc = P.l_a / P.l;
@@ -376,7 +401,13 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 pref = P.alpha_sfp * P.loop_sink_scale[k]
                        * Rp * f_num[k] / (2.0 * P.l);
             }
-            T gain(0.0), loss(0.0);
+            // Eq. (Deltacorrection). Pi ~ n <m^{1/2}> and <m^{1/2}> =
+            // mbar^{1/2} Delta^{-1/8}, so the WHOLE effect of the spread on the
+            // growth law and on the sink strengths is this one factor. A spread
+            // family presents LESS perimeter than a monodisperse one of the
+            // same density and content: 0.972 at Delta = 1.25, 0.917 at 2.
+            if (P.moments) pref = pref * ad_exp(-0.125 * ad_log(f_delta[k]));
+            T gain(0.0), loss(0.0), gro(0.0);
             for (int m = 0; m < 4; ++m) {
                 const int m_is_vac = (m == 0);
                 // X multiplies Z, per Eq. (Zsk). Written inside the same
@@ -398,6 +429,17 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                                  * Dbar[m] * sz[m]) * drive;
                 if (m_is_vac == is_vac[k]) gain = gain + rate;
                 else                       loss = loss + rate;
+                // Sigma^gro, Eq. (Sigmas): the GROSS traffic, weighted by
+                // mu_x^2 -- one power more than the drift, because variance
+                // accumulates as the square of the step. It is NOT the net sum
+                // with the signs made positive, and on the vacancy channel it
+                // takes c^v + c^eq rather than |c^v - c^eq|: absorption and
+                // emission BOTH add variance, they do not cancel.
+                if (P.moments) {
+                    const T gdrive = m_is_vac ? (cm[m] + c_eq[k]) : cm[m];
+                    gro = gro + pref * (Zrow[row][m] * Xchar[is_vac[k]][m]
+                                        * Dbar[m] * sz[m] * sz[m]) * gdrive;
+                }
             }
             // Minimum-stable-size gate, on the SHRINKING channel only, exactly
             // as ClusterDynamicsFEM applies it: a loop at r_min stops absorbing
@@ -422,7 +464,8 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                     loss = loss * g;
                 }
             }
-            f_gain[k] = gain; f_loss[k] = loss;
+            f_gain[k] = gain; f_loss[k] = loss; f_gro[k] = gro;
+            pref_mono[k] = pref;
             if (is_vac[k]) { loop_abs_v = loop_abs_v + gain; loop_abs_i = loop_abs_i + loss; }
             else           { loop_abs_i = loop_abs_i + gain; loop_abs_v = loop_abs_v + loss; }
             // Recombination COUNTS annihilation events, so it takes the
@@ -684,6 +727,89 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                                  + f_nucc[k] - f_annc[k];
         }
     }
+    // ── Step 5: the second moment, Eq. (qdot) ──────────────────────────────
+    // qdot|_FP = 2 Pi [ Sigma^net mbar Delta^{3/8} + (1/2) Sigma^gro Delta^{-1/8} ]
+    //
+    // Pi there is the MONODISPERSE prefactor, with the Delta powers written
+    // explicitly. f_gain/f_loss/f_gro already carry the Delta^{-1/8} of
+    // Eq. (Deltacorrection), so the drift term needs Delta^{3/8} / Delta^{-1/8}
+    // = Delta^{1/2} and the spreading term needs no factor at all. Writing
+    // Delta^{3/8} here instead would apply the correction twice.
+    if (P.moments) {
+        for (int k = 0; k < nf; ++k) {
+            T sqrtD = ad_exp(0.5 * ad_log(f_delta[k]));
+            T drift = 2.0 * (f_gain[k] - f_loss[k]) * f_mbar[k] * sqrtD;
+            T spread = f_gro[k];
+            // Nucleation deposits at m_nuc, so it carries m_nuc^2 into q -- the
+            // same source the lower moments take with weights 1 and m_nuc.
+            T mnuc = (ad_val(f_nucn[k]) > 0.0)
+                     ? f_nucc[k] / f_nucn[k] : T(0.0);
+            T qnuc = f_nucn[k] * mnuc * mnuc;
+            // ...and annealing/transfer removes at the same weighting.
+            T qann = (ad_val(f_num[k]) > 0.0)
+                     ? f_annn[k] * f_mbar[k] * f_mbar[k] * f_delta[k] : T(0.0);
+            // Coalescence is subtracted with n and c below, where coal_num
+            // is actually computed; referencing it here read it before it was
+            // assigned.
+            ydot[fam_q_idx(k)] = drift + spread + qnuc - qann;
+
+            // ── The dissolution current, Eq. (floorcurrent) ────────────────
+            // The Fokker-Planck flux through the size floor, which REPLACES the
+            // smoothstep gate: a computed current out of the distribution's
+            // lower tail rather than a fitted rate on the mean. Every factor is
+            // analytic in (mu, s) and hence in the carried moments.
+            //
+            //   Phi_min = [ D df/dm + (dD/dm - F) f ]_{m_min}
+            //   F = pi_k sqrt(m) Sigma^net,  D = (1/2) pi_k sqrt(m) Sigma^gro
+            //
+            // It vanishes EXPONENTIALLY as Delta -> 1 at fixed mbar > m_min:
+            // a delta function has no tail to lose, which is validation goal
+            // (iv) and the reason this reduces to the two-moment model rather
+            // than merely approximating it.
+            if (ad_val(f_num[k]) > C_floor && ad_val(f_delta[k]) > 1.0
+                && P.m_min > 0.0) {
+                T s2 = ad_log(f_delta[k]);
+                T sd = ad_exp(0.5 * ad_log(s2));            // s = sqrt(ln Delta)
+                T mu = ad_log(f_mbar[k]) - 0.5 * s2;
+                T lm = ad_log(T(P.m_min));
+                T z  = (lm - mu);
+                T fm = f_num[k] * ad_exp(-z * z / (2.0 * s2))
+                       / (P.m_min * sd * 2.5066282746310002);   // sqrt(2 pi)
+                T dfm = fm * (-1.0 / P.m_min - z / (P.m_min * s2));
+                // pi_k from the prefactor the capture loop already formed:
+                // Pi = pi_k n mbar^{1/2} Delta^{-1/8}, and pref IS Pi.
+                T rootm = ad_exp(0.5 * ad_log(f_mbar[k]));
+                T dm18  = ad_exp(-0.125 * ad_log(f_delta[k]));
+                T pik   = pref_mono[k] / (f_num[k] * rootm * dm18);
+                T Snet  = (f_gain[k] - f_loss[k]) / pref_mono[k];
+                T Sgro  = f_gro[k] / pref_mono[k];
+                T rmin  = ad_exp(0.5 * ad_log(T(P.m_min)));
+                T Fk    = pik * rmin * Snet;
+                T Dk    = 0.5 * pik * rmin * Sgro;
+                T dDk   = 0.25 * pik * Sgro / rmin;
+                T flux  = Dk * dfm + (dDk - Fk) * fm;
+                // Eq. (floorcurrent) is written as D df/dm + (dD/dm - F) f,
+                // which is MINUS the Fokker-Planck flux in the +m direction --
+                // i.e. it is already the flux OUT through the floor, positive
+                // when loops are leaving. Negating it here removed loops only
+                // when they were arriving, so the current never fired at all
+                // and Phi_min measured identically zero at every Delta.
+                //
+                // A flux INTO the domain from below is unphysical: there is
+                // nothing below m_min to come from. Only outflow removes loops.
+                T phi = ad_val(flux) > 0.0 ? flux : T(0.0);
+                ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - phi;
+                ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - P.m_min * phi;
+                ydot[fam_q_idx(k)] = ydot[fam_q_idx(k)]
+                                     - P.m_min * P.m_min * phi;
+            }
+        }
+    }
+    for (int k = (P.moments ? nf : 0); k < N_FAM_MAX; ++k)
+        ydot[fam_q_idx(k)] = T(0.0);
+    if (!P.moments)
+        for (int k = 0; k < N_FAM_MAX; ++k) ydot[fam_q_idx(k)] = T(0.0);
+
     // Appended slots that this run does not carry hold no state and must
     // produce no derivative. Written unconditionally -- including for
     // loop_model 0, which never touches them -- so the tail of the state can
@@ -803,6 +929,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     for (int k = 0; k < nf; ++k) {
         ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - coal_num[k];
         ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - coal_cont[k];
+        // The second moment loses <m^2> per departing loop, and <m^2> is
+        // mbar^2 Delta by the closure -- not mbar^2, which would be the
+        // monodisperse value and would leave q too high on a spread family.
+        if (P.moments)
+            ydot[fam_q_idx(k)] = ydot[fam_q_idx(k)]
+                - coal_num[k] * f_mbar[k] * f_mbar[k] * f_delta[k];
     }
     if (P.loop_model == 0) {
         // Again verbatim: the paired sums associate differently from a loop.

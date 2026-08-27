@@ -139,7 +139,19 @@ int jac_zrmicro_reduced(sunrealtype /*t*/, N_Vector y, N_Vector /*fy*/,
     // a run-time quantity. The AD sweep is templated on the block size, so each
     // combination needs its own instantiation; dispatching here keeps that the
     // only place the sizes are enumerated.
-    if (P.n_fam == 9) {
+    if (P.moments) {
+        // Three moments per family. Only n_fam = 9 is reachable here: the
+        // second moment arrives with step 5, by which point the family set is
+        // the full nine.
+        typedef RedDims<9, 3> D9M;
+        if (P.acc_mode == ACC_STATE_RELAX) {
+            if (P.freeze_mobile) jac_reduced_impl<D9M::rlx_frozen>(P, y, J);
+            else                 jac_reduced_impl<D9M::rlx_free>  (P, y, J);
+        } else {
+            if (P.freeze_mobile) jac_reduced_impl<D9M::frozen>(P, y, J);
+            else                 jac_reduced_impl<D9M::free_> (P, y, J);
+        }
+    } else if (P.n_fam == 9) {
         typedef RedDims<9> D9;
         if (P.acc_mode == ACC_STATE_RELAX) {
             if (P.freeze_mobile) jac_reduced_impl<D9::rlx_frozen>(P, y, J);

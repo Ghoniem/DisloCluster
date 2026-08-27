@@ -386,6 +386,13 @@ def collect_solver_args(sim, solver_config):
         if int(solver_config.get('emission_model', 0)) != 0:
             params.update(_emission_params(mat, solver_config))
 
+        # ── Step 5: the second content moment ───────────────────────────────
+        # Emitted only when carried, so a step-4 command line is byte-for-byte
+        # what it was and the earlier artifacts keep comparing.
+        if int(solver_config.get('moments', 0)) != 0:
+            params['moments'] = 1
+            params['m_min'] = float(solver_config.get('m_min', 1.0))
+
         # ── Step 4: the basal chain c_0 -> c_f -> c_p ───────────────────────
         # Emitted only when the chain is switched on, so a step-3 command line
         # is byte-for-byte what it was.

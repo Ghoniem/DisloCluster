@@ -63,11 +63,22 @@ static constexpr int IDX_XC   = IDX_XN + N_XFAM;// first appended CONTENT index
 static constexpr int N_FAM_MAX = 9;             // total family slots available
 static constexpr int SLOT_SFP  = 8;             // the pyramid, c_0
 
-static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB;   // total = 27
+// ── Step 5: the second content moment ────────────────────────────────────────
+// A third field q^k_sL per family, appended again rather than interleaved. With
+// it the model carries a DISTRIBUTION instead of a mean:
+//     mbar = c/n,   Delta = q n / c^2 = e^{s^2} >= 1,   <m^j> = mbar^j Delta^{j(j-1)/2}
+// Delta = 1 is the Dirac delta the previous formulation carried, and every
+// closure integral -- including the half-integer moments the growth law needs --
+// becomes one expression.
+static constexpr int N_QMOM = N_FAM_MAX;        // one second moment per family
+static constexpr int IDX_Q  = IDX_XC + N_XFAM;  // first q index = 29
 
-// State index of family k's number / content, for k in [0, N_FAM_MAX).
+static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB + N_QMOM;  // 38
+
+// State index of family k's number / content / second moment.
 constexpr int fam_n_idx(int k) { return k < 4 ? 4 + k : IDX_XN + (k - 4); }
 constexpr int fam_c_idx(int k) { return k < 4 ? 8 + k : IDX_XC + (k - 4); }
+constexpr int fam_q_idx(int k) { return IDX_Q + k; }
 
 // ── Reduced (implicit-block) state layout ────────────────────────────────────
 // The six accumulators are PURE QUADRATURES: rows 12..17 of the RHS are written
@@ -87,9 +98,11 @@ constexpr int fam_c_idx(int k) { return k < 4 ? 8 + k : IDX_XC + (k - 4); }
 // carries only the original 4 must keep factorising a 9x9, not a 17x17: dense
 // LU is O(n^3), so paying for the empty slots would cost 6.7x per Newton solve
 // for nothing. `n_fam` therefore selects among compile-time sizes at run time.
-template <int NF> struct RedDims {
-    static constexpr int frozen = 2 * NF + N_RHO;            // immobile + rho_N
-    static constexpr int free_  = N_MOB + 2 * NF + N_RHO;    // + mobile
+// NM is the number of MOMENTS carried per family: 2 before step 5 (number and
+// content), 3 with the second content moment.
+template <int NF, int NM = 2> struct RedDims {
+    static constexpr int frozen = NM * NF + N_RHO;           // immobile + rho_N
+    static constexpr int free_  = N_MOB + NM * NF + N_RHO;   // + mobile
     static constexpr int rlx_frozen = frozen + N_ACC;
     static constexpr int rlx_free   = free_  + N_ACC;
 };
@@ -122,7 +135,7 @@ static constexpr int N_RLX_FREE   = RedDims<4>::rlx_free;     // 19
 // reduced vector are sized by this, never by the default: at n_fam = 8 the
 // relaxed free block is 27, and sizing those buffers 19 would overflow them
 // silently the first time the appended families were switched on.
-static constexpr int N_RED_MAX = RedDims<N_FAM_MAX>::rlx_free;   // 27
+static constexpr int N_RED_MAX = RedDims<N_FAM_MAX, 3>::rlx_free;   // 38
 
 // atol given to the accumulator components in mode 2. Large enough that
 // 1/(rtol*|y| + atol) underflows the error weight to nothing, small enough to
@@ -285,6 +298,13 @@ struct Parameters {
     //
     // 0 = no basal chain (the default: the pyramid slot carries nothing and the
     //     model is exactly step 3); 1 = the chain runs.
+    // ── Step 5: carry the second content moment ────────────────────────────
+    // 0 (the default) is the two-moment model: q is not integrated, Delta is
+    // identically 1, and every closure factor is exactly 1.0, so nothing that
+    // ran before step 5 changes. 1 carries q and the distribution with it.
+    int    moments;
+    double m_min;        // [-] the size floor the dissolution current sits at
+
     int    basal_chain;
     double eps_sfp;      // cascade yield into the pyramid, as a rate [1/s]
     double n_sfp_nuc;    // vacancies per cascade-nucleated pyramid
@@ -444,8 +464,10 @@ inline bool is_reduced(const Parameters& P) {
 }
 
 // Size of the implicit core (everything but the appended accumulators).
+inline int n_moments(const Parameters& P) { return P.moments ? 3 : 2; }
+
 inline int red_core(const Parameters& P) {
-    return (P.freeze_mobile ? 0 : N_MOB) + 2 * P.n_fam + N_RHO;
+    return (P.freeze_mobile ? 0 : N_MOB) + n_moments(P) * P.n_fam + N_RHO;
 }
 
 // Dimension of the implicit block actually solved.
@@ -474,6 +496,8 @@ inline int red_idx(const Parameters& P, int j) {
     if (t < nf)      return fam_n_idx(t);
     t -= nf;
     if (t < nf)      return fam_c_idx(t);
+    t -= nf;
+    if (P.moments && t < nf) return fam_q_idx(t);
     return IDX_RHO_N;
 }
 
@@ -586,6 +610,8 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     // existing command line reproduces bit-for-bit; 8 switches on the prismatic
     // vacancy variants of step 1. Anything else is a typo, not a request.
     // ── Step 4 ──────────────────────────────────────────────────────────────
+    P.moments = static_cast<int>(optional_param(p, "moments", 0.0));
+    P.m_min   = optional_param(p, "m_min", 1.0);
     P.basal_chain = static_cast<int>(optional_param(p, "basal_chain", 0.0));
     P.eps_sfp   = optional_param(p, "eps_sfp",   0.0);
     P.n_sfp_nuc = optional_param(p, "n_sfp_nuc", 1.0);
