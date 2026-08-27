@@ -8292,6 +8292,69 @@ ripens unconditionally. The pair of cases is specified as
 pair is needed rather than either case is that the two differ only in what
 \emph{else} is in the cell.
 
+\paragraph{Five things executing step 5 corrected, and one measurement.} The
+first is a sign in this document. \Cref{eq:floorcurrent} is written
+$D\,\partial_m f+(\partial_m D-F)f$, which is \emph{minus} the Fokker--Planck
+flux in $+m$ --- that is, it is \emph{already} the outflow through the floor and
+must be subtracted from the moments as it stands. Reading it as the flux and
+negating it removes loops only when they are \emph{arriving} from below, where
+there is nothing to arrive from, so $\Phi^k_{\min}$ measured identically zero at
+every $\Delta_k$ and goal~(iv) passed for the wrong reason.
+
+The second is that goal~(iv)'s \emph{exponentially} is literal rather than
+rhetorical, and a test has to be written for it. At $\Delta_k=1.001$ the floor
+sits $94$ standard deviations into the lower tail, $\exp(-94^2/2)$ underflows,
+and the current is exactly $0.0$ in double precision --- so a criterion
+demanding strict monotonicity in $\Delta_k$ fails on $0<0$. The measured
+sequence over $\Delta_k=1.001,1.05,1.5,4$ is $0$, $0$, $5.0\times10^{-27}$,
+$4.8\times10^{-24}$, and \emph{non-decreasing, vanishing at the left end} is the
+statement the formulation actually makes.
+
+The third is a spelling. Every family count in the $3$-D code was written as
+$\texttt{iSize}/2$, correct only while there were two fields per family; the
+third moment makes it $13$ by integer division and every per-family loop then
+runs off the end of its array. \texttt{iFam} and \texttt{iMom} are now named
+separately and \texttt{iSize} is derived from them. The block is laid out
+moment-major --- nine $n$, nine $c$, nine $q$ --- so the first eighteen
+components stay where they were and an \texttt{evl} written before this step
+widens into it with $q=0$, which reads back as $\Delta_k=1$: the monodisperse
+limit those runs were computed in.
+
+The fourth is that $\Delta_k$ is \emph{not} $qn/c^2$ on the $3$-D side. The
+$0$-D carries all three moments per atom, so the ratio is unit-free there; the
+CD block carries the number per $b^3$ and the content as an atom fraction, which
+is why MoDELib spells the mean size $\mathrm{CI}/N/\omega$. Exactly one factor of
+$\omega$ is therefore needed, and without it the dispersion --- and with it the
+$\Delta_k^{-1/8}$ correction, the one place the second moment enters the fast
+solve at all --- is a different number on the two sides of the coupling.
+
+The fifth is that three of the validation probes were under-driven, each in a way
+that read as a failure of the step. Vacancies left at the concentration floor
+give no traffic at all, so every current measures zero; a prismatic family used
+for the spreading test has an equilibrium concentration four decades below the
+basal one, so $\Delta_k$ moves in the ninth digit; and driving the annealing
+probe \emph{below} equilibrium shrinks every loop, so the mean falls for a reason
+that has nothing to do with the distribution ($400.0\to398.46$, density
+\emph{and} mean falling, which is not the signature). Putting the matrix at the
+family's own $c^{v,\mathrm{eq}}_k$ --- which is what step~3 bought --- isolates
+it, and the signature then reads $n:1.0000\times10^{-10}\to9.9997\times10^{-11}$
+with $\bar m:400.0000\to400.0088$.
+
+The measurement is the gates. \Cref{eq:gatefraction} is checked twice over: the
+closed form against direct quadrature of the log-normal, to $10^{-9}$ or better
+at every $j$; and the C++ \emph{operationally}, as the fraction of each moment a
+short transfer actually removes, inverted through $1-e^{-\nu\Phi\,\mathrm dt}$
+so the linearization bias does not survive. At $\bar m=400$, $\Delta=1.6$,
+$m_\theta=800$:
+\[
+  \Phi^{(0)}=0.087894,\qquad \Phi^{(1)}=0.251980,\qquad \Phi^{(2)}=0.506900,
+\]
+solver against closed form to $3\times10^{-5}$, and the transferred population
+has mean size $1146.7$ against the family's $400$ --- a factor of $2.87$. The
+source mean therefore \emph{falls} although nothing shrank, which is the whole
+content of $\Phi^{(2)}>\Phi^{(1)}>\Phi^{(0)}$ and is what one rate multiplying
+all three moments could not produce.
+
 \subsection{Phase IV --- the discrete handoff}
 
 \textbf{Phase IV is the one whose status has changed most since this plan was
@@ -8722,7 +8785,7 @@ Step & Change & Regression & Status \\
 4 & Basal chain $c_0\to c_f\to c_p$; sigmoid removed &
     \code{basal\_chain}$=0$ & \textbf{done} \\
 5 & Second moment $q^k_{sL}$ and log-normal closure &
-    \code{moments}$=0$ & \textbf{done} ($0$-D) \\
+    \code{moments}$=0$ & \textbf{done} \\
 6 & Discrete conversion: drawn sizes, elliptical outlines &
     $e=0$, $\Delta_k=1$ & partial \\
 7 & The trigger: $\phi^\ast$ gate, hold, feasibility veto &

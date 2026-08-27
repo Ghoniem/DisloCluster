@@ -312,6 +312,21 @@ struct Parameters {
     double nu_col;       // [1/s] pyramid -> faulted basal loop
     double nu_uf;        // [1/s] faulted -> perfect basal loop
     double alpha_sfp;    // [-] pyramid capture prefactor, Eq. (partial_sink_bp)
+    // ── Step 5: the transfer thresholds, Eq. (gatefraction) ────────────────
+    // m_theta, the barrier size IN DEFECTS, for each of the two transfers. The
+    // formulation writes the threshold as a critical radius R_theta and maps it
+    // with m_theta = (R_theta/lambda_k)^2 for a loop family; the pyramid is
+    // compact and maps through its volumetric radius instead,
+    // m_theta = R_theta^3 sqrt(8)/Omega. Which of the two applies depends on
+    // the SOURCE family, so the threshold is carried in defects -- the one form
+    // both sources share, and the one Eq. (gatefraction) actually integrates.
+    //
+    // 0 (the default) leaves that transfer barrier-limited, Phi^(j) = 1, which
+    // is the step-4 behaviour. The gates also require `moments`: without the
+    // second moment there is no distribution to take a fraction of, and a
+    // threshold on a mean would transfer the whole family in one step.
+    double m_col;        // [-] threshold for c_0 -> c_f
+    double m_uf;         // [-] threshold for c_f -> c_p
 
     // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
@@ -619,6 +634,8 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.nu_col    = optional_param(p, "nu_col",    0.0);
     P.nu_uf     = optional_param(p, "nu_uf",     0.0);
     P.alpha_sfp = optional_param(p, "alpha_sfp", 1.0);
+    P.m_col     = optional_param(p, "m_col", 0.0);
+    P.m_uf      = optional_param(p, "m_uf",  0.0);
     // The n_fam consistency check lives with n_fam's own parsing, below.
     // Checking it here read P.n_fam before it was set -- value-initialized to
     // zero -- so basal_chain=1 was rejected unconditionally.

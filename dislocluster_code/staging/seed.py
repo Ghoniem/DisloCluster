@@ -115,7 +115,20 @@ def lumped(Y, loop_model=0):
     """
     Y = np.atleast_2d(Y)
     if loop_model:
-        return dict(N_c=Y[:, 4], N_a=Y[:, 5:8].sum(axis=1),
-                    c_c=Y[:, 8], c_a=Y[:, 9:12].sum(axis=1))
+        # Families 4..8 live at 19..28, numbers then contents. <a> is every
+        # PRISMATIC family, so the three vacancy variants belong in N_a as much
+        # as the interstitial ones do, and <c> is every BASAL one, so c_p
+        # belongs in N_c -- both are habits, not polarities. The pyramid (slot
+        # 8) is neither: it is not a loop and it is deliberately in neither sum.
+        wide = Y.shape[1] >= 29
+        n_a = Y[:, 5:8].sum(axis=1)
+        c_a = Y[:, 9:12].sum(axis=1)
+        n_c, c_c = Y[:, 4], Y[:, 8]
+        if wide:
+            n_a = n_a + Y[:, 19:22].sum(axis=1)     # a1v..a3v
+            c_a = c_a + Y[:, 24:27].sum(axis=1)
+            n_c = n_c + Y[:, 22]                    # c_p
+            c_c = c_c + Y[:, 27]
+        return dict(N_c=n_c, N_a=n_a, c_c=c_c, c_a=c_a)
     return dict(N_a=Y[:, 4] + Y[:, 5], N_c=Y[:, 6] + Y[:, 7],
                 c_a=Y[:, 8] + Y[:, 9], c_c=Y[:, 10] + Y[:, 11])

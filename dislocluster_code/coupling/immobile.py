@@ -104,6 +104,21 @@ N_EQ = 19
 N_EQ_EXT = 38
 IDX_RHO_N = 18
 
+
+def state_width(loop_model=0, n_fam=4, moments=0):
+    """How wide the state must be for a given model configuration.
+
+    The solver defaults every appended y0 slot to zero, so a NARROWER state is
+    always accepted and simply starts the new families empty. It is the march
+    that has to allocate the right width up front, because the array it carries
+    across substeps is the only place those components live.
+    """
+    if not loop_model:
+        return N_EQ
+    if moments:
+        return N_EQ_EXT                       # 38: n, c and q for nine families
+    return 29 if n_fam > 4 else N_EQ
+
 # Convenience slices into the native state vector.
 MOBILE_SLICE = slice(0, 4)        # Cv, Ci, C2i, C3i
 IMMOBILE_SLICE = slice(4, 12)     # CiL,CaiL,CvL,CavL, CiL_i,CaiL_i,CvL_v,CavL_v

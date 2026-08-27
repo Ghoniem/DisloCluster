@@ -69,6 +69,16 @@ def march_config_from(cfg):
         phi_star=c.phi_star, frac_star=c.frac_star,
         coarsen_hold=c.coarsen_hold,
         loop_model=cfg.solver.loop_model,
+        # The plan's model switches. Forwarding them here is not optional: the
+        # march reads its own MarchConfig, so a switch set in SOLVER and not
+        # copied across is silently inert, and the launcher would print that it
+        # was on while the run integrated the old model.
+        n_fam=cfg.solver.n_fam,
+        chi=cfg.solver.chi,
+        emission_model=cfg.solver.emission_model,
+        basal_chain=cfg.solver.basal_chain,
+        moments=cfg.solver.moments,
+        model_params=dict(cfg.solver.model_params),
         discrete_transition=c.discrete_transition,
         transition_units=c.transition_units,
         climb_cutoff_nL=c.climb_cutoff_nL,

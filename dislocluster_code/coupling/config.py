@@ -77,6 +77,30 @@ class MarchConfig:
     # config.py. Lives on the MarchConfig because run_coupled builds the slow
     # step's CLI and nothing else can reach it there.
     loop_model: int = 0
+    # The implementation plan's model switches, steps 1-5. Every one defaults to
+    # the value that reproduces the formulation before its step, so a march that
+    # sets none of them is the march that ran before any of them existed.
+    #
+    #   n_fam          4 legacy | 8 the prismatic vacancy variants (step 1)
+    #                  | 9 the stacking-fault pyramid as well (step 4)
+    #   chi            character splitting X_iI X_vV/(X_iV X_vI); 1 = none
+    #   emission_model 1 replaces the annealing lifetimes by peripheral
+    #                  emission against c^{v,eq}_k (step 3)
+    #   basal_chain    1 runs c_0 -> c_f -> c_p (step 4)
+    #   moments        1 carries the second content moment q and the log-normal
+    #                  closure (step 5)
+    #
+    # model_params carries the numeric inputs those switches need -- eps_sfp,
+    # tau_sfp, nu_col, nu_uf, m_min, m_col, m_uf and the rest -- straight
+    # through to the solver command line. It is a dict rather than a field per
+    # parameter because the C++ already defaults every one of them, and an
+    # unrecognized key must fail there rather than be dropped here.
+    n_fam: int = 4
+    chi: float = 1.0
+    emission_model: int = 0
+    basal_chain: int = 0
+    moments: int = 0
+    model_params: dict = field(default_factory=dict)
     discrete_transition: bool = False
     transition_units: tuple = ("c",)
     climb_cutoff_nL: float = 4.0
@@ -101,6 +125,19 @@ class MarchConfig:
                              f"'qssa', 'replay' or 'seed'")
         if self.on_unconverged not in ("warn", "raise"):
             raise ValueError("on_unconverged must be 'warn' or 'raise'")
+        if self.n_fam not in (4, 8, 9):
+            raise ValueError(
+                f"n_fam must be 4 (legacy), 8 (with the prismatic vacancy "
+                f"variants) or 9 (with the pyramid), got {self.n_fam}")
+        if self.n_fam != 4 and not self.loop_model:
+            raise ValueError(
+                "n_fam > 4 needs loop_model = 1: the extra families exist only "
+                "in the self-consistent formulation, and the legacy slots name "
+                "different quantities")
+        if self.basal_chain and self.n_fam != 9:
+            raise ValueError("basal_chain = 1 needs n_fam = 9 (the pyramid)")
+        if self.moments and not self.loop_model:
+            raise ValueError("moments = 1 needs loop_model = 1")
         if self.dedup_rtol < 0:
             raise ValueError("dedup_rtol must be >= 0")
         s = self.dose_grid

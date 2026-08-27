@@ -452,7 +452,14 @@ template struct InvDscaling<3>;
      *  so they are integrated node-by-node against the frozen mobile field,
      *  with no FEM assembly. DOF layout (see ClusterDynamics::output):
      *  index = node*iSize + component, components [0,nF) = densities n_k,
-     *  [nF,2nF) = contents c_k, with family order {vL, a1, a2, a3}.
+     *  [nF,2nF) = contents c_k, [2nF,3nF) = second content moments q_k, with
+     *  family order {c_f, a1, a2, a3, a1v, a2v, a3v, c_p, c_0}.
+     *
+     *  THIS SOLVER DOES NOT EVOLVE q. It is the third moment step 5 added to
+     *  the block so that the 0-D <-> 3-D bridge stays an identity and the fast
+     *  solve can read the dispersion; the equation that advances it is the slow
+     *  step's, and the coupled march is the only route that runs one. Leaving
+     *  those components untouched is therefore carrying them, not staling them.
      *
      *  Absorption uses MoDELib's own sink-strength convention: the rate at which
      *  family k absorbs mobile species m is  D_m * Z_km * S_k * c_m, where S_k is
@@ -474,7 +481,7 @@ template struct InvDscaling<3>;
         }
         std::cout<<", immobile solver "<<std::flush;
 
-        constexpr int nF(iSize/2);                       // number of immobile families
+        constexpr int nF(ClusterDynamicsParameters<dim>::iFam);   // immobile families
         const double dtTotal(ddBase.simulationParameters.dtMax);
         if(dtTotal<=0.0)
         {

@@ -197,6 +197,23 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         f_delta[k] = T(1.0); f_mbar[k] = T(1.0);
         f_gro[k] = T(0.0);   f_q[k] = T(0.0);  pref_mono[k] = T(1.0);
     }
+    // ── Step 5: the moment-resolved part of a basal-chain transfer ──────────
+    // The three gates Phi^(0), Phi^(1), Phi^(2) of Eq. (gatefraction) differ,
+    // so a transfer moves number, content and second moment in DIFFERENT
+    // proportions. That is the whole point of them -- the converting
+    // subpopulation is larger than the family mean -- and it is exactly what
+    // the generic weightings the q equation applies to every other channel
+    // (arrival monodisperse at the mean, removal proportional to the carried
+    // moments) cannot express. The transfer parts are recorded here and taken
+    // back out of those weightings below. All zero unless the chain runs, and
+    // `x - 0.0` is exact, so a run without one is untouched.
+    T f_xn_out[N_FAM_MAX], f_xq_out[N_FAM_MAX];
+    T f_xn_in[N_FAM_MAX],  f_xc_in[N_FAM_MAX], f_xq_in[N_FAM_MAX];
+    for (int k = 0; k < N_FAM_MAX; ++k) {
+        f_xn_out[k] = T(0.0); f_xq_out[k] = T(0.0);
+        f_xn_in[k]  = T(0.0); f_xc_in[k]  = T(0.0); f_xq_in[k] = T(0.0);
+    }
+
     T loop_abs_i, loop_abs_v, loop_recomb;
     // Thermal Frenkel-pair generation by climb (step 3). When an INTERSTITIAL
     // loop emits a vacancy it puts that vacancy in the pool and simultaneously
@@ -570,9 +587,42 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 f_annn[C0] = T(0.0); f_annc[C0] = T(0.0);
             }
 
+            // ── Step 5: the transfer gates, Eq. (gatefraction) ────────────
+            // Phi^(j) = erfc[(ln m_theta - mu_k - j s_k^2)/(s_k sqrt 2)]/2,
+            // the fraction of the j-th moment carried by loops above the
+            // barrier size -- closed form, because the log-normal the moments
+            // determine makes every size-threshold integral an error function.
+            //
+            // A DISTRIBUTION FRACTION AND NOT A STEP ON THE MEAN. In a
+            // mean-field state m_bar is an average, so a hard threshold on it
+            // transfers the entire family the instant it crosses, and none of
+            // it before.
+            auto gate = [&](int k, double m_theta, int j) -> T {
+                // Gate disabled: barrier-limited, which is what the model ran
+                // on before this step. Returning exactly 1.0 is what keeps the
+                // rates below bit-identical to step 4.
+                if (!P.moments || m_theta <= 0.0) return T(1.0);
+                if (ad_val(f_num[k]) <= C_floor) return T(1.0);
+                if (ad_val(f_delta[k]) <= 1.0)
+                    // No spread at all: the distribution IS a delta, and the
+                    // gate is the Heaviside that erfc tends to as s -> 0. Not
+                    // 1 -- that would transfer loops that are below the
+                    // barrier, at the one state where it is certain they are.
+                    return ad_val(f_mbar[k]) > m_theta ? T(1.0) : T(0.0);
+                T s2 = ad_log(f_delta[k]);
+                T sd = ad_sqrt(s2);
+                T mu = ad_log(f_mbar[k]) - 0.5 * s2;
+                return 0.5 * ad_erfc((ad_log(T(m_theta)) - mu - j * s2)
+                                     / (sd * 1.4142135623730951));
+            };
+
             // col: c_0 -> c_f.  uf: c_f -> c_p.
-            T col_n = P.nu_col * f_num[C0],  col_c = P.nu_col * f_cont[C0];
-            T uf_n  = P.nu_uf  * f_num[CF],  uf_c  = P.nu_uf  * f_cont[CF];
+            T col_n = P.nu_col * gate(C0, P.m_col, 0) * f_num[C0],
+              col_c = P.nu_col * gate(C0, P.m_col, 1) * f_cont[C0],
+              col_q = P.nu_col * gate(C0, P.m_col, 2) * f_q[C0];
+            T uf_n  = P.nu_uf * gate(CF, P.m_uf, 0) * f_num[CF],
+              uf_c  = P.nu_uf * gate(CF, P.m_uf, 1) * f_cont[CF],
+              uf_q  = P.nu_uf * gate(CF, P.m_uf, 2) * f_q[CF];
 
             // Each transfer is a LOSS on its source and a GAIN on its sink, at
             // the same rate and through the same arrays the rest of the
@@ -583,6 +633,14 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             f_nucn[CF] = f_nucn[CF] + col_n;   f_nucc[CF] = f_nucc[CF] + col_c;
             f_annn[CF] = f_annn[CF] + uf_n;    f_annc[CF] = f_annc[CF] + uf_c;
             f_nucn[CP] = f_nucn[CP] + uf_n;    f_nucc[CP] = f_nucc[CP] + uf_c;
+
+            // The same four transfers, recorded moment-resolved. c_f is both a
+            // destination (of col) and a source (of uf), which is why in and
+            // out are separate arrays rather than one signed one.
+            f_xn_out[C0] = col_n;  f_xq_out[C0] = col_q;
+            f_xn_in[CF]  = col_n;  f_xc_in[CF]  = col_c;  f_xq_in[CF] = col_q;
+            f_xn_out[CF] = uf_n;   f_xq_out[CF] = uf_q;
+            f_xn_in[CP]  = uf_n;   f_xc_in[CP]  = uf_c;   f_xq_in[CP] = uf_q;
 
             // But f_annc is ALSO what credits the free pool (ann_release, below
             // -- a dissolving loop returns its vacancies to the matrix). A
@@ -742,12 +800,19 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             T spread = f_gro[k];
             // Nucleation deposits at m_nuc, so it carries m_nuc^2 into q -- the
             // same source the lower moments take with weights 1 and m_nuc.
-            T mnuc = (ad_val(f_nucn[k]) > 0.0)
-                     ? f_nucc[k] / f_nucn[k] : T(0.0);
-            T qnuc = f_nucn[k] * mnuc * mnuc;
-            // ...and annealing/transfer removes at the same weighting.
-            T qann = (ad_val(f_num[k]) > 0.0)
-                     ? f_annn[k] * f_mbar[k] * f_mbar[k] * f_delta[k] : T(0.0);
+            // A basal-chain transfer does NOT arrive that way: its three gates
+            // differ, so it is netted out of the generic weighting and re-added
+            // with the second moment it actually carries.
+            T nn = f_nucn[k] - f_xn_in[k];
+            T nc = f_nucc[k] - f_xc_in[k];
+            T mnuc = (ad_val(nn) > 0.0) ? nc / nn : T(0.0);
+            T qnuc = nn * mnuc * mnuc + f_xq_in[k];
+            // ...and annealing removes at the family's own <m^2> = mbar^2
+            // Delta, i.e. proportionally, which a gated transfer also is not.
+            T an = f_annn[k] - f_xn_out[k];
+            T qann = ((ad_val(f_num[k]) > 0.0)
+                      ? an * f_mbar[k] * f_mbar[k] * f_delta[k] : T(0.0))
+                     + f_xq_out[k];
             // Coalescence is subtracted with n and c below, where coal_num
             // is actually computed; referencing it here read it before it was
             // assigned.

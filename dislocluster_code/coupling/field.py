@@ -87,8 +87,15 @@ M_SIZE = 4          # Cv, Ci, C2i, C3i
 # first then contents -- iVal(k) and iVal(nFamilies+k) in ImmobileSinks -- so
 # the new columns land among the numbers and among the contents, NOT
 # appended at the end. Step 4 added the ninth family, the pyramid c_0.
-I_SIZE = 18         # 9 families x (number, content)
-N_FAMILIES = I_SIZE // 2
+#
+# Step 5 added a THIRD field per family, the second content moment q_k, so the
+# block is moment-major: nine numbers, nine contents, nine q. The first eighteen
+# columns are exactly where they were, which is what lets an evl written before
+# this step widen into it. N_FAMILIES is its OWN constant now and not half of
+# I_SIZE -- that spelling silently became 13 the moment the third moment landed.
+N_MOMENTS = 3
+N_FAMILIES = 9
+I_SIZE = N_FAMILIES * N_MOMENTS     # 27
 N_CD_COLS = M_SIZE + I_SIZE
 
 #: The pre-step-1 width, kept as a named reference point. Any narrower block is
@@ -209,11 +216,17 @@ class EvlFile:
                 # since the figures, the movies and the transfer ledger all read
                 # evl_<N>.txt directly.
                 #
-                # The CD block is numbers-then-contents, so widening is not a
-                # pad on the end -- the old contents have to MOVE, from
-                # M_SIZE+nf_old to M_SIZE+N_FAMILIES. Getting that wrong would
-                # silently read a stale file's contents as the new families'
-                # numbers.
+                # The CD block is moment-major, so widening is not a pad on the
+                # end -- the old contents have to MOVE, from M_SIZE+nf_old to
+                # M_SIZE+N_FAMILIES. Getting that wrong would silently read a
+                # stale file's contents as the new families' numbers.
+                #
+                # Every block narrower than the current one carries TWO moments:
+                # the third arrived with step 5, which is the same change that
+                # widened the block to its present size, so a narrower file
+                # predates it by construction. q comes back zero, which reads as
+                # Delta = 1 -- the monodisperse limit those runs were computed
+                # in, and the correction-free value of every closure factor.
                 nf_old, rem = divmod(got - M_SIZE, 2)
                 if rem or nf_old <= 0 or nf_old > N_FAMILIES:
                     raise ValueError(
@@ -335,8 +348,10 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     # steps 1 and 4 (numbers 19..23, contents 24..28). A 19-wide state simply
     # leaves them empty, which is what they are in every run made before those
     # steps. Anything else is a layout error and must not be guessed at.
-    if Y.shape[1] not in (19, 29):
-        raise ValueError(f"expected (N,19) or (N,29) 0-D states, got {Y.shape}")
+    # 38 adds step 5's second content moment, q, at 29..37.
+    if Y.shape[1] not in (19, 29, 38):
+        raise ValueError(
+            f"expected (N,19), (N,29) or (N,38) 0-D states, got {Y.shape}")
     w = np.asarray(variant_weights, dtype=float)
     if w.shape != (3,):
         raise ValueError("variant_weights must have three entries")
@@ -359,10 +374,20 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
         out = np.zeros((Y.shape[0], I_SIZE), dtype=float)
         out[:, 0:4] = Y[:, 4:8] / omega                       # n_0..n_3
         out[:, N_FAMILIES:N_FAMILIES + 4] = Y[:, 8:12]        # c_0..c_3
-        nx = (Y.shape[1] - 19) // 2                           # appended families
+        nx = 5 if Y.shape[1] >= 29 else 0                     # appended families
         if nx:
             out[:, 4:4 + nx] = Y[:, 19:19 + nx] / omega
             out[:, N_FAMILIES + 4:N_FAMILIES + 4 + nx] = Y[:, 19 + nx:19 + 2 * nx]
+        # Step 5's second moment, q_k, at 0-D indices 29..37 in family order --
+        # already the CD block's own order, so this one IS a straight copy.
+        #
+        # q crosses UNSCALED, exactly as the content does: it is a moment of the
+        # content and carries the content's units. Only the number density is
+        # converted (per atom -> per b^3), which is why the dispersion is
+        # q n / c^2 on the 0-D side and q n omega / c^2 in ImmobileSinks -- the
+        # same single omega that makes MoDELib's mean size CI/N/omega.
+        if Y.shape[1] >= 38 and N_MOMENTS > 2:
+            out[:, 2 * N_FAMILIES:2 * N_FAMILIES + N_FAMILIES] = Y[:, 29:38]
         return out
 
     N_a = Y[:, IDX["CiL"]] + Y[:, IDX["CaiL"]]        # <a> loop number
@@ -403,12 +428,35 @@ def to_legacy_layout(Y, loop_model=0):
     if not loop_model:
         return Y
     out = Y.copy()
-    n_c, n_a = Y[:, 4], Y[:, 5:8].sum(axis=1)
-    c_c, c_a = Y[:, 8], Y[:, 9:12].sum(axis=1)
-    out[:, IDX["CiL"]], out[:, IDX["CaiL"]] = n_a, 0.0
-    out[:, IDX["CvL"]], out[:, IDX["CavL"]] = n_c, 0.0
-    out[:, IDX["CiL_i"]], out[:, IDX["CaiL_i"]] = c_a, 0.0
-    out[:, IDX["CvL_v"]], out[:, IDX["CavL_v"]] = c_c, 0.0
+
+    # Families 4..8 live at 19..28, numbers then contents, so a wider state has
+    # more to lump than the original four. THE PARTNER SLOTS CARRY THEM. Every
+    # legacy figure that plots a pair SUM is then exactly right -- CiL+CaiL is
+    # the total prismatic population and CvL+CavL the total basal one -- and the
+    # few that plot the split show interstitial against vacancy rather than
+    # aligned against non-aligned, which is a relabelling and not an invention.
+    # Dropping them instead, as this used to, understated the totals by however
+    # much the vacancy variants and c_p carried.
+    def fam(idx, moment):
+        """Number (moment 0) or content (moment 1) of family `idx`."""
+        if idx < 4:
+            return Y[:, (4 if moment == 0 else 8) + idx]
+        if Y.shape[1] < 29:
+            return np.zeros(Y.shape[0])
+        return Y[:, (19 if moment == 0 else 24) + (idx - 4)]
+
+    for m, (i_slot, ai_slot, v_slot, av_slot) in enumerate(
+            (("CiL", "CaiL", "CvL", "CavL"),
+             ("CiL_i", "CaiL_i", "CvL_v", "CavL_v"))):
+        prism_i = sum(fam(k, m) for k in (1, 2, 3))     # prismatic <a>, i-type
+        prism_v = sum(fam(k, m) for k in (4, 5, 6))     # prismatic <a>, v-type
+        out[:, IDX[i_slot]] = prism_i
+        out[:, IDX[ai_slot]] = prism_v
+        out[:, IDX[v_slot]] = fam(0, m)                 # c_f, faulted basal
+        out[:, IDX[av_slot]] = fam(7, m)                # c_p, perfect basal
+    # The PYRAMID (family 8) has no legacy slot and gets none. It is not a loop
+    # -- no perimeter, no lambda sqrt(m) radius -- so a figure that reduces a
+    # slot to a loop diameter would report a number that means nothing for it.
     return out
 
 
@@ -478,18 +526,22 @@ def modelib_immobile_to_0d(immob, omega, Y_prev=None, loop_model=0):
         # step 1's four at 8..15, which the caller places at state indices
         # 19..26. Width follows the CD block, so a pre-step-1 evl -- widened on
         # read -- comes back with its new families empty.
-        nf = immob.shape[1] // 2
+        nf = N_FAMILIES
         out = np.zeros((immob.shape[0], 2 * nf), dtype=float)
         out[:, 0:4] = immob[:, 0:4] * omega            # n_0..n_3
         out[:, 4:8] = immob[:, nf:nf + 4]              # c_0..c_3
         if nf > 4:
             out[:, 8:8 + (nf - 4)] = immob[:, 4:nf] * omega
-            out[:, 8 + (nf - 4):] = immob[:, nf + 4:]
+            out[:, 8 + (nf - 4):] = immob[:, nf + 4:2 * nf]
         return out
+    # LEGACY PATH: N_FAMILIES and not the literal 4 the block used to have.
+    # The <c> content moved from column 4 to column N_FAMILIES when step 1
+    # widened the block, and reading it at 4 would have returned the a1 NUMBER
+    # as the <c> content -- a well-formed answer about the wrong quantity.
     n_c = immob[:, 0] * omega
     n_a = immob[:, 1:4].sum(axis=1) * omega
-    c_c = immob[:, 4]
-    c_a = immob[:, 5:8].sum(axis=1)
+    c_c = immob[:, N_FAMILIES]
+    c_a = immob[:, N_FAMILIES + 1:N_FAMILIES + 4].sum(axis=1)
 
     def split(tot, lo, hi):
         if Y_prev is None:
@@ -512,6 +564,36 @@ def modelib_immobile_to_0d(immob, omega, Y_prev=None, loop_model=0):
     CvL_v, CavL_v = split(c_c, IDX["CvL_v"], IDX["CavL_v"])
     return np.column_stack([CiL, CaiL, CvL, CavL,
                             CiL_i, CaiL_i, CvL_v, CavL_v])
+
+
+def immobile_into_state(Y, immob, omega, loop_model=0, Y_prev=None):
+    """Scatter a MoDELib immobile block into the 0-D state's own slots.
+
+    The 0-D state and the CD block are BOTH grouped by moment, but at different
+    offsets: the 0-D keeps its original four families at 4..11 and appends the
+    five later ones at 19..28, so families 4..8 are not contiguous with 0..3 on
+    that side. Doing this by hand at the call site is what put an 18-wide block
+    into an 8-wide slice; there is now one place that knows the mapping.
+
+    ``Y`` is modified in place and returned.
+    """
+    blk = modelib_immobile_to_0d(immob, omega, Y_prev=Y_prev,
+                                 loop_model=loop_model)
+    if not loop_model:
+        Y[:, 4:12] = blk
+        return Y
+    nf = N_FAMILIES
+    Y[:, 4:8] = blk[:, 0:4]                    # n_c, n_a1..a3
+    Y[:, 8:12] = blk[:, 4:8]                   # c_c, c_a1..a3
+    if Y.shape[1] >= 29 and nf > 4:
+        Y[:, 19:19 + (nf - 4)] = blk[:, 8:8 + (nf - 4)]
+        Y[:, 24:24 + (nf - 4)] = blk[:, 8 + (nf - 4):8 + 2 * (nf - 4)]
+    # Step 5's second moment rides along unscaled, the way the content does.
+    if Y.shape[1] >= 29 + nf and N_MOMENTS > 2:
+        immob = np.atleast_2d(np.asarray(immob, dtype=float))
+        if immob.shape[1] >= 3 * nf:
+            Y[:, 29:29 + nf] = immob[:, 2 * nf:3 * nf]
+    return Y
 
 
 # ── the bridge ───────────────────────────────────────────────────────────────

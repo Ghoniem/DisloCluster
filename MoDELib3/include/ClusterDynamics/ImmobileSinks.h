@@ -66,7 +66,11 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
     constexpr static int cols=mSizeIn;
     constexpr static int dim=ImmobileTrialFunctionType::dim;
     constexpr static int iSize=ImmobileTrialFunctionType::rows;
-    constexpr static int nFamilies=iSize/2;
+    // Three fields per family since step 5 (n, c, q), not two. Written as a
+    // division of iSize it silently became 13 the moment the third moment was
+    // added, and every loop below would have run off the end of its array.
+    constexpr static int nFamilies=ClusterDynamicsParameters<dim>::iFam;
+    constexpr static int nMoments=ClusterDynamicsParameters<dim>::iMom;
 
     typedef EvalExpression<ImmobileTrialFunctionType> EvalFunctionType;
 
@@ -118,11 +122,40 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
         // takes it directly and the per-b^3 number density takes C_floor/Omega.
         const double cFloor(cdp.concentrationFloor);
         const double nFloor(cdp.concentrationFloor/cdp.omega);
-        Eigen::Array<double,1,nFamilies> nk,ck;
+        Eigen::Array<double,1,nFamilies> nk,ck,dk;
         for(int k=0;k<nFamilies;++k)
         {
             nk(k)=std::max(iVal(k),nFloor);
             ck(k)=std::max(iVal(nFamilies+k),cFloor);
+            // Step 5: the dispersion Delta_k = <m^2>/<m>^2.
+            //
+            // NOTE THE OMEGA, which is not decoration. The 0-D writes Delta as
+            // the unit-free q n / c^2 because it carries all three moments per
+            // ATOM; the CD block carries the number per b^3 and the content as
+            // an atom fraction, which is why clusterRadius/rloop spell the mean
+            // size CI/N/omega rather than CI/N. q crosses the bridge unscaled,
+            // as the content does, so exactly one factor of omega is needed to
+            // put Delta back on the 0-D's footing. Without it the dispersion
+            // would come out a factor of omega ~ 1e-2 b^3 too small and the
+            // correction below would silently be a different number on the two
+            // sides of the coupling.
+            //
+            // Clamped at 1 from below, which is where a block written before
+            // step 5 -- or by a route that carries no second moment -- lands:
+            // q = 0 gives Delta = 0, and clamping to 1 is the monodisperse
+            // limit, i.e. exactly the correction-free behaviour. Delta < 1 is
+            // also Cauchy-Schwarz-impossible for a real distribution, so
+            // nothing physical is being clipped away.
+            dk(k)=1.0;
+            if(nMoments>2)
+            {
+                const double q(iVal(2*nFamilies+k));
+                const double d(q*nk(k)*cdp.omega/(ck(k)*ck(k)));
+                if(std::isfinite(d) && d>1.0)
+                {
+                    dk(k)=d;
+                }
+            }
         }
 
         // Sink strength per family, Eqs. (12)-(14) with the bi-pyramid -> loop
@@ -130,7 +163,17 @@ struct ImmobileSinks : public EvalFunction<ImmobileSinks<ImmobileTrialFunctionTy
         // multiplier loopSinkScale (1 = purely geometric). The SAME multiplier is
         // applied to the loop growth flux in solveImmobileClusters(), mirroring the
         // 0-D where absorption and growth share one prefactor.
-        const Eigen::Array<double,1,nFamilies> Sk(cdp.clusterDensity(ck,nk)*cdp.loopSinkScale);
+        // ...and times the dispersion correction Delta^{-1/8} of
+        // Eq. (Deltacorrection). S_k goes as n <m^{1/2}>, and sqrt is concave,
+        // so a family spread over sizes presents LESS perimeter than a
+        // monodisperse one of the same density and content. It is a modest
+        // factor -- 0.972 at a 50% relative width, 0.917 at 100% -- and it is
+        // the one place the second moment enters the fast solve at all.
+        Eigen::Array<double,1,nFamilies> Sk(cdp.clusterDensity(ck,nk)*cdp.loopSinkScale);
+        for(int k=0;k<nFamilies;++k)
+        {
+            Sk(k)*=std::pow(dk(k),-0.125);
+        }
 
         Eigen::Matrix<double,rows,cols> temp(Eigen::Matrix<double,rows,cols>::Zero());
         for(int m=0;m<rows;++m)

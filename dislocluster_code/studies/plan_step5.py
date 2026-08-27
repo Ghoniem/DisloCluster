@@ -316,6 +316,182 @@ def check_annealing_signature(run_dir):
     return ok
 
 
+def _gate_closed(m_theta, mbar, Delta, j):
+    """Eq. (gatefraction), the closed form the C++ evaluates."""
+    from math import erfc, log, sqrt
+    s2 = log(Delta)
+    s = sqrt(s2)
+    mu = log(mbar) - 0.5 * s2
+    return 0.5 * erfc((log(m_theta) - mu - j * s2) / (s * sqrt(2.0)))
+
+
+def _gate_quadrature(m_theta, mbar, Delta, j):
+    """The same fraction by direct quadrature of the log-normal.
+
+    Independent of erfc -- it integrates m^j f(m) over [m_theta, inf) on a grid
+    in x = ln m, where the density is Gaussian -- so it tests the CLOSED FORM
+    and not merely the C++ transcription of it.
+    """
+    s2 = np.log(Delta)
+    s = np.sqrt(s2)
+    mu = np.log(mbar) - 0.5 * s2
+    def _int(lo, hi):
+        # The truncation point is made a GRID ENDPOINT rather than being masked
+        # out of a common grid: a np.where step lands mid-cell and trapezoid
+        # across the discontinuity is O(h) wrong, which showed up as a 5e-6
+        # disagreement with the closed form and read as a physics discrepancy.
+        x = np.linspace(lo, hi, 200001)
+        w = np.exp(-0.5 * ((x - mu) / s) ** 2) / (s * np.sqrt(2.0 * np.pi))
+        return float(np.trapezoid(np.exp(j * x) * w, x))
+
+    lo, hi = mu - 16.0 * s, mu + 16.0 * s
+    return _int(max(np.log(m_theta), lo), hi) / _int(lo, hi)
+
+
+def check_transfer_gates(run_dir):
+    """Goal (v): the moment-weighted transfer gates of Eq. (gatefraction).
+
+    The three gates are measured OPERATIONALLY -- as the fraction of each moment
+    a short transfer actually removes from the source family -- and compared
+    with the closed form and with direct quadrature. The sharp part is the
+    ordering Phi2 > Phi1 > Phi0: it says the converting subpopulation is larger
+    than the family mean, which is what a size-gated reaction does and what one
+    rate multiplying all three moments cannot express.
+    """
+    print("GOAL (v)    the moment-weighted transfer gates")
+    from dislocluster_code.studies.plan_step4 import SLOT_C0, SLOT_CF
+
+    mbar, Delta, m_theta = 400.0, 1.6, 800.0
+    # nu*dt sets the measurement, and it is squeezed from both sides: too large
+    # and the source's own mu and Delta drift within the step, so the gate that
+    # acted is not the one evaluated at the seed; too small and the difference
+    # is lost in the solver's 11-significant-digit stdout. 1e-4 leaves 7 digits
+    # on the difference and moves the gate by ~1e-4 of itself.
+    nu, dt = 1.0e-4, 1.0
+    n0 = 1e-10
+
+    # The pyramid alone, with every other channel off: no cascade source, no
+    # dissolution, no unfaulting, and a mobile matrix at zero so nothing is
+    # captured. What is left is the one transfer this goal is about.
+    ov = dict(QUIET)
+    ov.update({"omega_i": 0.0, "omega_2i": 0.0, "omega_3i": 0.0})
+    sim = dcfg.sim_for_run(run_dir)
+    base = collect_solver_args(sim, dict(
+        t_begin=1e-1, t_end=1e9, n_points=2, log_time=False,
+        rtol=1e-13, atol=1e-40, stats=True, loop_model=1,
+        material_file=paths.MODELIB_MATERIAL, n_fam=9,
+        moments=1, m_min=1.0, basal_chain=1,
+        variant_weights=(1 / 3, 1 / 3, 1 / 3),
+        eps_sfp=0.0, n_sfp_nuc=1.0, tau_sfp=0.0, nu_col=nu, nu_uf=0.0,
+        m_col=m_theta, m_uf=0.0))
+    d = {}
+    for a in base:
+        if a.startswith("--") and "=" in a:
+            k, v = a[2:].split("=", 1)
+            d[k] = v
+    d.update({k: repr(float(v)) for k, v in ov.items()})
+    cli = [f"--{k}={v}" for k, v in d.items()]
+
+    y = _seed(slot=SLOT_C0, n=n0, mbar=mbar, Delta=Delta)
+    out = imm.run_immobile_step(cli, [y], 0.0, dt, retries=0)[0]
+    if out is None:
+        print("  integration FAILED")
+        return False
+
+    ok = True
+    meas, closed, quad = {}, {}, {}
+    for j, idx in ((0, n_idx), (1, c_idx), (2, q_idx)):
+        src = idx(SLOT_C0)
+        # The transfer is a pure decay at rate nu*Phi, so the fraction removed
+        # is 1 - exp(-nu Phi dt) and the logarithm inverts it exactly. Taking
+        # the fraction itself would leave an O(nu Phi dt/2) bias -- a systematic
+        # UNDER-reading of every gate, in the same direction for all three, so
+        # the ordering would survive it and the agreement would not.
+        meas[j] = -np.log(1.0 - (y[src] - out[src]) / y[src]) / (nu * dt)
+        closed[j] = _gate_closed(m_theta, mbar, Delta, j)
+        quad[j] = _gate_quadrature(m_theta, mbar, Delta, j)
+        rel = abs(meas[j] - closed[j]) / closed[j]
+        rq = abs(quad[j] - closed[j]) / closed[j]
+        print(f"  Phi^({j})  measured {meas[j]:.9f}   closed {closed[j]:.9f}"
+              f"   quadrature {quad[j]:.9f}")
+        print(f"          solver vs closed {rel:.2e}   closed vs quadrature "
+              f"{rq:.2e}")
+        ok = ok and rel < 1e-3 and rq < 1e-7
+
+    order = closed[2] > closed[1] > closed[0] and meas[2] > meas[1] > meas[0]
+    print(f"  Phi^(2) > Phi^(1) > Phi^(0) : {order}")
+    ok = ok and order
+
+    # The transferred population is larger than the family it left, which is the
+    # physical content of the ordering.
+    m_x = ((y[c_idx(SLOT_C0)] - out[c_idx(SLOT_C0)])
+           / (y[n_idx(SLOT_C0)] - out[n_idx(SLOT_C0)]))
+    print(f"  transferred mean size {m_x:.2f} against family mean {mbar:.2f}"
+          f"  ({m_x / mbar:.3f}x)")
+    ok = ok and m_x > mbar
+
+    # ...and the source mean therefore FALLS even though nothing shrank: what
+    # left was above average. A single rate on all three moments leaves it flat.
+    m_src = out[c_idx(SLOT_C0)] / out[n_idx(SLOT_C0)]
+    print(f"  source mean {mbar:.6f} -> {m_src:.6f} "
+          f"({'falls' if m_src < mbar else 'HOLDS/RISES'})")
+    ok = ok and m_src < mbar
+
+    # Conservation: whatever left c_0 arrived at c_f, moment for moment. This is
+    # what makes the gates a transfer and not a loss.
+    worst = 0.0
+    for idx in (n_idx, c_idx, q_idx):
+        lost = y[idx(SLOT_C0)] - out[idx(SLOT_C0)]
+        gained = out[idx(SLOT_CF)] - y[idx(SLOT_CF)]
+        worst = max(worst, abs(lost - gained) / abs(lost))
+    print(f"  worst moment-for-moment conservation error : {worst:.3e}")
+    # The ODE is conservative by construction -- the same rate on both sides --
+    # so this measures the solver and the 11-digit stdout, not the model.
+    ok = ok and worst < 1e-5
+
+    print(f"  gates measured, ordered, and conservative : {ok}")
+    return ok
+
+
+def check_gates_off(run_dir):
+    """m_col = m_uf = 0 must reproduce step 4's chain bit-for-bit.
+
+    The gates are the one part of step 5 that touches a channel step 4 already
+    ran, so this is the regression that says switching them off is a switch and
+    not an approximation. It is run WITH moments on, so the only difference from
+    the compared command line is the two thresholds.
+    """
+    print("REGRESSION  gates off (m_col = m_uf = 0) vs the ungated chain")
+    from dislocluster_code.studies.plan_step4 import _seed as _seed4
+    CHAIN = dict(eps_sfp=1e-12 * 200.0, n_sfp_nuc=200.0, tau_sfp=1e5,
+                 nu_col=1e-5, nu_uf=3e-6)
+    y = _seed4(n_c0=1e-9, m_c0=200.0, n_cf=2e-10, m_cf=500.0)
+    y = np.concatenate([y, np.zeros(N_STATE - y.shape[0])])
+    for slot, D in ((8, 1.4), (0, 1.8)):
+        if y[c_idx(slot)] > 0:
+            y[q_idx(slot)] = D * y[c_idx(slot)] ** 2 / y[n_idx(slot)]
+
+    def _cli(gated):
+        sim = dcfg.sim_for_run(run_dir)
+        cfg = dict(t_begin=1e-1, t_end=1e9, n_points=2, log_time=False,
+                   rtol=1e-10, atol=1e-30, stats=True, loop_model=1,
+                   material_file=paths.MODELIB_MATERIAL, n_fam=9,
+                   moments=1, m_min=1.0, basal_chain=1,
+                   variant_weights=(1 / 3, 1 / 3, 1 / 3), **CHAIN)
+        if gated:
+            cfg.update(m_col=0.0, m_uf=0.0)
+        return collect_solver_args(sim, cfg)
+
+    a = imm.run_immobile_step(_cli(False), [y], 0.0, 1e5, retries=0)[0]
+    b = imm.run_immobile_step(_cli(True), [y], 0.0, 1e5, retries=0)[0]
+    if a is None or b is None:
+        print("  integration FAILED")
+        return False
+    same = bool(np.array_equal(a, b))
+    print(f"  bit-for-bit : {same}")
+    return same
+
+
 def verify(run=None):
     run_dir = resolve_run(run or REFERENCE_RUN)
     print(f"reference: {run_dir.name}\n")
@@ -329,12 +505,18 @@ def verify(run=None):
     print()
     g3 = check_annealing_signature(run_dir)
     print()
+    g5 = check_transfer_gates(run_dir)
+    print()
+    reg2 = check_gates_off(run_dir)
+    print()
     print(f"regression (moments off)     : {reg}")
+    print(f"regression (gates off)       : {reg2}")
     print(f"goal (i)   closure identity  : {g1}")
     print(f"goal (ii)  pure spreading    : {g2}")
     print(f"goal (iii) anneal signature  : {g3}")
     print(f"goal (iv)  floor current     : {g4}")
-    return reg and g1 and g2 and g3 and g4
+    print(f"goal (v)   transfer gates    : {g5}")
+    return reg and reg2 and g1 and g2 and g3 and g4 and g5
 
 
 def main(argv=None):

@@ -214,9 +214,20 @@ def computational_stats(run, nodes):
     """
     from dislocluster_code.coupling.field import M_SIZE, I_SIZE
     from dislocluster_code.coupling.immobile import (
-        N_EQ, ACCUMULATOR_SLICE)
+        N_EQ as N_EQ_NATIVE, ACCUMULATOR_SLICE)
 
     n_acc = ACCUMULATOR_SLICE.stop - ACCUMULATOR_SLICE.start
+    # The state width is the RUN'S, not the module constant. A march carrying
+    # nine families and three moments integrates 34 ODEs per point, not 15, and
+    # quoting 19 here would understate the whole cost table by a factor of two.
+    N_EQ = N_EQ_NATIVE
+    try:
+        import numpy as _np
+        with _np.load(Path(run) / "march_state.npz") as _z:
+            if "Y" in _z.files:
+                N_EQ = int(_z["Y"].shape[-1])
+    except Exception:
+        pass
     # acc_mode=2 with freeze_mobile=1: N_RLX_FROZEN = (N_EQ - N_ACC - N_MOB)
     # + N_ACC, which is just N_EQ - N_MOB. Integrated count and Newton block
     # are the same number here.
@@ -251,7 +262,7 @@ def computational_stats(run, nodes):
          "| quantity | value |", "|---|---:|",
          f"| CD nodes (2nd-order trial functions) | {n_cd:,} |",
          f"| mobile field `m` — {M_SIZE} species | {M_SIZE * n_cd:,} dof |",
-         f"| immobile field `i` — {I_SIZE} (number, content) | "
+         f"| immobile field `i` — {I_SIZE} (number, content, 2nd moment) | "
          f"{I_SIZE * n_cd:,} dof |",
          f"| elastic displacement `u` | {3 * n_cd:,} dof |", ""]
 
@@ -264,7 +275,8 @@ def computational_stats(run, nodes):
           f"the mobile species frozen: **{n_ode} coupled ODEs per point**, "
           f"which is also the width of the implicit block Newton and the dense "
           f"LU factor. The state vector carries {N_EQ} ({M_SIZE} mobile, "
-          f"{I_SIZE} immobile, {n_acc} conservation accumulators, rho_N); the "
+          f"{N_EQ - M_SIZE - n_acc - 1} immobile, {n_acc} conservation "
+          f"accumulators, rho_N); the "
           f"{M_SIZE} mobile are held fixed over the substep. The {n_acc} "
           f"accumulators ARE integrated — `acc_mode=2` only relaxes their "
           f"`atol` so they stop driving the step size. Dropping them from the "

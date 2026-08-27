@@ -45,7 +45,22 @@ struct ClusterDynamicsParameters
     // Step 4 adds a NINTH family, the stacking-fault pyramid c_0, so 18.
     // Slot 8 is not a loop: no perimeter, no Burgers vector, no line density.
     // Its sink is the compact form and it has no coalescence channel.
-    static constexpr int iSize=18;  // 9 families x (number, content)
+    //
+    // Step 5 adds a THIRD field per family, the second content moment q_k, so
+    // 27. The block is laid out moment-major -- all nine n, then all nine c,
+    // then all nine q -- which keeps the first eighteen components exactly
+    // where they were, so an evl file written before this step reads back into
+    // the same slots and only the new tail is absent.
+    //
+    // iFam AND NOT A DERIVED HALF OF iSize. Every family count in the code used
+    // to be written as half of iSize, which was correct only while there were
+    // exactly two fields per family; with three it silently becomes 13 (integer
+    // division of 27) and every per-family loop runs
+    // off the end of its array. The family count and the moment count are now
+    // named separately and iSize is derived from them.
+    static constexpr int iMom=3;             // fields per family: n, c, q
+    static constexpr int iFam=9;             // immobile families
+    static constexpr int iSize=iFam*iMom;    // 27
 
     typedef Eigen::Matrix<double,dim,1> VectorDim;
     typedef Eigen::Matrix<double,dim,dim> MatrixDim;
@@ -101,10 +116,10 @@ struct ClusterDynamicsParameters
     const Eigen::Array<double,2,mSize> discreteDislocationBias;
 
     // Immobile Species
-    const Eigen::Array<double,1,iSize/2> immobileSpeciesVector;
-    const Eigen::Array<double,1,iSize/2> immobileSpeciesRelRelaxVol;
-    const Eigen::Matrix<double,dim,iSize/2> immobileSpeciesBurgers;
-    const Eigen::Array<double,1,iSize/2> immobileSpeciesBurgersMagnitude;
+    const Eigen::Array<double,1,iFam> immobileSpeciesVector;
+    const Eigen::Array<double,1,iFam> immobileSpeciesRelRelaxVol;
+    const Eigen::Matrix<double,dim,iFam> immobileSpeciesBurgers;
+    const Eigen::Array<double,1,iFam> immobileSpeciesBurgersMagnitude;
     const double a_bp; // bi-pyramid sink strength coefficient
     const double delVPyramid;
     const double w0;
@@ -114,17 +129,17 @@ struct ClusterDynamicsParameters
     // Irradiation Production
     const double evc; // Vacancy cluster generation efficiency
     const double Nvmax; // Satuatrion number density for vacancy loops in m^-3
-    const Eigen::Array<double,1,iSize/2> nmin; // Critical size for <c> pyramid -> loop
-    const Eigen::Array<double,1,iSize/2> nmax;
-    const Eigen::Array<double,1,iSize/2> r_min; // minimal loop sizes
+    const Eigen::Array<double,1,iFam> nmin; // Critical size for <c> pyramid -> loop
+    const Eigen::Array<double,1,iFam> nmax;
+    const Eigen::Array<double,1,iFam> r_min; // minimal loop sizes
 
     // ---- Immobile kinetics: Deliverable D1/M1 Sec. 2.2 -------------------
     // Parameters of the loop density (Eq. 34) and content (Eq. 39) equations.
     // All are read only when iSize>0 and are converted to MoDELib units here.
-    const Eigen::Array<double,1,iSize/2> loopCascadeFractions; // eps_k, cascade-borne loop fraction (Eq. 51)
-    const Eigen::Array<double,1,iSize/2> nNuc;                 // defects per cascade-nucleated loop (Eq. 36)
-    const Eigen::Array<double,1,iSize/2> cLL;                  // like-loop coalescence coefficient (Eq. 99)
-    const Eigen::Array<double,1,iSize/2> cLN;                  // loop-network coalescence coefficient (Eq. 99)
+    const Eigen::Array<double,1,iFam> loopCascadeFractions; // eps_k, cascade-borne loop fraction (Eq. 51)
+    const Eigen::Array<double,1,iFam> nNuc;                 // defects per cascade-nucleated loop (Eq. 36)
+    const Eigen::Array<double,1,iFam> cLL;                  // like-loop coalescence coefficient (Eq. 99)
+    const Eigen::Array<double,1,iFam> cLN;                  // loop-network coalescence coefficient (Eq. 99)
     const double kappaLL;                                      // Avrami overlap, like-loop channel (Eq. 98)
     const double kappaLN;                                      // Avrami overlap, loop-network channel (Eq. 98)
     const double tauVac;                                       // vacancy-loop dissolution lifetime (Eq. 95) [MoDELib time]
@@ -139,7 +154,7 @@ struct ClusterDynamicsParameters
      *  flux, as in the 0-D where both come from the same prefactor. Defaults to 1
      *  (purely geometric). Zr3d_ghoniem sets it to reproduce ZrMicro's convention;
      *  see loopSinkScale in the material file. */
-    const Eigen::Array<double,1,iSize/2> loopSinkScale;
+    const Eigen::Array<double,1,iFam> loopSinkScale;
     /*! Positivity floor on every concentration, mirroring ZrMicro's C_floor
      *  (`rate_equations.py`, default 1e-20). Applied to the mobile species after
      *  each Newton update and to the immobile densities/contents after each
@@ -266,7 +281,7 @@ struct ClusterDynamicsParameters
     std::vector<Eigen::Matrix<double,mSize,mSize>> getR2() const;
     /*! Build loopNucChannels; see its declaration. */
     std::map<std::pair<int,int>,double> getLoopNucChannels() const;
-    Eigen::Array<double,1,iSize/2> getImmobileSpeciesBurgersMagnitude(const std::map<size_t,Grain<dim>>& grains) const;
+    Eigen::Array<double,1,iFam> getImmobileSpeciesBurgersMagnitude(const std::map<size_t,Grain<dim>>& grains) const;
     std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> getD(const std::map<size_t,Grain<dim>>& grains) const;
     std::vector<Eigen::Matrix<double,dim,dim>> getDlocal() const;
     std::map<size_t,std::vector<Eigen::Matrix<double,dim,dim>>> getInvD() const;
@@ -275,11 +290,11 @@ struct ClusterDynamicsParameters
     Eigen::Array<double,1,mSize> equilibriumMobileConcentration(const double& stressTrace) const;
     Eigen::Array<double,1,mSize> dislocationMobileConcentration(const VectorDim& b,const VectorDim& t,const VectorDim& fPK,const MatrixDim& stress) const;
     Eigen::Array<double,1,mSize> boundaryMobileConcentration(const double& stressTrace,const double& normalTraction) const;
-    Eigen::Array<double,1,iSize/2> sigmoid(const Eigen::Array<double,1,iSize/2>& n) const;
-    Eigen::Array<double,1,iSize/2> rpyr(const Eigen::Array<double,1,iSize/2>& n) const;
-    Eigen::Array<double,1,iSize/2> rloop(const Eigen::Array<double,1,iSize/2>& n) const;
-    Eigen::Array<double,1,iSize/2> sigmoidalVectorInterpolation(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N, const Eigen::Array<double,1,iSize/2>& lowValue, const Eigen::Array<double,1,iSize/2>& highValue) const;
-    Eigen::Array<double,1,iSize/2> clusterRadius(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N) const;
+    Eigen::Array<double,1,iFam> sigmoid(const Eigen::Array<double,1,iFam>& n) const;
+    Eigen::Array<double,1,iFam> rpyr(const Eigen::Array<double,1,iFam>& n) const;
+    Eigen::Array<double,1,iFam> rloop(const Eigen::Array<double,1,iFam>& n) const;
+    Eigen::Array<double,1,iFam> sigmoidalVectorInterpolation(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N, const Eigen::Array<double,1,iFam>& lowValue, const Eigen::Array<double,1,iFam>& highValue) const;
+    Eigen::Array<double,1,iFam> clusterRadius(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N) const;
     /*! Diffusional-anisotropy-difference capture efficiencies, Deliverable Eq. (15).
      *  Row 0 = vacancy-type loops (basal <c>), row 1 = interstitial-type loops
      *  (prismatic <a>); columns are the mobile species. The bias is GENERATED from
@@ -300,10 +315,10 @@ struct ClusterDynamicsParameters
      *  chi = 1 returns all ones EXACTLY, so a material file without the key --
      *  which is every one of them -- is unchanged bit-for-bit. */
     Eigen::Array<double,2,mSize> loopCharacterFactor() const;
-    Eigen::Array<double,1,iSize/2> clusterDensity(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N) const;
-    Eigen::Array<double,dim,dim> sigmoidalMatrixInterpolation(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N, const Eigen::Array<double,dim,dim>& lowValue, const Eigen::Array<double,dim,dim>& highValue, const int& index) const;
-    Eigen::Array<double,1,iSize/2> sigmoidalPlotVectorInterpolation(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N, const Eigen::Array<double,1,iSize/2>& lowValue, const Eigen::Array<double,1,iSize/2>& highValue) const;
-    Eigen::Array<double,1,iSize/2> clusterPlotRadius(const Eigen::Array<double,1,iSize/2>& CI, const Eigen::Array<double,1,iSize/2>& N) const;
+    Eigen::Array<double,1,iFam> clusterDensity(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N) const;
+    Eigen::Array<double,dim,dim> sigmoidalMatrixInterpolation(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N, const Eigen::Array<double,dim,dim>& lowValue, const Eigen::Array<double,dim,dim>& highValue, const int& index) const;
+    Eigen::Array<double,1,iFam> sigmoidalPlotVectorInterpolation(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N, const Eigen::Array<double,1,iFam>& lowValue, const Eigen::Array<double,1,iFam>& highValue) const;
+    Eigen::Array<double,1,iFam> clusterPlotRadius(const Eigen::Array<double,1,iFam>& CI, const Eigen::Array<double,1,iFam>& N) const;
 };
 
 }

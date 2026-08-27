@@ -399,7 +399,12 @@ def collect_solver_args(sim, solver_config):
         if int(solver_config.get('basal_chain', 0)) != 0:
             params['basal_chain'] = 1
             for key in ('eps_sfp', 'n_sfp_nuc', 'tau_sfp',
-                        'nu_col', 'nu_uf', 'alpha_sfp'):
+                        'nu_col', 'nu_uf', 'alpha_sfp',
+                        # The step-5 transfer thresholds. Absent or 0 leaves
+                        # the transfer barrier-limited, Phi = 1, which is what
+                        # step 4 ran on; they also need `moments`, without
+                        # which there is no distribution to take a fraction of.
+                        'm_col', 'm_uf'):
                 if key in solver_config:
                     params[key] = float(solver_config[key])
 

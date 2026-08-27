@@ -276,7 +276,14 @@ def _march_fingerprint(cfg, qssa_sim, seed_evl, snaps, base_cli, N):
     import os as _os
     return dict(
         # hard
-        n_nodes=int(N), n_eq=int(mc.N_EQ),
+        # The ACTUAL state width, not the native 19. A checkpoint written by a
+        # four-family march cannot be resumed into a nine-family one carrying
+        # three moments, and recording the constant rather than the width would
+        # have let it be.
+        n_nodes=int(N),
+        n_eq=int(mc.state_width(int(getattr(cfg, "loop_model", 0)),
+                                int(getattr(cfg, "n_fam", 4)),
+                                int(getattr(cfg, "moments", 0)))),
         cd_nodes_sha=ckpt_mod.file_digest(Path(qssa_sim) / "evl" / "cdNodes.txt"),
         seed_evl_sha=ckpt_mod.file_digest(seed_evl),
         material_sha=ckpt_mod.file_digest(paths.MODELIB_MATERIAL),
@@ -480,15 +487,37 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     # physics. It has to reach the CLI here, because this is the only place the
     # slow step's arguments are built.
     loop_model = int(getattr(cfg, "loop_model", 0))
-    base_cli = collect_solver_args(sim, dict(
+    slow_cfg = dict(
         t_begin=1e-1, t_end=1e9, n_points=2, log_time=False,
         rtol=1e-6, atol=1e-20, stats=True,
         loop_model=loop_model,
         material_file=paths.MODELIB_MATERIAL,
-        variant_weights=getattr(cfg, "variant_weights", (1/3, 1/3, 1/3))))
+        variant_weights=getattr(cfg, "variant_weights", (1/3, 1/3, 1/3)))
+    # The implementation plan's model switches. Emitted only when they differ
+    # from the pre-step behaviour, so a march that turns none of them on builds
+    # byte-for-byte the command line it always built.
+    if loop_model:
+        n_fam = int(getattr(cfg, "n_fam", 4))
+        if n_fam != 4:
+            slow_cfg["n_fam"] = n_fam
+        for key, off in (("chi", 1.0), ("emission_model", 0),
+                         ("basal_chain", 0), ("moments", 0)):
+            val = getattr(cfg, key, off)
+            if val != off:
+                slow_cfg[key] = val
+        slow_cfg.update(getattr(cfg, "model_params", None) or {})
+        if getattr(cfg, "emission_model", 0):
+            slow_cfg.setdefault("temperature_K",
+                                float(sim.input_data.material_params["T"]))
+    base_cli = collect_solver_args(sim, slow_cfg)
     if loop_model and verbose:
         print("  slow step: SELF-CONSISTENT loop model "
               "(<c> + 3x<a>, Woo efficiencies from the diffusion tensor)")
+        on = [k for k in ("emission_model", "basal_chain", "moments")
+              if getattr(cfg, k, 0)]
+        print(f"    families {int(getattr(cfg, 'n_fam', 4))}, chi "
+              f"{float(getattr(cfg, 'chi', 1.0)):g}"
+              + (f", plan steps on: {', '.join(on)}" if on else ""))
 
     fast = None
     if mobile_mode == "qssa":
@@ -516,10 +545,16 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     resumed = resumed_state is not None
 
     ev0 = mfield.EvlFile(seed_evl)
-    Y = np.zeros((N, mc.N_EQ))
+    # The state has to be allocated at the model's OWN width here: the array
+    # carried across substeps is the only place the appended families and the
+    # second moment live, and a 19-wide one would silently run the four-family
+    # model however the command line was built.
+    Y = np.zeros((N, mc.state_width(loop_model,
+                                    int(getattr(cfg, "n_fam", 4)),
+                                    int(getattr(cfg, "moments", 0)))))
     Y[:, 0:4] = ev0.mobile
-    Y[:, 4:12] = mfield.modelib_immobile_to_0d(ev0.immobile, br.omega,
-                                               loop_model=loop_model)
+    mfield.immobile_into_state(Y, ev0.immobile, br.omega,
+                               loop_model=loop_model)
     Y[:, mc.IDX_RHO_N] = float(sim.input_data.material_params["rho"])
     Y_seed = Y.copy()
 

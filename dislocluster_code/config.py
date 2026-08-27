@@ -163,6 +163,34 @@ SOLVER = {
     # Keep 0 for anything being fitted; use 1 for a run that must be consistent
     # with the anisotropic fast solve.
     "loop_model":   0,
+
+    # ---- the implementation plan's model switches, steps 1-5 ---------------
+    # Each defaults to the value that reproduces the formulation before its
+    # step, so a run that sets none of them is the run that existed before any
+    # of them did. All require loop_model = 1: they describe families and
+    # moments the legacy slots do not name.
+    #
+    #   n_fam           4 legacy | 8 adds the three prismatic VACANCY variants
+    #                   (step 1) | 9 adds the stacking-fault pyramid c_0 (step 4)
+    #   chi             character splitting X_iI X_vV /(X_iV X_vI); 1 = none,
+    #                   and the coexistence window has log-width ln(chi) (step 2)
+    #   emission_model  1 replaces the fitted annealing lifetimes by peripheral
+    #                   emission against each family's own c^{v,eq} (step 3)
+    #   basal_chain     1 runs c_0 -> c_f -> c_p, needs n_fam = 9 (step 4)
+    #   moments         1 carries the second content moment q per family and the
+    #                   log-normal closure built on it (step 5)
+    #
+    # model_params holds the numeric inputs those switches need and passes them
+    # straight to the solver command line: eps_sfp, n_sfp_nuc, tau_sfp, nu_col,
+    # nu_uf, alpha_sfp for the chain; m_min for the dissolution current; m_col
+    # and m_uf for the transfer gates. THE CHAIN RATES ARE NOT CALIBRATED --
+    # nothing in the material file or the workbook supplies them.
+    "n_fam":          4,
+    "chi":            1.0,
+    "emission_model": 0,
+    "basal_chain":    0,
+    "moments":        0,
+    "model_params":   {},
 }
 
 OUTPUT = {
@@ -463,8 +491,42 @@ class Solver:
     linsol: str
     analytic_jac: bool
     loop_model: int = 0
+    n_fam: int = 4
+    chi: float = 1.0
+    emission_model: int = 0
+    basal_chain: int = 0
+    moments: int = 0
+    model_params: dict = field(default_factory=dict)
 
     def validate(self):
+        if self.n_fam not in (4, 8, 9):
+            raise ConfigError(
+                f"n_fam must be 4 (legacy), 8 (with the prismatic vacancy "
+                f"variants) or 9 (with the pyramid), got {self.n_fam}")
+        for k in ("emission_model", "basal_chain", "moments"):
+            if getattr(self, k) not in (0, 1):
+                raise ConfigError(f"{k} must be 0 or 1, got {getattr(self, k)}")
+        if self.chi <= 0.0:
+            raise ConfigError(f"chi must be positive, got {self.chi}")
+        # Each of these names a family or a moment the LEGACY slots do not
+        # carry, so switching one on without loop_model = 1 would build a
+        # command line the legacy assembly ignores -- a run that reports the new
+        # model and integrates the old one.
+        if not self.loop_model:
+            on = [k for k in ("emission_model", "basal_chain", "moments")
+                  if getattr(self, k)]
+            if self.n_fam != 4:
+                on.append("n_fam")
+            if self.chi != 1.0:
+                on.append("chi")
+            if on:
+                raise ConfigError(
+                    f"SOLVER {on} need loop_model = 1: they describe families "
+                    f"and moments the legacy formulation does not carry")
+        if self.basal_chain and self.n_fam != 9:
+            raise ConfigError(
+                "basal_chain = 1 needs n_fam = 9 -- the chain's source is the "
+                "stacking-fault pyramid, which is the ninth family")
         if self.loop_model not in (0, 1):
             raise ConfigError(
                 f"loop_model must be 0 (legacy, the fitted formulation) or 1 "
@@ -592,7 +654,12 @@ class SimulationConfig:
                           backend=s["backend"], lmm=s["lmm"],
                           linsol=s["linsol"],
                           analytic_jac=bool(s["analytic_jac"]),
-                          loop_model=int(s["loop_model"])),
+                          loop_model=int(s["loop_model"]),
+                          n_fam=int(s["n_fam"]), chi=float(s["chi"]),
+                          emission_model=int(s["emission_model"]),
+                          basal_chain=int(s["basal_chain"]),
+                          moments=int(s["moments"]),
+                          model_params=dict(s["model_params"])),
             output=Output(tag=o["tag"], figures=bool(o["figures"]),
                           movies=bool(o["movies"]),
                           movie_interp=int(o["movie_interp"]),

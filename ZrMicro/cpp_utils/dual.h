@@ -177,6 +177,17 @@ inline Dual<N> log(const Dual<N>& a) {
     return r;
 }
 
+template <int N>
+inline Dual<N> erfc(const Dual<N>& a) {
+    Dual<N> r; r.v = std::erfc(a.v);
+    // d/dx erfc(x) = -2/sqrt(pi) exp(-x^2). No guard is needed: the derivative
+    // is finite everywhere and underflows to zero in the same tail where erfc
+    // itself does, which is the correct limit rather than a clamped one.
+    const double c = -1.1283791670955126 * std::exp(-a.v * a.v);
+    for (int i = 0; i < N; ++i) r.d[i] = c * a.d[i];
+    return r;
+}
+
 // ── Type-dispatching wrappers used by the templated core ─────────────────────
 // The core calls ad_sqrt / ad_exp / ad_cbrt rather than unqualified sqrt/exp/
 // cbrt. A block-scope `using std::sqrt` would HIDE the Dual overloads above
@@ -188,11 +199,13 @@ inline double ad_sqrt(double x) { return std::sqrt(x); }
 inline double ad_exp (double x) { return std::exp(x);  }
 inline double ad_cbrt(double x) { return std::cbrt(x); }
 inline double ad_log (double x) { return std::log(x);  }
+inline double ad_erfc(double x) { return std::erfc(x); }
 
 template <int N> inline Dual<N> ad_sqrt(const Dual<N>& x) { return sqrt(x); }
 template <int N> inline Dual<N> ad_exp (const Dual<N>& x) { return exp(x);  }
 template <int N> inline Dual<N> ad_cbrt(const Dual<N>& x) { return cbrt(x); }
 template <int N> inline Dual<N> ad_log (const Dual<N>& x) { return log(x);  }
+template <int N> inline Dual<N> ad_erfc(const Dual<N>& x) { return erfc(x); }
 
 // Value extraction (for comparisons written generically).
 inline double ad_val(double x) { return x; }
