@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  27 AUG 2026 02:09
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  27 AUG 2026 11:36
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1703,25 +1703,24 @@ s been already used, duplicate ignored
                                                   \__shipout_drop_firstpage_...
 l.8135 \item \textbf
                     {A vacancy-loop nucleation current on the prismatic fami...
-] [98] [99] [100] [101] [102] [103] [104] [105]
-Underfull \hbox (badness 3158) in paragraph at lines 8945--8945
+] [98] [99] [100] [101] [102] [103] [104] [105] [106]
+Underfull \hbox (badness 3158) in paragraph at lines 8968--8968
 []|\T1/lmr/m/n/9 periodic cube; the A1 state
  []
 
 
-Underfull \hbox (badness 1342) in paragraph at lines 8945--8945
+Underfull \hbox (badness 1342) in paragraph at lines 8968--8968
 []|\T1/lmr/m/n/9 that the trans-fer is in-vert-ible
  []
 
 
-Underfull \hbox (badness 1057) in paragraph at lines 8945--8945
+Underfull \hbox (badness 1057) in paragraph at lines 8968--8968
 \T1/lmr/m/n/9 tion into $\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 n; c; q\OT1/lmr/m/n/9 
 )$ \T1/lmr/m/n/9 re-cov-ers the
  []
 
-
-ignored: Infinite glue shrinkage found in box being split [106] [107]
-Underfull \hbox (badness 2547) in paragraph at lines 9071--9071
+[107]
+Underfull \hbox (badness 2547) in paragraph at lines 9094--9094
 []|\T1/lmr/m/n/9 Size-distribution an-neal, both rep-re-sen-ta-tions ([][]Ta-
  []
 
@@ -1742,11 +1741,11 @@ Package rerunfilecheck Info: File `self_consistent_SRCD.out' has not changed.
 Here is how much of TeX's memory you used:
  40197 strings out of 467691
  851468 string characters out of 5414988
- 1287157 words of memory out of 5000000
+ 1284158 words of memory out of 5000000
  67790 multiletter control sequences out of 15000+600000
  763708 words of font info for 138 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,19n,96p,1512b,1294s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,19n,96p,1512b,1264s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
@@ -1788,7 +1787,7 @@ ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppDa
 ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Use
 rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm
 10.pfb>
-Output written on self_consistent_SRCD.pdf (111 pages, 3638545 bytes).
+Output written on self_consistent_SRCD.pdf (111 pages, 3638890 bytes).
 PDF statistics:
  3564 PDF objects out of 3580 (max. 8388607)
  810 named destinations out of 1000 (max. 500000)

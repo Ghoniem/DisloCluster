@@ -225,12 +225,12 @@
 \contentsline {paragraph}{Step 4: the basal chain.}{101}{section*.139}%
 \contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{101}{subsection.D.3}%
 \contentsline {paragraph}{Step 5: the second moment.}{101}{section*.140}%
-\contentsline {paragraph}{Six things executing step 5 corrected, and one measurement.}{101}{section*.141}%
+\contentsline {paragraph}{Six things executing step 5 corrected, and one measurement.}{102}{section*.141}%
 \contentsline {paragraph}{The step in a coupled march.}{102}{section*.142}%
 \contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{103}{subsection.D.4}%
 \contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{103}{section*.143}%
 \contentsline {paragraph}{Step 7: the trigger.}{103}{section*.144}%
-\contentsline {paragraph}{Step 8: the climb constructions.}{103}{section*.145}%
+\contentsline {paragraph}{Step 8: the climb constructions.}{104}{section*.145}%
 \contentsline {paragraph}{Step 9: the smeared discrete sink.}{104}{section*.146}%
 \contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{104}{subsection.D.5}%
 \contentsline {paragraph}{Step 10: the continuum observables.}{104}{section*.147}%

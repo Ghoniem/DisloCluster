@@ -756,12 +756,31 @@ inverts it** — `N_c` rises 46×. The basal chain is a minor contributor and
 `eps_sfp` is nearly irrelevant (two decades move `N_c` by 1.5×). If a run shows
 ⟨c⟩ outnumbering ⟨a⟩, this is why; it is not the placeholders.
 
-**Coalescence is not broken — it is doing the whole job.** Switching it off
-raises `N_a` 371× and `N_c` 116×; ×10 on the coefficients lowers them 7.5× and
-2.8×. What is wrong is the *size* of the basal coefficients for the job they
-just inherited: `cLL`/`cLN` are **0.162 / 2.96** for basal against **121 / 1131**
-for prismatic — ~700× smaller, because they were fitted where `tau_cvL` removed
-the basal loops for them.
+**Coalescence is not broken and it is not absent — it is doing the whole job,
+and only after step 3.** How much it removes, per family, one node, 0 → 10 dpa
+(the factor by which switching it off raises the density):
+
+| | `c_f` | `a1` (i) | `a1v` (v) |
+|---|---:|---:|---:|
+| `emission_model = 0` | **1.02×** | 806× | 1.01× |
+| `emission_model = 1` | **152.9×** | 807× | 91.9× |
+
+**Before step 3 coalescence did essentially nothing to a vacancy loop family** —
+not because the channel was missing but because `tau_vL` removed the loops
+first, so the population never built up for them to overlap. The interstitial
+family, which never had a lifetime, is untouched by the switch (806× either
+way). With the basal chain on, `c_p` loses **733×** and `c_f` only **4.6×**.
+
+That is *why* the basal coefficients are small: **the fit never had to make them
+large.** `cLL`/`cLN` are **0.162 / 2.96** for basal against **121 / 1131** for
+prismatic — ~700× — and the fit that produced them was done where `tau_cvL`
+removed the basal loops for them.
+
+The rate is `nu = c_LL · max(drdt, 0) · N^(1/3)` with `drdt ∝ gain/√(nc)` — the
+family's own climb speed, and the gain is **net of emission** for a vacancy
+family. So a family sitting at its own `c^{v,eq}` has `drdt ≤ 0` and coalesces
+not at all. That clamp is a real fragility but it is **not** what is happening
+here: `c_p` losing 733× is a family coalescing hard while being fed harder.
 
 **A testable prediction for the refit**, not a free parameter. Scaling the two
 basal coefficients alone (`N_a` is insensitive to five digits, so the families

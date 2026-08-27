@@ -8333,10 +8333,33 @@ that should be $\sim10$. \textbf{The basal chain is a minor contributor}, and
 $\varepsilon_{\mathrm{sfp}}$ is almost irrelevant --- two decades of it move
 $N_{\langle c\rangle}$ by $1.5\times$.
 
-\textbf{Coalescence is working, and it is doing the whole job.} Switching it off
-raises $N_{\langle a\rangle}$ by $371\times$ and $N_{\langle c\rangle}$ by
-$116\times$; multiplying every coefficient by $10$ lowers them by $7.5\times$ and
-$2.8\times$. The problem is not that the channel is absent but that its
+\textbf{Coalescence is working, and it is doing the whole job --- but only after
+this step.} Switching it off raises $N_{\langle a\rangle}$ by $371\times$ and
+$N_{\langle c\rangle}$ by $116\times$; multiplying every coefficient by $10$
+lowers them by $7.5\times$ and $2.8\times$. Resolved per family, and with the
+emission switch as the second variable, it says something sharper --- the factor
+by which switching coalescence off raises each density:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+ & $c_f$ & $a_1$ (i) & $a^v_1$ (v)\\
+\midrule
+\code{emission\_model}$=0$ & $1.02\times$ & $806\times$ & $1.01\times$\\
+\code{emission\_model}$=1$ & $152.9\times$ & $807\times$ & $91.9\times$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Before this step, coalescence did essentially nothing to a vacancy loop
+family.} Not because the channel was missing --- it has always been there, on
+every loop family --- but because $\tau_{cvL}$ removed the loops first and the
+population never built up enough to overlap. The interstitial family, which
+never carried a lifetime, is untouched by the switch. \textbf{So the reason the
+basal coefficients are small is that the fit never had to make them large}, and
+the $\sim\!10^3$ the table below asks for is not a correction to a fitted number
+so much as the first time that number has had to carry the channel at all. The
+problem is not that the channel is absent but that its
 \cloop{} coefficients are the wrong size for the job it has just inherited:
 $c_{LL}$ and $c_{LN}$ read $0.162$ and $2.96$ for the basal families against
 $121$ and $1131$ for the prismatic ones, roughly $700\times$ smaller, because
