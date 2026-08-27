@@ -8384,9 +8384,56 @@ basal coefficients at $\sim160$ and $\sim2960$ --- within about $30\%$ of the
 prismatic values. That is a coincidence worth taking seriously: it says the
 basal coefficients were suppressed by exactly the amount $\tau_{cvL}$ was
 supplying, and that the geometric channel does not in fact distinguish the two
-habits by much. \textbf{If the refit lands anywhere else, the missing sink is
-physical and not a coefficient} --- and \cref{eq:NcpL}'s terminal $c_p$ is where
-to look first.
+habits by much.
+
+\paragraph{The refit has now been run against the experimental targets, and the
+sink is physical.} At $573$\,K and $24.5$\,dpa ($N=8.0\times10^{20}\,$m$^{-3}$,
+$d=95$\,nm), scaling both basal coefficients together:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+scale & $1$ & $30$ & $100$ & $1000$ & $10^4$\\
+\midrule
+$N/N_{\exp}$ & $49.1$ & $12.0$ & $6.9$ & $\mathbf{2.0}$ & $0.35$\\
+$d/d_{\exp}$ & $0.57$ & $0.24$ & $0.18$ & $\mathbf{0.10}$ & $0.08$\\
+$J_C$ & $1.617$ & $0.925$ & $0.737$ & $0.495$ & $0.597$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{The density prediction is confirmed and it is not a fix.} A factor
+$10^{3}$ does bring $N$ from $49\times$ experiment to $2\times$ --- but $d$
+collapses from $0.57\times$ to $0.10\times$. Coalescence removes loops
+\emph{faster than they grow}, so the survivors are young; it cannot buy fewer
+loops without also buying smaller ones, and the measurements want fewer
+\emph{and larger}. An unconstrained two-lever search stops at $7\times$ and
+$4\times$ ($J$ $0.779\to0.588$) because the total objective is nearly flat over
+three decades: the density gain is paid for in diameter.
+
+\textbf{Nor can the dissolution current buy it back.} At the $10^{3}$
+coalescence, sweeping $m_{\min}$ over $1$--$100$ moves the basal family not at
+all --- $N/N_{\exp}$ $2.02\to2.00$, $d$ $9.8\to9.7$\,nm, $J_C$ flat at $0.494$.
+It is a strong lever on the \emph{prismatic} families ($J_A$ $0.48\to0.27$ at
+$m_{\min}=30$) and none on the basal one, because the flux through the floor is
+set by the log-normal's lower tail rather than by loops actually reaching zero
+size.
+
+\textbf{So the missing channel is physical: something that removes vacancy loop
+NUMBER without shortening the survivors' lives.} That is what $\tau_{cvL}$ did,
+and it is what neither channel replacing it does --- coalescence shortens lives
+by construction, and peripheral emission shrinks a loop continuously and never
+removes one. \Cref{eq:NcpL}'s terminal $c_p$ is one place to look; the more
+likely one is that a loop shrinking under emission needs a \emph{disappearance}
+channel, which the floor current --- tied to a distribution tail rather than to
+a vanishing radius --- does not supply.
+
+\textbf{One caution the refit also produced.} $J_A$ moved with the basal
+coefficients, $0.481\to0.358$, so the two families do \emph{not} decouple here.
+The claim that they do came from a frozen-mobile probe at a single node; in the
+$0$-D the vacancy pool is free and shared, so removing \cloop{}s returns
+vacancies that change the \aloop{}s. Any statement of the form ``this lever
+touches only that family'' must be re-checked with the mobile species free.
 
 \textbf{Two things about the probe, since the first two versions of it were
 wrong in ways that looked like physics.} A one-second window moves the content

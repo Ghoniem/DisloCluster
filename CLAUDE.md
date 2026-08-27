@@ -783,16 +783,50 @@ not at all. That clamp is a real fragility but it is **not** what is happening
 here: `c_p` losing 733× is a family coalescing hard while being fed harder.
 
 **A testable prediction for the refit**, not a free parameter. Scaling the two
-basal coefficients alone (`N_a` is insensitive to five digits, so the families
-decouple):
+basal coefficients alone:
 
 | scale | 1 | 10 | 100 | 1000 |
 |---|---:|---:|---:|---:|
 | `N_a/N_c` | 0.19 | 0.53 | 1.37 | 5.92 |
 
 Recovering the step-2 ratio needs ~10³, landing basal at ~160 / ~2960 — within
-30% of the prismatic values. **If the refit lands anywhere else, the missing sink
-is physical rather than a coefficient**, and `c_p` below is where to look.
+30% of the prismatic values.
+
+### THE REFIT WAS RUN, AND IT SAYS THE SINK IS PHYSICAL
+
+Against the experimental targets, at 573 K / 24.5 dpa (`N` 8.0e20 m⁻³,
+`d` 95 nm), scaling both basal coefficients together:
+
+| scale | `N`/exp | `d`/exp | `J_C` |
+|---:|---:|---:|---:|
+| 1 | 49.1 | 0.57 | 1.617 |
+| 30 | 12.0 | 0.24 | 0.925 |
+| 100 | 6.9 | 0.18 | 0.737 |
+| **1000** | **2.0** | **0.10** | **0.495** |
+| 10000 | 0.35 | 0.08 | 0.597 |
+
+**The density prediction is confirmed and it is not a fix.** ~10³ brings `N`
+from 49× to 2× — but `d` collapses from 0.57× to 0.10×. Coalescence removes
+loops *faster than they grow*, so the survivors are young: it cannot buy fewer
+loops without also buying smaller ones, and the data wants fewer **and larger**.
+
+**The floor current cannot buy it back either.** At the 10³ coalescence, sweeping
+`m_min` over 1…100 moves the basal family not at all — `N` 2.02 → 2.00, `d` 9.8
+→ 9.7 nm, `J_C` flat at 0.494. It is a strong lever on the *prismatic* families
+(`J_A` 0.48 → 0.27 at `m_min` = 30) and none on the basal one.
+
+So **the missing channel is physical**: something that removes vacancy loop
+NUMBER without shortening the survivors' lives, which is what `tau_cvL` did and
+what neither coalescence nor peripheral emission does — emission shrinks a loop
+continuously and never removes one.
+
+**Two of my own claims here were wrong and are corrected above.** The
+unconstrained two-lever fit stopped at 7× and 4× (J 0.779 → 0.588), not 10³,
+because total `J` is nearly flat across three decades — the density gain is paid
+for in diameter. And `J_A` *moved*, 0.481 → 0.358: the "families decouple"
+claim came from a frozen-mobile single-node probe, and in the 0-D the vacancy
+pool is free and shared, so removing ⟨c⟩ loops returns vacancies that change
+⟨a⟩.
 
 **`c_p` is a terminal population.** Coalescence is its only number loss — it
 cannot unfault further, has no dissolution lifetime, and peripheral emission
