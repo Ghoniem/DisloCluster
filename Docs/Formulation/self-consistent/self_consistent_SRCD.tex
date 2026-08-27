@@ -8355,6 +8355,43 @@ source mean therefore \emph{falls} although nothing shrank, which is the whole
 content of $\Phi^{(2)}>\Phi^{(1)}>\Phi^{(0)}$ and is what one rate multiplying
 all three moments could not produce.
 
+\paragraph{The step in a coupled march.} The demonstration case is a $200$\,nm
+cube at $573$\,K and $10^{-7}$\,dpa/s, $47\,828$ CD nodes, carrying all nine
+families and all three moments --- $38$ components per quadrature point on the
+$0$-D side and $27$ in the CD block, the first march in which the size
+distribution exists rather than being assumed. \textbf{Its basal-chain rates are
+placeholders}: nothing in the material file or the workbook supplies
+$\varepsilon_{\mathrm{sfp}}$, $\tau_{\mathrm{sfp}}$, $\nu_{\mathrm{col}}$ or
+$\nu_{\mathrm{uf}}$, and they were chosen on the single criterion that the
+transfers resolve on the run's own timescale. No loop density should be read off
+it. What it does show is that every mechanism the last five steps added is live
+together, and two of them are visible in the state itself:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+family & $n$ [1/atom] & $c$ [1/atom] & $\bar m$ & $\Delta_k$ \\
+\midrule
+$c_f$      & $5.97\times10^{-7}$ & $7.24\times10^{-4}$ & $525.2$ & $1.206$ \\
+$a_{1..3}$ & $8.55\times10^{-8}$ & $4.01\times10^{-5}$ & $599.6$ & $1.398$ \\
+$a^v_{1..3}$ & $5.06\times10^{-8}$ & $1.77\times10^{-5}$ & $171.0$ & $1.635$ \\
+$c_p$      & $4.20\times10^{-8}$ & $9.09\times10^{-5}$ & $636.3$ & $1.109$ \\
+$c_0$      & $4.07\times10^{-7}$ & $1.43\times10^{-4}$ & $160.6$ & $1.437$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Every $\Delta_k$ is strictly greater than $1$, so no family has collapsed back to
+the monodisperse limit --- relative widths $\sqrt{\Delta_k-1}$ of $0.33$ to
+$0.80$. And the gates are legible in two numbers rather than being taken on
+trust: $c_p$ has the LARGEST mean of any family, $636.3$ against the $525.2$ of
+the $c_f$ it is fed by, because $\Phi^{(1)}_{\mathrm{uf}}>\Phi^{(0)}_{\mathrm{uf}}$
+selects loops above the source mean at $m_{\mathrm{uf}}=400$; and it has the
+NARROWEST distribution, $\Delta=1.109$, because what it receives is a truncated
+tail rather than a whole population. The pyramid sits at $\bar m=160.6$ against
+its own threshold $m_{\mathrm{col}}=150$, so $\Phi_{\mathrm{col}}$ is a genuine
+fraction of the distribution and not saturated at either end.
+
 \subsection{Phase IV --- the discrete handoff}
 
 \textbf{Phase IV is the one whose status has changed most since this plan was

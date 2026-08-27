@@ -218,6 +218,81 @@ def check_spreading(run_dir):
     return ok
 
 
+def check_realizability(run_dir):
+    """Goal (vi): Delta_k >= 1 survives a step with EVERY channel active.
+
+    Delta = q n / c^2 is a ratio of moments of a non-negative measure, so
+    Delta < 1 violates Cauchy-Schwarz and q < 0 is impossible outright. Nothing
+    in an independently integrated moment set enforces either, so it has to be
+    tested -- and the earlier goals cannot see it, because each of them switches
+    the other channels OFF to isolate one term.
+
+    This runs the real states from the reference march with coalescence,
+    nucleation, emission and the basal chain all live. It is the test that
+    catches an inconsistent channel: coalescence MERGES loops rather than
+    removing them, so it must raise the second moment, and subtracting
+    coal_num <m^2> instead drove q through zero on 40% of the c_p nodes of a
+    nine-family march.
+
+    EMISSION IS ON, which is the configuration the plan specifies -- step 3
+    comes before step 5. It matters: emission_model = 1 deletes the annealing
+    LIFETIME surrogate, which debits content at the fixed size n_vL_nuc and is
+    incompatible with any moment closure once the family mean drifts away from
+    it. See the note at `qann` in rate_equations_core.h; carrying a second
+    moment against the pre-step-3 annealing is not a combination the plan asks
+    for, and this goal does not pretend otherwise.
+    """
+    print("GOAL (vi)   Delta >= 1 with every channel live")
+    from dislocluster_code.studies.plan_step4 import _seed as _seed4
+    y = _seed4(n_c0=1e-9, m_c0=200.0, n_cf=2e-10, m_cf=500.0)
+    y = np.concatenate([y, np.zeros(N_STATE - y.shape[0])])
+    # Seed every family with a spread population and a mobile matrix that makes
+    # them shrink, which is the direction that stresses q.
+    for slot, n, mb, D in ((0, 1e-9, 500.0, 1.5), (1, 5e-10, 400.0, 1.8),
+                           (4, 3e-10, 200.0, 2.0), (7, 2e-10, 600.0, 1.2),
+                           (8, 1e-9, 200.0, 1.4)):
+        y[n_idx(slot)] = n
+        y[c_idx(slot)] = n * mb
+        y[q_idx(slot)] = D * (n * mb) ** 2 / n
+    y[0], y[1] = 1e-8, 1e-12
+    y[18] = 1.88e14
+
+    from dislocluster_code.studies.plan_step3 import T_REF
+    sim = dcfg.sim_for_run(run_dir)
+    cli = collect_solver_args(sim, dict(
+        t_begin=1e-1, t_end=1e9, n_points=2, log_time=False,
+        rtol=1e-8, atol=1e-30, stats=True, loop_model=1,
+        material_file=paths.MODELIB_MATERIAL, n_fam=9, moments=1, m_min=10.0,
+        variant_weights=(1 / 3, 1 / 3, 1 / 3), basal_chain=1,
+        emission_model=1, temperature_K=T_REF,
+        eps_sfp=1e-10, n_sfp_nuc=100.0, tau_sfp=1e6,
+        nu_col=1e-6, nu_uf=3e-7, m_col=150.0, m_uf=400.0))
+
+    ok, worst = True, {}
+    ys = [y]
+    for dt in (1e5, 1e6, 1e7, 1e7, 1e7):
+        out = imm.run_immobile_step(cli, ys[-1:], 0.0, dt, retries=0)[0]
+        if out is None:
+            print("  integration FAILED")
+            return False
+        ys.append(out)
+    for i, out in enumerate(ys[1:], 1):
+        for k in range(9):
+            n, c, q = out[n_idx(k)], out[c_idx(k)], out[q_idx(k)]
+            if n <= 0 or c <= 0:
+                continue
+            D = q * n / c ** 2
+            if q < 0.0 or D < 1.0 - 1e-9:
+                ok = False
+            key = f"slot {k}"
+            if key not in worst or D < worst[key]:
+                worst[key] = D
+    for key in sorted(worst, key=lambda s: int(s.split()[1])):
+        print(f"  {key}: min Delta over the sequence = {worst[key]:.6f}")
+    print(f"  q >= 0 and Delta >= 1 everywhere : {ok}")
+    return ok
+
+
 def check_floor_current(run_dir):
     """Goal (iv): Phi_min -> 0 exponentially as Delta -> 1.
 
@@ -509,6 +584,8 @@ def verify(run=None):
     print()
     reg2 = check_gates_off(run_dir)
     print()
+    g6 = check_realizability(run_dir)
+    print()
     print(f"regression (moments off)     : {reg}")
     print(f"regression (gates off)       : {reg2}")
     print(f"goal (i)   closure identity  : {g1}")
@@ -516,7 +593,8 @@ def verify(run=None):
     print(f"goal (iii) anneal signature  : {g3}")
     print(f"goal (iv)  floor current     : {g4}")
     print(f"goal (v)   transfer gates    : {g5}")
-    return reg and reg2 and g1 and g2 and g3 and g4 and g5
+    print(f"goal (vi)  Delta >= 1 always  : {g6}")
+    return reg and reg2 and g1 and g2 and g3 and g4 and g5 and g6
 
 
 def main(argv=None):

@@ -207,11 +207,11 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // moments) cannot express. The transfer parts are recorded here and taken
     // back out of those weightings below. All zero unless the chain runs, and
     // `x - 0.0` is exact, so a run without one is untouched.
-    T f_xn_out[N_FAM_MAX], f_xq_out[N_FAM_MAX];
-    T f_xn_in[N_FAM_MAX],  f_xc_in[N_FAM_MAX], f_xq_in[N_FAM_MAX];
+    T f_xn_out[N_FAM_MAX], f_xc_out[N_FAM_MAX], f_xq_out[N_FAM_MAX];
+    T f_xn_in[N_FAM_MAX],  f_xc_in[N_FAM_MAX],  f_xq_in[N_FAM_MAX];
     for (int k = 0; k < N_FAM_MAX; ++k) {
-        f_xn_out[k] = T(0.0); f_xq_out[k] = T(0.0);
-        f_xn_in[k]  = T(0.0); f_xc_in[k]  = T(0.0); f_xq_in[k] = T(0.0);
+        f_xn_out[k] = T(0.0); f_xc_out[k] = T(0.0); f_xq_out[k] = T(0.0);
+        f_xn_in[k]  = T(0.0); f_xc_in[k]  = T(0.0); f_xq_in[k]  = T(0.0);
     }
 
     T loop_abs_i, loop_abs_v, loop_recomb;
@@ -637,10 +637,10 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // The same four transfers, recorded moment-resolved. c_f is both a
             // destination (of col) and a source (of uf), which is why in and
             // out are separate arrays rather than one signed one.
-            f_xn_out[C0] = col_n;  f_xq_out[C0] = col_q;
-            f_xn_in[CF]  = col_n;  f_xc_in[CF]  = col_c;  f_xq_in[CF] = col_q;
-            f_xn_out[CF] = uf_n;   f_xq_out[CF] = uf_q;
-            f_xn_in[CP]  = uf_n;   f_xc_in[CP]  = uf_c;   f_xq_in[CP] = uf_q;
+            f_xn_out[C0] = col_n;  f_xc_out[C0] = col_c;  f_xq_out[C0] = col_q;
+            f_xn_in[CF]  = col_n;  f_xc_in[CF]  = col_c;   f_xq_in[CF]  = col_q;
+            f_xn_out[CF] = uf_n;   f_xc_out[CF] = uf_c;    f_xq_out[CF] = uf_q;
+            f_xn_in[CP]  = uf_n;   f_xc_in[CP]  = uf_c;    f_xq_in[CP]  = uf_q;
 
             // But f_annc is ALSO what credits the free pool (ann_release, below
             // -- a dissolving loop returns its vacancies to the matrix). A
@@ -807,8 +807,28 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             T nc = f_nucc[k] - f_xc_in[k];
             T mnuc = (ad_val(nn) > 0.0) ? nc / nn : T(0.0);
             T qnuc = nn * mnuc * mnuc + f_xq_in[k];
-            // ...and annealing removes at the family's own <m^2> = mbar^2
-            // Delta, i.e. proportionally, which a gated transfer also is not.
+            // ...and annealing removes PROPORTIONALLY, at the family's own
+            // <m^2> = mbar^2 Delta. That is a scalar multiple of the whole
+            // distribution, so it is realizable by construction and cannot
+            // push the moment set outside Delta >= 1.
+            //
+            // IT IS NOT CONSISTENT WITH THE CONTENT IT REMOVES, and nothing
+            // here can make it so. The legacy lifetime surrogate debits content
+            // at the FIXED size n_vL_nuc, so whenever the family mean differs
+            // from that size the pair (ann_n, ann_c) declares a removed
+            // sub-population of mean M != mbar. Removing at THAT size --
+            // an * M^2, the treatment nucleation gets, and the smallest debit
+            // Cauchy-Schwarz allows for the removed part -- lowers Delta by
+            // a (M/mbar - 1)^2 on a narrow family, so no q debit whatever keeps
+            // the triple realizable: the surrogate is removing loops of a size
+            // that is not there. Measured with the proportional form, Delta
+            // falls 2.7e-6 below 1 in a 1e3 s step from exactly 1.
+            //
+            // This is one more reason step 3 exists. With emission_model = 1
+            // the lifetimes are deleted outright, and `moments` is a step-5
+            // switch, so the combination that exposes this -- a second moment
+            // carried against the pre-step-3 annealing surrogate -- is not one
+            // the plan ever asks for.
             T an = f_annn[k] - f_xn_out[k];
             T qann = ((ad_val(f_num[k]) > 0.0)
                       ? an * f_mbar[k] * f_mbar[k] * f_delta[k] : T(0.0))
@@ -988,18 +1008,42 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // In the legacy model slots 0,1 are interstitial and 2,3 vacancy; in the
     // self-consistent model slot 0 is vacancy, 1..3 interstitial, and from
     // step 1 slots 4..7 are vacancy again.
-    const int slot_is_vac[2][N_FAM_MAX] = {{0, 0, 1, 1, 0, 0, 0, 0},
-                                           {1, 0, 0, 0, 1, 1, 1, 1}};
+    // Nine entries, not eight. The ninth was value-initialized to 0, so the
+    // pyramid -- a VACANCY cluster -- had its coalescence content booked into
+    // the interstitial sink accumulator. It never showed because a compact
+    // cluster has no coalescence channel (cLL = cLN = 0) and the term is
+    // identically zero, but the table is a statement about polarity and it was
+    // wrong.
+    const int slot_is_vac[2][N_FAM_MAX] = {{0, 0, 1, 1, 0, 0, 0, 0, 0},
+                                           {1, 0, 0, 0, 1, 1, 1, 1, 1}};
     const int* sv = slot_is_vac[P.loop_model != 0 ? 1 : 0];
     for (int k = 0; k < nf; ++k) {
         ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - coal_num[k];
         ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - coal_cont[k];
-        // The second moment loses <m^2> per departing loop, and <m^2> is
-        // mbar^2 Delta by the closure -- not mbar^2, which would be the
-        // monodisperse value and would leave q too high on a spread family.
+        // COALESCENCE DOES NOT REMOVE <m^2> PER DEPARTING LOOP, and treating it
+        // that way is what drove q negative. A coalescing loop does not leave
+        // the family -- it MERGES, so its defects stay and only `coal_cont` is
+        // genuinely lost. Fewer loops holding the same content are LARGER
+        // loops, so the second moment must RISE, and the sign here was
+        // inverted. Measured on the 200 nm nine-family march: q crossed zero
+        // from 1 dpa on, reaching 40% of nodes for c_p at 10 dpa, which is
+        // Cauchy-Schwarz-impossible for any real distribution.
+        //
+        // The channel is closed SHAPE-PRESERVING: q = Delta c^2/n, so moving
+        // (n, c) by (dn, dc) at fixed Delta moves q by
+        // 2 mbar Delta dc - mbar^2 Delta dn. With dc = -coal_cont and
+        // dn = -coal_num that is the expression below, and it integrates to
+        // q ~ 1/n exactly when the content is conserved.
+        //
+        // Shape-preserving is a CHOICE and a conservative one: merging really
+        // broadens a distribution, so the true dispersion grows faster than
+        // this. What it is not is optional -- it is the term that keeps the
+        // moment set inside Delta >= 1, and Eq. (qdot) as written in the
+        // formulation omits this channel altogether.
         if (P.moments)
             ydot[fam_q_idx(k)] = ydot[fam_q_idx(k)]
-                - coal_num[k] * f_mbar[k] * f_mbar[k] * f_delta[k];
+                + f_delta[k] * (f_mbar[k] * f_mbar[k] * coal_num[k]
+                                - 2.0 * f_mbar[k] * coal_cont[k]);
     }
     if (P.loop_model == 0) {
         // Again verbatim: the paired sums associate differently from a loop.

@@ -770,14 +770,29 @@ def rewrite_snapshots(run_dir, verbose=True):
         doses, Y = z["doses"], z["Y"]
         lm = int(z["loop_model"]) if "loop_model" in z.files else 0
     evl_dir = run_dir / "evl_coupled"
-    files = sorted(p for p in evl_dir.glob("evl_*.txt"))
-    if len(files) != len(doses):
+    # ONE SNAPSHOT PER INTERVAL END, so the files correspond to doses[1:] and
+    # not to doses: dose 0 is the seed and the march writes nothing for it.
+    # Their names follow the march's own rule -- the dose-lattice index where
+    # the dose has one, an ordinal where it does not -- and reproducing that is
+    # the only safe pairing. Sorting the directory does NOT work: "evl_0.txt"
+    # is 1 dpa, "evl_9.txt" is 10 dpa, and "evl_s01.txt" is 1e-4.
+    used, names = set(), []
+    for i, d1 in enumerate(doses[1:]):
+        step = int(round(float(d1))) - 1
+        if step < 0 or step in used:
+            names.append(f"s{i + 1:02d}")
+        else:
+            used.add(step)
+            names.append(str(step))
+    files = [evl_dir / f"evl_{nm}.txt" for nm in names]
+    missing = [f.name for f in files if not f.is_file()]
+    if missing:
         raise ValueError(
-            f"{len(files)} snapshots against {len(doses)} recorded doses in "
-            f"{run_dir.name} -- refusing to guess which is which")
+            f"{run_dir.name}: no snapshot for {missing} -- the dose grid in "
+            f"march_state.npz does not describe what evl_coupled/ holds")
     omega = cluster_atomic_volume(_paths.MODELIB_MATERIAL)
     out = []
-    for f, y in zip(files, Y):
+    for f, y in zip(files, Y[1:]):
         ev = EvlFile(f)
         ev.cd[:, M_SIZE:] = immobile_0d_to_modelib(y, omega, loop_model=lm)
         ev.cd[:, :M_SIZE] = y[:, :M_SIZE]
