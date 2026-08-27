@@ -30,6 +30,7 @@ import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from matplotlib.colors import Normalize
 
+from dislocluster_code.post import fields as _fields
 from dislocluster_code.post.fields import (
     load_cd_fields, plot_field_panels, SPECIES, FAMILIES, B_SI, OMEGA_B3,
 )
@@ -41,36 +42,64 @@ __all__ = ["MOBILE", "DENSITY", "CONTENT", "FAMILY_SLUG", "LOOP_SCALE",
 
 # Quantity groups, in the order the deliverable presents them.
 MOBILE = ("Cv", "Ci", "C2i", "C3i")
-DENSITY = ("n_vL", "n_a1", "n_a2", "n_a3")
-CONTENT = ("c_vL", "c_a1", "c_a2", "c_a3")
+# Every family the CD block carries, not the four it used to. Steps 1 and 4
+# added the three prismatic VACANCY variants, the perfect basal loop and the
+# stacking-fault pyramid; leaving them out here left five of the nine
+# populations undrawn on a run that carries them.
+DENSITY = tuple(f"n_{k}" for k in _fields.FAMILY_KEYS[:_fields._NF])
+CONTENT = tuple(f"c_{k}" for k in _fields.FAMILY_KEYS[:_fields._NF])
+#: The second content moment, one per family. Empty unless the run carries it.
+MOMENT2 = (tuple(f"q_{k}" for k in _fields.FAMILY_KEYS[:_fields._NF])
+           if _fields._NM > 2 else ())
 
 # The three prismatic variants are crystallographically equivalent under the
 # symmetry of this loading (zero applied stress), and the coupling bridge splits
 # the lumped 0-D <a> population equally across them, so a1, a2 and a3 carry the
 # same field. Plotting one of them is therefore complete, and plotting all three
 # triples the figure count for nothing.
-DENSITY_A1 = ("n_vL", "n_a1")
-CONTENT_A1 = ("c_vL", "c_a1")
-FAMILY_SLUG_A1 = {0: "c", 1: "a1"}
+#: The reduced set: one prismatic variant stands for all three, but the
+#: VACANCY variant is NOT redundant with the interstitial one -- it is a
+#: different population in the same habit plane -- so a1v is kept, and so are
+#: the two basal families and the pyramid.
+DENSITY_A1 = tuple(f"n_{k}" for k in ("vL", "a1", "a1v", "cp", "c0")
+                   if f"n_{k}" in _fields.SPECIES)
+CONTENT_A1 = tuple(f"c_{k}" for k in ("vL", "a1", "a1v", "cp", "c0")
+                   if f"c_{k}" in _fields.SPECIES)
+MOMENT2_A1 = (tuple(f"q_{k}" for k in ("vL", "a1", "a1v", "cp", "c0")
+                    if f"q_{k}" in _fields.SPECIES)
+              if _fields._NM > 2 else ())
+FAMILY_SLUG_A1 = {k: s for k, s in
+                  ((0, "c"), (1, "a1"), (4, "a1v"), (7, "cp"))
+                  if k < len(_fields.FAMILIES)}
 
 # One vertical mid-cut (normal to y) and one horizontal (normal to z).
 DEFAULT_PLANES = ("y", "z")
 
 # Short, filesystem-safe names. n_vL is the basal <c> family, so it is filed as
 # N_c rather than N_vL to match how the figures are labelled.
-FILE_SLUG = {
-    "Cv": "Cv", "Ci": "Ci", "C2i": "C2i", "C3i": "C3i",
-    "n_vL": "N_c", "n_a1": "N_a1", "n_a2": "N_a2", "n_a3": "N_a3",
-    "c_vL": "C_c", "c_a1": "C_a1", "c_a2": "C_a2", "c_a3": "C_a3",
-}
-FAMILY_SLUG = {0: "c", 1: "a1", 2: "a2", 3: "a3"}
-FAMILY_BG = {0: "c_vL", 1: "c_a1", 2: "c_a2", 3: "c_a3"}
+_SLUG_OF_FAMILY = {"vL": "c", "a1": "a1", "a2": "a2", "a3": "a3",
+                   "a1v": "a1v", "a2v": "a2v", "a3v": "a3v",
+                   "cp": "cp", "c0": "pyr"}
+FILE_SLUG = {"Cv": "Cv", "Ci": "Ci", "C2i": "C2i", "C3i": "C3i"}
+for _k in _fields.FAMILY_KEYS[:_fields._NF]:
+    _s = _SLUG_OF_FAMILY[_k]
+    FILE_SLUG[f"n_{_k}"] = f"N_{_s}"
+    FILE_SLUG[f"c_{_k}"] = f"C_{_s}"
+    FILE_SLUG[f"q_{_k}"] = f"q_{_s}"
+FAMILY_SLUG = {k: _SLUG_OF_FAMILY[_fields.FAMILY_KEYS[k]]
+               for k in range(len(_fields.FAMILIES))}
+FAMILY_BG = {k: f"c_{_fields.FAMILY_KEYS[k]}"
+             for k in range(len(_fields.FAMILIES))}
 # <c> loops are ~6x larger than <a>, so a single exaggeration factor would leave
 # the <a> platelets invisible. Sizes are therefore comparable within a figure
 # but NOT between the <c> and <a> figures. About a third of the deliverable's
 # factors: the platelets are drawn as flat discs rather than as thick volumes,
 # and at the old factors those discs covered the cut planes they are drawn over.
-LOOP_SCALE = {0: 0.55, 1: 2.2, 2: 2.2, 3: 2.2}
+# Keyed on HABIT: basal families take the <c> factor, prismatic ones the <a>
+# factor, whatever they store. The pyramid has no entry because it has no
+# platelet -- it is not in fields.FAMILIES at all.
+LOOP_SCALE = {k: (0.55 if _fields.FAMILY_KEYS[k] in ("vL", "cp") else 2.2)
+              for k in range(len(_fields.FAMILIES))}
 
 
 def dose_steps(doses, dose_per_step=1.0, dose_seed=0.1):
@@ -121,8 +150,12 @@ def write_3d_figures(evl_dir, doses, out_dir, dose_per_step=1.0,
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     steps = dose_steps(doses, dose_per_step, dose_seed)
-    groups = ((MOBILE, DENSITY_A1, CONTENT_A1) if a1_only
-              else (MOBILE, DENSITY, CONTENT))
+    # The second moment is drawn alongside the number and the content: it is a
+    # carried field like the other two, and Delta = q n / c^2 cannot be read off
+    # a figure that does not show it. MOMENT2 is empty on a run without it.
+    groups = ((MOBILE, DENSITY_A1, CONTENT_A1, MOMENT2_A1) if a1_only
+              else (MOBILE, DENSITY, CONTENT, MOMENT2))
+    groups = tuple(g for g in groups if g)
     fams = FAMILY_SLUG_A1 if a1_only else FAMILY_SLUG
     written = []
 

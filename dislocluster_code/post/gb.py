@@ -65,7 +65,8 @@ def plot_density_profiles(evl_dir, steps, doses, out_file=None, max_nm=None,
     """Loop NUMBER DENSITY [m^-3] against distance from the grain boundary."""
     data = _load(evl_dir, steps)
     colors = _dose_colors(len(steps))
-    fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
+    fig, axes = plt.subplots(1, len(FAMILIES),
+                             figsize=(4.75 * len(FAMILIES), 4.2))
     for ax, (label, ncol, ccol, bmag, _n, _c) in zip(axes, FAMILIES):
         for (st, dose), col in zip(zip(steps, doses), colors):
             P, F = data[st]
@@ -87,7 +88,8 @@ def plot_content_profiles(evl_dir, steps, doses, out_file=None, max_nm=None,
     """Loop CONTENT (defects per m^3) against distance from the grain boundary."""
     data = _load(evl_dir, steps)
     colors = _dose_colors(len(steps))
-    fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
+    fig, axes = plt.subplots(1, len(FAMILIES),
+                             figsize=(4.75 * len(FAMILIES), 4.2))
     for ax, (label, ncol, ccol, bmag, _n, _c) in zip(axes, FAMILIES):
         for (st, dose), col in zip(zip(steps, doses), colors):
             P, F = data[st]
@@ -116,7 +118,8 @@ def plot_size_profiles(evl_dir, steps, doses, out_file=None, max_nm=None,
     """
     data = _load(evl_dir, steps)
     colors = _dose_colors(len(steps))
-    fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
+    fig, axes = plt.subplots(1, len(FAMILIES),
+                             figsize=(4.75 * len(FAMILIES), 4.2))
     for ax, (label, ncol, ccol, bmag, _n, _c) in zip(axes, FAMILIES):
         for (st, dose), col in zip(zip(steps, doses), colors):
             P, F = data[st]
@@ -143,7 +146,10 @@ def plot_mobile_profiles(evl_dir, steps, doses, out_file=None, max_nm=None,
     colors = _dose_colors(len(steps))
     names = [("Cv", 0, r"$C_v$"), ("Ci", 1, r"$C_i$"),
              ("C2i", 2, r"$C_{2i}$"), ("C3i", 3, r"$C_{3i}$")]
-    fig, axes = plt.subplots(1, 4, figsize=(19, 4.2))
+    # This panel row is the MOBILE species, so it follows `names` and not the
+    # family count -- the two were both 4 and the distinction did not show.
+    fig, axes = plt.subplots(1, len(names),
+                             figsize=(4.75 * len(names), 4.2))
     for ax, (_k, col_idx, label) in zip(axes, names):
         for (st, dose), col in zip(zip(steps, doses), colors):
             P, F = data[st]

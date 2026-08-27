@@ -140,25 +140,79 @@ CIRCLE_SIDES = 64
 # defect number is identical.
 DD_SIDES = 12
 
+# ncol/ccol are DERIVED from the block layout and not written out. They were
+# literals 4..7 and 8..11, correct only while the CD block held four families;
+# once step 1 widened it, ccol=8 was the a1 NUMBER, so a "content" would have
+# been read as a density and turned into loop radii with no error anywhere.
+from dislocluster_code.coupling.field import (          # noqa: E402
+    M_SIZE as _MS, N_FAMILIES as _NF)
+
+
+def _ncol(k):
+    return _MS + k
+
+
+def _ccol(k):
+    return _MS + _NF + k
+
+
+# The three prismatic VACANCY variants (slots 4..6) share their interstitial
+# partners' habit plane and Burgers vector exactly -- `immobileSpeciesBurgers`
+# gives columns 4..6 the same lattice directions as 1..3 -- and differ only in
+# what they store, which is `vacancy`. c_p (slot 7) likewise takes c_f's
+# 1/2[0001]: the material file gives column 7 the same z = 0.5.
+#
+# THE PYRAMID (slot 8) IS NOT HERE, and must not be added. It is a compact
+# cluster with no habit plane and no Burgers vector, sized volumetrically as
+# R = (m Omega/sqrt 8)^(1/3) rather than lambda sqrt(m); exporting it as a
+# planar loop would hand dislocation dynamics a defect that does not exist.
 FAMILIES = [
-    dict(key="c",  label="<c>",   ncol=4, ccol=8,  b_lattice=(0.0, 0.0, 1.0),
+    dict(key="c",  label="<c>",   ncol=_ncol(0), ccol=_ccol(0),
+         b_lattice=(0.0, 0.0, 1.0),
          b_cd=0.7972136, b_dd=0.7972136, plane_id=0,  vacancy=1,
          sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
          d_plane=1.5944272, color="#1f4fbf", b_label="1/2[0001]",
          b_tex=r"$\frac{1}{2}[0001]$"),
-    dict(key="a1", label="<a>1",  ncol=5, ccol=9,  b_lattice=(1.0, 0.0, 0.0),
+    dict(key="a1", label="<a>1",  ncol=_ncol(1), ccol=_ccol(1),
+         b_lattice=(1.0, 0.0, 0.0),
          b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#c62828", b_label="1/3[2-1-10]",
          b_tex=r"$\frac{1}{3}[2\bar{1}\bar{1}0]$"),
-    dict(key="a2", label="<a>2",  ncol=6, ccol=10, b_lattice=(0.0, 1.0, 0.0),
+    dict(key="a2", label="<a>2",  ncol=_ncol(2), ccol=_ccol(2),
+         b_lattice=(0.0, 1.0, 0.0),
          b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#2e7d32", b_label="1/3[11-20]",
          b_tex=r"$\frac{1}{3}[11\bar{2}0]$"),
-    dict(key="a3", label="<a>3",  ncol=7, ccol=11, b_lattice=(-1.0, 1.0, 0.0),
+    dict(key="a3", label="<a>3",  ncol=_ncol(3), ccol=_ccol(3),
+         b_lattice=(-1.0, 1.0, 0.0),
          b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=0, sides=16, dd_sides=16,
          d_plane=0.8660254, color="#e6b800", b_label="1/3[-12-10]",
          b_tex=r"$\frac{1}{3}[\bar{1}2\bar{1}0]$"),
 ]
+if _NF >= 8:
+    FAMILIES += [
+        dict(key="a1v", label="<a>1v", ncol=_ncol(4), ccol=_ccol(4),
+             b_lattice=(1.0, 0.0, 0.0),
+             b_cd=1.0, b_dd=1.0, plane_id=6,  vacancy=1, sides=16, dd_sides=16,
+             d_plane=0.8660254, color="#00838f", b_label="1/3[2-1-10]",
+             b_tex=r"$\frac{1}{3}[2\bar{1}\bar{1}0]$"),
+        dict(key="a2v", label="<a>2v", ncol=_ncol(5), ccol=_ccol(5),
+             b_lattice=(0.0, 1.0, 0.0),
+             b_cd=1.0, b_dd=1.0, plane_id=8,  vacancy=1, sides=16, dd_sides=16,
+             d_plane=0.8660254, color="#00695c", b_label="1/3[11-20]",
+             b_tex=r"$\frac{1}{3}[11\bar{2}0]$"),
+        dict(key="a3v", label="<a>3v", ncol=_ncol(6), ccol=_ccol(6),
+             b_lattice=(-1.0, 1.0, 0.0),
+             b_cd=1.0, b_dd=1.0, plane_id=10, vacancy=1, sides=16, dd_sides=16,
+             d_plane=0.8660254, color="#6a1b9a", b_label="1/3[-12-10]",
+             b_tex=r"$\frac{1}{3}[\bar{1}2\bar{1}0]$"),
+        dict(key="cp", label="<c>p", ncol=_ncol(7), ccol=_ccol(7),
+             b_lattice=(0.0, 0.0, 1.0),
+             b_cd=0.7972136, b_dd=0.7972136, plane_id=0, vacancy=1,
+             sides=CIRCLE_SIDES, dd_sides=DD_SIDES,
+             d_plane=1.5944272, color="#4527a0", b_label="1/2[0001]",
+             b_tex=r"$\frac{1}{2}[0001]$"),
+    ]
 
 # Line thickness of the drawn tubes, in nm. A dislocation line has no thickness,
 # so this is purely a drawing width -- but a single width across families makes

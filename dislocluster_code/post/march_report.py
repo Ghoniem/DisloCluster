@@ -58,7 +58,7 @@ from dislocluster_code.post.fields import (                        # noqa: E402
 from dislocluster_code.post.gb import profile                      # noqa: E402
 from dislocluster_code.post.report import (                        # noqa: E402
     FILE_SLUG, DEFAULT_PLANES, MOBILE, DENSITY_A1, CONTENT_A1,
-    FAMILY_SLUG_A1, LOOP_SCALE, FAMILY_BG, _profile_figure,
+    FAMILY_SLUG_A1, LOOP_SCALE, FAMILY_BG, MOMENT2_A1, _profile_figure,
 )
 from dislocluster_code.post import movies as movies_mod                    # noqa: E402
 from dislocluster_code.post import volume_average as va                    # noqa: E402
@@ -94,7 +94,8 @@ def write_3d(doses, frames, idx, out_dir, planes=DEFAULT_PLANES,
     written = []
     for i in idx:
         d, tag = float(doses[i]), dose_tag(float(doses[i]))
-        for group in (MOBILE, DENSITY_A1, CONTENT_A1):
+        for group in [g for g in (MOBILE, DENSITY_A1, CONTENT_A1,
+                                  MOMENT2_A1) if g]:
             for sp in group:
                 out = out_dir / f"{FILE_SLUG[sp]}_{tag}.png"
                 plot_field_panels(None, [i], [d], species=(sp,), plane=planes,
@@ -113,7 +114,10 @@ def write_3d(doses, frames, idx, out_dir, planes=DEFAULT_PLANES,
                            f"(platelet radii x{LOOP_SCALE[k]:g}, not to scale)"))
                 written.append(out)
         if verbose:
-            print(f"  3d/ {tag}: {len(MOBILE) + 4 + (2 if overlays else 0)} panels")
+            n_panels = (len(MOBILE) + len(DENSITY_A1) + len(CONTENT_A1)
+                        + len(MOMENT2_A1)
+                        + (len(FAMILY_SLUG_A1) if overlays else 0))
+            print(f"  3d/ {tag}: {n_panels} panels")
     return written
 
 

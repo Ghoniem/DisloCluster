@@ -39,34 +39,108 @@ __all__ = ["load_cd_fields", "plot_field_panels", "SPECIES", "FAMILIES", "B_SI",
            "OMEGA_SI", "OMEGA_B3", "CRYSTAL_AXES", "domain_faces",
            "domain_edges", "domain_volume"]
 
-B_SI = 3.233e-10          # Burgers vector magnitude [m]
-OMEGA_SI = 1.2e-29        # atomic volume [m^3]  (ZrMicro physical_props['Omega'])
-OMEGA_B3 = OMEGA_SI / B_SI ** 3
+from dislocluster_code.coupling.field import (       # noqa: E402
+    M_SIZE as _MS, N_FAMILIES as _NF, N_MOMENTS as _NM)
 
-# Column layout of the CD block: 4 mobile, then 4 immobile densities, then 4 contents
+# THE MATERIAL FILE DECIDES THESE, and they used to be a fifth independent copy
+# of two constants the project keeps equal in four places. That copy had gone
+# stale on both: Omega still read 1.2e-29 (= V_cell/4, four atoms in a cell that
+# holds two) and the <c> Burgers vector below still read the full IDEAL c. Both
+# reach only the drawn platelet radius in the loop overlays -- an exaggerated,
+# illustrative size and not a quantitative one -- but a stale constant is a
+# stale constant, and reading the file is what stops it drifting again.
+def _material_constants():
+    from dislocluster_code.coupling.field import cluster_atomic_volume
+    from dislocluster_code import paths as _p
+    b = 3.23e-10
+    try:
+        for line in _p.MODELIB_MATERIAL.read_text(
+                encoding="utf-8", errors="ignore").splitlines():
+            if line.strip().startswith("b_SI"):
+                b = float(line.split("=", 1)[1].split("#")[0].strip()
+                          .rstrip(";").strip())
+                break
+    except Exception:
+        pass
+    try:
+        om_b3 = cluster_atomic_volume(_p.MODELIB_MATERIAL)
+    except Exception:
+        om_b3 = 2.326553e-29 / b ** 3
+    return b, om_b3 * b ** 3, om_b3
+
+
+B_SI, OMEGA_SI, OMEGA_B3 = _material_constants()
+
+# Column layout of the CD block: M_SIZE mobile, then one group per moment --
+# every number, then every content, then every second moment. DERIVED, not
+# written out: the literals 4..11 were right only while there were four
+# families, and once step 1 widened the block "c_vL" at column 8 was the a1
+# NUMBER. A figure drawn from that is well formed and about the wrong quantity.
+FAMILY_KEYS = ["vL", "a1", "a2", "a3", "a1v", "a2v", "a3v", "cp", "c0"]
+FAMILY_TEX = [r"\langle c\rangle_f", r"\langle a\rangle_1",
+              r"\langle a\rangle_2", r"\langle a\rangle_3",
+              r"\langle a\rangle_1^{v}", r"\langle a\rangle_2^{v}",
+              r"\langle a\rangle_3^{v}", r"\langle c\rangle_p",
+              r"\mathrm{pyr}"]
+
+
+def n_col(k):
+    """Column of family ``k``'s number density in the CD block."""
+    return _MS + k
+
+
+def c_col(k):
+    """Column of family ``k``'s content."""
+    return _MS + _NF + k
+
+
+def q_col(k):
+    """Column of family ``k``'s second content moment (step 5)."""
+    return _MS + 2 * _NF + k
+
+
 SPECIES = {
     "Cv":   (0,  r"$C_v$"),
     "Ci":   (1,  r"$C_i$"),
     "C2i":  (2,  r"$C_{2i}$"),
     "C3i":  (3,  r"$C_{3i}$"),
-    "n_vL": (4,  r"$N_{\langle c\rangle}$"),
-    "n_a1": (5,  r"$N_{\langle a\rangle 1}$"),
-    "n_a2": (6,  r"$N_{\langle a\rangle 2}$"),
-    "n_a3": (7,  r"$N_{\langle a\rangle 3}$"),
-    "c_vL": (8,  r"$C_{\langle c\rangle}$"),
-    "c_a1": (9,  r"$C_{\langle a\rangle 1}$"),
-    "c_a2": (10, r"$C_{\langle a\rangle 2}$"),
-    "c_a3": (11, r"$C_{\langle a\rangle 3}$"),
 }
+for _k, (_key, _tex) in enumerate(zip(FAMILY_KEYS[:_NF], FAMILY_TEX[:_NF])):
+    SPECIES[f"n_{_key}"] = (n_col(_k), rf"$N_{{{_tex}}}$")
+    SPECIES[f"c_{_key}"] = (c_col(_k), rf"$C_{{{_tex}}}$")
+    if _NM > 2:
+        SPECIES[f"q_{_key}"] = (q_col(_k), rf"$q_{{{_tex}}}$")
+
+# |b| in units of b, per family. <c> is 1/2[0001] = c/2, so c/(2a) at the
+# PHYSICAL c/a = 1.5944272 -- the value discrete_loops.FAMILIES already carries.
+# This read 1.632993, the full IDEAL c: a factor of two out, and 2.4% on top.
+_B_C = 0.7972136
+_B_A = 1.0
+_N_BASAL = np.array([0.0, 0.0, 1.0])
+_N_A = [np.array([1.0, 0.0, 0.0]), np.array([0.5, 0.8660254, 0.0]),
+        np.array([-0.5, 0.8660254, 0.0])]
 
 # Immobile families: (label, density column, content column, |b| in units of b,
-#                     habit-plane normal in Cartesian b, colour)
+#                     habit-plane normal in Cartesian b, colour). The three
+# prismatic VACANCY variants share their interstitial partners' habit plane and
+# Burgers vector -- they differ in what they STORE, which no drawn platelet
+# shows -- and get their own colours so an overlay can tell them apart.
+#
+# THE PYRAMID IS DELIBERATELY ABSENT. It is a compact cluster: no habit plane,
+# no Burgers vector, and R = (m Omega/sqrt 8)^(1/3) rather than lambda sqrt(m),
+# so a platelet drawn for it would be a picture of something that does not
+# exist.
 FAMILIES = [
-    (r"$\langle c\rangle$",    4, 8,  1.632993, np.array([0.0, 0.0, 1.0]),        "#1f4fbf"),
-    (r"$\langle a\rangle_1$",  5, 9,  1.0,      np.array([1.0, 0.0, 0.0]),        "#c62828"),
-    (r"$\langle a\rangle_2$",  6, 10, 1.0,      np.array([0.5, 0.8660254, 0.0]),  "#d84315"),
-    (r"$\langle a\rangle_3$",  7, 11, 1.0,      np.array([-0.5, 0.8660254, 0.0]), "#ad1457"),
-]
+    (r"$\langle c\rangle_f$",   n_col(0), c_col(0), _B_C, _N_BASAL, "#1f4fbf"),
+    (r"$\langle a\rangle_1$",   n_col(1), c_col(1), _B_A, _N_A[0],  "#c62828"),
+    (r"$\langle a\rangle_2$",   n_col(2), c_col(2), _B_A, _N_A[1],  "#d84315"),
+    (r"$\langle a\rangle_3$",   n_col(3), c_col(3), _B_A, _N_A[2],  "#ad1457"),
+][:min(4, _NF)] + ([
+    (r"$\langle a\rangle_1^v$", n_col(4), c_col(4), _B_A, _N_A[0],  "#00838f"),
+    (r"$\langle a\rangle_2^v$", n_col(5), c_col(5), _B_A, _N_A[1],  "#00695c"),
+    (r"$\langle a\rangle_3^v$", n_col(6), c_col(6), _B_A, _N_A[2],  "#2e7d32"),
+    (r"$\langle c\rangle_p$",   n_col(7), c_col(7), _B_C, _N_BASAL, "#4527a0"),
+] if _NF >= 8 else [])
 
 # Crystal directions of the Cartesian axes the mesh is built in, drawn as an
 # orientation triad on every panel. x is a prismatic-plane normal: the three
