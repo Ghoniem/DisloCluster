@@ -544,6 +544,22 @@ def run_cpp_solver(sim, solver_config, base_dir=None):
     t = sol_array[:, 0]           # shape (n_pts,)
     y = sol_array[:, 1:].T        # shape (12, n_pts)  — matches scipy sol.y layout
 
+    # THE SLOTS DO NOT MEAN THE SAME THING IN THE TWO FORMULATIONS, and the
+    # post-processing below addresses them by the LEGACY names. Under
+    # `loop_model >= 1`, y[4] is the basal <c> family where `CiL` is read and
+    # y[6..7] are prismatic <a> variants where `CvL`/`CavL` are -- so every
+    # derived quantity would be built from the wrong population, silently and
+    # with no shape error to catch it.
+    #
+    # `to_legacy_layout` lumps by HABIT into the slots those names expect and
+    # truncates to the legacy 19, which is what `calculate_derived_quantities`
+    # consumes. Done HERE rather than at each call site because every caller --
+    # the notebook, the fitting harness, any diagnostic -- has the same problem
+    # and only this function knows which model was actually run.
+    if int(solver_config.get('loop_model', 0)):
+        from dislocluster_code.coupling import field as _field
+        y = _field.to_legacy_layout(y.T, 1).T
+
     # Reuse the existing post-processing pipeline
     results = calculate_derived_quantities(t, y, sim.input_data, sim.rate_equations)
 

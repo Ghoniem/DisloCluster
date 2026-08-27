@@ -121,8 +121,17 @@ CAND = {
     'tau_vL0':    (1e-2, 5e1,  True),
     'E_a_vL':     (0.2,  0.8,  False),
     'Q':          (0.1,  1.0,  False),
-    'c_LL_c':     (1e-2, 1e2,  True),
-    'c_LN_c':     (1e-2, 2e2,  True),
+    # THE UPPER BOUNDS HAD TO MOVE, and by a lot. Fitted at loop_model = 0,
+    # `tau_cvL` removed the basal loops and these two never had to carry that
+    # channel, so 1e2 / 2e2 was ample. Step 3 deletes the lifetime and
+    # coalescence becomes the ONLY number sink for every vacancy family, which
+    # the measurement in CLAUDE.md puts at needing ~1e3 x the current
+    # 0.162 / 2.96 -- i.e. ~160 / ~2960, near the PRISMATIC values 121 / 1131.
+    # `c_LN_c` could not have reached that: its old ceiling of 200 sits below
+    # the answer, so a search would have stopped at the wall and reported it as
+    # an optimum.
+    'c_LL_c':     (1e-2, 1e4,  True),
+    'c_LN_c':     (1e-2, 1e4,  True),
 }
 
 # ── targets (replica of notebook _load_targets) ──────────────────────────────
