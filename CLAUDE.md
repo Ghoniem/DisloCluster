@@ -813,7 +813,9 @@ loops without also buying smaller ones, and the data wants fewer **and larger**.
 **The floor current cannot buy it back either.** At the 10³ coalescence, sweeping
 `m_min` over 1…100 moves the basal family not at all — `N` 2.02 → 2.00, `d` 9.8
 → 9.7 nm, `J_C` flat at 0.494. It is a strong lever on the *prismatic* families
-(`J_A` 0.48 → 0.27 at `m_min` = 30) and none on the basal one.
+(`J_A` **0.370 → 0.272** as `m_min` goes 1 → 30 at that same coalescence) and
+none on the basal one. Quoted as 0.48 → 0.27 first, which mixed the coalescence
+change in with it — 0.48 is the `m_min` = 1, coalescence = 1 corner.
 
 So **the missing channel is physical**: something that removes vacancy loop
 NUMBER without shortening the survivors' lives, which is what `tau_cvL` did and

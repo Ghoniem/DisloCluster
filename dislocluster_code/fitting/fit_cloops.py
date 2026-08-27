@@ -86,6 +86,20 @@ def set_model(**kw):
     MODEL.update(kw)
     return dict(MODEL)
 
+
+#: Levers that live on the SOLVER COMMAND LINE, not in the workbook.
+#:
+#: `_configure` writes a fitted parameter into input_data, and
+#: `collect_solver_args` then derives the command line from it -- which works
+#: for every parameter the workbook carries and for none of these. `m_min`,
+#: `chi` and the basal-chain rates are read by `cpp_bridge` from the SOLVER
+#: CONFIG, so a fit that varied them through input_data would move a number
+#: nothing reads and report the objective as flat. They are split out in
+#: `model_history_batch` and merged into the per-case config instead.
+MODEL_LEVERS = {'m_min', 'chi', 'm_col', 'm_uf',
+                'eps_sfp', 'n_sfp_nuc', 'tau_sfp', 'nu_col', 'nu_uf',
+                'alpha_sfp'}
+
 # ── current joint optimum — loaded from the latest fit CSV (freeze point) ─────
 # THE FREEZE POINT FALLS BACK TO THE CALIBRATED SET. This used to be
 # `sorted(glob('fit_*/optimal_parameters.csv'))[-1]`, which raises IndexError at
@@ -113,6 +127,14 @@ else:
 # explicit lever starts EXACTLY where the joint fit left it (continuity check).
 OPT.setdefault('Z_v_c', 1.0 + OPT.get('delta_DAD', 0.2))
 
+# The MODEL levers need their solver defaults here for the same reason. Without
+# an entry, `fit_subset` seeds a lever at sqrt(lo*hi) -- the geometric mean of
+# its bounds -- so a search over `m_min` started at 55 instead of the 1.0 the
+# solver actually uses, and reported an "optimum" of 46 that is WORSE than the
+# baseline it never visited. A search cannot find what it does not start near.
+OPT.setdefault('m_min', 1.0)
+OPT.setdefault('chi', 1.0)
+
 # ── c-loop-only candidate levers:  name -> (lo, hi, log?) ────────────────────
 CAND = {
     'epsilon_vL': (5e-3, 2e-1, True),
@@ -132,6 +154,12 @@ CAND = {
     # an optimum.
     'c_LL_c':     (1e-2, 1e4,  True),
     'c_LN_c':     (1e-2, 1e4,  True),
+    # ── levers that exist only in the self-consistent formulation ───────────
+    # Both require the switches they belong to -- `m_min` needs `moments`, and
+    # `chi` needs nothing but is inert at 1. Neither is in the workbook, so both
+    # travel through MODEL_LEVERS above.
+    'm_min':      (1.0,  3e3,  True),
+    'chi':        (0.25, 4.0,  True),
 }
 
 # ── targets (replica of notebook _load_targets) ──────────────────────────────
@@ -159,6 +187,8 @@ G_DEFAULT = float(SIM.input_data.material_params['G'])
 def _configure(pdict, T):
     inp = SIM.input_data
     for k, v in pdict.items():
+        if k in MODEL_LEVERS:
+            continue                      # goes to the command line, not here
         for d in (inp.material_params, inp.physical_props, inp.model_params):
             if k in d:
                 d[k] = float(v); break
@@ -181,6 +211,8 @@ def model_history_batch(pdict, temps_maxdpa):
                'rtol': RTOL, 'atol': ATOL, 'log_time': True,
                'solver_method': SOLVER}
         cfg.update(MODEL)
+        cfg.update({k: float(v) for k, v in pdict.items()
+                    if k in MODEL_LEVERS})
         if MODEL.get('emission_model'):
             # Emission needs the temperature it is being evaluated at, and this
             # harness sweeps temperature -- so it is taken from the case and
