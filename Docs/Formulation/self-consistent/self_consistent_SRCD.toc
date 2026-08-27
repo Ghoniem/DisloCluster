@@ -223,7 +223,7 @@
 \contentsline {paragraph}{Step 3: peripheral emission replaces the lifetimes.}{99}{section*.137}%
 \contentsline {paragraph}{And a consequence of this step that is not a test failure but is easy to mistake for one.}{100}{section*.138}%
 \contentsline {paragraph}{The refit has now been run against the experimental targets, and the sink is physical.}{101}{section*.139}%
-\contentsline {paragraph}{Step 4: the basal chain.}{101}{section*.140}%
+\contentsline {paragraph}{Step 4: the basal chain.}{102}{section*.140}%
 \contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{102}{subsection.D.3}%
 \contentsline {paragraph}{Step 5: the second moment.}{102}{section*.141}%
 \contentsline {paragraph}{Six things executing step 5 corrected, and one measurement.}{102}{section*.142}%
@@ -231,7 +231,7 @@
 \contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{104}{subsection.D.4}%
 \contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{104}{section*.144}%
 \contentsline {paragraph}{Step 7: the trigger.}{104}{section*.145}%
-\contentsline {paragraph}{Step 8: the climb constructions.}{104}{section*.146}%
+\contentsline {paragraph}{Step 8: the climb constructions.}{105}{section*.146}%
 \contentsline {paragraph}{Step 9: the smeared discrete sink.}{105}{section*.147}%
 \contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{105}{subsection.D.5}%
 \contentsline {paragraph}{Step 10: the continuum observables.}{105}{section*.148}%
@@ -242,7 +242,7 @@
 \contentsline {paragraph}{Step 14: the anneal as a run mode.}{107}{section*.152}%
 \contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{107}{section*.153}%
 \contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{108}{section*.154}%
-\contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{108}{subsection.D.7}%
-\contentsline {paragraph}{Step 17: refit.}{108}{section*.155}%
+\contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{109}{subsection.D.7}%
+\contentsline {paragraph}{Step 17: refit.}{109}{section*.155}%
 \contentsline {paragraph}{Step 18: performance.}{109}{section*.156}%
 \contentsline {subsection}{\numberline {D.8}Summary}{109}{subsection.D.8}%

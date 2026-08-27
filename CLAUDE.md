@@ -822,6 +822,32 @@ NUMBER without shortening the survivors' lives, which is what `tau_cvL` did and
 what neither coalescence nor peripheral emission does — emission shrinks a loop
 continuously and never removes one.
 
+**Searching over the new levers confirms it.** `m_min` (step 5's floor) and
+`chi` (step 2's splitting) added to the candidate set:
+
+| lever set | J | J_A | J_C |
+|---|---:|---:|---:|
+| baseline, unrefitted | 0.7790 | 0.4814 | 1.6166 |
+| `{m_min}` | 0.8794 | 0.4271 | 3.5063 |
+| `{m_min, chi}` | 0.8719 | 0.4230 | 3.4672 |
+| `{m_min, chi, c_LL_c, c_LN_c}` | **0.3683** | 0.2816 | 0.5331 |
+| + `Z_v_c, epsilon_vL` | 0.5625 | 0.3456 | 1.4000 |
+| *hand-picked* coal ×1000, `m_min` 30 | **0.3264** | 0.2720 | 0.4944 |
+
+Four things, and only the first is about the physics:
+
+- **`d_c` stays 0.07–0.11× of experiment in every fit.** `N_c` is brought to
+  1.5–7× and the diameter never follows. That is the missing sink, now
+  confirmed by a search rather than a sweep.
+- **`chi` is inert**: 0.9887 and 0.9987, i.e. it sits at 1. Character splitting
+  does not help this fit.
+- **`Z_v_c` and `epsilon_vL` go to their bounds** (1.0 and 0.005) — rails, not
+  levers, in this configuration.
+- **The optimizer is not to be trusted here.** A superset scored *worse* than
+  its subset (0.5625 against 0.3683), which cannot happen at a real optimum,
+  and a hand-picked corner beat the fitted one (0.3264 against 0.3683). Treat
+  these as exploratory. The robust statement is the diameter.
+
 **Two of my own claims here were wrong and are corrected above.** The
 unconstrained two-lever fit stopped at 7× and 4× (J 0.779 → 0.588), not 10³,
 because total `J` is nearly flat across three decades — the density gain is paid

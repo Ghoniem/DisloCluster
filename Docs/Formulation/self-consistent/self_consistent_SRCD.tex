@@ -8419,6 +8419,34 @@ coalescence, $J_A$ falls $0.370\to0.272$ as $m_{\min}$ goes $1\to30$ --- and
 none on the basal one, because the flux through the floor is set by the
 log-normal's lower tail rather than by loops actually reaching zero size.
 
+\textbf{A search over the new levers confirms it}, with $m_{\min}$ and $\chi$
+added to the candidate set:
+
+\begin{center}\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+lever set & $J$ & $J_A$ & $J_C$\\
+\midrule
+baseline, unrefitted & $0.7790$ & $0.4814$ & $1.6166$\\
+$\{m_{\min}\}$ & $0.8794$ & $0.4271$ & $3.5063$\\
+$\{m_{\min},\chi\}$ & $0.8719$ & $0.4230$ & $3.4672$\\
+$\{m_{\min},\chi,c_{LL},c_{LN}\}$ & $\mathbf{0.3683}$ & $0.2816$ & $0.5331$\\
+$+\,\{Z_{v,c},\varepsilon_{vL}\}$ & $0.5625$ & $0.3456$ & $1.4000$\\
+\emph{hand-picked}: coal.\ $\times10^3$, $m_{\min}=30$ & $\mathbf{0.3264}$ & $0.2720$ & $0.4944$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+$d_c$ stays at $0.07$--$0.11\times$ experiment in \emph{every} fit while $N_c$ is
+brought to $1.5$--$7\times$: the density can always be bought and the diameter
+never follows. $\chi$ comes out inert ($0.9887$, $0.9987$ --- it sits at $1$),
+and $Z_{v,c}$ and $\varepsilon_{vL}$ go to their bounds, so neither is a lever
+here. \textbf{Two of these rows also say the optimizer is not to be trusted on
+this landscape}: a superset scored \emph{worse} than its subset, which cannot
+happen at a genuine optimum, and a hand-picked corner beat the fitted one. The
+numbers are exploratory; the statement about $d_c$ is not, because it holds
+across all of them.
+
 \textbf{So the missing channel is physical: something that removes vacancy loop
 NUMBER without shortening the survivors' lives.} That is what $\tau_{cvL}$ did,
 and it is what neither channel replacing it does --- coalescence shortens lives
