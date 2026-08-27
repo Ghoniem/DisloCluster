@@ -190,58 +190,58 @@
 \contentsline {subsection}{\numberline {A.7}Experiments showing predominantly interstitial loops}{85}{subsection.A.7}%
 \contentsline {subsection}{\numberline {A.8}Influence of alloying and irradiation particle}{86}{subsection.A.8}%
 \contentsline {subsection}{\numberline {A.9}Modern quantitative ion-irradiation measurements}{86}{subsection.A.9}%
-\contentsline {subsection}{\numberline {A.10}Temperature dependence}{86}{subsection.A.10}%
+\contentsline {subsection}{\numberline {A.10}Temperature dependence}{87}{subsection.A.10}%
 \contentsline {subsection}{\numberline {A.11}Dependence on neutron fluence and local microstructure}{87}{subsection.A.11}%
 \contentsline {subsection}{\numberline {A.12}Summary of representative experimental observations}{87}{subsection.A.12}%
 \contentsline {subsection}{\numberline {A.13}Experimental conclusions}{87}{subsection.A.13}%
-\contentsline {subsection}{\numberline {A.14}Implication for microstructure-evolution models}{88}{subsection.A.14}%
-\contentsline {section}{\numberline {B}Point-defect capture bias of dislocation loops in zirconium}{88}{section.B}%
+\contentsline {subsection}{\numberline {A.14}Implication for microstructure-evolution models}{89}{subsection.A.14}%
+\contentsline {section}{\numberline {B}Point-defect capture bias of dislocation loops in zirconium}{89}{section.B}%
 \contentsline {paragraph}{Two bias conventions.}{89}{section*.125}%
-\contentsline {subsection}{\numberline {B.1}Woo (1981): the bias is calculable}{89}{subsection.B.1}%
+\contentsline {subsection}{\numberline {B.1}Woo (1981): the bias is calculable}{90}{subsection.B.1}%
 \contentsline {subsection}{\numberline {B.2}Woo (1982): what breaks the symmetry between characters}{90}{subsection.B.2}%
-\contentsline {subsection}{\numberline {B.3}March-Rico and Wirth (2023): the atomistic realization}{90}{subsection.B.3}%
-\contentsline {subsection}{\numberline {B.4}How the three fit together, and where they do not}{91}{subsection.B.4}%
-\contentsline {subsection}{\numberline {B.5}A unified formulation, and the calculation that would settle it}{92}{subsection.B.5}%
+\contentsline {subsection}{\numberline {B.3}March-Rico and Wirth (2023): the atomistic realization}{91}{subsection.B.3}%
+\contentsline {subsection}{\numberline {B.4}How the three fit together, and where they do not}{92}{subsection.B.4}%
+\contentsline {subsection}{\numberline {B.5}A unified formulation, and the calculation that would settle it}{93}{subsection.B.5}%
 \contentsline {subsection}{\numberline {B.6}Summary}{93}{subsection.B.6}%
-\contentsline {section}{\numberline {C}Current code structure}{93}{section.C}%
-\contentsline {subsection}{\numberline {C.1}The implemented family set, and the two loop models}{93}{subsection.C.1}%
-\contentsline {subsection}{\numberline {C.2}Immobile equations as implemented}{94}{subsection.C.2}%
+\contentsline {section}{\numberline {C}Current code structure}{94}{section.C}%
+\contentsline {subsection}{\numberline {C.1}The implemented family set, and the two loop models}{94}{subsection.C.1}%
+\contentsline {subsection}{\numberline {C.2}Immobile equations as implemented}{95}{subsection.C.2}%
 \contentsline {subsection}{\numberline {C.3}Mapping the rate coefficients between the two codes}{95}{subsection.C.3}%
-\contentsline {subsection}{\numberline {C.4}Changes made to the spatial code}{95}{subsection.C.4}%
+\contentsline {subsection}{\numberline {C.4}Changes made to the spatial code}{96}{subsection.C.4}%
 \contentsline {subparagraph}{Cluster transport.}{97}{section*.129}%
 \contentsline {subparagraph}{Loop sink convention.}{97}{section*.130}%
 \contentsline {subsection}{\numberline {C.5}Status of the expanded family set}{97}{subsection.C.5}%
-\contentsline {section}{\numberline {D}Code implementation plan}{97}{section.D}%
+\contentsline {section}{\numberline {D}Code implementation plan}{98}{section.D}%
 \contentsline {paragraph}{The ordering principle.}{98}{section*.131}%
 \contentsline {paragraph}{Two things executing Phase~I corrected in this plan.}{98}{section*.132}%
-\contentsline {paragraph}{Three assertions that must hold at every step.}{98}{section*.133}%
-\contentsline {subsection}{\numberline {D.1}Phase I --- the family set}{98}{subsection.D.1}%
-\contentsline {paragraph}{Step 0: lock the baseline.}{98}{section*.134}%
-\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{98}{section*.135}%
+\contentsline {paragraph}{Three assertions that must hold at every step.}{99}{section*.133}%
+\contentsline {subsection}{\numberline {D.1}Phase I --- the family set}{99}{subsection.D.1}%
+\contentsline {paragraph}{Step 0: lock the baseline.}{99}{section*.134}%
+\contentsline {paragraph}{Step 1: three prismatic vacancy families.}{99}{section*.135}%
 \contentsline {paragraph}{Step 2: character-resolved capture.}{99}{section*.136}%
 \contentsline {subsection}{\numberline {D.2}Phase II --- thermal channels}{99}{subsection.D.2}%
 \contentsline {paragraph}{Step 3: peripheral emission replaces the lifetimes.}{99}{section*.137}%
-\contentsline {paragraph}{And a consequence of this step that is not a test failure but is easy to mistake for one.}{99}{section*.138}%
-\contentsline {paragraph}{Step 4: the basal chain.}{100}{section*.139}%
-\contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{100}{subsection.D.3}%
-\contentsline {paragraph}{Step 5: the second moment.}{100}{section*.140}%
+\contentsline {paragraph}{And a consequence of this step that is not a test failure but is easy to mistake for one.}{100}{section*.138}%
+\contentsline {paragraph}{Step 4: the basal chain.}{101}{section*.139}%
+\contentsline {subsection}{\numberline {D.3}Phase III --- the size distribution}{101}{subsection.D.3}%
+\contentsline {paragraph}{Step 5: the second moment.}{101}{section*.140}%
 \contentsline {paragraph}{Six things executing step 5 corrected, and one measurement.}{101}{section*.141}%
 \contentsline {paragraph}{The step in a coupled march.}{102}{section*.142}%
-\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{102}{subsection.D.4}%
-\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{102}{section*.143}%
+\contentsline {subsection}{\numberline {D.4}Phase IV --- the discrete handoff}{103}{subsection.D.4}%
+\contentsline {paragraph}{Step 6: conversion with a drawn size and an elliptical outline.}{103}{section*.143}%
 \contentsline {paragraph}{Step 7: the trigger.}{103}{section*.144}%
 \contentsline {paragraph}{Step 8: the climb constructions.}{103}{section*.145}%
-\contentsline {paragraph}{Step 9: the smeared discrete sink.}{103}{section*.146}%
-\contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{103}{subsection.D.5}%
+\contentsline {paragraph}{Step 9: the smeared discrete sink.}{104}{section*.146}%
+\contentsline {subsection}{\numberline {D.5}Phase V --- observables and mechanics coupling}{104}{subsection.D.5}%
 \contentsline {paragraph}{Step 10: the continuum observables.}{104}{section*.147}%
 \contentsline {paragraph}{Step 11: the discrete observables.}{104}{section*.148}%
-\contentsline {paragraph}{Step 12: the hybrid route.}{104}{section*.149}%
-\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{104}{subsection.D.6}%
-\contentsline {paragraph}{Step 13: emission into the mobile field.}{104}{section*.150}%
-\contentsline {paragraph}{Step 14: the anneal as a run mode.}{105}{section*.151}%
-\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{105}{section*.152}%
-\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{106}{section*.153}%
-\contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{107}{subsection.D.7}%
-\contentsline {paragraph}{Step 17: refit.}{107}{section*.154}%
-\contentsline {paragraph}{Step 18: performance.}{107}{section*.155}%
-\contentsline {subsection}{\numberline {D.8}Summary}{107}{subsection.D.8}%
+\contentsline {paragraph}{Step 12: the hybrid route.}{105}{section*.149}%
+\contentsline {subsection}{\numberline {D.6}Phase VI --- the thermal anneal}{105}{subsection.D.6}%
+\contentsline {paragraph}{Step 13: emission into the mobile field.}{105}{section*.150}%
+\contentsline {paragraph}{Step 14: the anneal as a run mode.}{106}{section*.151}%
+\contentsline {paragraph}{Step 15: annealing a size distribution --- the two representations.}{106}{section*.152}%
+\contentsline {paragraph}{Step 16: the $\Theta _k$-triggered switch.}{107}{section*.153}%
+\contentsline {subsection}{\numberline {D.7}Phase VII --- calibration and performance}{108}{subsection.D.7}%
+\contentsline {paragraph}{Step 17: refit.}{108}{section*.154}%
+\contentsline {paragraph}{Step 18: performance.}{108}{section*.155}%
+\contentsline {subsection}{\numberline {D.8}Summary}{108}{subsection.D.8}%

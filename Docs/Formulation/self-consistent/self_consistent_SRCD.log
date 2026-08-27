@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  26 AUG 2026 21:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  27 AUG 2026 02:09
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1598,137 +1598,140 @@ l.6381 \end{enumerate}
                       ] [78] [79]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 6541.
+(hyperref)                removing `math shift' on input line 6544.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `superscript' on input line 6541.
+(hyperref)                removing `superscript' on input line 6544.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `math shift' on input line 6541.
+(hyperref)                removing `math shift' on input line 6544.
 
 [80]
 Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
-put line 6644.
+put line 6647.
  [81] [82]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <14.4> on input line 6828.
+(Font)              <14.4> on input line 6831.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\langle' on input line 6828.
+(hyperref)                removing `\langle' on input line 6831.
 
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
-(hyperref)                removing `\rangle' on input line 6828.
+(hyperref)                removing `\rangle' on input line 6831.
 
 [83] [84] [85] [86]
-Underfull \hbox (badness 2035) in paragraph at lines 7294--7294
+Underfull \hbox (badness 2035) in paragraph at lines 7297--7297
 []|\T1/lmr/m/n/9 Approximately $\OT1/lmr/m/n/9 2\OML/lmm/m/it/9 =\OT1/lmr/m/n/9
  3$ \T1/lmr/m/n/9 va-cancy and
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7294--7294
+Underfull \hbox (badness 10000) in paragraph at lines 7297--7297
 []|\T1/lmr/m/n/9 Low-dose pop-u-la-tion pre-dom-i-
  []
 
-[87
+[87] [88
 pdfTeX warning (ext4): destination with the same identifier (name{table.19}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7315 \end{equation}
-                     ] [88] [89] [90]
-Underfull \hbox (badness 10000) in paragraph at lines 7686--7686
+l.7361 \end{equation}
+                     ] [89] [90] [91]
+Underfull \hbox (badness 10000) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 March-Rico and Wirth
  []
 
 
-Underfull \hbox (badness 8151) in paragraph at lines 7686--7686
+Underfull \hbox (badness 8151) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 Infinitesimal edge loop,
  []
 
 
-Underfull \hbox (badness 7981) in paragraph at lines 7686--7686
+Underfull \hbox (badness 7981) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 Explicit re-laxed atomic
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7686--7686
+Underfull \hbox (badness 10000) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 Saddle-point \T1/lmr/m/it/9 shape
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7686--7686
+Underfull \hbox (badness 10000) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 Defect--loop \T1/lmr/m/it/9 bind-ing
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 7686--7686
+Underfull \hbox (badness 10000) in paragraph at lines 7689--7689
 []|\T1/lmr/m/n/9 Thermal-drift ra-dius
  []
 
-[91] [92
+[92
 pdfTeX warning (ext4): destination with the same identifier (name{table.20}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7776 A
-         direct atomistic test in $\alpha$-Zr would therefore need $E_g(\bm ...
-] [93] [94
+l.7721 
+       ] [93] [94
 pdfTeX warning (ext4): destination with the same identifier (name{table.21}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.7951 \subsection
-                  {Mapping the rate coefficients between the two codes}]
+l.7897 \end{itemize}
+                    ]
 LaTeX Font Info:    Trying to load font information for T1+lmss on input line 7
-954.
+957.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmss.fd
 File: t1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-) [95
+) [95]
+[96
 pdfTeX warning (ext4): destination with the same identifier (name{table.22}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.8035 \item \textbf
-                    {Atomic volume.} The polycrystal class returned] [96
+l.8065 \item \textbf
+                    {Units.} The minimum stable radius was compared in meter...
+] [97
 pdfTeX warning (ext4): destination with the same identifier (name{table.23}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.8105 
-       ] [97] [98] [99] [100] [101] [102] [103] [104]
-Underfull \hbox (badness 3158) in paragraph at lines 8909--8909
+l.8135 \item \textbf
+                    {A vacancy-loop nucleation current on the prismatic fami...
+] [98] [99] [100] [101] [102] [103] [104] [105]
+Underfull \hbox (badness 3158) in paragraph at lines 8945--8945
 []|\T1/lmr/m/n/9 periodic cube; the A1 state
  []
 
 
-Underfull \hbox (badness 1342) in paragraph at lines 8909--8909
+Underfull \hbox (badness 1342) in paragraph at lines 8945--8945
 []|\T1/lmr/m/n/9 that the trans-fer is in-vert-ible
  []
 
 
-Underfull \hbox (badness 1057) in paragraph at lines 8909--8909
+Underfull \hbox (badness 1057) in paragraph at lines 8945--8945
 \T1/lmr/m/n/9 tion into $\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 n; c; q\OT1/lmr/m/n/9 
 )$ \T1/lmr/m/n/9 re-cov-ers the
  []
 
-[105] [106]
-Underfull \hbox (badness 2547) in paragraph at lines 9035--9035
+
+ignored: Infinite glue shrinkage found in box being split [106] [107]
+Underfull \hbox (badness 2547) in paragraph at lines 9071--9071
 []|\T1/lmr/m/n/9 Size-distribution an-neal, both rep-re-sen-ta-tions ([][]Ta-
  []
 
-[107] (self_consistent_SRCD.bbl [108
+[108] (self_consistent_SRCD.bbl [109
 pdfTeX warning (ext4): destination with the same identifier (name{table.25}) ha
 s been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.65 
-     ] [109]) [110] (self_consistent_SRCD.aux)
+     ] [110]) [111] (self_consistent_SRCD.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
@@ -1737,13 +1740,13 @@ Package rerunfilecheck Info: File `self_consistent_SRCD.out' has not changed.
 (rerunfilecheck)             Checksum: 0D386D83DB922B1D040CC5CE68193C79;25123.
  ) 
 Here is how much of TeX's memory you used:
- 40196 strings out of 467691
- 851460 string characters out of 5414988
- 1288158 words of memory out of 5000000
+ 40197 strings out of 467691
+ 851468 string characters out of 5414988
+ 1287157 words of memory out of 5000000
  67790 multiletter control sequences out of 15000+600000
  763708 words of font info for 138 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,19n,96p,1512b,1264s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,19n,96p,1512b,1294s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
@@ -1785,9 +1788,9 @@ ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppDa
 ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/Use
 rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm
 10.pfb>
-Output written on self_consistent_SRCD.pdf (110 pages, 3634813 bytes).
+Output written on self_consistent_SRCD.pdf (111 pages, 3638545 bytes).
 PDF statistics:
- 3560 PDF objects out of 3580 (max. 8388607)
- 809 named destinations out of 1000 (max. 500000)
+ 3564 PDF objects out of 3580 (max. 8388607)
+ 810 named destinations out of 1000 (max. 500000)
  952 words of extra memory for PDF output out of 10000 (max. 10000000)
 

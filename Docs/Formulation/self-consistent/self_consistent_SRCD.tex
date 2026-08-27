@@ -6412,11 +6412,14 @@ carries no unmeasured obstacle coefficient.
 \textbf{Status.} Route~1 is implemented for hardening and for the distortion
 rate, and route~2 is implemented for hardening (all three of its sub-routes) and
 supplied natively for $\bm\beta^{P}$ by the dislocation code. Route~3's
-$\alpha_k$ fit exists; \textbf{the $\Upsilon_{h(k)}$ measurement of step~1 above
-does not}, and until it does the distortion observables carry an assumed strain
-factor in every route but~2. It is the cheapest unclaimed measurement in this
-document: it needs one already-feasible export and a comparison of two tensors
-that are both already written to disk.
+$\alpha_k$ fit exists. \textbf{The $\Upsilon_{h(k)}$ measurement of step~1 above
+has been run and returns unity by construction} --- the algebra is set out at
+step~11 of the implementation plan --- so it is not a measurement of
+$\Upsilon$ at all, and the distortion observables still carry an assumed strain
+factor in every route but~2. What the comparison \emph{is} good for is checking
+the handoff, which it does sharply. Obtaining a physical $\Upsilon_{h(k)}$
+requires putting \code{immobileSpeciesRelRelaxVol} into one representation and
+not the other, and that is a modelling decision this document has not made.
 
 \section{Solution Method: the Two-Time-Scale Operator Split}
 \label{sec:solution}
@@ -8698,11 +8701,44 @@ the three hardening routes of \cref{sec:obs-discrete} all run.
 \textbf{Validation goals:} (i) $\operatorname{tr}\dot{\bm\beta}^{P}$ is zero for
 pure glide and non-zero for climb, which is the separation the trace is being
 used for; (ii) route~D reproduces route~A on a case where both are affordable ---
-the seeding smoke test; (iii) \textbf{the missing one} --- $\Upsilon_{h(k)}$ has
-never been measured. Comparing $\bm\beta^{P}_{\mathcal D}$ against
-\cref{eq:betaP} on one exported population determines it, and both tensors are
-already written to disk. This is the cheapest unclaimed measurement in the
-document.
+the seeding smoke test; (iii) $\Upsilon_{h(k)}$, by comparing
+$\bm\beta^{P}_{\mathcal D}$ against \cref{eq:betaP} on one exported population.
+
+\textbf{Goal (iii) has now been run, and it does not do what this plan claimed
+for it.} It was described as the cheapest unclaimed measurement in the document
+and as \emph{determining} $\Upsilon_{h(k)}$. It is cheap; it determines nothing.
+Both tensors rest on the same identity. The conversion gives a loop the area
+that stores its defects, $A_\ell|\bvec|_\ell=m_\ell\Omega$, and the continuum
+content of a family is by construction $\sum_\ell A_\ell(\bvec\!\cdot\!\nvec)/V$,
+so for a climb loop --- $\bvec$ along $\nvec$, which every family here is ---
+\[
+  \bm\beta^{P}_{\mathcal D}
+   =\frac1V\sum_\ell A_\ell|\bvec|\,\nvec\otimes\nvec
+   =\frac{\Omega}{V}\sum_\ell m_\ell\,\nvec\otimes\nvec
+   =c^k_{sL}\,\nvec\otimes\nvec ,
+\]
+and the ratio is identically one whatever the sizes are and however they are
+distributed. Measured: $1.000000000000000$ with \emph{zero} spread across
+populations from $25$ loops of $8000$ defects to $4000$ loops of $50$, and
+$1.000000000000$ on both habits of a real $200$\,nm export.
+
+\textbf{What it is instead is a stringent end-to-end check on the handoff}, and
+worth keeping as one. Deliberately breaking the Burgers magnitude on one side
+moves the ratio by exactly the injected factor --- $\sqrt2\to1.414213562373$,
+$\tfrac12\to0.500000000000$ --- which is precisely the class of error the
+\cloop{} Burgers correction removed, where cluster dynamics and dislocation
+dynamics disagreed by $\sqrt2$ on one family and nothing complained. The ratio
+is one only when the two sides genuinely share $|\bvec|$ and $\Omega$.
+
+\textbf{A physical $\Upsilon_{h(k)}\ne1$ is not available from this comparison
+at all.} The formulation defines it as the ratio of the defect's relaxation
+volume to $\Omega$, and the relaxation volume enters neither tensor: the
+material file carries \code{immobileSpeciesRelRelaxVol} ($0.405$ basal, $1.2$
+prismatic interstitial) and no observable reads it. Measuring $\Upsilon$ means
+putting that number into one side and not the other, which is a modelling
+decision and not a measurement. \textbf{So the $\Upsilon_{h(k)}$ that route~3
+lists among the coefficients it calibrates is still an assumption}, and the
+route-2 budget buys $\alpha_k$ alone.
 
 \paragraph{Step 12: the hybrid route.} \emph{Partly implemented.} Route~3 of
 \cref{sec:obs-options}: calibrate $\alpha_k$ and $\Upsilon_{h(k)}$ on small
@@ -9015,8 +9051,8 @@ Step & Change & Regression & Status \\
     no transferred population & \textbf{done} / field \\
 10 & Continuum observables $\bm\beta^{P}$, $\Delta\tau$ &
     --- & partial \\
-11 & Discrete observables; measure $\Upsilon_{h(k)}$ &
-    --- & partial \\
+11 & Discrete observables; $\Upsilon_{h(k)}$ shown \emph{not} measurable this way &
+    --- & \textbf{done} \\
 12 & Hybrid route: calibrate, then compose &
     transfer disarmed & partial \\
 \addlinespace
