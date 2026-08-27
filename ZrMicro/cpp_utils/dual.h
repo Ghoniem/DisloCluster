@@ -25,6 +25,7 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 
 template <int N>
 struct Dual {
@@ -188,6 +189,68 @@ inline Dual<N> erfc(const Dual<N>& a) {
     return r;
 }
 
+// ── erfc^-1, needed to ask "which size is the top f of this family?" ─────────
+// There is no std::erfcinv. The value comes from the normal quantile via
+// erfc(x) = 2 Phi(-x sqrt2), i.e. erfcinv(y) = -ndtri(y/2)/sqrt2, with Acklam's
+// rational approximation refined by two Newton steps on erfc itself -- which
+// converges to machine precision because erfc is smooth and monotone.
+inline double _ndtri(double p) {
+    // Acklam's inverse normal CDF; |relative error| < 1.15e-9 before refinement.
+    static const double a[6] = {-3.969683028665376e+01, 2.209460984245205e+02,
+                                -2.759285104469687e+02, 1.383577518672690e+02,
+                                -3.066479806614716e+01, 2.506628277459239e+00};
+    static const double b[5] = {-5.447609879822406e+01, 1.615858368580409e+02,
+                                -1.556989798598866e+02, 6.680131188771972e+01,
+                                -1.328068155288572e+01};
+    static const double c[6] = {-7.784894002430293e-03, -3.223964580411365e-01,
+                                -2.400758277161838e+00, -2.549732539343734e+00,
+                                 4.374664141464968e+00,  2.938163982698783e+00};
+    static const double d[4] = { 7.784695709041462e-03,  3.224671290700398e-01,
+                                 2.445134137142996e+00,  3.754408661907416e+00};
+    const double pl = 0.02425;
+    if (p <= 0.0) return -std::numeric_limits<double>::infinity();
+    if (p >= 1.0) return  std::numeric_limits<double>::infinity();
+    double q, r, x;
+    if (p < pl) {
+        q = std::sqrt(-2.0 * std::log(p));
+        x = (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])
+            / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+    } else if (p <= 1.0 - pl) {
+        q = p - 0.5; r = q * q;
+        x = (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q
+            / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1.0);
+    } else {
+        q = std::sqrt(-2.0 * std::log(1.0 - p));
+        x = -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])
+            / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1.0);
+    }
+    return x;
+}
+
+inline double erfcinv(double y) {
+    if (y <= 0.0) return  std::numeric_limits<double>::infinity();
+    if (y >= 2.0) return -std::numeric_limits<double>::infinity();
+    double x = -_ndtri(0.5 * y) / 1.4142135623730951;
+    for (int it = 0; it < 2; ++it) {          // Newton on erfc(x) - y = 0
+        const double f = std::erfc(x) - y;
+        const double df = -1.1283791670955126 * std::exp(-x * x);
+        if (df == 0.0) break;
+        x -= f / df;
+    }
+    return x;
+}
+
+template <int N>
+inline Dual<N> erfcinv(const Dual<N>& a) {
+    // The VALUE is the Newton solve above; the DERIVATIVE is the inverse
+    // function's, which is exact and needs no iteration:
+    //     d/dy erfc^-1(y) = -sqrt(pi)/2 exp( (erfc^-1 y)^2 ).
+    Dual<N> r; r.v = erfcinv(a.v);
+    const double c = -0.8862269254527580 * std::exp(r.v * r.v);
+    for (int i = 0; i < N; ++i) r.d[i] = c * a.d[i];
+    return r;
+}
+
 // ── Type-dispatching wrappers used by the templated core ─────────────────────
 // The core calls ad_sqrt / ad_exp / ad_cbrt rather than unqualified sqrt/exp/
 // cbrt. A block-scope `using std::sqrt` would HIDE the Dual overloads above
@@ -200,12 +263,14 @@ inline double ad_exp (double x) { return std::exp(x);  }
 inline double ad_cbrt(double x) { return std::cbrt(x); }
 inline double ad_log (double x) { return std::log(x);  }
 inline double ad_erfc(double x) { return std::erfc(x); }
+inline double ad_erfcinv(double x) { return erfcinv(x); }
 
 template <int N> inline Dual<N> ad_sqrt(const Dual<N>& x) { return sqrt(x); }
 template <int N> inline Dual<N> ad_exp (const Dual<N>& x) { return exp(x);  }
 template <int N> inline Dual<N> ad_cbrt(const Dual<N>& x) { return cbrt(x); }
 template <int N> inline Dual<N> ad_log (const Dual<N>& x) { return log(x);  }
 template <int N> inline Dual<N> ad_erfc(const Dual<N>& x) { return erfc(x); }
+template <int N> inline Dual<N> ad_erfcinv(const Dual<N>& x) { return erfcinv(x); }
 
 // Value extraction (for comparisons written generically).
 inline double ad_val(double x) { return x; }

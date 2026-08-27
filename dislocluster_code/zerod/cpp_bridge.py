@@ -392,6 +392,18 @@ def collect_solver_args(sim, solver_config):
         if int(solver_config.get('moments', 0)) != 0:
             params['moments'] = 1
             params['m_min'] = float(solver_config.get('m_min', 1.0))
+            # THE DISTRIBUTION LEAKS AT BOTH ENDS. `nu_vanish`/`m_vanish` is the
+            # small end -- loops that shrink below a minimum stable size
+            # dissolve, which is the physical content of the tau_cvL step 3
+            # deleted. `coal_gated` is the large end -- the same calibrated
+            # coalescence rate, but removing from the TOP of the distribution
+            # instead of proportionally. Both need the second moment: without a
+            # distribution there is no fraction above or below anything.
+            for key in ('nu_vanish', 'm_vanish'):
+                if key in solver_config:
+                    params[key] = float(solver_config[key])
+            if int(solver_config.get('coal_gated', 0)) != 0:
+                params['coal_gated'] = 1
 
         # ── Step 4: the basal chain c_0 -> c_f -> c_p ───────────────────────
         # Emitted only when the chain is switched on, so a step-3 command line

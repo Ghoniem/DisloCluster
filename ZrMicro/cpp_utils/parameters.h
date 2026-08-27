@@ -327,6 +327,57 @@ struct Parameters {
     // threshold on a mean would transfer the whole family in one step.
     double m_col;        // [-] threshold for c_0 -> c_f
     double m_uf;         // [-] threshold for c_f -> c_p
+    // ── The DISAPPEARANCE channel ───────────────────────────────────────────
+    // A loop shrinking under peripheral emission has, before this, no way to
+    // vanish. Emission moves vacancies out of a loop continuously and never
+    // removes the loop; coalescence removes loops but shortens their lives, so
+    // it buys a lower density at the cost of a smaller mean size; and the
+    // dissolution current of Eq. (floorcurrent) is tied to the log-normal's
+    // lower TAIL rather than to a radius actually reaching the minimum, which
+    // measures as no lever at all on the basal family.
+    //
+    // Measured consequence, against experiment: N_c can always be bought and
+    // d_c never follows -- 0.07-0.11x the measured diameter in every fit that
+    // brings the density to 1.5-7x.
+    //
+    // This is the physical content of the tau_cvL the step-3 emission model
+    // deleted, written as a SIZE condition instead of a fitted lifetime: loops
+    // below m_vanish dissolve at nu_vanish, and the fraction below is taken
+    // from the same distribution Eq. (gatefraction) integrates. Because the
+    // complement of a gate reverses its ordering, this removes a subpopulation
+    // SMALLER than the family mean -- so the density falls and the surviving
+    // mean RISES, which is the trade coalescence cannot make.
+    //
+    // nu_vanish = 0 (the default) is the channel switched off.
+    double nu_vanish;    // [1/s] dissolution rate of a below-threshold loop
+    double m_vanish;     // [-] the size below which a loop is dissolving
+    // ── Coalescence removes the LARGE loops, not an average one ─────────────
+    // The distribution leaks at BOTH ends: small loops vanish by shrinkage
+    // (above), large ones by coalescing with the network or with each other,
+    // because they cannot grow past the spacing to their neighbours. The
+    // Avrami gates already say so -- phi_LL ~ r^3 n and phi_LN ~ r^2 rho_N are
+    // both strongly size-biased -- but the removal was applied PROPORTIONALLY
+    // to the whole family, and the second moment was closed shape-preserving,
+    // so coalescence moved the density and left the distribution's shape alone.
+    //
+    // With coal_gated = 1 the RATE is unchanged -- coal_num is the calibrated
+    // Avrami result and stays exactly what it was -- but the loops it removes
+    // are taken from the TOP of the distribution. The threshold is not a new
+    // parameter: it is the size m* at which the surviving fraction equals the
+    // fraction coalescence is removing,
+    //
+    //     Phi^(0)(m*) = coal_num / n   ->   ln m* = mu + s sqrt2 erfc^-1(2 f),
+    //
+    // and the content and second moment then leave at Phi^(1)(m*) c and
+    // Phi^(2)(m*) q. Because what remains is a genuine sub-measure, Delta >= 1
+    // holds BY CONSTRUCTION -- which is why a gated removal needs none of the
+    // shape-preserving care an ungated one does.
+    //
+    // 0 (the default) is the proportional removal every fitted result used.
+    // TURNING IT ON INVALIDATES THE ZEROTH-MOMENT CALIBRATION: the same
+    // coal_num now carries away more content and more second moment, so the
+    // nucleation terms have to be refit against the new balance.
+    int    coal_gated;
 
     // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
@@ -636,6 +687,9 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.alpha_sfp = optional_param(p, "alpha_sfp", 1.0);
     P.m_col     = optional_param(p, "m_col", 0.0);
     P.m_uf      = optional_param(p, "m_uf",  0.0);
+    P.nu_vanish = optional_param(p, "nu_vanish", 0.0);
+    P.m_vanish  = optional_param(p, "m_vanish",  0.0);
+    P.coal_gated = static_cast<int>(optional_param(p, "coal_gated", 0.0));
     // The n_fam consistency check lives with n_fam's own parsing, below.
     // Checking it here read P.n_fam before it was set -- value-initialized to
     // zero -- so basal_chain=1 was rejected unconditionally.

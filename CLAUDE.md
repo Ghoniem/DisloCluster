@@ -848,6 +848,44 @@ Four things, and only the first is about the physics:
   and a hand-picked corner beat the fitted one (0.3264 against 0.3683). Treat
   these as exploratory. The robust statement is the diameter.
 
+### The distribution leaks at both ends — and only one end helps
+
+Two channels, both behind switches, both needing `moments`:
+
+| | `nu_vanish` / `m_vanish` | `coal_gated` |
+|---|---|---|
+| end | small — loops shrink below a minimum stable size | large — coalescence removes the biggest |
+| weight | `1 − Φ^(j)`, so **below** the family mean | `Φ^(j)`, so **above** it |
+| effect on `m̄` | **raises** it | lowers it |
+| realizability | automatic — what remains is a genuine sub-measure, so `Δ ≥ 1` holds by construction |
+
+Measured at 573 K / 24.5 dpa (`N` 8.0e20 m⁻³, `d` 95 nm):
+
+| | N/N_exp | d/d_exp | J_C |
+|---|---:|---:|---:|
+| as it stands | 49.07 | 0.565 | 1.617 |
+| coalescence ×1000 (proportional) | 2.02 | **0.10** | 0.495 |
+| **`nu_vanish` 1e-5, `m_vanish` 1e4** | **5.85** | **0.623** | **0.467** |
+| `coal_gated` alone | 208.6 | 0.187 | 3.090 |
+
+**The small-end leak is the first channel that moves both the right way** — the
+density falls 8.4× *while the diameter rises*. That is the trade nothing else
+could make, and it is the annealing signature step 5 validated, now doing work.
+
+**The large-end leak makes it much worse, and the reason is worth keeping.**
+Gating coalescence to the top removes disproportionate *content* (`Φ^(1)` >
+`Φ^(0)`), which shrinks the family, which weakens the size-biased Avrami rate
+(`φ_LL ∝ r³n`), which *raises* the density: 49 → 209. **The size bias is already
+inside `φ`** — it was derived from the mean radius — so biasing the selection as
+well applies it twice. Coalescence is the large-end leak; it does not need to be
+gated to be one.
+
+**The zeroth moment does need recalibrating, and now by a known amount.** The
+small-end leak takes the density down 8.4× at these values, so the nucleation
+terms (`epsilon_vL`, `n_vL_nuc`) have to come up against the new balance. Both
+thresholds are also uncalibrated: `m_vanish` = 1e4 is where the sweep put it,
+not where any measurement did.
+
 **Two of my own claims here were wrong and are corrected above.** The
 unconstrained two-lever fit stopped at 7× and 4× (J 0.779 → 0.588), not 10³,
 because total `J` is nearly flat across three decades — the density gain is paid

@@ -98,7 +98,7 @@ def set_model(**kw):
 #: `model_history_batch` and merged into the per-case config instead.
 MODEL_LEVERS = {'m_min', 'chi', 'm_col', 'm_uf',
                 'eps_sfp', 'n_sfp_nuc', 'tau_sfp', 'nu_col', 'nu_uf',
-                'alpha_sfp'}
+                'alpha_sfp', 'nu_vanish', 'm_vanish'}
 
 # ── current joint optimum — loaded from the latest fit CSV (freeze point) ─────
 # THE FREEZE POINT FALLS BACK TO THE CALIBRATED SET. This used to be
@@ -134,6 +134,8 @@ OPT.setdefault('Z_v_c', 1.0 + OPT.get('delta_DAD', 0.2))
 # baseline it never visited. A search cannot find what it does not start near.
 OPT.setdefault('m_min', 1.0)
 OPT.setdefault('chi', 1.0)
+OPT.setdefault('nu_vanish', 0.0)
+OPT.setdefault('m_vanish', 0.0)
 
 # ── c-loop-only candidate levers:  name -> (lo, hi, log?) ────────────────────
 CAND = {
@@ -160,6 +162,11 @@ CAND = {
     # travel through MODEL_LEVERS above.
     'm_min':      (1.0,  3e3,  True),
     'chi':        (0.25, 4.0,  True),
+    # The small-end leak: loops below m_vanish dissolve at nu_vanish. It is the
+    # only channel that removes loop NUMBER while RAISING the surviving mean,
+    # because the complement of a gate selects below the family mean.
+    'nu_vanish':  (1e-9, 1e-3, True),
+    'm_vanish':   (10.0, 1e4,  True),
 }
 
 # ── targets (replica of notebook _load_targets) ──────────────────────────────

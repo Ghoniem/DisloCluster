@@ -376,6 +376,40 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             }
         }
 
+        // ── Eq. (gatefraction), shared by the basal chain and the
+        //    disappearance channel ────────────────────────────────────────
+        // Phi^(j) = erfc[(ln m_theta - mu_k - j s_k^2)/(s_k sqrt 2)]/2, the
+        // fraction of the j-th moment carried by loops ABOVE m_theta, closed
+        // form because the log-normal the moments determine makes every
+        // size-threshold integral an error function.
+        //
+        // A DISTRIBUTION FRACTION AND NOT A STEP ON THE MEAN. In a mean-field
+        // state m_bar is an average, so a hard threshold on it moves the
+        // entire family the instant it crosses, and none of it before.
+        //
+        // Hoisted out of the chain block because the vanish channel below needs
+        // the same integral with the opposite sense: 1 - Phi^(j) is the
+        // fraction BELOW the threshold, and the complement reverses the
+        // ordering, so what it selects is SMALLER than the family mean.
+        auto gate = [&](int k, double m_theta, int j) -> T {
+            // Gate disabled: barrier-limited, which is what the model ran on
+            // before step 5. Returning exactly 1.0 keeps the rates that use it
+            // bit-identical to step 4.
+            if (!P.moments || m_theta <= 0.0) return T(1.0);
+            if (ad_val(f_num[k]) <= C_floor) return T(1.0);
+            if (ad_val(f_delta[k]) <= 1.0)
+                // No spread at all: the distribution IS a delta, and the gate
+                // is the Heaviside that erfc tends to as s -> 0. Not 1 -- that
+                // would move loops below the threshold at the one state where
+                // it is certain they are.
+                return ad_val(f_mbar[k]) > m_theta ? T(1.0) : T(0.0);
+            T s2 = ad_log(f_delta[k]);
+            T sd = ad_sqrt(s2);
+            T mu = ad_log(f_mbar[k]) - 0.5 * s2;
+            return 0.5 * ad_erfc((ad_log(T(m_theta)) - mu - j * s2)
+                                 / (sd * 1.4142135623730951));
+        };
+
         loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
         const double lc_l_sc = P.l_c / P.l;   // <c> uses the basal length scale
         const double la_l_sc = P.l_a / P.l;
@@ -587,35 +621,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 f_annn[C0] = T(0.0); f_annc[C0] = T(0.0);
             }
 
-            // ── Step 5: the transfer gates, Eq. (gatefraction) ────────────
-            // Phi^(j) = erfc[(ln m_theta - mu_k - j s_k^2)/(s_k sqrt 2)]/2,
-            // the fraction of the j-th moment carried by loops above the
-            // barrier size -- closed form, because the log-normal the moments
-            // determine makes every size-threshold integral an error function.
-            //
-            // A DISTRIBUTION FRACTION AND NOT A STEP ON THE MEAN. In a
-            // mean-field state m_bar is an average, so a hard threshold on it
-            // transfers the entire family the instant it crosses, and none of
-            // it before.
-            auto gate = [&](int k, double m_theta, int j) -> T {
-                // Gate disabled: barrier-limited, which is what the model ran
-                // on before this step. Returning exactly 1.0 is what keeps the
-                // rates below bit-identical to step 4.
-                if (!P.moments || m_theta <= 0.0) return T(1.0);
-                if (ad_val(f_num[k]) <= C_floor) return T(1.0);
-                if (ad_val(f_delta[k]) <= 1.0)
-                    // No spread at all: the distribution IS a delta, and the
-                    // gate is the Heaviside that erfc tends to as s -> 0. Not
-                    // 1 -- that would transfer loops that are below the
-                    // barrier, at the one state where it is certain they are.
-                    return ad_val(f_mbar[k]) > m_theta ? T(1.0) : T(0.0);
-                T s2 = ad_log(f_delta[k]);
-                T sd = ad_sqrt(s2);
-                T mu = ad_log(f_mbar[k]) - 0.5 * s2;
-                return 0.5 * ad_erfc((ad_log(T(m_theta)) - mu - j * s2)
-                                     / (sd * 1.4142135623730951));
-            };
-
+            // Gates: the shared `gate` lambda defined above, Eq. (gatefraction).
             // col: c_0 -> c_f.  uf: c_f -> c_p.
             T col_n = P.nu_col * gate(C0, P.m_col, 0) * f_num[C0],
               col_c = P.nu_col * gate(C0, P.m_col, 1) * f_cont[C0],
@@ -649,6 +655,49 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // there, or the chain would manufacture vacancies at every step --
             // which is exactly what validation goal (i) tests for.
             xfer_content = col_c + uf_c;
+        }
+
+        // ── The DISAPPEARANCE channel ──────────────────────────────────────
+        // A loop shrinking under peripheral emission had, before this, no way
+        // to vanish: emission moves vacancies OUT of a loop and never removes
+        // the loop, so after step 3 the only thing reducing vacancy loop NUMBER
+        // is coalescence -- which shortens the survivors' lives and so buys a
+        // lower density at the cost of a smaller mean size. Measured against
+        // experiment, N_c can always be bought and d_c never follows:
+        // 0.07-0.11x the measured diameter in every fit that reaches 1.5-7x
+        // the measured density.
+        //
+        // This is the physical content of the tau_cvL step 3 deleted, written
+        // as a SIZE CONDITION rather than a fitted lifetime. Loops below
+        // m_vanish dissolve at nu_vanish, and the fraction below comes from
+        // the same log-normal Eq. (gatefraction) integrates:
+        //
+        //     Gamma^n = nu (1-Phi^(0)) n,  Gamma^c = nu (1-Phi^(1)) c,
+        //     Gamma^q = nu (1-Phi^(2)) q.
+        //
+        // BECAUSE THE COMPLEMENT REVERSES THE ORDERING -- Phi^(2) > Phi^(1) >
+        // Phi^(0) makes 1-Phi^(0) > 1-Phi^(1) > 1-Phi^(2) -- what this removes
+        // is SMALLER than the family mean. The density falls and the surviving
+        // mean RISES, which is the trade coalescence cannot make and the
+        // annealing signature step 5 validated.
+        //
+        // The vacancies go back to the pool, as a dissolving loop's must, so
+        // this is added to f_ann* and NOT to `xfer_content`: a transfer moves
+        // content to another family and is taken back out of the pool credit,
+        // a dissolution does not.
+        if (P.nu_vanish > 0.0 && P.m_vanish > 0.0) {
+            for (int k = 0; k < nf; ++k) {
+                if (!is_loop[k]) continue;   // the pyramid dissolves on tau_sfp
+                if (ad_val(f_num[k]) <= C_floor) continue;
+                T vn = P.nu_vanish * (1.0 - gate(k, P.m_vanish, 0)) * f_num[k];
+                T vc = P.nu_vanish * (1.0 - gate(k, P.m_vanish, 1)) * f_cont[k];
+                T vq = P.nu_vanish * (1.0 - gate(k, P.m_vanish, 2)) * f_q[k];
+                f_annn[k] = f_annn[k] + vn;
+                f_annc[k] = f_annc[k] + vc;
+                f_xn_out[k] = f_xn_out[k] + vn;
+                f_xc_out[k] = f_xc_out[k] + vc;
+                f_xq_out[k] = f_xq_out[k] + vq;
+            }
         }
     } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
@@ -1020,6 +1069,40 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     for (int k = 0; k < nf; ++k) {
         ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - coal_num[k];
         ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - coal_cont[k];
+        // ── The distribution leaks at BOTH ends, and this is the large one ──
+        // Coalescence removes the LARGE loops. The Avrami gates already say so
+        // -- phi_LL ~ r^3 n and phi_LN ~ r^2 rho_N are both strongly
+        // size-biased -- but the debits below are proportional, so the channel
+        // moved the density and left the shape alone.
+        //
+        // `coal_gated` takes the same calibrated `coal_num` and removes it from
+        // the TOP of the distribution. The threshold is not a new parameter: it
+        // is the size at which the surviving fraction equals the fraction being
+        // removed, Phi^(0)(m*) = coal_num/n, i.e.
+        //     z* = erfc^-1(2 coal_num/n),   Phi^(j) = erfc(z* - j s/sqrt2)/2.
+        // What remains is a genuine sub-measure, so Delta >= 1 holds BY
+        // CONSTRUCTION -- which is why a gated removal needs none of the
+        // shape-preserving care the ungated one below does.
+        if (P.moments && P.coal_gated && f_is_loop[k]
+            && ad_val(f_num[k]) > C_floor && ad_val(f_cont[k]) > C_floor
+            && ad_val(f_delta[k]) > 1.0
+            && ad_val(coal_num[k]) > 0.0
+            && ad_val(coal_num[k]) < ad_val(f_num[k])) {
+            T s2 = ad_log(f_delta[k]);
+            T sd = ad_sqrt(s2);
+            T zs = ad_erfcinv(2.0 * coal_num[k] / f_num[k]);
+            const double R2 = 0.7071067811865476;      // 1/sqrt(2)
+            T p1 = 0.5 * ad_erfc(zs - sd * R2);
+            T p2 = 0.5 * ad_erfc(zs - 2.0 * sd * R2);
+            T cc = p1 * f_cont[k];
+            T qq = p2 * f_q[k];
+            ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] + coal_cont[k] - cc;
+            ydot[fam_q_idx(k)] = ydot[fam_q_idx(k)] - qq;
+            // The content booked to the network sinks must match what left.
+            coal_cont[k] = cc;
+            continue;
+        }
+
         // COALESCENCE DOES NOT REMOVE <m^2> PER DEPARTING LOOP, and treating it
         // that way is what drove q negative. A coalescing loop does not leave
         // the family -- it MERGES, so its defects stay and only `coal_cont` is
