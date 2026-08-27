@@ -702,6 +702,47 @@ explicit ω**, because `n` crosses the bridge converted (per atom → per b³) a
 `c` does not, which is the same asymmetry that makes MoDELib's mean size
 `CI/N/ω`. It reaches the fast solve in exactly one place: `Δ^{-1/8}` on `S_k`.
 
+### Every channel in the `q` equation, and the one that was backwards
+
+`Δ = q n / c² ≥ 1` is Cauchy–Schwarz on a non-negative measure, so `Δ < 1` — and
+`q < 0` outright — is not a tight tolerance, it is a **defect**. Three rules keep
+the moment set inside it:
+
+| channel | closure | why |
+|---|---|---|
+| nucleation | at the declared size, `nn·m_nuc²` | it genuinely deposits at `m_nuc`, and `nn(m_nuc − m̄)² ≥ 0` is real broadening |
+| the floor current | at `m_min`, `−m_min²·Φ` | a genuine statement about the distribution's lower tail |
+| **annealing, coalescence** | **shape-preserving**, `dq = Δ(2m̄·dc − m̄²·dn)` | neither carries a distribution of its own |
+
+**A coalescing loop does not leave the family — it MERGES.** Its defects stay,
+only `coal_cont` is lost, and fewer loops holding the same content are *larger*
+loops, so coalescence **raises** `q`. Debiting `coal_num·⟨m²⟩` — the
+natural-looking reading — inverts the sign on the largest single term in the
+equation, because coalescence carries 98% of the loop-number loss. Measured:
+`q` crossed zero at 1 dpa on the 200 nm nine-family march and was negative on
+**40% of the `c_p` nodes** at 10 dpa.
+
+**The legacy annealing surrogate cannot be made consistent, only avoided.** It
+debits content at the fixed size `n_vL_nuc`, so the pair `(ann_n, ann_c)`
+declares a removed sub-population of mean `M ≠ m̄`; proportional debiting
+over-removes, and debiting at `M` lowers `Δ` by `a(M/m̄ − 1)²` on a narrow
+family. No debit is realizable, because the surrogate removes loops of a size
+that is not there. `emission_model = 1` deletes the lifetimes outright, so
+carrying `moments` against the pre-step-3 annealing is a combination to avoid.
+
+**`plan_step5 verify` goal (vi) is the only test that can see this class of
+bug.** The other goals each switch the *other* channels off to isolate one term,
+so an inconsistent channel is precisely the one never exercised alongside the
+rest. Goal (vi) runs five successive steps with coalescence, nucleation,
+emission and the basal chain all live and reports the minimum `Δ` per family.
+
+**`c_p` is a terminal population.** Coalescence is its only number loss — it
+cannot unfault further, has no dissolution lifetime, and peripheral emission
+acts on content and never on number. Under a sustained vacancy supply it is
+bounded only by the transfer feeding it. Whether it should have a sink of its
+own is an open modelling question, and it must be settled before `nu_uf` is
+fitted: the two are not separately identifiable from a steady `c_p` density.
+
 ## The continuum → discrete handoff
 
 `post/coarsening.py` decides **when** the mean-field treatment of coalescence stops being
