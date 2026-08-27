@@ -203,13 +203,38 @@ class ZrMicroVisualizer:
     sim_config  : dict of solver settings to include in provenance (optional)
     """
 
+    #: What the four immobile slots are called on a figure. THE LEGACY NAMES
+    #: ARE NOT UNIVERSAL. They describe the fitted `loop_model = 0`
+    #: formulation, which pairs each family with an ALIGNED partner. The
+    #: self-consistent model carries no such split: `field.to_legacy_layout`
+    #: puts the prismatic interstitial variants in the first slot and the
+    #: prismatic VACANCY variants in the second, and the faulted and perfect
+    #: BASAL states in the third and fourth. Labelling those "aligned" is
+    #: wrong in a way a reader cannot detect -- the curve is a different
+    #: polarity, or a different stacking state, not a different orientation.
+    SLOT_LABELS = {
+        0: {"CiL":  "Interstitial loops",
+            "CaiL": "Aligned interstitial loops",
+            "CvL":  "Vacancy loops",
+            "CavL": "Aligned vacancy loops"},
+        1: {"CiL":  r"$\langle a\rangle$ interstitial (a1-a3)",
+            "CaiL": r"$\langle a\rangle$ vacancy (a1v-a3v)",
+            "CvL":  r"$\langle c\rangle$ faulted (c$_f$)",
+            "CavL": r"$\langle c\rangle$ perfect (c$_p$)"},
+    }
+
     def __init__(self, simulation, results, output_dir,
                  use_dpa=True, dpa_range=None, sim_config=None, run_dir=None,
-                 n_atoms=None, open_system=False):
+                 n_atoms=None, open_system=False, loop_model=0):
         self.sim     = simulation
         self.results = results
         self.inp     = simulation.input_data
         self.use_dpa = use_dpa
+        # Which formulation produced the state these figures draw. It decides
+        # the legend, and nothing else: the four slots are plotted the same way
+        # either way, they simply do not mean the same thing.
+        self.loop_model = int(loop_model)
+        self.labels = self.SLOT_LABELS[1 if self.loop_model else 0]
         # Number of lattice atoms in the simulation volume. Concentrations here
         # are atom fractions, so this is the factor that turns any of them into
         # a COUNT of defects -- "3.4e9 vacancies absorbed at the grain
@@ -360,10 +385,10 @@ class ZrMicroVisualizer:
         Omega = self.inp.physical_props['Omega']   # m³/atom
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
-        ax.loglog(self.x_data, conc['CiL']  / Omega, 'b-',  label='Interstitial loops')
-        ax.loglog(self.x_data, conc['CaiL'] / Omega, 'b--', label='Aligned interstitial loops')
-        ax.loglog(self.x_data, conc['CvL']  / Omega, 'r-',  label='Vacancy loops')
-        ax.loglog(self.x_data, conc['CavL'] / Omega, 'r--', label='Aligned vacancy loops')
+        ax.loglog(self.x_data, conc['CiL']  / Omega, 'b-',  label=self.labels['CiL'])
+        ax.loglog(self.x_data, conc['CaiL'] / Omega, 'b--', label=self.labels['CaiL'])
+        ax.loglog(self.x_data, conc['CvL']  / Omega, 'r-',  label=self.labels['CvL'])
+        ax.loglog(self.x_data, conc['CavL'] / Omega, 'r--', label=self.labels['CavL'])
 
         _mk = ['o', 's', '^', 'D', 'v', 'P', '*', 'X']; _si = 0
         for sheet, base, lt in (('Targets_A', 'tab:blue', 'a'),
@@ -392,10 +417,10 @@ class ZrMicroVisualizer:
         loops = self.loops
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
-        ax.semilogx(self.x_data, loops['r_iL']  * 1e9, 'b-',  label='Interstitial loops')
-        ax.semilogx(self.x_data, loops['r_aiL'] * 1e9, 'b--', label='Aligned interstitial loops')
-        ax.semilogx(self.x_data, loops['r_vL']  * 1e9, 'r-',  label='Vacancy loops')
-        ax.semilogx(self.x_data, loops['r_avL'] * 1e9, 'r--', label='Aligned vacancy loops')
+        ax.semilogx(self.x_data, loops['r_iL']  * 1e9, 'b-',  label=self.labels['CiL'])
+        ax.semilogx(self.x_data, loops['r_aiL'] * 1e9, 'b--', label=self.labels['CaiL'])
+        ax.semilogx(self.x_data, loops['r_vL']  * 1e9, 'r-',  label=self.labels['CvL'])
+        ax.semilogx(self.x_data, loops['r_avL'] * 1e9, 'r--', label=self.labels['CavL'])
         ax.set_xlabel(self.x_label)
         ax.set_ylabel('Loop Radius (nm)')
         ax.set_title('Dislocation Loop Size')
@@ -548,11 +573,24 @@ class ZrMicroVisualizer:
         net_vL  = flux_v - Z_vL_na * flux_i         # v-loop driving force
         net_avL = flux_v - Z_vL_a  * flux_i         # av-loop driving force
 
+        if self.loop_model:
+            # THE SECOND SLOT IS NOT AN ALIGNED PARTNER HERE, IT IS THE OTHER
+            # POLARITY. `to_legacy_layout` puts the prismatic VACANCY variants
+            # in the `CaiL` slot, so its driving force is the vacancy form and
+            # not the interstitial one -- keeping the legacy expression would
+            # draw that curve with the sign inverted, which is a worse error
+            # than a wrong label because it is a plausible-looking line.
+            #
+            # The fourth slot holds the PERFECT basal state c_p, still a
+            # vacancy family, so its expression is unchanged and only its name
+            # was ever wrong.
+            net_aiL = flux_v - Z_vL_na * flux_i
+
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
-        ax.semilogx(self.x_data, net_iL,  'b-',  label='Interstitial loops')
-        ax.semilogx(self.x_data, net_aiL, 'b--', label='Aligned interstitial loops')
-        ax.semilogx(self.x_data, net_vL,  'r-',  label='Vacancy loops')
-        ax.semilogx(self.x_data, net_avL, 'r--', label='Aligned vacancy loops')
+        ax.semilogx(self.x_data, net_iL,  'b-',  label=self.labels['CiL'])
+        ax.semilogx(self.x_data, net_aiL, 'b--', label=self.labels['CaiL'])
+        ax.semilogx(self.x_data, net_vL,  'r-',  label=self.labels['CvL'])
+        ax.semilogx(self.x_data, net_avL, 'r--', label=self.labels['CavL'])
         ax.axhline(0, color='k', linewidth=0.8, linestyle=':')
         ax.set_xlabel(self.x_label)
         ax.set_ylabel('Net Flux Driving Force (s⁻¹)')
@@ -835,13 +873,21 @@ class ZrMicroVisualizer:
         return self._savefig(fig, 'vacancy_fractions')
 
     def plot_loop_density_analysis(self):
-        """Primary (non-aligned) i- and v-loop number density [m⁻³]."""
+        """The first slot of each pair, i- and v-loop number density [m⁻³].
+
+        Under ``loop_model = 0`` those are the NON-ALIGNED interstitial and
+        vacancy loops, which is what this figure was written for. Under
+        ``loop_model = 1`` there is no alignment split at all and the same two
+        slots hold the prismatic interstitial variants and the faulted basal
+        state -- so the figure is "the first of each pair" in general and
+        `self.labels` says which.
+        """
         conc  = self.conc
         Omega = self.inp.physical_props['Omega']
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
-        ax.loglog(self.x_data, conc['CiL'] / Omega, 'b-', label='Interstitial loops')
-        ax.loglog(self.x_data, conc['CvL'] / Omega, 'r-', label='Vacancy loops')
+        ax.loglog(self.x_data, conc['CiL'] / Omega, 'b-', label=self.labels['CiL'])
+        ax.loglog(self.x_data, conc['CvL'] / Omega, 'r-', label=self.labels['CvL'])
         ax.set_xlabel(self.x_label)
         ax.set_ylabel('Loop Density (m⁻³)')
         ax.set_ylim(bottom=1e19)

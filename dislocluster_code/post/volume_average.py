@@ -110,17 +110,21 @@ def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True):
               f"{Y.shape[1]} nodes, {Y.shape[2]} states")
     w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose)
     Y_avg = np.einsum("n,dns->ds", w, Y)
-    # A self-consistent march stores <c>/<a1..a3> in the immobile slots. The
-    # 0-D figure suite reads them by the legacy names, so the four families are
-    # moved into the slots those names expect -- lossless for every aggregate
-    # any figure plots, since the split the legacy layout carries does not
-    # exist in the other model. A legacy march is returned untouched.
+    # A self-consistent march stores its nine families in the immobile slots.
+    # The 0-D figure suite reads them by the legacy names, so they are moved
+    # into the slots those names expect -- lossless for every aggregate any
+    # figure plots, since the aligned / non-aligned split the legacy layout
+    # carries does not exist in the other model. A legacy march is untouched.
+    #
+    # THE SLOTS KEEP THEIR LEGACY NAMES AND NO LONGER MEAN THEM. The partner
+    # slots are not empty: they hold the prismatic VACANCY variants and the
+    # perfect basal state. Anything that LABELS these must ask `loop_model`.
     lm = _field.run_loop_model(run_dir)
     if lm:
         Y_avg = _field.to_legacy_layout(Y_avg, lm)
         if verbose:
-            print("  self-consistent march: <c>/<a1..a3> mapped onto the "
-                  "legacy slots (aligned partners zero)")
+            print("  self-consistent march: <a> i / <a> v into the "
+                  "interstitial pair, c_f / c_p into the vacancy pair")
     return np.asarray(doses, dtype=float), Y_avg, w, nodes
 
 
@@ -239,9 +243,17 @@ def main(argv=None):
     except Exception as exc:                      # pragma: no cover - diagnostics
         print(f"  note: defect counts unavailable ({exc}); plotting fractions")
 
+    # THE FORMULATION HAS TO REACH THE LEGEND. `to_legacy_layout` moved the
+    # self-consistent families into the legacy slots, which is lossless for
+    # every aggregate plotted -- but the slots keep their legacy NAMES, and
+    # "aligned interstitial" then labels a curve that is the prismatic VACANCY
+    # population. A reader cannot detect that from the figure.
+    lm = _field.run_loop_model(run_dir)
     viz = ZrMicroVisualizer(sim, res, out.parent, use_dpa=True, run_dir=out,
                             n_atoms=n_atoms, open_system=open_system,
+                            loop_model=lm,
                             sim_config={"source": "volume-averaged 3-D march",
+                                        "loop_model": int(lm),
                                         "run_dir": str(run_dir),
                                         "n_nodes": int(nodes.shape[0]),
                                         "n_atoms": n_atoms,
