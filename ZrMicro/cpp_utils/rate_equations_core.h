@@ -215,6 +215,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     }
 
     T loop_abs_i, loop_abs_v, loop_recomb;
+    T gb_abs_i = T(0.0), gb_abs_v = T(0.0);   // defects lost to a face
     // Thermal Frenkel-pair generation by climb (step 3). When an INTERSTITIAL
     // loop emits a vacancy it puts that vacancy in the pool and simultaneously
     // adds an interstitial to itself: one i and one v out of nothing. It is
@@ -391,7 +392,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // the same integral with the opposite sense: 1 - Phi^(j) is the
         // fraction BELOW the threshold, and the complement reverses the
         // ordering, so what it selects is SMALLER than the family mean.
-        auto gate = [&](int k, double m_theta, int j) -> T {
+        auto gate_ln = [&](int k, double m_theta, int j) -> T {
             // Gate disabled: barrier-limited, which is what the model ran on
             // before step 5. Returning exactly 1.0 keeps the rates that use it
             // bit-identical to step 4.
@@ -408,6 +409,44 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             T mu = ad_log(f_mbar[k]) - 0.5 * s2;
             return 0.5 * ad_erfc((ad_log(T(m_theta)) - mu - j * s2)
                                  / (sd * 1.4142135623730951));
+        };
+
+        // ── The same gate, on a distribution TRUNCATED at r_max_loop ────────
+        // The log-normal's support is unbounded and the crystal's is not. With
+        // the family's cap at m_max = (r_max/l_k)^2, the fraction of the j-th
+        // moment above m_theta becomes
+        //
+        //     Phi~^(j) = [Phi^(j)(m_theta) - Phi^(j)(m_max)]
+        //                / [1 - Phi^(j)(m_max)]
+        //
+        // -- the mass between the threshold and the cap, over the mass below
+        // the cap. Same erfc, one more evaluation, and it reduces to Phi^(j)
+        // exactly as m_max -> infinity, so r_max_loop = 0 is bit-identical.
+        //
+        // WHAT THIS DOES NOT DO. The carried (n, c, q) are still inverted for
+        // (mu, s) as if untruncated, so the closure and the support disagree at
+        // order Phi^(j)(m_max). That is deliberate: making them consistent means
+        // solving for (mu, s) of a truncated log-normal from its truncated
+        // moments, which has no closed form and would put a Newton iteration
+        // inside every residual. The inconsistency is bounded by the very tail
+        // being discarded, which is the tail that has no business existing.
+        auto gate = [&](int k, double m_theta, int j) -> T {
+            T g = gate_ln(k, m_theta, j);
+            if (P.r_max_loop <= 0.0) return g;
+            const double lk = f_lscale[k];
+            if (!(lk > 0.0)) return g;
+            const double m_max = (P.r_max_loop / lk) * (P.r_max_loop / lk);
+            // A threshold at or beyond the cap selects nothing: there is no
+            // population there to select.
+            if (m_theta >= m_max) return T(0.0);
+            T gmax = gate_ln(k, m_max, j);
+            T denom = T(1.0) - gmax;
+            // The whole family sits above the cap. Physically it cannot; return
+            // the untruncated answer rather than divide by ~0 and report a
+            // gate of 1e17.
+            if (ad_val(denom) <= 1.0e-12) return g;
+            T out = (g - gmax) / denom;
+            return ad_val(out) > 0.0 ? out : T(0.0);
         };
 
         loop_abs_i = T(0.0); loop_abs_v = T(0.0); loop_recomb = T(0.0);
@@ -699,6 +738,67 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
                 f_xq_out[k] = f_xq_out[k] + vq;
             }
         }
+
+        // ── Absorption at a grain boundary ──────────────────────────────────
+        // A loop of radius r_k = l_k sqrt(m) centred a distance x from the
+        // nearest face touches it when m >= m_gb = (x/l_k)^2, so the fraction
+        // absorbed is the SAME large-end gate the transfers use, evaluated at a
+        // threshold that is geometric rather than energetic:
+        //
+        //     Gamma^n = nu_gb Phi^(0)(m_gb) n
+        //     Gamma^c = nu_gb Phi^(1)(m_gb) c
+        //     Gamma^q = nu_gb Phi^(2)(m_gb) q
+        //
+        // THE DEFECTS DO NOT GO BACK TO THE POOL. That is the whole difference
+        // between this and the dissolution channel above, which adds to f_ann*
+        // precisely so the vacancies it frees are credited back. A loop
+        // swallowed by a free surface takes its defects out of the crystal, so
+        // this is booked to the grain-boundary ledger and to nothing else --
+        // adding it to f_ann* as well would return the atoms twice, once to the
+        // pool and once to the boundary.
+        //
+        // Realizable for free: what remains after removing the tail above m_gb
+        // is a genuine sub-measure, so Delta >= 1 holds without a closure.
+        //
+        // m_gb GROWS AS x^2 AND SHRINKS AS THE LOOPS GROW, which is why the
+        // denuded zone is a prediction: deep inside the crystal m_gb is huge,
+        // Phi -> 0 and nothing is removed; within a loop radius of the face
+        // m_gb -> 0, Phi -> 1 and the family is swept.
+        if (P.gb_absorption && P.x_gb > 0.0 && P.moments) {
+            for (int k = 0; k < nf; ++k) {
+                if (!is_loop[k]) continue;
+                if (ad_val(f_num[k]) <= C_floor) continue;
+                const double lk = f_lscale[k];
+                if (!(lk > 0.0)) continue;
+                const double m_gb = (P.x_gb / lk) * (P.x_gb / lk);
+                T gn = P.nu_gb * gate(k, m_gb, 0) * f_num[k];
+                T gc = P.nu_gb * gate(k, m_gb, 1) * f_cont[k];
+                T gq = P.nu_gb * gate(k, m_gb, 2) * f_q[k];
+                // f_ann* is what actually REMOVES the loops: f_x*_out alone is
+                // the q-side bookkeeping for a gated channel and debits
+                // nothing from n or c. Written with only the latter, this
+                // channel credited its ledger while the population it claimed
+                // to absorb stayed put -- cumulative absorption reached 6600x
+                // total production before anything complained, because nothing
+                // in the residual ties the two together.
+                f_annn[k] = f_annn[k] + gn;
+                f_annc[k] = f_annc[k] + gc;
+                f_xn_out[k] = f_xn_out[k] + gn;
+                f_xc_out[k] = f_xc_out[k] + gc;
+                f_xq_out[k] = f_xq_out[k] + gq;
+                // AND the defects must NOT be credited back to the mobile
+                // pool. That is the one line separating this from the
+                // dissolution channel above: a dissolving loop returns its
+                // vacancies to the crystal, a loop swallowed by a free surface
+                // takes them out of it. `ann_release` is debited by
+                // xfer_content further down, which is exactly the mechanism the
+                // basal chain uses for content that left the family without
+                // being freed.
+                xfer_content = xfer_content + gc;
+                if (sv_fam(P.loop_model, k)) gb_abs_v = gb_abs_v + gc;
+                else                         gb_abs_i = gb_abs_i + gc;
+            }
+        }
     } else {
     // ── Loop growth rates (ReactionRates.loop_growth_rate_*) ────────────────
     // Decomposed into interstitial- and vacancy-absorption components so the
@@ -978,6 +1078,13 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     ydot[15] = T(prod_v) + thermal_fp;   // cum_prod_v
     ydot[16] = recomb;      // cum_recomb_v  (same Frenkel events)
     ydot[17] = sink_v;      // cum_sink_v
+    // Defects carried out of the crystal by loops swallowed at a free surface.
+    // A SEVENTH AND EIGHTH CHANNEL, not part of sink_{i,v}: those are absorption
+    // at the dislocation network, which keeps the atoms in the crystal, and the
+    // conservation figure exists to tell the two apart. Zero unless
+    // gb_absorption is on, so every state that stops at 38 is unchanged.
+    ydot[IDX_GB_I] = gb_abs_i;
+    ydot[IDX_GB_V] = gb_abs_v;
 
     // ── Geometric loop coalescence (absorbed-flux-climb driven) ─────────────
     //   (1) like-loop coarsening: number density drops, content conserved.
@@ -1063,9 +1170,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     // cluster has no coalescence channel (cLL = cLN = 0) and the term is
     // identically zero, but the table is a statement about polarity and it was
     // wrong.
-    const int slot_is_vac[2][N_FAM_MAX] = {{0, 0, 1, 1, 0, 0, 0, 0, 0},
-                                           {1, 0, 0, 0, 1, 1, 1, 1, 1}};
-    const int* sv = slot_is_vac[P.loop_model != 0 ? 1 : 0];
+    // ONE polarity table, `sv_fam` in parameters.h. It used to be a local array
+    // here; the grain-boundary channel needs the same answer earlier in the
+    // function, and a second copy of this table is precisely how the pyramid's
+    // coalescence content once came to be booked against the INTERSTITIAL
+    // accumulator.
+    auto sv = [&](int k) { return sv_fam(P.loop_model, k); };
     for (int k = 0; k < nf; ++k) {
         ydot[fam_n_idx(k)] = ydot[fam_n_idx(k)] - coal_num[k];
         ydot[fam_c_idx(k)] = ydot[fam_c_idx(k)] - coal_cont[k];
@@ -1134,7 +1244,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         ydot[17] = ydot[17] + (coal_cont[2] + coal_cont[3]);   // cum_sink_v
     } else {
         for (int k = 0; k < nf; ++k) {
-            if (sv[k]) ydot[17] = ydot[17] + coal_cont[k];
+            if (sv(k)) ydot[17] = ydot[17] + coal_cont[k];
             else       ydot[14] = ydot[14] + coal_cont[k];
         }
     }

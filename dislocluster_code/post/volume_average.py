@@ -101,14 +101,63 @@ def voronoi_weights(nodes, n_samples=4_000_000, seed=0, verbose=True,
     return w
 
 
-def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True):
-    """``(doses, Y_avg)`` with ``Y_avg`` of shape (n_dose, 19)."""
+def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True,
+                        region="domain"):
+    """``(doses, Y_avg)`` with ``Y_avg`` of shape (n_dose, 19).
+
+    `region` selects WHAT IS AVERAGED, and on a Dirichlet domain the two
+    answers differ by orders of magnitude for any loop quantity:
+
+    ``"domain"``   every node, bounding-box Voronoi weights. The default, and
+                   bit-identical to what this module always did, so figures
+                   already published still reproduce.
+    ``"interior"`` the innermost quartile by distance to the nearest face --
+                   the same rule `post.coarsening.interior_mask` and
+                   `discrete_loops.populate(region="interior")` use -- with the
+                   Voronoi weights built against the CRYSTAL rather than its
+                   bounding box.
+
+    WHY THE DOMAIN MEAN IS NOT COMPARABLE TO EXPERIMENT, on this geometry.
+    The Dirichlet shell is a sink for mobile defects but NOT for loops:
+    cascade nucleation keeps making loops there while C_i -> 0 means nothing
+    absorbs into them, so they accumulate as fresh nuclei that never grow.
+    Measured on the 500 nm refit march at 10 dpa, the boundary nodes hold
+    100.0% of the total <a> loop number; the domain mean is 210x the interior
+    for N_a and 845x for N_c, and -- worse for the size figures -- the domain
+    mean <c> DIAMETER falls from 46 nm to 5.7 nm between 0.1 and 10 dpa while
+    the interior grows to 69.5 nm, because a population of fresh nuclei drags
+    the mean down to the nucleation size. A 0-D fit has no boundary at all, so
+    the interior mean is the quantity a fitted parameter set describes.
+
+    The interior path also passes `faces`, so Monte-Carlo samples landing in a
+    hexagonal prism's six empty wedges are rejected instead of being charged
+    to whichever boundary node is nearest. The domain path deliberately does
+    NOT, because changing it would move already-published figures.
+    """
     z = np.load(Path(run_dir) / "march_state.npz")
     doses, Y, nodes = z["doses"], z["Y"], z["nodes"]
+    if region not in ("domain", "interior"):
+        raise ValueError(f"region must be 'domain' or 'interior', not {region!r}")
     if verbose:
         print(f"{Path(run_dir).name}: {len(doses)} snapshots, "
               f"{Y.shape[1]} nodes, {Y.shape[2]} states")
-    w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose)
+    if region == "interior":
+        from dislocluster_code.post.coarsening import interior_mask
+        from dislocluster_code.post.fields import domain_faces
+        m = np.asarray(interior_mask(nodes), dtype=bool)
+        w_all = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose,
+                                faces=domain_faces(nodes))
+        w = np.where(m, w_all, 0.0)
+        tot = w.sum()
+        if tot <= 0.0:
+            raise RuntimeError("interior nodes carry no Voronoi volume")
+        w = w / tot
+        if verbose:
+            print(f"  interior region: {int(m.sum())} of {len(nodes)} nodes "
+                  f"({100 * m.sum() / len(nodes):.0f}%), "
+                  f"{100 * w_all[m].sum():.1f}% of the crystal volume")
+    else:
+        w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose)
     Y_avg = np.einsum("n,dns->ds", w, Y)
     # A self-consistent march stores its nine families in the immobile slots.
     # The 0-D figure suite reads them by the legacy names, so they are moved
@@ -195,17 +244,26 @@ def main(argv=None):
     ap.add_argument("--out", default=None,
                     help="figure directory (default: <run_dir>/volume_average)")
     ap.add_argument("--samples", type=int, default=4_000_000)
+    ap.add_argument("--region", choices=("domain", "interior"), default="domain",
+                    help="what to average. 'domain' (default) is every node and "
+                         "reproduces every figure this module has ever written; "
+                         "'interior' is the innermost quartile, which is the "
+                         "quantity a 0-D fit describes and the only one "
+                         "comparable to experiment on a Dirichlet domain")
     args = ap.parse_args(argv)
 
     run_dir = Path(args.run_dir)
-    out = Path(args.out) if args.out else run_dir / "volume_average"
+    out = Path(args.out) if args.out else (
+        run_dir / ("volume_average" if args.region == "domain"
+                   else "volume_average_interior"))
 
     # The run's OWN model. `build_sim()` with no arguments takes the applied
     # load from the workbook, where `sigma_n` is 1.0e8 Pa -- so the conservation
     # channels for a zero-stress run were formed at f_a = 0.4015 while the march
     # integrated 1/3, and the two loop families differ in capture efficiency.
     sim = sim_for_run(run_dir)
-    doses, Y_avg, w, nodes = averaged_trajectory(run_dir, args.samples)
+    doses, Y_avg, w, nodes = averaged_trajectory(
+        run_dir, args.samples, region=args.region)
 
     print(f"\n{'dose':>10} {'Cv':>12} {'Ci':>12} {'N_a':>12} {'N_c':>12} "
           f"{'c_a':>12} {'c_c':>12}")

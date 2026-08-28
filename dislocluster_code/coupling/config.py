@@ -100,6 +100,7 @@ class MarchConfig:
     emission_model: int = 0
     basal_chain: int = 0
     moments: int = 0
+    gb_absorption: int = 0
     model_params: dict = field(default_factory=dict)
     discrete_transition: bool = False
     transition_units: tuple = ("c",)
@@ -138,6 +139,8 @@ class MarchConfig:
             raise ValueError("basal_chain = 1 needs n_fam = 9 (the pyramid)")
         if self.moments and not self.loop_model:
             raise ValueError("moments = 1 needs loop_model = 1")
+        if self.gb_absorption and not self.moments:
+            raise ValueError("gb_absorption = 1 needs moments = 1")
         if self.dedup_rtol < 0:
             raise ValueError("dedup_rtol must be >= 0")
         s = self.dose_grid

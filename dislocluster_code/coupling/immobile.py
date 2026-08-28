@@ -105,7 +105,7 @@ N_EQ_EXT = 38
 IDX_RHO_N = 18
 
 
-def state_width(loop_model=0, n_fam=4, moments=0):
+def state_width(loop_model=0, n_fam=4, moments=0, gb_absorption=0):
     """How wide the state must be for a given model configuration.
 
     The solver defaults every appended y0 slot to zero, so a NARROWER state is
@@ -113,16 +113,30 @@ def state_width(loop_model=0, n_fam=4, moments=0):
     that has to allocate the right width up front, because the array it carries
     across substeps is the only place those components live.
     """
+    # The grain-boundary ledger is two more accumulators at the very end. They
+    # are diagnostics -- nothing reads them back into a rate -- so a state that
+    # stops short of them is a run without the channel, which is every run made
+    # before it. The SOLVER prints only what the configuration carries (see
+    # `n_out_state` in solver.cpp), so the two widths cannot disagree.
+    gb = N_GBACC if gb_absorption else 0
     if not loop_model:
-        return N_EQ
+        return N_EQ + gb
     if moments:
-        return N_EQ_EXT                       # 38: n, c and q for nine families
-    return 29 if n_fam > 4 else N_EQ
+        return N_EQ_EXT + gb                  # 38 (+2): n, c, q for nine families
+    return (29 if n_fam > 4 else N_EQ) + gb
 
 # Convenience slices into the native state vector.
 MOBILE_SLICE = slice(0, 4)        # Cv, Ci, C2i, C3i
 IMMOBILE_SLICE = slice(4, 12)     # CiL,CaiL,CvL,CavL, CiL_i,CaiL_i,CvL_v,CavL_v
 ACCUMULATOR_SLICE = slice(12, 18)
+
+#: The grain-boundary ledger, appended after the moments when the channel is on.
+#: Two entries: defects carried out of the crystal by absorbed interstitial and
+#: vacancy loops. They are NOT part of ACCUMULATOR_SLICE -- that slice is the
+#: six the march resets every interval, and these are reset with them, but every
+#: consumer of the six addresses them positionally.
+N_GBACC = 2
+GB_ACC_NAMES = ("cum_gb_i", "cum_gb_v")
 
 IMMOBILE_NAMES = [
     "CiL", "CaiL", "CvL", "CavL",            # loop number densities
@@ -255,8 +269,18 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
 _DEDUP_IDX = list(range(0, 12)) + [IDX_RHO_N]
 
 
-def dedup_keys(y0_list, rtol):
+def dedup_keys(y0_list, rtol, per_case=None):
     """Group points whose initial states agree to a relative tolerance.
+
+    `per_case` is a sequence of per-point CLI fragments, and IT IS PART OF THE
+    KEY. Two points with the same state but different per-case arguments do NOT
+    solve the same problem, and merging them hands one point's answer to the
+    other. That is not hypothetical here: grain-boundary absorption passes each
+    point its distance to the nearest face, and a deep interior point and a
+    near-surface point can carry identical loop populations early in a run --
+    exactly when the field is smooth and dedup pays most. Grouping on state
+    alone would have given the interior point the surface point's absorption,
+    or the reverse, everywhere the two happened to agree.
 
     Returns (keys, groups): ``keys[q]`` is the group label of point q, and
     ``groups`` maps each label to the list of member indices.
@@ -275,6 +299,8 @@ def dedup_keys(y0_list, rtol):
         q = np.where(y > 0.0, np.rint(np.log(np.abs(y)) * scale), -np.inf)
     q = np.nan_to_num(q, nan=-np.inf, posinf=-np.inf, neginf=-np.inf)
     keys = [tuple(row) for row in q]
+    if per_case is not None:
+        keys = [k + (tuple(pc) if pc else (),) for k, pc in zip(keys, per_case)]
     groups = {}
     for i, k in enumerate(keys):
         groups.setdefault(k, []).append(i)
@@ -282,7 +308,7 @@ def dedup_keys(y0_list, rtol):
 
 
 def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
-                      dedup_rtol=0.0, stats=None, retries=3):
+                      dedup_rtol=0.0, stats=None, retries=3, per_case=None):
     """Advance the immobile state at all quadrature points over one dose step.
 
     Solves, for every point q independently and concurrently (OpenMP batch),
@@ -292,6 +318,13 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
     Parameters
     ----------
     base_cli : list[str]            — shared material-parameter CLI (uniform fields)
+    per_case : sequence or None     — one list[str] of extra CLI per point, for
+                                      quantities that are a property of WHERE
+                                      the point is rather than of the material.
+                                      Grain-boundary absorption's `x_gb` is the
+                                      only one so far. Folded into the dedup key,
+                                      because two points differing only here are
+                                      solving different problems.
     y0_list  : sequence of (19,)    — per-point native state (mobile = local C_M*)
     t_begin, t_end : float          — dose-step window in seconds
     base_dir : Path or None         — ZrMicro/ root; auto-detected if None
@@ -314,13 +347,24 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
     # solver, so it is measured rather than assumed.
     reps, groups = None, None
     if dedup_rtol and dedup_rtol > 0.0 and n_in > 1:
-        _, groups = dedup_keys(y0_list, dedup_rtol)
+        _, groups = dedup_keys(y0_list, dedup_rtol, per_case=per_case)
         reps = [members[0] for members in groups.values()]
         send = [y0_list[i] for i in reps]
+        send_pc = [per_case[i] for i in reps] if per_case is not None else None
     else:
         send = y0_list
+        send_pc = per_case
 
     cases = build_immobile_cases(base_cli, send, t_begin, t_end)
+    if send_pc is not None:
+        # Appended AFTER the shared base, so a per-point value overrides the
+        # material default rather than being overridden by it. `_batch_lines`
+        # puts anything that differs across cases into the per-case delta, so
+        # this costs one extra token per point in the batch file.
+        if len(send_pc) != len(cases):
+            raise ValueError(f"per_case has {len(send_pc)} entries for "
+                             f"{len(cases)} cases")
+        cases = [c + list(pc or []) for c, pc in zip(cases, send_pc)]
     raw = run_cpp_solver_batch(cases, base_dir=base_dir)
 
     # ── retry the stragglers, alone ─────────────────────────────────────────

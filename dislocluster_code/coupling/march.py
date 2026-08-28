@@ -283,7 +283,8 @@ def _march_fingerprint(cfg, qssa_sim, seed_evl, snaps, base_cli, N):
         n_nodes=int(N),
         n_eq=int(mc.state_width(int(getattr(cfg, "loop_model", 0)),
                                 int(getattr(cfg, "n_fam", 4)),
-                                int(getattr(cfg, "moments", 0)))),
+                                int(getattr(cfg, "moments", 0)),
+                                int(getattr(cfg, "gb_absorption", 0)))),
         cd_nodes_sha=ckpt_mod.file_digest(Path(qssa_sim) / "evl" / "cdNodes.txt"),
         seed_evl_sha=ckpt_mod.file_digest(seed_evl),
         material_sha=ckpt_mod.file_digest(paths.MODELIB_MATERIAL),
@@ -501,7 +502,8 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         if n_fam != 4:
             slow_cfg["n_fam"] = n_fam
         for key, off in (("chi", 1.0), ("emission_model", 0),
-                         ("basal_chain", 0), ("moments", 0)):
+                         ("basal_chain", 0), ("moments", 0),
+                         ("gb_absorption", 0)):
             val = getattr(cfg, key, off)
             if val != off:
                 slow_cfg[key] = val
@@ -509,6 +511,36 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
         if getattr(cfg, "emission_model", 0):
             slow_cfg.setdefault("temperature_K",
                                 float(sim.input_data.material_params["T"]))
+    # ── Grain-boundary absorption: each point's distance to the nearest face ──
+    # The ONLY quantity in this model that is a property of where a quadrature
+    # point sits rather than of the material, so it travels per case rather than
+    # in the shared CLI. Built once: the node set does not move.
+    #
+    # `gb_distance` is the minimum over the convex hull's faces, so it is right
+    # for the hexagonal prism as well as the cube, and it is the same distance
+    # `interior_mask` and `discrete_loops` use -- one definition of "how far
+    # from the boundary", not three. Nodes are in b and the solver wants metres.
+    gb_per_case = None
+    if int(getattr(cfg, "gb_absorption", 0)):
+        from dislocluster_code.post.fields import gb_distance as _gbd
+        _x_b = _gbd(np.asarray(br.nodes, dtype=float))
+        _b_si = float(mfield.read_material_scalar(
+            paths.MODELIB_MATERIAL, "b_SI"))
+        _x_m = np.maximum(_x_b, 0.0) * _b_si
+        gb_per_case = [[f"--x_gb={x:.12g}"] for x in _x_m]
+        # THE SUPPORT CAP COMES FROM THE SAME GEOMETRY, so it is not a second
+        # free parameter. max(gb_distance) is the inradius -- the largest sphere
+        # the crystal contains -- and a loop bigger than that touches a face
+        # wherever it is centred, so it is absorbed rather than existing. Set
+        # here unless the case has already named one.
+        _r_max = float(_x_m.max())
+        slow_cfg.setdefault("r_max_loop", _r_max)
+        print(f"  grain-boundary absorption: x from "
+              f"{_x_m.min() * 1e9:.2f} to {_x_m.max() * 1e9:.1f} nm "
+              f"over {len(_x_m)} nodes")
+        print(f"    log-normal support truncated at r_max = "
+              f"{slow_cfg['r_max_loop'] * 1e9:.1f} nm (the inradius)")
+
     base_cli = collect_solver_args(sim, slow_cfg)
     if loop_model and verbose:
         print("  slow step: SELF-CONSISTENT loop model "
@@ -551,7 +583,8 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     # model however the command line was built.
     Y = np.zeros((N, mc.state_width(loop_model,
                                     int(getattr(cfg, "n_fam", 4)),
-                                    int(getattr(cfg, "moments", 0)))))
+                                    int(getattr(cfg, "moments", 0)),
+                                    int(getattr(cfg, "gb_absorption", 0)))))
     Y[:, 0:4] = ev0.mobile
     mfield.immobile_into_state(Y, ev0.immobile, br.omega,
                                loop_model=loop_model)
@@ -702,7 +735,8 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
             t_slow = time.perf_counter()
             out = mc.run_immobile_step(base_cli, Y, a, b,
                                        base_dir=paths.ZRMICRO_DIR,
-                                       dedup_rtol=cfg.dedup_rtol, stats=st)
+                                       dedup_rtol=cfg.dedup_rtol, stats=st,
+                                       per_case=gb_per_case)
             slow_s = time.perf_counter() - t_slow
             nfail = sum(o is None for o in out)
             if (N and nfail == N) or (max_failed_nodes is not None

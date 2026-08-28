@@ -259,7 +259,7 @@ def _calculate_conservation(time, concentrations, rate_equations):
     I_mobile = y[1] + 2.0 * y[2] + 3.0 * y[3]
     V_mobile = y[0]
 
-    def _balance(stored, prod, recomb, sink, mobile=None):
+    def _balance(stored, prod, recomb, sink, mobile=None, gb_loops=None):
         # Reference every cumulative quantity to the first output point. The C++
         # solver starts integrating the accumulators at t_begin, whereas scipy's
         # solve_ivp integrates from t=0; subtracting the first value makes both
@@ -268,7 +268,15 @@ def _calculate_conservation(time, concentrations, rate_equations):
         recomb = recomb - recomb[0]
         sink   = sink   - sink[0]
         stored_change = stored - stored[0]
-        net_expected  = prod - recomb - sink
+        # LOOPS SWALLOWED BY A FREE SURFACE ARE A SEVENTH CHANNEL, and a
+        # MEASURED one -- the solver integrates it, where `grain_boundary`
+        # below is closure by difference. When gb_absorption is on it enters
+        # the balance explicitly, so what remains in the residual is still just
+        # the MOBILE flux to the surface and the two do not contaminate each
+        # other. Absent, it is exactly zero and every earlier balance is
+        # reproduced term for term.
+        gb = (gb_loops - gb_loops[0]) if gb_loops is not None             else np.zeros_like(prod)
+        net_expected  = prod - recomb - sink - gb
         residual      = stored_change - net_expected
         # Relative error vs cumulative production (0 at the reference point).
         rel_error     = np.where(prod > 0, residual / np.maximum(prod, 1e-300), 0.0)
@@ -276,6 +284,7 @@ def _calculate_conservation(time, concentrations, rate_equations):
             'production':    prod,
             'recombination': recomb,
             'sink':          sink,
+            'gb_loops':      gb,
             'stored':        stored,
             'stored_change': stored_change,
             'net_expected':  net_expected,
@@ -299,10 +308,16 @@ def _calculate_conservation(time, concentrations, rate_equations):
             out['grain_boundary'] = -residual
         return out
 
+    # The grain-boundary loop ledger, present only when the state carries it.
+    # y has one row per state component, so its presence IS the switch: a run
+    # without the channel simply has no rows 38/39 and `gb_loops` stays None.
+    gb_i = y[38] if y.shape[0] > 39 else None
+    gb_v = y[39] if y.shape[0] > 39 else None
+
     interstitial = _balance(I_stored, acc['cum_prod_i'], acc['cum_recomb_i'],
-                            acc['cum_sink_i'], mobile=I_mobile)
+                            acc['cum_sink_i'], mobile=I_mobile, gb_loops=gb_i)
     vacancy      = _balance(V_stored, acc['cum_prod_v'], acc['cum_recomb_v'],
-                            acc['cum_sink_v'], mobile=V_mobile)
+                            acc['cum_sink_v'], mobile=V_mobile, gb_loops=gb_v)
 
     print(f"  Conservation (final): interstitial rel.err = "
           f"{interstitial['rel_error'][-1]:+.2e}, "

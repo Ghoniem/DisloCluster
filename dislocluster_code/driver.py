@@ -78,6 +78,7 @@ def march_config_from(cfg):
         emission_model=cfg.solver.emission_model,
         basal_chain=cfg.solver.basal_chain,
         moments=cfg.solver.moments,
+        gb_absorption=int(cfg.solver.gb_absorption),
         model_params=dict(cfg.solver.model_params),
         discrete_transition=c.discrete_transition,
         transition_units=c.transition_units,

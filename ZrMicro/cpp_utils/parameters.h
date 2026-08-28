@@ -73,7 +73,38 @@ static constexpr int SLOT_SFP  = 8;             // the pyramid, c_0
 static constexpr int N_QMOM = N_FAM_MAX;        // one second moment per family
 static constexpr int IDX_Q  = IDX_XC + N_XFAM;  // first q index = 29
 
-static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB + N_QMOM;  // 38
+// -- Grain-boundary absorption of loops: two more accumulators ---------------
+// A loop whose radius reaches the nearest free surface is swallowed by it, the
+// same way a mobile defect is. The defects it carried leave the crystal, so
+// they must leave the LEDGER too, and they cannot be booked against the six
+// existing accumulators: cum_sink_{i,v} is absorption at the dislocation
+// NETWORK, and folding a surface loss into it would make the two
+// indistinguishable in exactly the figure that exists to tell channels apart.
+//
+// These are pure diagnostics -- nothing reads them back -- so they sit at the
+// very end, after the moments, and a state that stops at 38 simply carries no
+// grain-boundary ledger. That is what every run before this one is.
+static constexpr int N_GBACC  = 2;              // cum_gb_i, cum_gb_v
+static constexpr int IDX_GB_I = IDX_Q + N_QMOM; // = 38
+static constexpr int IDX_GB_V = IDX_GB_I + 1;   // = 39
+
+static constexpr int N_EQ = N_PHYS + N_ACC + N_RHO + N_XIMMOB + N_QMOM
+                          + N_GBACC;  // 40
+
+// Is family k a VACANCY family, under a given loop_model?
+//
+// The same table `slot_is_vac` builds locally further down the residual, hoisted
+// here because the grain-boundary channel has to ask about polarity BEFORE that
+// array is in scope, and two copies of a polarity table is exactly how the
+// pyramid's coalescence content once ended up booked against the interstitial
+// accumulator.
+//   loop_model 0 : iL aiL vL avL          -> vacancy in slots 2,3
+//   loop_model 1 : c_f a1 a2 a3 a1v a2v a3v c_p c_0
+//                                          -> vacancy in 0 and 4..8
+constexpr int sv_fam(int loop_model, int k) {
+    return loop_model != 0 ? ((k == 0 || k >= 4) ? 1 : 0)
+                           : ((k == 2 || k == 3) ? 1 : 0);
+}
 
 // State index of family k's number / content / second moment.
 constexpr int fam_n_idx(int k) { return k < 4 ? 4 + k : IDX_XN + (k - 4); }
@@ -351,6 +382,44 @@ struct Parameters {
     // nu_vanish = 0 (the default) is the channel switched off.
     double nu_vanish;    // [1/s] dissolution rate of a below-threshold loop
     double m_vanish;     // [-] the size below which a loop is dissolving
+
+    // -- Grain-boundary absorption -------------------------------------------
+    // A loop of radius r_k = l_k sqrt(m) centred a distance x from the nearest
+    // face TOUCHES that face when r_k >= x, i.e. when m >= (x/l_k)^2. So the
+    // channel is the large-end gate Phi^(j) at m_gb = (x/l_k)^2 -- no new
+    // closure, and because what it removes is a genuine sub-measure of the
+    // distribution, Delta >= 1 survives it by construction.
+    //
+    // THE ZONE WIDTH IS A PREDICTION, NOT A PARAMETER. m_gb depends on x and on
+    // the family's own length scale, so the denuded zone comes out at the loop
+    // RADIUS and widens as the loops grow. nu_gb only has to be fast against
+    // the substep for that to hold; it is not a width knob.
+    //
+    // x_gb is PER POINT and is the one parameter in this model that is a
+    // property of where a quadrature point sits rather than of the material.
+    // Negative (the default) means "no boundary known" and disables the channel
+    // at that point -- NOT zero, which would mean the point is ON the face and
+    // would absorb everything.
+    int    gb_absorption;  // 0 = off (default)
+    double nu_gb;          // [1/s] absorption rate of the touching fraction
+    double x_gb;           // [m] distance from this point to the nearest face
+
+    // -- Truncating the closure's tail ---------------------------------------
+    // The log-normal is a CLOSURE, not a measurement, and it has unbounded
+    // support. At the spread the basal family actually runs at -- Delta ~ 8e3,
+    // i.e. s ~ 3 -- it puts real weight at radii above a micron, which no
+    // 500 nm crystal can hold. That showed up as grain-boundary absorption
+    // removing 0.01% of production a micron from any face, where geometrically
+    // nothing can touch.
+    //
+    // r_max_loop caps the support. The cap is not a new free parameter: a loop
+    // of radius r centred a distance x from a face is absorbed once x < r, so
+    // no loop larger than the largest INSCRIBED sphere can exist anywhere. The
+    // same geometry that gives the absorption channel gives the cap.
+    //
+    // 0 (the default) leaves the support unbounded, so every gate is
+    // bit-identical to what it was.
+    double r_max_loop;     // [m] largest loop the crystal can hold, 0 = no cap
     // ── Coalescence removes the LARGE loops, not an average one ─────────────
     // The distribution leaks at BOTH ends: small loops vanish by shrinkage
     // (above), large ones by coalescing with the network or with each other,
@@ -690,6 +759,14 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.nu_vanish = optional_param(p, "nu_vanish", 0.0);
     P.m_vanish  = optional_param(p, "m_vanish",  0.0);
     P.coal_gated = static_cast<int>(optional_param(p, "coal_gated", 0.0));
+    P.gb_absorption = static_cast<int>(optional_param(p, "gb_absorption", 0.0));
+    // 1e-2 1/s is a 100 s timescale. Against a substep of ~1e7 s that is
+    // instantaneous -- the touching fraction is gone within the step -- while
+    // staying far from the 1/dt that would make the term a stiff spike for no
+    // physical gain. It is deliberately NOT infinity.
+    P.nu_gb = optional_param(p, "nu_gb", 1.0e-2);
+    P.x_gb  = optional_param(p, "x_gb", -1.0);
+    P.r_max_loop = optional_param(p, "r_max_loop", 0.0);
     // The n_fam consistency check lives with n_fam's own parsing, below.
     // Checking it here read P.n_fam before it was set -- value-initialized to
     // zero -- so basal_chain=1 was rejected unconditionally.

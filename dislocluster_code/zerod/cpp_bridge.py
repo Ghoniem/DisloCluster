@@ -419,6 +419,26 @@ def collect_solver_args(sim, solver_config):
             if int(solver_config.get('coal_gated', 0)) != 0:
                 params['coal_gated'] = 1
 
+            # ── Absorption at a grain boundary ──────────────────────────────
+            # A loop touching a free surface is swallowed by it. The fraction
+            # touching is the large-end gate at m_gb = (x/l_k)^2, so this needs
+            # `moments` -- without a distribution there is no fraction above a
+            # size -- and it needs x_gb, which is a property of WHERE THE POINT
+            # SITS and is therefore per case, not shared. A 0-D run supplies no
+            # x_gb and the channel is inert there, correctly: a 0-D cell has no
+            # boundary.
+            # The support cap. Independent of gb_absorption -- it is a
+            # statement about the distribution, not about the boundary -- so it
+            # is emitted whenever it is set.
+            if float(solver_config.get('r_max_loop', 0.0)) > 0.0:
+                params['r_max_loop'] = float(solver_config['r_max_loop'])
+            if int(solver_config.get('gb_absorption', 0)) != 0:
+                params['gb_absorption'] = 1
+                if 'nu_gb' in solver_config:
+                    params['nu_gb'] = float(solver_config['nu_gb'])
+                if solver_config.get('x_gb') is not None:
+                    params['x_gb'] = float(solver_config['x_gb'])
+
         # ── Step 4: the basal chain c_0 -> c_f -> c_p ───────────────────────
         # Emitted only when the chain is switched on, so a step-3 command line
         # is byte-for-byte what it was.

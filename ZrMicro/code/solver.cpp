@@ -65,6 +65,20 @@
 #include "rate_equations.h"
 #include "rate_equations_core.h"
 
+// How many state components a row of output carries.
+//
+// THE SOLVER ALWAYS INTEGRATES N_EQ; WHAT IT PRINTS IS A DIFFERENT QUESTION.
+// The grain-boundary ledger added two accumulators at the end, and emitting
+// them unconditionally silently widened every row from 39 to 41 columns --
+// which every caller that assumed 38 state components then mis-read. They are
+// pure diagnostics and identically zero unless the channel is on, so a run
+// without it prints exactly what it always did and every existing consumer,
+// artifact and regression keeps parsing.
+static inline int n_out_state(const Parameters& P) {
+    return P.gb_absorption ? N_EQ : N_EQ - N_GBACC;
+}
+
+
 #include <cvodes/cvodes.h>
 #include <arkode/arkode_arkstep.h>
 #include <arkode/arkode_butcher_dirk.h>
@@ -296,7 +310,7 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
 
         auto emit = [&](double t) {
             out << t;
-            for (int k = 0; k < N_EQ; ++k) out << ' ' << y[k];
+            for (int k = 0; k < n_out_state(P); ++k) out << ' ' << y[k];
             out << '\n';
         };
         emit(t_eval[0]);
@@ -408,7 +422,7 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
 
         auto emit_ark = [&](double t) {
             out << t;
-            for (int k = 0; k < N_EQ; ++k) out << ' ' << NV_Ith_S(y, k);
+            for (int k = 0; k < n_out_state(P); ++k) out << ' ' << NV_Ith_S(y, k);
             out << '\n';
         };
         emit_ark(t_eval[0]);
@@ -496,7 +510,7 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
             for (int k = 0; k < N_EQ; ++k) full[k] = NV_Ith_S(y, k);
         }
         out << t;
-        for (int k = 0; k < N_EQ; ++k) out << ' ' << full[k];
+        for (int k = 0; k < n_out_state(P); ++k) out << ' ' << full[k];
         out << '\n';
     };
 

@@ -190,6 +190,12 @@ SOLVER = {
     "emission_model": 0,
     "basal_chain":    0,
     "moments":        0,
+    #   gb_absorption   1 removes loops that touch a free surface, the way a
+    #                   mobile defect is removed there. Needs `moments`: the
+    #                   absorbed fraction is the tail of the size distribution
+    #                   whose radius reaches the face, so the denuded-zone width
+    #                   is the loop RADIUS and is a prediction, not a parameter.
+    "gb_absorption":  0,
     "model_params":   {},
 }
 
@@ -496,6 +502,7 @@ class Solver:
     emission_model: int = 0
     basal_chain: int = 0
     moments: int = 0
+    gb_absorption: int = 0
     model_params: dict = field(default_factory=dict)
 
     def validate(self):
@@ -503,7 +510,8 @@ class Solver:
             raise ConfigError(
                 f"n_fam must be 4 (legacy), 8 (with the prismatic vacancy "
                 f"variants) or 9 (with the pyramid), got {self.n_fam}")
-        for k in ("emission_model", "basal_chain", "moments"):
+        for k in ("emission_model", "basal_chain", "moments",
+                  "gb_absorption"):
             if getattr(self, k) not in (0, 1):
                 raise ConfigError(f"{k} must be 0 or 1, got {getattr(self, k)}")
         if self.chi <= 0.0:
@@ -513,7 +521,8 @@ class Solver:
         # command line the legacy assembly ignores -- a run that reports the new
         # model and integrates the old one.
         if not self.loop_model:
-            on = [k for k in ("emission_model", "basal_chain", "moments")
+            on = [k for k in ("emission_model", "basal_chain", "moments",
+                              "gb_absorption")
                   if getattr(self, k)]
             if self.n_fam != 4:
                 on.append("n_fam")
@@ -523,6 +532,16 @@ class Solver:
                 raise ConfigError(
                     f"SOLVER {on} need loop_model = 1: they describe families "
                     f"and moments the legacy formulation does not carry")
+        # The absorbed fraction is the fraction of the distribution whose
+        # radius reaches the face. Without the second moment there is no
+        # distribution -- the gate returns 1 and the channel would remove the
+        # WHOLE family at any point closer to a face than its mean radius,
+        # which is a different model, not a coarser one.
+        if self.gb_absorption and not self.moments:
+            raise ConfigError(
+                "gb_absorption = 1 needs moments = 1: the absorbed fraction is "
+                "a fraction OF A DISTRIBUTION, and without the second moment "
+                "there is none to take a fraction of")
         if self.basal_chain and self.n_fam != 9:
             raise ConfigError(
                 "basal_chain = 1 needs n_fam = 9 -- the chain's source is the "
@@ -659,6 +678,7 @@ class SimulationConfig:
                           emission_model=int(s["emission_model"]),
                           basal_chain=int(s["basal_chain"]),
                           moments=int(s["moments"]),
+                          gb_absorption=int(s["gb_absorption"]),
                           model_params=dict(s["model_params"])),
             output=Output(tag=o["tag"], figures=bool(o["figures"]),
                           movies=bool(o["movies"]),
