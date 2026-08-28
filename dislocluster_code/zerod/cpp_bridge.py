@@ -323,9 +323,22 @@ def collect_solver_args(sim, solver_config):
         params['loop_model'] = 1
         pm = read_material_vector(mat, 'dadAnisotropy', 4)
         z0 = read_material_vector(mat, 'dadZ0', 4)
+        # THE MATERIAL FILE IS THE SOURCE, AND THE SOLVER CONFIG OVERRIDES IT.
+        # In loop_model >= 1 the capture efficiencies are Woo's, built from
+        # these two vectors -- the workbook's Z_i_a / Z_v_c are not read at all.
+        # So without an override here the BIAS IS NOT A FITTABLE QUANTITY in
+        # the self-consistent formulation, and a refit has no handle on the one
+        # thing that sets how fast a <c> loop grows.
+        #
+        # An override also removes a hazard the diagnostics already tripped
+        # over: reading p_m from a shared file while a concurrent run rewrites
+        # it silently changes the model under the measurement. A fit that pins
+        # them on the command line cannot inherit someone else's anisotropy.
         for j, nm in enumerate(names):
-            params[f'dad_p_{nm}'] = float(pm[j])
-            params[f'dad_Z0_{nm}'] = float(z0[j])
+            params[f'dad_p_{nm}'] = float(
+                solver_config.get(f'dad_p_{nm}', pm[j]))
+            params[f'dad_Z0_{nm}'] = float(
+                solver_config.get(f'dad_Z0_{nm}', z0[j]))
         # loopSinkScale is per FAMILY, and step 1 took the material file from
         # four families to eight. Read whatever it carries rather than demanding
         # a fixed length: asking for 4 against an 8-column file raised, the
@@ -342,7 +355,8 @@ def collect_solver_args(sim, solver_config):
                 f"loopSinkScale unreadable from {mat}: {exc}") from exc
         all_fams = ('c', 'a1', 'a2', 'a3', 'a1v', 'a2v', 'a3v', 'cp')
         for j, fm in enumerate(all_fams[:len(ls)]):
-            params[f'loop_sink_scale_{fm}'] = float(ls[j])
+            params[f'loop_sink_scale_{fm}'] = float(
+                solver_config.get(f'loop_sink_scale_{fm}', ls[j]))
         w = solver_config.get('variant_weights', (1 / 3, 1 / 3, 1 / 3))
         for j, fm in enumerate(fams[1:]):
             params[f'variant_frac_{fm}'] = float(w[j])

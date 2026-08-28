@@ -52,6 +52,20 @@ DEV = contextlib.redirect_stdout(io.StringIO())
 
 # ── objective config (mirror notebook OPT_CONFIG) ────────────────────────────
 W_DENSITY = W_DIAM = 1.0
+#: Score the diameter as a LOG RATIO rather than a relative residual.
+#:
+#: THE TWO TERMS ARE NOT COMMENSURATE AS WRITTEN. Density enters as
+#: (log10 N_sim - log10 N_exp)^2, which is unbounded; diameter enters as
+#: ((d_sim - d_exp)/d_exp)^2, which SATURATES at 1 as d_sim -> 0. So a fit can
+#: always pay for density with diameter: taking N from 49x to 1.2x removes 2.85
+#: from the objective, and collapsing d from 0.565x to 0.089x costs 0.64. Every
+#: <c> fit run against this objective therefore ends with d_c at 0.07-0.11x of
+#: experiment, and that is the SCORING, not a statement about the model.
+#:
+#: With DIAM_LOG the diameter is (log10(d_sim/d_exp))^2 -- same form as the
+#: density term, unbounded in both directions, so a collapsed diameter costs
+#: without limit. Default False so every number already recorded reproduces.
+DIAM_LOG = False
 W_OVERSHOOT = 1.0
 OS_DOSE_LO = 1e-3
 HIGHT_THR  = 650.0
@@ -98,7 +112,16 @@ def set_model(**kw):
 #: `model_history_batch` and merged into the per-case config instead.
 MODEL_LEVERS = {'m_min', 'chi', 'm_col', 'm_uf',
                 'eps_sfp', 'n_sfp_nuc', 'tau_sfp', 'nu_col', 'nu_uf',
-                'alpha_sfp', 'nu_vanish', 'm_vanish'}
+                'alpha_sfp', 'nu_vanish', 'm_vanish',
+                # THE BIAS. In loop_model >= 1 the capture efficiencies are
+                #     Z_basal(m)     = Z0_m p_m
+                #     Z_prismatic(m) = Z0_m (p_m + p_m^-2)/2
+                # built from these, and the workbook's Z_i_a / Z_v_c are never
+                # read -- which is why a sensitivity screen finds them inert.
+                # They live in the material file, so like m_min they travel on
+                # the command line and NOT through input_data.
+                'dad_p_v', 'dad_p_i', 'dad_Z0_v', 'dad_Z0_i',
+                'loop_sink_scale_c'}
 
 # ── current joint optimum — loaded from the latest fit CSV (freeze point) ─────
 # THE FREEZE POINT FALLS BACK TO THE CALIBRATED SET. This used to be
@@ -137,6 +160,25 @@ OPT.setdefault('chi', 1.0)
 OPT.setdefault('nu_vanish', 0.0)
 OPT.setdefault('m_vanish', 0.0)
 
+# The bias seeds at whatever the material file currently says, so a fit starts
+# from the shipped anisotropy and every evaluation then PINS it on the command
+# line. Reading it once here and pinning it thereafter is the point: a
+# diagnostic that re-read the file each evaluation would inherit whatever a
+# concurrent run had just written into it.
+try:
+    from dislocluster_code import paths as _paths
+    from dislocluster_code.coupling.field import read_material_vector as _rmv
+    _pm = _rmv(_paths.MODELIB_MATERIAL, 'dadAnisotropy', 4)
+    _z0 = _rmv(_paths.MODELIB_MATERIAL, 'dadZ0', 4)
+    _ls = _rmv(_paths.MODELIB_MATERIAL, 'loopSinkScale')
+    OPT.setdefault('dad_p_v', float(_pm[0]))
+    OPT.setdefault('dad_p_i', float(_pm[1]))
+    OPT.setdefault('dad_Z0_v', float(_z0[0]))
+    OPT.setdefault('dad_Z0_i', float(_z0[1]))
+    OPT.setdefault('loop_sink_scale_c', float(_ls[0]))
+except Exception as _exc:                                   # pragma: no cover
+    print(f"bias seeds unavailable ({_exc}); they are not fittable")
+
 # ── c-loop-only candidate levers:  name -> (lo, hi, log?) ────────────────────
 CAND = {
     'epsilon_vL': (5e-3, 2e-1, True),
@@ -168,6 +210,99 @@ CAND = {
     'nu_vanish':  (1e-9, 1e-3, True),
     'm_vanish':   (10.0, 1e4,  True),
 }
+
+# ── the BIAS ────────────────────────────────────────────────────
+# The <c> diameter is set by the NET vacancy flux onto a basal loop, and the
+# bias is what scales it:
+#     Z_basal(v)     = Z0_v p_v              the <c> gain
+#     Z_basal(i)     = Z0_i p_i              the <c> loss
+#     Z_prismatic(i) = Z0_i (p_i+p_i^-2)/2   the <a> gain
+#     Z_prismatic(v) = Z0_v (p_v+p_v^-2)/2   the <a> loss
+#
+# `p_v` is the interesting one, because the two Woo rows respond to it
+# DIFFERENTLY: Z_basal is monotone in p, while Z_prismatic has its minimum at
+# p = 2^(1/3) = 1.2599. So raising p_v from the fitted 1.1788 toward 1.26
+# raises the <c> gain AND lowers the <a> vacancy loss at the same time. That
+# is the co-growth window (p_i < p_v) appearing as a fit lever.
+#
+# The bounds keep p_i below p_v's lower bound, so the search cannot wander out
+# of the co-growth region and report a set on which the two families cannot
+# both grow.
+# THE FIRST BOUNDS WERE BINDING AND THE ANSWER SAT ON THEM. A <c>-only fit
+# put p_v, Z0_v and Z0_i all exactly on their ceilings (1.6, 1.4, 1.4) while
+# taking J_C from 1.6166 to 0.0482 -- so the box was cutting off the optimum,
+# not containing it. These are wide enough that a lever resting on one is a
+# result rather than an artifact, and p_v is deliberately allowed past the
+# Z_prismatic minimum at 2^(1/3) so the fit can leave the co-growth window if
+# the data prefers it. IT IS THEN CHECKED, not assumed: p_i < p_v has to be
+# verified on the fitted set rather than enforced by a bound, because a bound
+# that guarantees it also hides whether the data wanted it.
+#
+# Note Z0_v and Z0_i moving together is close to degenerate with
+# loop_sink_scale_c -- a common factor on every efficiency is a sink-strength
+# rescaling. Read them as a pair, not as two independent findings.
+# THE WIDE BOX WAS TOO WIDE, AND THE FIT SHOWED WHY. Unbounded, the search
+# reached d_c/d_exp = 0.743 -- the best any fit has managed -- by taking
+# p_v to 2.40 and Z0_v to 1.78, i.e.
+#
+#     Z_basal(v)  = 4.28        <a capture efficiency, of order unity>
+#     D_par/D_bas = p_v^6 = 191 <for vacancies>
+#
+# Woo's efficiencies are geometric corrections of order unity. A Z of 4.28 is
+# not a bias, it is a free multiplier on the vacancy flux to basal loops, and a
+# 191x vacancy diffusion anisotropy has no atomistic support here -- the fitted
+# value was 1.179 (2.7x) and the measured co-growth set used 1.0. The fit was
+# using the bias as a fudge factor because nothing in the objective forbade it.
+#
+# These bounds keep the efficiencies order-unity and the anisotropy inside a
+# factor of ~17. WHAT THE FIT CANNOT THEN REACH IS THE RESULT: the shortfall in
+# d_c under a physically admissible bias measures how much basal loop growth
+# the absorption physics is missing, which is a statement about the model. The
+# unconstrained numbers are kept in the record precisely so the two can be
+# compared -- see the refit reports.
+CAND.update({
+    'dad_p_v':   (1.0,  1.6,  False),
+    'dad_p_i':   (0.7,  1.0,  False),
+    'dad_Z0_v':  (0.8,  1.3,  False),
+    'dad_Z0_i':  (0.8,  1.3,  False),
+    'loop_sink_scale_c': (0.05, 2.0, True),
+})
+
+# ── <a>-side and shared levers ───────────────────────────────────
+# CAND above is the c-loop set the original harness was written for, and a
+# refit of the production formulation cannot be c-loop-only: the vacancy pool
+# is shared, so removing <c> loops returns vacancies that move <a>. (That is
+# the claim "the families decouple", which was measured on a frozen-mobile
+# single node and does not survive in 0-D.)
+#
+# EVERY LEVER HERE WAS SCREENED FOR SENSITIVITY FIRST, at loop_model = 1,
+# n_fam = 9, moments = 1, emission_model = 1. Nine of the workbook parameters
+# are INERT in that formulation and are deliberately NOT candidates:
+#
+#   Z_iL, Z_vL, Z_v_c, Q, delta_DAD   mode 1 builds Woo efficiencies from p_m
+#                                     in the material file and never reads the
+#                                     phenomenological Z's
+#   tau_vL0, E_a_vL                   emission_model = 1 deletes the two fitted
+#                                     annealing lifetimes outright
+#   E_m_2i, E_b_2i, c_rhoN,           no measurable effect on these targets
+#   k_rhoN_rec
+#
+# A search carrying an inert lever spends a dimension on it and then reports a
+# "fitted value" for a number nothing reads -- which is exactly how an earlier
+# run produced a Z_v_c pinned at its bound and a superset that scored WORSE
+# than its own subset.
+CAND.update({
+    'epsilon_iL': (2e-4, 5e-2, True),
+    'n_iL_nuc':   (30.,  1e3,  False),
+    'c_LL_a':     (1e-1, 1e4,  True),
+    'c_LN_a':     (1e0,  1e5,  True),
+    'kappa_LL':   (0.2,  20.,  True),
+    'kappa_LN':   (0.04, 4.0,  True),
+    'Z_N':        (1.0,  1.3,  False),
+    'E_m_i':      (0.5,  1.1,  False),
+    'epsilon_2i': (1e-3, 1e-1, True),
+    'epsilon_3i': (1e-3, 1e-1, True),
+})
 
 # ── targets (replica of notebook _load_targets) ──────────────────────────────
 def load_targets(sheet):
@@ -305,7 +440,11 @@ def objective_full(pdict, want_breakdown=False):
                 dMSE = float(np.mean((np.log10(N_sim[okN]) - np.log10(mN[okN])) ** 2))
                 res.append(W_DENSITY * dMSE); tk[k]['sN'] += dMSE * nT; tk[k]['wN'] += nT
             if okD.any():
-                sMSE = float(np.mean(((d_sim[okD] - md[okD]) / md[okD]) ** 2))
+                if DIAM_LOG:
+                    sMSE = float(np.mean((np.log10(
+                        np.maximum(d_sim[okD], 1e-12) / md[okD])) ** 2))
+                else:
+                    sMSE = float(np.mean(((d_sim[okD] - md[okD]) / md[okD]) ** 2))
                 res.append(W_DIAM * sMSE); tk[k]['sD'] += sMSE * nT; tk[k]['wD'] += nT
             if not res:
                 continue
