@@ -695,6 +695,10 @@ class ZrMicroVisualizer:
                 ('Absorbed at network sinks', self._counts(c['sink']), 'C1'),
                 ('Absorbed at grain boundary',
                  self._counts(c['grain_boundary']), 'r'),
+            ] + ([
+                ('Loops absorbed at grain boundary',
+                 self._counts(self._gb_loops(c)), 'C4'),
+            ] if self._gb_loops(c) is not None else []) + [
                 ('Stored in microstructure',
                  self._counts(c.get('immobile_change', c['stored_change'])),
                  'b'),
@@ -733,6 +737,21 @@ class ZrMicroVisualizer:
         ax.grid(True, alpha=0.3)
         return self._savefig(fig, 'conservation_error')
 
+    @staticmethod
+    def _gb_loops(c):
+        """The MEASURED loop-absorption channel, or None.
+
+        `grain_boundary` beside it is closure by difference and carries every
+        other channel's error; this one is an integral the solver performed. A
+        run without gb_absorption has the key absent or identically zero, and
+        every figure then draws exactly what it drew before.
+        """
+        g = c.get('gb_loops')
+        if g is None:
+            return None
+        import numpy as _np
+        return g if _np.any(_np.abs(g) > 0.0) else None
+
     def plot_conservation_channels(self):
         """
         Cumulative production and loss channels (production, recombination, sink
@@ -757,7 +776,13 @@ class ZrMicroVisualizer:
             ax.loglog(self.x_data, np.abs(f(c['stored_change'])), 'b-',  label='|Δ stored|')
             if self.open_system and 'grain_boundary' in c:
                 ax.loglog(self.x_data, np.abs(f(c['grain_boundary'])), 'r:',
-                          label='Grain-boundary absorption')
+                          label='Grain-boundary absorption (mobile, by closure)')
+            _gb = self._gb_loops(c)
+            if _gb is not None:
+                ax.loglog(self.x_data, np.abs(f(_gb)), 'C4-',
+                          label='Loops absorbed at grain boundary (measured)')
+            if self.open_system and 'grain_boundary' in c:
+                pass
             else:
                 ax.loglog(self.x_data, np.abs(f(c['residual'])), 'r:', label='|Residual|')
             ax.set_xlabel(self.x_label)
@@ -804,6 +829,15 @@ class ZrMicroVisualizer:
         if self.open_system and 'grain_boundary' in c:
             f_gb = c['grain_boundary'] / denom
             f_sum = f_sum + f_gb
+        # The loop channel is a separate destination for the atoms, so it is a
+        # separate term in the sum. Leaving it out would put the "Sum (= 1)"
+        # line back below 1 by exactly the loops absorbed, which is the defect
+        # that adding the boundary channel fixed in the first place.
+        f_gbl = None
+        _gb_meas = self._gb_loops(c)
+        if _gb_meas is not None:
+            f_gbl = _gb_meas / denom
+            f_sum = f_sum + f_gbl
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
         ax.plot(self.x_data, f_recomb, 'r-',  label='Recombination')
@@ -813,6 +847,9 @@ class ZrMicroVisualizer:
         ax.plot(self.x_data, f_loop,   'm-',  label='Loop content')
         if f_gb is not None:
             ax.plot(self.x_data, f_gb, 'k-', lw=1.6, label='Grain boundary')
+        if f_gbl is not None:
+            ax.plot(self.x_data, f_gbl, 'C4-', lw=1.6,
+                    label='Loops absorbed at GB')
         ax.plot(self.x_data, f_sum,    'k--', label='Sum (=1)')
         ax.set_xscale('log')
         ax.set_yscale('log')
@@ -853,6 +890,15 @@ class ZrMicroVisualizer:
         if self.open_system and 'grain_boundary' in c:
             f_gb = c['grain_boundary'] / denom
             f_sum = f_sum + f_gb
+        # The loop channel is a separate destination for the atoms, so it is a
+        # separate term in the sum. Leaving it out would put the "Sum (= 1)"
+        # line back below 1 by exactly the loops absorbed, which is the defect
+        # that adding the boundary channel fixed in the first place.
+        f_gbl = None
+        _gb_meas = self._gb_loops(c)
+        if _gb_meas is not None:
+            f_gbl = _gb_meas / denom
+            f_sum = f_sum + f_gbl
 
         fig, ax = plt.subplots(figsize=_FIG_SIZE)
         ax.plot(self.x_data, f_recomb, 'r-',  label='Recombination')
@@ -861,6 +907,9 @@ class ZrMicroVisualizer:
         ax.plot(self.x_data, f_loop,   'm-',  label='Loop content')
         if f_gb is not None:
             ax.plot(self.x_data, f_gb, 'k-', lw=1.6, label='Grain boundary')
+        if f_gbl is not None:
+            ax.plot(self.x_data, f_gbl, 'C4-', lw=1.6,
+                    label='Loops absorbed at GB')
         ax.plot(self.x_data, f_sum,    'k--', label='Sum (=1)')
         ax.set_xscale('log')
         ax.set_yscale('log')
