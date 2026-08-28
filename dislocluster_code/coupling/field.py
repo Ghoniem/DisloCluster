@@ -352,9 +352,14 @@ def immobile_0d_to_modelib(Y, omega, variant_weights=(1 / 3, 1 / 3, 1 / 3),
     # leaves them empty, which is what they are in every run made before those
     # steps. Anything else is a layout error and must not be guessed at.
     # 38 adds step 5's second content moment, q, at 29..37.
-    if Y.shape[1] not in (19, 29, 38):
+    # 40 (and 21, 31) add the two-entry grain-boundary ledger after everything
+    # else. They are diagnostics -- no family, no moment -- so every index below
+    # is unchanged and the extra columns are simply not read here.
+    if Y.shape[1] not in (19, 21, 29, 31, 38, 40):
         raise ValueError(
-            f"expected (N,19), (N,29) or (N,38) 0-D states, got {Y.shape}")
+            f"expected (N,19/21), (N,29/31) or (N,38/40) 0-D states, "
+            f"got {Y.shape} -- the second width of each pair carries the "
+            f"grain-boundary ledger")
     w = np.asarray(variant_weights, dtype=float)
     if w.shape != (3,):
         raise ValueError("variant_weights must have three entries")

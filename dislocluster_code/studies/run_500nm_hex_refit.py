@@ -49,7 +49,8 @@ from dislocluster_code import driver, paths
 from dislocluster_code.fitting import apply_refit
 
 
-def build_config(workbook, model_params, tag="500nmHex_Refit"):
+def build_config(workbook, model_params, tag="500nmHex_Refit",
+                 gb_absorption=0):
     material = dict(C.MATERIAL, temperature_K=573.0, dose_rate_dpa_s=1e-7,
                     overrides=dict(workbook))
     geometry = dict(C.GEOMETRY, type="hexagonal", size_nm=500.0,
@@ -64,6 +65,7 @@ def build_config(workbook, model_params, tag="500nmHex_Refit"):
                     variant_weights=(1 / 3, 1 / 3, 1 / 3))
     solver = dict(C.SOLVER, analytic_jac=True, loop_model=1, n_fam=9,
                   emission_model=1, basal_chain=0, moments=1,
+                  gb_absorption=int(gb_absorption),
                   model_params=dict(model_params))
     output = dict(C.OUTPUT, tag=tag, figures=True, movies=True,
                   movie_interp=5, discrete_loops=True, checkpoint=True,
@@ -133,6 +135,10 @@ def main(argv=None):
                     help='stage and report, do not march')
     ap.add_argument('--no-apply-bias', action='store_true',
                     help='assume the material file already carries the bias')
+    ap.add_argument('--gb', action='store_true',
+                    help='absorb loops that touch a face. Everything else is '
+                         'held fixed, so a --gb run and its twin differ in one '
+                         'thing and the difference measures that one thing.')
     a = ap.parse_args(argv)
 
     from dislocluster_code.fitting.refit_report import load
@@ -145,7 +151,8 @@ def main(argv=None):
     if bias and not a.no_apply_bias:
         print(f"\n  material file written; backup {edits['backup'].name}")
 
-    cfg = build_config(workbook, model_params, tag=a.tag)
+    cfg = build_config(workbook, model_params, tag=a.tag,
+                       gb_absorption=1 if a.gb else 0)
     print(f"\n  staging {a.tag} ...")
     t0 = time.time()
     prep = driver.prepare(cfg)

@@ -764,7 +764,13 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // denuded zone is a prediction: deep inside the crystal m_gb is huge,
         // Phi -> 0 and nothing is removed; within a loop radius of the face
         // m_gb -> 0, Phi -> 1 and the family is swept.
-        if (P.gb_absorption && P.x_gb > 0.0 && P.moments) {
+        // >= 0, NOT > 0. x = 0 is a node ON the face, where every loop
+        // touches and the whole family should go; a strict test made that the
+        // one place the channel did nothing. On the 500 nm prism that is 11 808
+        // nodes -- 13% of them, carrying 65% of the <a> loop number -- i.e. the
+        // channel exempted exactly the population it exists to sweep. Negative
+        // remains the "no boundary known" sentinel.
+        if (P.gb_absorption && P.x_gb >= 0.0 && P.moments) {
             for (int k = 0; k < nf; ++k) {
                 if (!is_loop[k]) continue;
                 if (ad_val(f_num[k]) <= C_floor) continue;

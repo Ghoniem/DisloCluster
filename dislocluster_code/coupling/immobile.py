@@ -249,7 +249,9 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     cases = []
     for y0 in y0_list:
         y0 = np.asarray(y0, dtype=float)
-        if y0.shape[0] not in (N_EQ, 29, N_EQ_EXT):
+        # The +N_GBACC widths carry the grain-boundary ledger; see state_width.
+        if y0.shape[0] not in (N_EQ, N_EQ + N_GBACC, 29, 29 + N_GBACC,
+                               N_EQ_EXT, N_EQ_EXT + N_GBACC):
             raise ValueError(f"each y0 must have length {N_EQ} or {N_EQ_EXT}, "
                              f"got {y0.shape[0]}")
         d = dict(base)
