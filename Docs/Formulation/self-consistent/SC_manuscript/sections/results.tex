@@ -547,3 +547,270 @@ Avrami kernels of \cref{eq:avrami} are working hardest and are least defensible.
 The conversion spans both, and the ledger of \cref{eq:ledger} closes on stored
 defects to machine precision and on loop number to the integer draw at every one
 of the four doses.
+
+\subsection{Evolution of the loop size distributions}
+\label{sec:results-spectrum}
+
+\subsubsection{What is reconstructed, and from what}
+
+The three moments carried per family close on a log-normal
+(\cref{eq:lognormal}), so the model holds a genuine size distribution at every
+node and not merely a mean. \textbf{Two distributions are in play and they are
+not the same.} At one node the closure gives a log-normal in the defect count
+$m$, with $\bar m=c/n$ and dispersion $\Delta=qn/c^{2}=e^{s^{2}}$. Over the
+crystal the population is the \emph{volume-weighted mixture} of those per-node
+log-normals, and a mixture of log-normals is not log-normal: it is broader than
+any of its components and may be multimodal where the field varies strongly.
+The mixture is the observable one --- it is what a micrograph of a whole
+specimen samples --- and it is what \cref{fig:spectrum-dose} plots.
+
+Working in diameter is exact rather than numerical: if $m$ is log-normal with
+parameters $(\mu,s)$ then $d=2\lambda_k\sqrt m$ is log-normal with
+$(\ln 2\lambda_k+\mu/2,\ s/2)$, so each node contributes a closed-form curve and
+the mixture is accumulated directly on a logarithmic diameter grid. Every
+distribution below is taken from the final state \emph{after} grain-boundary
+absorption, so the removals of \cref{eq:gbloop} are already inside the moments
+being inverted.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/size_spectrum_dose.png}
+\caption{Reconstructed loop size distributions over the whole crystal at
+$10^{-4}$, $10^{-2}$, 1 and 10\,dpa, for the basal faulted family and for one
+prismatic variant of each character; the fourth panel compares the three at
+10\,dpa. The ordinate is the population per unit $\ln d$ per cubic metre and is
+shown over six decades below the peak. The two remaining basal states carry no
+population in this calculation: the pyramid $c_0$ and the perfect state $c_p$
+are fed only by the basal chain, which is switched off because its rates are
+uncalibrated (\cref{sec:immobile}).}
+\label{fig:spectrum-dose}
+\end{figure}
+
+\subsubsection{The distributions are born monodisperse and broaden}
+
+At $10^{-4}\,$dpa every family is a near-delta function: $\Delta=1.001$--$1.003$,
+so $s=0.03$--$0.06$ and the distribution is a spike a few percent wide at the
+nucleation size, $4.6$--$5.5\,$nm. This is not an artifact of the closure but
+its correct statement of the physics --- at that dose every loop present is a
+fresh cascade nucleus deposited at $m^{\mathrm{nuc}}_k$, and there has been no
+time for anything to broaden it.
+
+By $10^{-2}\,$dpa the spike has become a distribution spanning more than a
+decade, and by 1\,dpa the shape has essentially stopped changing:
+\textbf{the 1\,dpa and 10\,dpa curves are nearly coincident in every panel.} The
+population saturates in shape as well as in the aggregates of
+\cref{sec:results-volume}, which is the signature of a balance between
+nucleation, growth and coalescence rather than of a still-developing
+microstructure.
+
+\begin{table}[htbp]
+\caption{Aggregates of the reconstructed distributions. $\bar d$ is the
+content-weighted mean diameter and $\Delta$ the median per-node dispersion;
+$\Delta=1$ is monodisperse and $\Delta=e$ is a distribution one $e$-fold wide in
+$m$. The interior quartile and the boundary shell are the innermost and
+outermost quarters of the crystal by distance to the nearest face.}
+\label{tab:spectrum}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{$\langle c\rangle_f$}
+& \multicolumn{2}{c}{$\langle a\rangle_1$}
+& \multicolumn{2}{c}{$\langle a\rangle_1^{v}$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Dose (dpa) & $\bar d$ (nm) & $\Delta$ & $\bar d$ (nm) & $\Delta$
+           & $\bar d$ (nm) & $\Delta$ \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{whole crystal}}\\
+$10^{-4}$ &  5.51 & 1.002 & 4.64 & 1.001 & 4.78 & 1.001 \\
+$10^{-2}$ & 28.52 & 1.160 & 6.69 & 1.792 & 7.66 & 1.365 \\
+$1$       & 37.52 & 1.145 & 8.50 & 1.994 & 6.06 & 2.011 \\
+$10$      & 37.07 & 1.162 & 8.66 & 1.977 & 5.97 & 2.028 \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{interior quartile}}\\
+$10^{-4}$ &  5.52 & 1.003 &  4.22 & 1.002 & 4.75 & 1.001 \\
+$10^{-2}$ & 28.42 & 1.473 &  6.53 & 1.883 & 5.91 & 1.509 \\
+$1$       & 51.30 & 1.559 & 12.04 & 2.724 & 2.83 & 2.215 \\
+$10$      & 50.62 & 1.585 & 12.11 & 2.705 & 2.84 & 2.175 \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{boundary shell}}\\
+$10^{-4}$ & 5.41 & 1.000 & 5.21 & 1.000 & 4.79 & 1.000 \\
+$10^{-2}$ & 8.65 & 1.000 & 5.60 & 1.000 & 7.06 & 1.000 \\
+$1$       & 6.83 & 1.000 & 6.28 & 1.000 & 6.73 & 1.000 \\
+$10$      & 7.08 & 1.000 & 6.34 & 1.000 & 6.79 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{The width is part spatial and part local, and the split is
+measurable}
+
+\Cref{fig:spectrum-regions} separates the two contributions, and the separation
+is unusually clean.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/size_spectrum_regions.png}
+\caption{The 10\,dpa distribution of each family over the whole crystal (solid),
+its interior quartile (dashed) and its boundary shell (dotted). The shell is
+monodisperse to three decimal places in every family; the interior is broad; the
+whole-crystal spectrum is their mixture, and its multimodality is spatial.}
+\label{fig:spectrum-regions}
+\end{figure}
+
+\textbf{The boundary shell is exactly monodisperse}, $\Delta=1.000$ for every
+family at every dose, and it stays so. That is a physical result and not a
+numerical floor. Both terms that broaden a family in \cref{eq:q-FP} are
+proportional to the absorbed mobile flux --- the drift through
+$\Sigma^{\mathrm{net}}_k$ and the spreading through $\Sigma^{\mathrm{gro}}_k$ ---
+and that flux vanishes where the Dirichlet condition pins the mobile species. In
+the shell, loops are nucleated at one size and are neither fed nor starved, so
+nothing acts on the width. They are also small, $6$--$7\,$nm, because they never
+grow.
+
+\textbf{The interior is broad}, $\Delta=1.59$ for the basal family and
+$2.71$ for the prismatic interstitial one --- the latter a log-normal with
+$s=\sqrt{\ln2.705}=1.00$, a full decade wide at $\pm1\sigma$. A model carrying
+only $n$ and $c$ would represent that population by a single size.
+
+The whole-crystal spectrum is therefore a mixture of a narrow shell peak near
+$7\,$nm and a broad interior distribution centered near $50\,$nm for the basal
+family, and \emph{that} is the origin of the multimodality in
+\cref{fig:spectrum-dose}, not any structure in a local distribution. The
+distinction matters for what happens next: a locally broad population coarsens,
+because its large loops grow at the expense of its small ones; a spatially
+sorted one does not, because its two peaks are not in contact.
+
+\subsubsection{Each variant behaves as the growth conditions predict}
+\label{sec:spectrum-vs-window}
+
+The three families evolve differently, and \cref{sec:coexistence} predicts
+exactly how. With the calibrated bias of \cref{tab:fitted} the thresholds of
+\cref{eq:thresholds} are
+\begin{equation}
+  x_c=\frac{Z^{0}_{I}A_c(p^{i})}{Z^{0}_{V}A_c(p^{v})}=0.625,
+  \qquad
+  x_a=\frac{Z^{0}_{I}A_a(p^{i})}{Z^{0}_{V}A_a(p^{v})}=1.005,
+  \label{eq:measured-thresholds}
+\end{equation}
+so the co-growth window \cref{eq:window} is $0.625<x<1.005$. Evaluating the flux
+ratio \cref{eq:fluxscales} on the interior of this calculation, from the
+diffusion tensors the march actually used and its own mobile fields:
+
+\begin{center}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Dose (dpa) & $x$ (interior) & Predicted \\
+\midrule
+$10^{-4}$ & 0.935 & $\langle c\rangle$ grows, $\langle a\rangle^{i}$ grows,
+                    $\langle a\rangle^{v}$ shrinks \\
+$10^{-2}$ & 0.913 & as above \\
+$1$       & 0.695 & as above \\
+$10$      & 0.711 & as above \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{The operating point sits inside the predicted window at every dose},
+and the three predictions are exactly what \cref{tab:spectrum} shows in the
+interior:
+
+\begin{itemize}[itemsep=3pt]
+\item \textbf{$\langle c\rangle_f$ grows strongly.} Its interior mean diameter
+      rises $5.5\to28.4\to51.3\,$nm and then holds. It is the family the window
+      most favors, since $x$ sits well above $x_c$.
+\item \textbf{$\langle a\rangle_1$ grows and coarsens.} Its interior mean rises
+      $4.2\to6.5\to12.1\,$nm while its interior \emph{count falls} from 43.3 at
+      $10^{-2}\,$dpa to 25.8 at 1\,dpa. Fewer, larger loops holding more content
+      is coalescence, and it is visible in the spectrum as the small end
+      draining into a peak that moves right.
+\item \textbf{$\langle a\rangle_1^{v}$ shrinks.} Its interior mean \emph{falls}
+      $5.9\to2.8\,$nm between $10^{-2}$ and 1\,dpa. It is the one family for
+      which $x<x_a$ places it on the shrinking side, and it is shrinking. Its
+      loops survive at all only because cascade nucleation keeps replacing them.
+\end{itemize}
+
+That three families move in three different directions, in the directions a
+criterion derived independently in \cref{sec:coexistence} specifies, is the
+strongest internal consistency check in this paper. It also demonstrates
+Resolution~1 of \cref{sec:resolution-field} concretely: $x$ is a field, it
+differs between the shell and the interior, and the families sort themselves
+accordingly.
+
+\subsubsection{One node's dispersion runs away, and the closure says why}
+
+Not everything in the reconstruction is well behaved, and the exception is worth
+reporting because it is structural rather than accidental. At 1 and 10\,dpa a
+single node of the 90\,617 --- node 42\,465, at $x=215.0\,$nm, the point of the
+prism \emph{furthest} from any face --- carries $\Delta=2.2\times10^{4}$ and
+$1.0\times10^{4}$ respectively, against a median of 1.16. It is the only node
+above $\Delta=10$ at any dose, and it holds $0.27\%$ of the basal population; it
+is what produces the weak shoulder above $100\,$nm in
+\cref{fig:spectrum-dose}. Every other node stays below $\Delta=3.3$, and
+$99.7\%$ of loops lie below $\Delta=3$.
+
+The mechanism is in \cref{eq:q-FP}. The drift term carries $\Delta_k^{3/8}$ and
+the spreading term $\Delta_k^{-1/8}$, so a family that has already broadened
+broadens \emph{faster} while its spreading is damped: the dispersion is
+self-amplifying through the drift. Everywhere in this calculation that feedback
+is held in check by coalescence and by the finite mobile flux; at the one point
+where the flux is largest and no boundary channel acts, it is not. The remedy is
+not a tolerance --- $\Delta$ never violates $\Delta\ge1$, so no realizability
+test catches it --- but a bound on the drift exponent's effect, and identifying
+one is left as work the closure needs.
+
+\subsubsection{What an annealing simulation would test}
+\label{sec:annealing-outlook}
+
+The natural next experiment on this model is a post-irradiation anneal: switch
+off the source, hold the temperature, and follow the distributions. It is worth
+setting out what the formulation predicts, because \textbf{the model has no
+fitted annealing lifetime} --- the two lifetimes of the mean-field treatment
+were deleted and replaced by peripheral emission against each family's own
+size-dependent binding energy (\cref{app:emission}) --- so an anneal is a
+genuine prediction rather than a fit.
+
+Four expectations follow, and each is falsifiable against standard annealing
+experiments.
+
+\textbf{The flux ratio diverges, and the family ordering inverts.} With the
+source off the interstitial supply collapses first, since interstitials are four
+orders of magnitude more mobile and drain to the sinks within
+$\tau_M\sim(k^{2}D)^{-1}$. So $x=\Phi_V/\Phi_I\to\infty$, which by
+\cref{eq:growconds} places \emph{every} vacancy family on the growing side and
+every interstitial family on the shrinking side. The prismatic interstitial
+loops --- the dominant population at the end of irradiation --- should therefore
+dissolve, while the prismatic vacancy family, which is shrinking under
+irradiation, should reverse. An anneal is the one experiment that reverses the
+sign of the interstitial--vacancy competition without changing a parameter.
+
+\textbf{The small end evaporates and the mean rises.} Once production stops the
+driver is thermal emission, and the binding energy of \cref{eq:Eb} falls with
+loop size, so small loops emit fastest. The distribution should lose its small
+end while its large end persists --- a rise in $\bar d$ accompanied by a fall in
+$N$, which is Ostwald ripening and is what annealing experiments on irradiated
+Zr report. In the moment language, $\dot n<0$ and $\dot c<0$ with
+$|\dot n|/n>|\dot c|/c$, and $\Delta$ falls: \emph{annealing narrows the
+distribution}, where irradiation broadened it.
+
+\textbf{The anneal should be spatially structured, and a $0$-D model cannot
+produce that.} The interior enters the anneal broad ($\Delta=1.6$--$2.7$) and
+the shell monodisperse ($\Delta=1.000$). A distribution with a small end has one
+to evaporate and will coarsen; a monodisperse one has none and can only shrink
+uniformly. The prediction is therefore that the interior coarsens while the
+shell dissolves \emph{en bloc}, and that the two-peak structure of
+\cref{fig:spectrum-regions} collapses toward the large peak. Separately, the
+denuded zone should \emph{widen} with annealing time, because the
+grain-boundary channel of \cref{eq:gbloop} keeps removing whatever grows into
+contact while nothing replaces it.
+
+\textbf{It is the sharpest available test of the closure.} Under irradiation the
+distribution is held near a driven balance and a wrong shape can be masked by a
+right mean. In an anneal the source term is gone, the shape evolves under
+emission alone, and the log-normal ansatz is exposed: if the true distribution
+develops the asymmetric large-size tail that ripening theory gives, a log-normal
+closure will misreport the lifetime of the population even while reproducing its
+initial mean. Comparing an annealed population against the isolated-loop law ---
+which the same binding energy generates for a single loop, and which can be
+integrated independently --- would separate an error in the emission physics
+from an error in the closure. That comparison is the natural companion to the
+present work and requires no new physics, only the source switched off.

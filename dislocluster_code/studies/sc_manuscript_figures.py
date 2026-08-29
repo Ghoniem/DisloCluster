@@ -170,8 +170,28 @@ def copies(verbose=True):
     return out
 
 
+def fig_spectrum(run, verbose=True):
+    """The reconstructed loop size distributions (Sec 8.8).
+
+    Built here rather than copied, because nothing in the march writes them:
+    the spectrum is the closure of `sec:moments` evaluated on the three carried
+    moments, which is a post-processing step and not an output.
+    """
+    from dislocluster_code.post import size_spectrum as SS
+    fams = ("c", "a1", "a1v")
+    d, data = SS.build(run, doses=(1e-4, 1e-2, 1.0, 10.0), slugs=fams,
+                       verbose=verbose)
+    used = sorted({k[1] for k in data})
+    a = SS.render(run, d, data, fams, used, FIGDIR / "size_spectrum_dose.png")
+    b = SS.render_regions(run, used, fams,
+                          FIGDIR / "size_spectrum_regions.png",
+                          verbose=False)
+    return [a, b]
+
+
 BUILDERS = {
     "mesh": fig_mesh,
+    "spectrum": fig_spectrum,
     "mobile": fig_mobile,
     "moments": fig_moments,
     "loops": fig_loops_discrete,
