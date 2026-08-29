@@ -1,1 +1,257 @@
-% placeholder
+\section{Numerical Solution by Operator Splitting}\label{sec:split}
+
+\subsection{Why the coupled system cannot be integrated directly}
+\label{sec:why-split}
+
+The system of \cref{sec:summary-equations} on the mesh of \cref{sec:geometry}
+carries $2\,446\,659$ immobile degrees of freedom and $362\,468$ mobile ones ---
+$2\,809\,127$ in all. Integrated as one coupled stiff system it would be
+hopeless, and it is worth being precise about why, because the numbers that
+follow are easy to misread as a claim that something impossible has been done.
+
+Three properties compound. The system is \emph{stiff}: recombination and
+absorption act on microseconds while the loop populations evolve over
+$10^{7}\,$s, so an explicit integrator is excluded and an implicit one must
+factorize a Jacobian. It is \emph{large}: a dense factorization of the coupled
+Jacobian is $O(N^{3})$ with $N=2\,809\,127$, and sparsity softens but does not
+rescue that --- a three-dimensional finite-element Jacobian still factorizes at
+$\sim O(N^{2})$ with fill growing as $O(N^{4/3})$. And it is \emph{long}: a
+march to 10\,dpa at $10^{-7}\,\mathrm{dpa\,s^{-1}}$ is $10^{8}\,$s of physical
+time, over which an adaptive integrator takes of order $10^{2}$ internal steps
+per unit of the slow dynamics.
+
+The scale separation that makes the problem hard is also what makes it
+tractable. The mobile species recombine, cluster and reach the absorbing
+boundaries on $\tau_M\sim(k^{2}D)^{-1}$, of order microseconds at $573\,$K and
+the sink densities of interest; the immobile families evolve on the dose scale.
+Thirteen decades separate them. On the slow manifold the mobile species are
+\emph{slaved}: writing the mobile block as
+$\dot{\spvec c}_M=\varepsilon^{-1}\mathcal R_M(\spvec c_M;\spvec Q)$ and the
+immobile block as $\dot{\spvec Q}=\bm g(\spvec Q;\spvec c_M)$ with
+$\varepsilon=\tau_M/\tau_Q\ll1$, the singular limit $\varepsilon\to0$ replaces
+the first by the algebraic constraint
+$\mathcal R_M(\spvec c^{\star}_M;\spvec Q)=\bm 0$. This is the
+quasi-steady-state assumption, and the spatial code implements it \emph{exactly}:
+its mobile solver carries no time derivative at all. \Cref{eq:block-mobile} is
+not a discretization of a transient problem taken to large times; it is the
+steady problem itself.
+
+\subsection{Structure of the split}
+\label{sec:split-structure}
+
+The two blocks are advanced by a Lie--Trotter split. Over one dose interval
+$[\gamma_n,\gamma_{n+1}]$ with $\Delta t=(\gamma_{n+1}-\gamma_n)/G$, the scheme
+alternates:
+
+\begin{enumerate}[label=\textbf{S\arabic*.},itemsep=3pt]
+\item \textbf{Mechanics.} Solve the elastic boundary-value problem with the
+      current inelastic deformation for $\bm\sigma_n(\xv)$. Constant in the
+      calculations reported here, and retained for generality.
+\item \textbf{Assemble local coefficients} from the current immobile state
+      $\spvec Q_n(\xv)$ and $\bm\sigma_n$: the diffusion tensors, the
+      efficiencies $Z_{sk,m}$ of \cref{eq:Zsk}, the sink operator of
+      \cref{eq:KM}, the quadratic $\spmat R_2$, the variant weights, and the
+      boundary data.
+\item \textbf{Fast solve} (finite element, Newton, spatially coupled). With
+      $\spvec Q_n$ \emph{fixed}, solve
+      $\mathcal R_M(\spvec c^{\star}_M;\spvec Q_n)=\bm 0$ for the quasi-steady
+      mobile field.
+\item \textbf{Slow march} (pointwise, decoupled). At every node, integrate
+      \cref{eq:block-n,eq:block-c,eq:block-q} over $\Delta t$ with the four
+      mobile values frozen at $\spvec c^{\star}_M$.
+\end{enumerate}
+
+\paragraph{The fast step must be inside the loop.} If the mobile field is
+instead replayed from a previously recorded calculation, the scheme is not an
+operator split at all: $\spvec c_M$ never responds to the immobile state the
+march is building, so a starting state away from quasi-steady state can never
+relax. Any spatially uniform seed is such a state, because it carries no
+boundary layer while the true $\spvec c^{\star}_M(\xv)$ is pinned to thermal
+equilibrium on every Dirichlet face.
+
+\paragraph{Solver settings must be shared across compared routes.} The spatial
+code's default makes the mobile solve a \emph{projected} Newton iteration that
+does not converge on this problem: it caps out at $53.6\%$ error in $c^{i}$.
+The projection is disabled for every route reported here. Left at the default on
+one side only, a route-to-route comparison measures that solver defect rather
+than the physics.
+
+\subsection{The slow step, and why the mobile field must be frozen}
+\label{sec:slow}
+
+With $\spvec c^{\star}_M(\xv)$ held fixed, the immobile equations at different
+nodes are \emph{independent}. This is not an approximation introduced for speed.
+The only thing coupling neighboring points is diffusion of the mobile species,
+and freezing them removes that coupling by construction; a point's immobile
+equations then depend on its own loop populations and on the four mobile values
+pinned into its state, and on nothing else.
+
+The step is implemented by reusing the same stiff integrator with a flag that
+zeroes the four mobile derivatives \emph{after} every reaction term has been
+evaluated, so the immobile equations, the conservation accumulators and $\rho_N$
+all continue to read the mobile values as frozen parameters and nothing is
+dropped. Each node becomes one case of an OpenMP batch integrated concurrently,
+with its own solver workspace, and identical states are deduplicated before
+dispatch --- a measured factor of $1.24$ at the end of the march reported here,
+and considerably higher early on, when much of the domain still shares one
+state.
+
+\paragraph{The integrator is chosen by measurement.} CVODE with backward
+differentiation formulas and a dense linear solver, at
+$\mathrm{rtol}=10^{-6}$, $\mathrm{atol}=10^{-20}$. Against a tight reference,
+BDF with a dense or a full-band solver gives a maximum relative error of
+$3.0\times10^{-4}$; a Krylov solver gives $1.7\times10^{-2}$; and the implicit
+Runge--Kutta tables designed as IMEX pairs fail outright in pure implicit mode,
+by four to seven orders of magnitude. The frozen system is $36$-dimensional, so
+a dense factorization is $\sim1.6\times10^{4}$ flops and there is nothing to
+gain from sparsity.
+
+\subsection{Why of order $10^{6}$ ODEs per substep is tractable}
+\label{sec:cost}
+
+The slow step of the calculation in \cref{sec:results} integrates $3\,262\,212$
+scalar ordinary differential equations per substep and $7.8\times10^{7}$ over
+the march. That is \emph{not} one system of three million equations. It is
+$72\,928$ independent systems of $36$, and the distinction is worth ten orders
+of magnitude:
+
+\begin{center}
+\begin{tabular}{@{}lr@{}}
+\toprule
+one implicit factorization & flops \\
+\midrule
+split, $72\,928\times36^{3}$ & $3.4\times10^{9}$ \\
+coupled, $(90\,617\times31)^{3}$ & $2.2\times10^{19}$ \\
+\midrule
+ratio & $6.5\times10^{9}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Stiffness localizes the same way. Each point's system genuinely is stiff --- of
+order $100$ CVODE internal steps per point per substep, which is why BDF --- but
+stiffness cost scales with the dimension of the coupled \emph{block}, not with
+how many independent blocks there are.
+
+\textbf{The coupling did not vanish; it moved to where it is affordable.} The
+tightly coupled problem still exists: it is the fast solve, $362\,468$ unknowns,
+$4\,\mathrm{m}\,12\,\mathrm{s}$ measured on 24 cores, against
+$1\,\mathrm{m}\,12\,\mathrm{s}$ for an entire slow sweep over all $90\,617$
+points. What the split buys is \emph{frequency}. Because
+\cref{eq:block-mobile} has no time derivative, the coupled problem is solved
+eight times over the march rather than at every timestep. The counterfactual,
+from the same measurements at five Newton iterations per solve and hence
+$\sim50\,$s per linear solve:
+\begin{equation*}
+  \underbrace{100\ \text{internal steps}\times24\ \text{substeps}
+              \div 5\ \text{steps per refactorization}}_{\approx480\ \text{factorizations}}
+  \times\;50\,\mathrm{s}\;\approx\;6.7\,\mathrm{h},
+\end{equation*}
+for the four-species mobile block \emph{alone}, against the $29\,$min the entire
+slow side of the march actually took.
+
+Three things stack, then: freezing the mobile field removes the spatial
+coupling; the coupled part has no time derivative, so it is solved eight times
+rather than thousands; and batch OpenMP with deduplication spreads what is left
+over the available cores. The slow side is linear in node count, as this
+structure predicts.
+
+\subsection{Splitting error and its control}
+\label{sec:splitting}
+
+Freezing $\spvec c^{\star}_M$ over a substep ignores the drift of $\spvec Q$,
+and hence of the sinks, within that substep. This is a first-order Lie--Trotter
+error, $O(\Delta\gamma)$ per step and one-sided: with strengthening sinks the
+loops are slightly over-grown.
+
+\textbf{The accuracy dial is the fast-solve cadence, not the dose-snapshot
+spacing.} The march advances the immobile block in $n_{\mathrm{sub}}$ substeps
+per dose interval and re-solves the mobile field every $n_{\mathrm{fem}}$
+substeps, so the splitting error is first order in the interval between fast
+solves and not in the interval between output snapshots. Two practical notes
+follow, both of which were established by their failure modes. The cadence
+counter must run over the \emph{whole march} and not within an interval:
+counted within an interval, $n_{\mathrm{fem}}$ becomes silently inoperative
+whenever an interval holds fewer substeps than the cadence. And the substep
+count is fixed \emph{per dose interval} rather than by a wall-clock cap on
+$\Delta t$: a 5\,dpa interval at $10^{-7}\,\mathrm{dpa\,s^{-1}}$ is
+$5\times10^{7}\,$s, which a fixed $5\times10^{4}\,$s cap would have split into a
+thousand batch subprocesses.
+
+Three refinements are available and are not used in the calculations reported
+here. A step cap accepts a step only if
+$\max_q\Delta\langle k^{2}\rangle/\langle k^{2}\rangle\le\eta_{\mathrm{split}}$
+and halves $\Delta\gamma$ otherwise. Strang splitting --- half an immobile step,
+a mobile re-solve, half an immobile step --- gives $O(\Delta\gamma^{2})$ for one
+extra fast solve. An in-step Picard iteration between S3 and S4 removes the
+splitting error entirely and is the natural fallback if a regime requires it.
+
+\subsection{Measured cost}
+\label{sec:cost-measured}
+
+\Cref{tab:cost} reports the calculation of \cref{sec:results} on 24 cores. Two
+readings matter. The fast and slow sides cost nearly the same, $52\%$ against
+$45\%$, which is the balance the cadence $n_{\mathrm{fem}}=n_{\mathrm{sub}}=3$
+was chosen to produce: raising the cadence buys accuracy at close to linear cost
+in the fast side alone. And a single point-integration costs
+$994\,\mu\mathrm s$ for $36$ stiff equations over a dose interval, which is what
+makes a million of them per substep an hour of wall clock rather than a week.
+
+\begin{table}[htbp]
+\caption{Measured cost of the 500\,nm hexagonal single-crystal march of
+\cref{sec:results}, on 24 cores. The state carried is 40 wide --- 4 mobile,
+27 immobile, 6 conservation accumulators, the network density, and the two
+grain-boundary accumulators of \cref{sec:gb-loops} --- of which 36 are
+integrated, the four mobile values being held fixed over each substep.}
+\label{tab:cost}
+\centering\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Quantity & Value \\
+\midrule
+CD nodes & 90\,617 \\
+mobile field, 4 species & 362\,468 dof \\
+immobile field, 9 families $\times$ 3 moments & 2\,446\,659 dof \\
+elastic displacement & 271\,851 dof \\
+\midrule
+state carried per point & 40 \\
+integrated per point (= Newton block) & 36 \\
+substeps & 24 \\
+points integrated per substep, after deduplication & 72\,928 of 90\,617 \\
+deduplication factor & $\times1.24$ \\
+point-integrations over the march & 1\,750\,272 \\
+scalar ODEs integrated over the march & $7.8\times10^{7}$ \\
+\midrule
+fast solves ($8\times$ finite-element Newton) & 33\,m\,42\,s \quad(52\%) \\
+slow substeps ($24\times$ batch CVODE) & 29\,m\,00\,s \quad(45\%) \\
+checkpoint writes (32) & 18.2\,s \quad(0.5\%) \\
+\textbf{march total} & \textbf{1\,h\,04\,m\,37\,s} \\
+\midrule
+one fast solve & 4\,m\,12\,s \\
+one slow substep & 1\,m\,12\,s \\
+one point-integration & 994\,$\mu$s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{A point can fail, and where}
+\label{sec:failure}
+
+The pointwise structure makes failure local, which is a diagnostic advantage
+worth stating. On an earlier anisotropic march on this geometry a single node
+failed the immobile integration at one substep, and failed
+\emph{deterministically} --- in the full batch, again when re-run alone, twice,
+across two separate invocations. It sat $51\,b$ from the basal-pole face, inside
+the boundary layer, with entirely unremarkable concentrations: 30th to 50th
+percentile in every mobile species. That location is the diagnosis. Anisotropic
+interstitial diffusion narrows the boundary layer along the $c$ axis and
+steepens its gradient, which puts the point beyond the integrator's reach at
+$\mathrm{rtol}=10^{-6}$.
+
+Retrying such a point alone distinguishes a transient from a real failure and
+costs a handful of cases against tens of thousands, but it does not recover a
+point that fails alone: that needs a solver or a model answer. The available
+fallback substitutes an identity step, freezing the point for that substep; it
+should be understood for what it is, which is declaring the march successful
+without that point rather than solving it. No point failed in the calculation
+reported here.

@@ -1,1 +1,190 @@
-% placeholder
+\section{Capture efficiencies from the diffusion tensor}
+\label{app:woo}
+
+The orientation factors $A_{h}(p)$ of \cref{eq:Afactors} follow from Woo's
+treatment of a dislocation loop as an absorber in an anisotropically diffusing
+medium~\citep{woo1981sink,woo1982intrinsic,woo1988theory}, and in the tensorial
+form given by Po~\citep{po2026tensorialdad} the correction to the sink strength of a loop
+of axis $\bm\alpha$ is
+\begin{equation}
+  \frac{\tr\Dten+\bm\alpha^{T}\Dten\bm\alpha}{4\overline D},
+  \label{eq:tensorialDAD}
+\end{equation}
+which is universal in loop orientation and in the degree of anisotropy. For a
+diagonal tensor with basal components $D_\perp$ and axial component
+$D_\parallel$, and with $p=(D_\parallel/D_\perp)^{1/6}$ and
+$\overline D=(\det\Dten)^{1/3}=D_\perp^{2/3}D_\parallel^{1/3}$,
+\cref{eq:tensorialDAD} evaluates on a basal loop ($\bm\alpha\parallel[0001]$) to
+$A_c(p)=p$ and on a prismatic loop ($\bm\alpha\perp[0001]$) to
+$A_a(p)=(p+p^{-2})/2$.
+
+The two forms differ in a way that has quantitative consequences and is easy to
+overlook. $A_c$ is monotone increasing, so raising the anisotropy of a species
+monotonically raises its capture by basal loops. $A_a$ has a \emph{minimum} at
+$p=2^{1/3}=1.2599$, so raising the anisotropy from $p=1$ first \emph{lowers}
+prismatic capture. A single change in $p^{v}$ therefore moves the two habits in
+opposite directions. Setting $p^{v}=1$ where a fit had placed it at $1.179$
+lowers $Z_{\mathrm{basal}}(v)$ by a factor of $0.848$ while \emph{raising}
+$Z_{\mathrm{prism}}(v)$ by $1.053$ --- starving basal growth and accelerating
+prismatic shrinkage at once. Any statement about the effect of anisotropy that
+does not distinguish the habits is incomplete.
+
+The co-growth condition of \cref{sec:coexistence} follows directly. Both growth
+inequalities in \cref{eq:growconds} reduce to bounds on the single arrival ratio
+$x$, and the window between them has width $g(p^{v})/g(p^{i})$ with
+$g(p)=2/(1+p^{-3})$, strictly increasing --- so the window is open exactly when
+$p^{i}<p^{v}$.
+
+Two limits on this result should be stated. It governs the \emph{absorption}
+flux only: cascade nucleation $G_k$ is added independently and no anisotropy
+affects it, so the criterion does not govern net population evolution. And an
+isotropic calculation is not a zero of the criterion but another parameter
+point, so a ratio taken against one cannot test a statement about signs.
+
+\section{The moment closure, and the three rules that keep it realizable}
+\label{app:moments}
+
+$\Delta_k=q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}\ge1$ is the Cauchy--Schwarz inequality
+on a non-negative measure. A state with $\Delta_k<1$ --- or with $q<0$ outright
+--- is therefore not an inaccurate description of a distribution; it is not the
+moment triple of any distribution. Keeping the triple realizable constrains how
+each channel debits $q$, and three rules cover every channel in the model.
+
+\begin{enumerate}[itemsep=3pt]
+\item \textbf{Nucleation deposits at its declared size:} $J^k_{sL}
+      (m^{\mathrm{nuc}}_k)^{2}$. This is genuine broadening,
+      $J(m^{\mathrm{nuc}}-\bar m)^{2}\ge0$, and it is correct because the channel
+      really does deposit at $m^{\mathrm{nuc}}_k$.
+\item \textbf{The floor current debits at $m_{\min}$:}
+      $-m_{\min}^{2}\Phi^k_{\min}$. This is a genuine statement about the lower
+      tail.
+\item \textbf{Channels with no distribution of their own are
+      shape-preserving:} $\mathrm dq=\Delta_k(2\bar m\,\mathrm dc
+      -\bar m^{2}\mathrm dn)$. Annealing and coalescence carry no size spectrum,
+      so they must not be allowed to imply one.
+\end{enumerate}
+
+\textbf{Rule 3 is where the sign is easily inverted, and the term is the largest
+in the equation.} A coalescing loop does not leave the family --- it
+\emph{merges}. Its defects stay; only the loop--network content is lost; and
+fewer loops holding the same content are \emph{larger} loops. Coalescence
+therefore \emph{raises} $q$. Debiting it by the removed number times
+$\langle m^{2}\rangle$, which is the natural-looking reading, inverts the sign of
+the term that carries $98\%$ of the loop-number loss. The symptom in a
+calculation is not an error but a slow drift: on one nine-family march, $q$
+crossed zero at 1\,dpa and was negative on $40\%$ of the basal nodes at 10\,dpa.
+
+\textbf{The legacy annealing surrogate cannot be made consistent, only avoided.}
+It debits content at a \emph{fixed} size, so the pair $(\mathrm dn,\mathrm dc)$
+it declares corresponds to a removed sub-population of mean $M\ne\bar m$.
+Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
+Cauchy--Schwarz permits for the removed part --- lowers $\Delta_k$ by
+$a(M/\bar m-1)^{2}$ on a narrow family. No debit is realizable, because the
+surrogate is removing loops of a size that is not there. That is an independent
+argument for the peripheral-emission channel of \cref{app:emission}, which
+deletes the fitted lifetimes outright.
+
+The gated channels --- the small-size leak and the grain-boundary removal of
+\cref{eq:gbloop} --- need no rule, because removing the mass of the distribution
+on one side of a threshold leaves a genuine sub-measure and $\Delta_k\ge1$
+survives by construction.
+
+\section{Peripheral emission and the loop binding energy}
+\label{app:emission}
+
+The mean-field model represents loop annealing by two fitted lifetimes, one per
+character. They are replaced here by an emission channel with no fitted rate, in
+which a loop exchanges vacancies across its own perimeter against its own
+equilibrium concentration.
+
+The binding energy of a vacancy to a loop of $m$ defects is the difference of
+the loop self-energies,
+\begin{equation}
+  E^{b}(m)=E^{f}_v+E_L(m-1)-E_L(m),
+  \label{eq:Eb}
+\end{equation}
+with $E_L$ the anisotropic elastic self-energy of a circular loop of radius
+$R=\lambda_k\sqrt m$ plus, for a faulted family, its stacking-fault term:
+\begin{equation}
+  E_L(m)=\frac{\mu\,(\bvec\!\cdot\!\nvec)_k^{2}\,R}{2(1-\nu)}
+         \left[\ln\frac{8R}{r_c}-2\right]
+       + \pi R^{2}\gamma_{\mathrm{sf}}\,\delta_{k,c_f}.
+  \label{eq:EL}
+\end{equation}
+The local equilibrium vacancy concentration at the loop periphery is then
+$c^{v,\mathrm{eq}}_k(m)=c^{v,\mathrm{eq}}\exp\bigl[-E^{b}(m)/k_BT\bigr]$, and the
+emission current is the same capture expression run backwards against it,
+\begin{equation}
+  S^{k}_{vL}=\Pi^k_{sL}\,\overline D^{v}Z_{vk,v}\;
+             c^{v,\mathrm{eq}}_k(\bar m^k_{sL}),
+  \label{eq:Semit}
+\end{equation}
+which enters \cref{eq:master-c} through $\spvec S_{vL}$ and
+\cref{eq:block-c} with the opposite sign.
+
+Three properties recommend this over a fitted lifetime. \emph{One expression
+serves both characters}: the same mechanism shrinks a vacancy loop, by emitting
+the vacancies it holds, and grows an interstitial one, by emitting vacancies that
+recombine with its interstitials, so no separate interstitial-loop annealing
+model is needed. \emph{The climb threshold emerges rather than being imposed}:
+growth requires the arriving flux to exceed \cref{eq:Semit}, which reproduces the
+classical critical radius without it appearing as a parameter. And \emph{it
+removes content, not loops}, which is physically correct --- emission shrinks a
+loop continuously --- but has a consequence that must be recognized: after this
+replacement, coalescence becomes the \emph{only} sink on vacancy loop number.
+That is stated in \cref{sec:conclusions} as the leading open problem, and it is a
+consequence of doing the emission physics correctly rather than an artifact of
+it.
+
+\section{State-vector layout and the conservation accumulators}
+\label{app:state}
+
+The integrated state at each node is a single flat vector whose width depends on
+the model controls. The layout is fixed and every index keeps its meaning as the
+controls add fields:
+
+\begin{center}\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+Indices & Contents & Count \\
+\midrule
+$0$--$3$   & mobile: $c^{v},c^{i},c^{2i},c^{3i}$ & 4 \\
+$4$--$7$   & number of families $0$--$3$ & 4 \\
+$8$--$11$  & content of families $0$--$3$ & 4 \\
+$12$--$17$ & accumulators: production, recombination, sink absorption,
+             each per character & 6 \\
+$18$       & network dislocation density $\rho_N$ & 1 \\
+$19$--$23$ & number of families $4$--$8$ & 5 \\
+$24$--$28$ & content of families $4$--$8$ & 5 \\
+$29$--$37$ & second content $q$ of all nine families & 9 \\
+$38$--$39$ & grain-boundary loop ledger, per character & 2 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Widths are therefore 19 (four families, two moments), 29 (nine families, two
+moments), 38 (nine families, three moments) and 40 with the boundary ledger.
+Two properties of this layout are worth recording because both were established
+by their failure modes.
+
+\textbf{The appended families are appended, not interleaved.} Every index below
+19 means what it meant in the four-family model, so a state written by one
+configuration is readable by another up to its own width. The corollary is that
+a narrower state is always \emph{accepted} by a wider solver, the appended slots
+defaulting to zero --- which is exactly why a mismatch between the width a driver
+allocates and the width the model requires is silent rather than fatal, and why
+the checkpoint fingerprint records the actual width.
+
+\textbf{The block written to the spatial code is ordered the other way.} It is
+moment-major --- all nine numbers, then all nine contents, then all nine $q$ ---
+so the bridge between the two is a scatter and not a copy. Exactly one routine
+knows that mapping; performing it at a call site is what once put an 18-wide
+block into an 8-wide slice.
+
+\textbf{The accumulators are per-interval; the ledger is cumulative.} The six
+conservation accumulators are reset at the start of each dose interval, so a
+stored snapshot holds one interval's production and must be summed to give a
+running total. The two grain-boundary accumulators are never reset and are
+already cumulative. Differencing the wrong one against the wrong other gives a
+channel that appears to carry $6600$ times total production, or none at all,
+depending on which way the error runs.

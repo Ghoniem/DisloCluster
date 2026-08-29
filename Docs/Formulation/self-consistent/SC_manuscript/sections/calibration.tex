@@ -1,1 +1,289 @@
-% placeholder
+\section{Calibration Against Experiment}\label{sec:calibration}
+
+\subsection{Model controls and inputs}
+\label{sec:controls}
+
+The formulation of \cref{sec:formulation} contains several distinct classes of
+input, and confusing them is the most common way to misreport a calibration.
+\Cref{tab:controls} separates them by what a change to each one \emph{does}.
+
+\begin{table}[htbp]
+\caption{Classes of model input, by what a change to each affects. Only the
+last class is calibrated in this work; the model controls select which physics
+is active, the crystallography is measured, and the transport is generated from
+a single anisotropy parameter per species.}
+\label{tab:controls}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}llX@{}}
+\toprule
+Class & Example & What a change does \\
+\midrule
+Model controls & families carried, moments carried, emission model,
+  basal chain on/off, grain-boundary loop channel on/off &
+  Selects which terms of \cref{eq:block-n,eq:block-c,eq:block-q} are
+  integrated at all. Changing one changes the model, not its parameters. \\
+Crystallography & $a$, $c$, $\Omega$, $(\bvec\!\cdot\!\nvec)_k$, $\lambda_k$ &
+  Fixed by measurement (\cref{tab:cd-families}). Not free. \\
+Transport & $p^{m}$, $E^{m}_{\mathrm{eff}}$, $\nu_m$, $z_c$ &
+  Sets both the diffusion tensors (\cref{eq:Emsplit}) and, through them, the
+  orientation factors $A_{h(k)}(p^{m})$ in every capture efficiency. \\
+Elastic and character bias & $Z^{0}_m$, $X_{s,m}$ (through $\chi$), $Z_N$ &
+  The parts of \cref{eq:Zsk} that the diffusion tensors do \emph{not} generate. \\
+Reaction and geometry constants & $\varepsilon_k$, $m^{\mathrm{nuc}}_k$,
+  $c_{LL}$, $c_{LN}$, $\kappa_{LL}$, $\kappa_{LN}$,
+  $\varsigma^{\mathrm{sink}}_k$, $m_{\min}$, $\nu_{\mathrm{vanish}}$,
+  $m_{\mathrm{vanish}}$ &
+  Nucleation, coalescence, sink prefactors, and the small-size floor. This is
+  the calibrated set. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Experimental targets}
+\label{sec:targets}
+
+The calibration data are transmission-electron-microscope measurements of loop
+number density and mean diameter in neutron-irradiated Zr and its alloys,
+collected across twelve temperatures and four decades of dose
+(\cref{tab:targets}). They divide sharply, and the division is a constraint on
+what the calibration can determine.
+
+\begin{table}[htbp]
+\caption{Experimental targets. The two families are measured under very
+different coverage: 71 \aloop{} densities across twelve temperatures and four
+decades of dose against five \cloop{} points at two temperatures and only above
+14\,dpa. \textbf{Nothing in the data constrains the basal population below
+14\,dpa}, while the model places resolvable \cloop{} loops from
+$10^{-2}\,$dpa; that extrapolation is unconstrained and is revisited in
+\cref{sec:conclusions}. The high-temperature \aloop{} diameters
+($T\ge650\,$K) are excluded because they are vacancy loops, which the reported
+measurements do not separate from the interstitial population.}
+\label{tab:targets}
+\centering\small
+\begin{tabular}{@{}lccccl@{}}
+\toprule
+Set & Points & $T$ (K) & Dose (dpa) & $N$ / $d$ given & Sources \\
+\midrule
+\aloop{} & 73 & 473--723 & 0.0067--24.5 & 71 / 64 (44 used) &
+  Jostsons 1977, Northwood 1974/1976/1977/1979, \\
+ & & & & & Gilbert 1979, Harte 2017, Kobylyansky 2008 \\
+\cloop{} & 5 & 573--583 & 14--35 & 5 / 5 &
+  Tournadre 2012, Harte 2017 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The objective, and the sense in which it is a posterior mode}
+\label{sec:objective}
+
+Let $\bm\theta$ be the calibrated parameters of \cref{tab:controls} and
+$\mathbf y_{\exp}$ the measurements of \cref{tab:targets}. The estimator used
+here minimizes
+\begin{equation}
+  J(\bm\theta)
+  = \sum_{f\in\{A,C\}} w_f
+    \left[
+      \frac{1}{|\mathcal N_f|}\!\!\sum_{r\in\mathcal N_f}\!\!
+        \left(\log_{10}\frac{N_r(\bm\theta)}{N_r^{\exp}}\right)^{2}
+      +\frac{1}{|\mathcal D_f|}\!\!\sum_{r\in\mathcal D_f}\!\!
+        \left(\log_{10}\frac{d_r(\bm\theta)}{d_r^{\exp}}\right)^{2}
+    \right]
+    \;+\;J_{\mathrm{os}}(\bm\theta),
+  \label{eq:objective}
+\end{equation}
+with $J_{\mathrm{os}}$ a penalty on non-monotonic dose response. This is
+\emph{not} an arbitrary least-squares choice; it is the maximum \emph{a
+posteriori} estimator under a stated model of the data. Taking the measurement
+errors to be log-normal --- which is the right family for a quantity spanning
+four decades and reported as an order of magnitude plus a factor --- with
+$\log_{10}N_r^{\exp}\sim\mathcal N(\log_{10}N_r(\bm\theta),\sigma_f^{2})$, and
+taking $p(\bm\theta)$ uniform on the bounded box of physically admissible
+values, Bayes' rule gives
+\begin{equation}
+  -\log p(\bm\theta\mid\mathbf y_{\exp})
+  = \mathrm{const} + \sum_{f,r}\frac{1}{2\sigma^{2}_{f}}
+      \left(\log_{10}\frac{y_r(\bm\theta)}{y_r^{\exp}}\right)^{2}
+    \;-\;\log p(\bm\theta),
+  \label{eq:posterior}
+\end{equation}
+so that minimizing \cref{eq:objective} over the box is exactly maximizing
+\cref{eq:posterior}, with $w_f\propto\sigma_f^{-2}$ and $-\log p(\bm\theta)$
+flat inside the box and infinite outside. The reported parameter set is
+therefore a MAP point, and the weights $w_f$ are an explicit statement about the
+relative credibility of the two data sets rather than a tuning knob.
+
+\textbf{The logarithmic form matters and was not the original choice.} An
+absolute-ratio residual $(d-d^{\exp})/d^{\exp}$ is bounded below by $-1$ and
+unbounded above, so it penalizes a model that is a factor of two \emph{high}
+four times as heavily as one that is a factor of two \emph{low}. Against a
+diameter the model systematically underpredicts, that asymmetry rewards
+shrinking. \Cref{eq:objective} is symmetric under inversion of the ratio, which
+is the property a ratio of two positive quantities should have.
+
+\paragraph{What has \emph{not} been done.} No posterior has been sampled. The
+full Bayesian pipeline this framing points at --- a space-filling design
+screened by variance-based global sensitivity analysis, a Gaussian-process
+emulator trained on it to stand in for the solver, and Markov-chain sampling of
+\cref{eq:posterior} on the emulator --- is tractable here, because one
+evaluation of \cref{eq:objective} costs 0.2--0.5\,s over the thirteen
+temperatures and 78 points, but it has not been run. Everything reported below
+is a point estimate, and no credible interval accompanies it.
+
+\subsection{The search}
+\label{sec:search}
+
+The parameters were fitted in stages, each stage a bounded Nelder--Mead search
+over a subset, with the full set polished jointly at the end:
+\cloop{} nucleation and the small-size floor; the bias; \cloop{} removal;
+the \aloop{} side; then the joint polish. Staging is a practical response to a
+strongly anisotropic objective and not a claim about identifiability. A
+screening pass over the 26 candidate parameters found nine of them inert in this
+formulation --- a change over their whole admissible range moved $J$ by less
+than the convergence tolerance --- and those were held fixed.
+
+\subsection{Result}
+\label{sec:calibrated-set}
+
+\Cref{tab:fitted} lists the calibrated set. Agreement is summarized as the mean
+and standard deviation of $\log_{10}(\text{model}/\text{experiment})$, where a
+mean of zero is unbiased and $+0.3$ is a factor of two high:
+
+\begin{center}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Quantity & mean & s.d. & points \\
+\midrule
+\aloop{} density  & $-0.208$ & 0.574 & 71 \\
+\aloop{} diameter & $-0.132$ & 0.188 & 44 \\
+\cloop{} density  & $-0.003$ & 0.219 & 5 \\
+\cloop{} diameter & $-0.001$ & 0.096 & 5 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\Cref{fig:fit-A,fig:fit-C} show the fit against the measurements, and
+\cref{fig:parity} the parity plot over all 78 points.
+
+\textbf{The \cloop{} agreement is not evidence of a well-determined basal model.}
+Five points at two temperatures, all above 14\,dpa, are fitted by four
+parameters. The near-zero means in the last two rows say the fit reproduces those
+five points, which is close to a statement about the number of degrees of
+freedom. The \aloop{} row is the informative one: 71 points across twelve
+temperatures reproduced with a scatter of a factor of $10^{0.574}=3.7$, which is
+comparable to the spread among the measurements themselves.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/fit_A_density.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/fit_A_diameter.png}
+\end{minipage}
+\caption{Prismatic \aloop{} loops: model against experiment for number density
+(left) and mean diameter (right), by temperature. 71 density and 44 diameter
+points; the high-temperature diameters are excluded as vacancy loops.}
+\label{fig:fit-A}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/fit_C_density.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/fit_C_diameter.png}
+\end{minipage}
+\caption{Basal \cloop{} loops, against the five available measurements. Every
+point lies above 14\,dpa; the dose axis below that carries no data, and the
+model's behavior there is extrapolation.}
+\label{fig:fit-C}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.62\textwidth]{figures/fit_parity.png}
+\caption{Parity plot over all 78 measurements. The diagonal is exact agreement
+and the dotted lines a factor of three.}
+\label{fig:parity}
+\end{figure}
+
+\begin{table}[htbp]
+\caption{The calibrated parameter set. Values marked $^{\dagger}$ rest on a
+bound of the admissible box and are therefore constraints rather than optima:
+the search wanted to go further and the box stopped it. See
+\cref{sec:bias-caveat}.}
+\label{tab:fitted}
+\centering\small
+\begin{tabular}{@{}lr@{\qquad}lr@{\qquad}lr@{}}
+\toprule
+Parameter & Value & Parameter & Value & Parameter & Value \\
+\midrule
+$E^{a}_{vL}$ (eV)   & 0.4701 & $c_{LL}^{a}$      & 120.58  & $\varepsilon_{2i}$ & 0.0100 \\
+$E^{b}_{2i}$ (eV)   & 0.9570 & $c_{LL}^{c}$      & 2.0402  & $\varepsilon_{3i}$ & 0.0100 \\
+$E^{m}_{2i}$ (eV)   & 1.3629 & $c_{LN}^{a}$      & 1130.85 & $\varepsilon_{iL}$ & 0.002113 \\
+$E^{m}_{i}$ (eV)    & 0.7591 & $c_{LN}^{c}$      & 1.6720  & $\varepsilon_{vL}$ & 0.006111 \\
+$Q$                 & 0.2879 & $c_{\rho_N}$      & 0.0010  & $\kappa_{LL}$      & 2.0000 \\
+$Z_N$               & 1.0100 & $k_{\rho_N}^{\mathrm{rec}}$ & $3.5\times10^{-5}$ & $\kappa_{LN}$ & 0.4000 \\
+$Z_{iL}$            & 1.3441 & $\chi$            & 1.0000  & $m^{\mathrm{nuc}}_{a}$ & 300.00 \\
+$Z_{vL}$            & 1.0200 & $m_{\min}$        & 1.0000$^{\dagger}$ & $m^{\mathrm{nuc}}_{c}$ & 248.77 \\
+$Z_{v,c}$           & 1.1079 & $m_{\mathrm{vanish}}$ & 10.00$^{\dagger}$ & $\tau_{vL0}$ & 1.0514 \\
+$Z^{0}_{v}$         & 1.3000$^{\dagger}$ & $\nu_{\mathrm{vanish}}$ & 0.0010$^{\dagger}$ &
+  $\varsigma^{\mathrm{sink}}_{c}$ & 0.7726 \\
+$Z^{0}_{i}$         & 1.3000$^{\dagger}$ & $p^{v}$ & 1.6000$^{\dagger}$ &
+  $p^{i}$ & 1.0000$^{\dagger}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Four parameters rest on their bounds}
+\label{sec:bias-caveat}
+
+\textbf{A lever on its bound is not a fitted value.} Of the calibrated set, the
+four bias parameters and the three small-size-floor parameters sit exactly on
+the edge of the admissible box, which means the data wanted to push them further
+and the box stopped them. The number to check is what the fitted anisotropy
+implies for the diffusion tensor. From \cref{eq:pm},
+\begin{equation}
+  \frac{D^{v}_{\parallel}}{D^{v}_{\mathrm{basal}}}=\bigl(p^{v}\bigr)^{6}=16.8,
+  \qquad
+  \frac{D^{i}_{\parallel}}{D^{i}_{\mathrm{basal}}}=\bigl(p^{i}\bigr)^{6}=1.00 .
+  \label{eq:Dratio}
+\end{equation}
+\emph{That is a strong claim about vacancy transport in $\alpha$-Zr, and it is
+not one the data in \cref{tab:targets} can support.} It is what the loop
+densities and diameters prefer, at a ceiling of $p^{v}=1.6$ chosen so the
+implied ratio remains within an order of magnitude of what is reported
+atomistically; released, the search continues in the same direction. The
+resulting efficiencies are
+\begin{equation*}
+  Z_{\mathrm{basal}}(v)=2.080,\quad Z_{\mathrm{basal}}(i)=1.300,\quad
+  Z_{\mathrm{prism}}(i)=1.300,\quad Z_{\mathrm{prism}}(v)=1.294,
+\end{equation*}
+which satisfy the co-growth criterion of \cref{sec:coexistence}
+($p^{i}=1.00<1.60=p^{v}$) but do so at an anisotropy no independent measurement
+has been produced for.
+
+Two readings follow, and they should be kept apart. As a \emph{prediction}, the
+calibrated model reproduces four decades of \aloop{} data and is used as such in
+\cref{sec:results}. As an \emph{inference about transport}, \cref{eq:Dratio} is
+the strongest signal in this work that a channel is missing rather than
+mis-parameterized: a fit that must go to the edge of physical plausibility in one
+parameter to reproduce a diameter is telling us something about the model, and
+the diagnosis is taken up in \cref{sec:conclusions}. Independent constraints on
+$p^{v}$ from atomistics --- which \cref{eq:Emsplit} would accept directly, since
+$p^{m}$ is the only anisotropy the model has --- would settle it, and would turn
+the four $^{\dagger}$ entries of \cref{tab:fitted} from constraints into fixed
+inputs.
+
+\paragraph{Two further caveats on the transfer of this set to
+\cref{sec:results}.} First, the fit is a $0$-D fit: it is the march's slow step
+term for term --- one templated function, the same binary, the same switches,
+differing only in whether the mobile species are frozen --- so the parameters
+transfer exactly. What does not transfer is everything the $0$-D cannot see: in
+the $0$-D the vacancy pool is free and re-equilibrates, where the march pins it
+to the fast solve, and the two need not move a given quantity in the same
+direction. Second, \textbf{the fit carries no grain-boundary loop channel},
+because the $0$-D has no boundary; the calculation of \cref{sec:results} does.
+The parameters and that calculation are therefore not strictly a matched pair,
+and \cref{sec:results-volume} reports what the mismatch costs.
