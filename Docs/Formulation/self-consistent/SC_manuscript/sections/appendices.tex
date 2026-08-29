@@ -64,8 +64,8 @@ each channel debits $q$, and three rules cover every channel in the model.
       so they must not be allowed to imply one.
 \end{enumerate}
 
-\textbf{Rule 3 is where the sign is easily inverted, and the term is the largest
-in the equation.} A coalescing loop does not leave the family --- it
+Rule 3 is where the sign is easily inverted, and the term is the largest
+in the equation. A coalescing loop does not leave the family --- it
 \emph{merges}. Its defects stay; only the loop--network content is lost; and
 fewer loops holding the same content are \emph{larger} loops. Coalescence
 therefore \emph{raises} $q$. Debiting it by the removed number times
@@ -74,7 +74,7 @@ the term that carries $98\%$ of the loop-number loss. The symptom in a
 calculation is not an error but a slow drift: on one nine-family march, $q$
 crossed zero at 1\,dpa and was negative on $40\%$ of the basal nodes at 10\,dpa.
 
-\textbf{The legacy annealing surrogate cannot be made consistent, only avoided.}
+The legacy annealing surrogate cannot be made consistent, only avoided.
 It debits content at a \emph{fixed} size, so the pair $(\mathrm dn,\mathrm dc)$
 it declares corresponds to a removed sub-population of mean $M\ne\bar m$.
 Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
@@ -167,7 +167,7 @@ moments), 38 (nine families, three moments) and 40 with the boundary ledger.
 Two properties of this layout are worth recording because both were established
 by their failure modes.
 
-\textbf{The appended families are appended, not interleaved.} Every index below
+The appended families are appended, not interleaved. Every index below
 19 means what it meant in the four-family model, so a state written by one
 configuration is readable by another up to its own width. The corollary is that
 a narrower state is always \emph{accepted} by a wider solver, the appended slots
@@ -175,13 +175,13 @@ defaulting to zero --- which is exactly why a mismatch between the width a drive
 allocates and the width the model requires is silent rather than fatal, and why
 the checkpoint fingerprint records the actual width.
 
-\textbf{The block written to the spatial code is ordered the other way.} It is
+The block written to the spatial code is ordered the other way. It is
 moment-major --- all nine numbers, then all nine contents, then all nine $q$ ---
 so the bridge between the two is a scatter and not a copy. Exactly one routine
 knows that mapping; performing it at a call site is what once put an 18-wide
 block into an 8-wide slice.
 
-\textbf{The accumulators are per-interval; the ledger is cumulative.} The six
+The accumulators are per-interval; the ledger is cumulative. The six
 conservation accumulators are reset at the start of each dose interval, so a
 stored snapshot holds one interval's production and must be summed to give a
 running total. The two grain-boundary accumulators are never reset and are

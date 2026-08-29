@@ -102,21 +102,22 @@ decision:
       difference is quantified rather than forced to zero.
 \end{enumerate}
 
-\textbf{Only the eight loop families convert.} The stacking-fault pyramid has no
+Only the eight loop families convert. The stacking-fault pyramid has no
 Burgers vector and no line, so it has no discrete representation in a
 dislocation code at all; it stays in the continuum across every transfer, and a
 conversion that folded its content into $c_f$ would report basal vacancies as
 dislocation content the solver would then be free to move.
 
-\paragraph{Nodal volumes.} The fields are known at nodes that are not uniformly
-spaced, so each node must be given the volume of material it stands for. A
+The conversion proceeds in four steps. The fields are known at nodes that are
+not uniformly spaced, so each node must be given the volume of material it stands for. A
 restricted Voronoi tessellation supplies it, restricted in the sense that sample
 points falling outside the crystal are rejected rather than charged to the
 nearest boundary node. On a hexagonal prism the bounding box is $4/3$ of the
 crystal, so using the box would over-count the population by a third and scatter
 loops through six empty wedges outside the outline.
 
-\paragraph{Counts.} The expected number of loops of family $(s,k)$ at node $j$ is
+With a volume attached to each node, the expected number of loops of family
+$(s,k)$ at node $j$ follows as
 \begin{equation}
   \lambda^k_{sj}=\frac{n^k_{sL}(\xv_j)}{\Omega}\,V_j,
   \qquad
@@ -133,7 +134,7 @@ than drawing a Poisson total is deliberate: a Poisson total has
 $\operatorname{Var}=\Lambda$, and a dose sweep whose loop count fluctuates by
 $\sqrt\Lambda$ between snapshots is dominated by counting noise.
 
-\paragraph{Sizes.} Each loop's size is drawn from its home node's own log-normal
+Each loop's size is then drawn from its home node's own log-normal
 \cref{eq:lognormal}, not set to the node mean. With two moments there was no
 distribution to draw from and every loop at a node was identical, so the exported
 population was monodisperse by construction --- visible immediately in any size
@@ -141,7 +142,7 @@ histogram. The sample is then rescaled so that $\sum_\ell m_\ell$ matches the
 continuum content exactly, which is requirement~1 above; the rescaling removes
 the rounding, and the residual is at the level of machine precision.
 
-\paragraph{Geometry.} A loop of family $k$ becomes a polygon on its habit plane,
+Geometry closes the construction. A loop of family $k$ becomes a polygon on its habit plane,
 of an area matching $\pi R^{2}$ rather than of that circumradius --- a regular
 $n$-gon inscribed in a circle of radius $R$ has area
 $(n/2)R^{2}\sin(2\pi/n)$, which for a hexagon is only $82.7\%$ of the disc, and
@@ -149,10 +150,10 @@ it is the stored content that must match. Its outline is elliptical with axis
 ratio set by the anisotropy, and its center is placed by rejection sampling
 inside the crystal.
 
-\paragraph{What the domain refuses.} A discrete-dislocation solver silently
+What the domain refuses. A discrete-dislocation solver silently
 declines a loop whose nodes leave the grain, so the conversion must predict that
-decision and keep the refused share in the continuum. \textbf{The share must be
-counted in defects, not in loops}: on one measured transfer, one refusal in six
+decision and keep the refused share in the continuum. The share must be
+counted in defects, not in loops: on one measured transfer, one refusal in six
 was $83\%$ by count and $98\%$ by stored defects. On the geometry of
 \cref{sec:results} the basal population becomes effectively infeasible to
 transfer above $\sim0.1\,$dpa, because a \cloop{} loop of mean radius $25\,$nm
@@ -165,14 +166,14 @@ reports the measured fraction.
 A grain boundary absorbs mobile point defects and it absorbs dislocation loops,
 and the two require different treatments because the objects differ in kind.
 
-\paragraph{Mobile species: a Dirichlet condition.} \Cref{eq:bc} pins the mobile
+Mobile species: a Dirichlet condition. \Cref{eq:bc} pins the mobile
 concentrations at thermal equilibrium on the boundary. Absorption is then a flux,
 $-\bm D^{x}\nabla c^{x}\!\cdot\!\bm n$, and the depleted layer in front of the
 boundary is solved for. Nothing about this is parameterized: the layer width
 follows from the local diffusivity and the local sink density, differs between
 species, and evolves through the transient.
 
-\paragraph{Immobile loops: a size-gated removal.} A loop cannot be given a
+Immobile loops: a size-gated removal. A loop cannot be given a
 boundary condition, because it is not transported --- it has no flux to set. What
 it has is a \emph{size}, and a loop of radius $R^k=\lambda_k\sqrt m$ centered a
 distance $x$ from the nearest face intersects that face when
@@ -205,13 +206,13 @@ essentially instantaneously and the width of the denuded zone is a
 
 Three properties of \cref{eq:gbloop} are worth stating explicitly.
 
-\textbf{It is automatically realizable.} What remains after removing the mass
+It is automatically realizable. What remains after removing the mass
 above a threshold is a genuine sub-measure of the original distribution, so
 $\Delta_k\ge1$ continues to hold by construction. No channel written this way
 can drive the moment triple out of the region where it is the moment triple of
 something.
 
-\textbf{The defects do not return to the pool.} This is the whole difference
+The defects do not return to the pool. This is the whole difference
 between \cref{eq:gbloop} and the dissolution channel, which credits the freed
 vacancies back to $\spvec c_M$. A loop swallowed by a free surface takes its
 defects out of the crystal, so \cref{eq:gbloop} is booked to a grain-boundary
@@ -219,7 +220,7 @@ ledger and to nothing else. Adding it to the dissolution term as well would
 return the atoms twice, once to the pool and once to the boundary --- and the
 symptom would be a conservation residual of the wrong sign rather than an error.
 
-\textbf{The distribution must be truncated at the crystal.} The log-normal has
+The distribution must be truncated at the crystal. The log-normal has
 unbounded support and the crystal does not, so without a cap the far tail of
 \cref{eq:lognormal} contains loops larger than the grain, and \cref{eq:mgb}
 faithfully absorbs them at every distance --- reporting absorption at the center
@@ -269,7 +270,7 @@ achieved by removing an inconsistency in the \cloop{} Burgers vector between the
 two sides --- the continuum sizing a basal loop with the full $[0001]$ where the
 discrete side used $\tfrac12[0001]$ --- and not by tuning anything.
 
-\textbf{A transfer is all-or-nothing per family.} The continuum carries one mean
+A transfer is all-or-nothing per family. The continuum carries one mean
 size per family per node, so a size-selective transfer is not representable:
 there is no spectrum to split. More importantly, a family that is discrete
 \emph{and} still present in the continuum is a sink twice over --- once through

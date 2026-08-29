@@ -25,16 +25,17 @@ node, and is not solvable as written for the size ranges of interest.
 Two reductions bring it to the system integrated here, and they cut in different
 directions.
 
-\paragraph{Mobile species: truncate the ladder.} Only the monomers and the
-smallest interstitial clusters migrate. The mobile set is closed at
+The first truncates the mobile ladder. Only the monomers and the smallest
+interstitial clusters migrate. The mobile set is closed at
 $\spvec{m}_M=[-1,+1,+2,+3]^{T}$ --- monovacancy, mono-, di- and tri-interstitial
 --- with the signed entries $m^k$ carrying the polarity
 $p^k=m^k/|m^k|$. Everything larger is immobile and is carried by the second
 reduction. The mobile block retains its spatial derivative, because transport is
 what it is for.
 
-\paragraph{Immobile families: truncate the moments, keep the variants.} For the
-immobile families the ladder in $n$ is replaced by the first three moments of
+The second truncates the immobile ladder in a different variable, keeping the
+variants and giving up the size resolution. For each family the ladder in $n$
+is replaced by the first three moments of
 the size distribution of each family in \cref{eq:families},
 \begin{equation}
   n^k_{sL}=\!\int\! f_k\,\mathrm{d}m,
@@ -126,8 +127,8 @@ be counted once as a network sink and once as loop growth. The middle term of
 through a compact capture cross-section instead; \cref{eq:Pi-identity} below
 shows that a cross-section is the only thing either side ever asks of a family.
 
-\paragraph{Boundary conditions.} On a free surface or a grain boundary the
-mobile species are pinned at thermal equilibrium,
+The block is closed by its boundary conditions. On a free surface or a grain
+boundary the mobile species are pinned at thermal equilibrium,
 \begin{equation}
   c^{v}=c^{v,\mathrm{eq}}=\exp(-E^{f}_v/k_BT),
   \qquad
@@ -161,8 +162,8 @@ diffusivity,
 \end{equation}
 so that the orientation-averaged diffusivity
 $\overline D^{m}=(\det\bm D^{m})^{1/3}$ is exactly the scalar $D_m$ of the
-mean-field kinetics. \textbf{No mobility is redefined by the anisotropy --- only
-its directional weighting.} This is the technical device that makes the
+mean-field kinetics. No mobility is redefined by the anisotropy --- only
+its directional weighting. This is the technical device that makes the
 formulation self-consistent: \cref{eq:pm,eq:Emsplit} are a change of variable in
 which $p^{m}$ is the only anisotropy the model has, and \cref{sec:efficiencies}
 uses that same $p^{m}$ and no other parameter.
@@ -199,7 +200,7 @@ from a vacancy loop of the same habit~\citep{marchrico2023,marchrico2025}; the
 coexistence window it opens has log-width $\ln\chi$ with
 $\chi=X_{iI}X_{vV}/(X_{iV}X_{vI})$.
 
-\textbf{\Cref{eq:Zsk} contains no free bias.} $A_{h(k)}$ is built from the same
+\Cref{eq:Zsk} contains no free bias. $A_{h(k)}$ is built from the same
 $p^{m}$ that \cref{eq:Emsplit} puts into the diffusion tensors, so a change in
 the transport anisotropy moves the growth laws and the sink strengths of
 \cref{eq:KL} together. The two remaining constants, $Z^{0}_m$ and $X_{s,m}$, are
@@ -300,23 +301,23 @@ $x_c\approx1.0<x<x_a\approx1.2$.
 
 Three things are worth separating here, because they are routinely conflated.
 
-\textbf{The elastic bias opens nothing.} $Z^{0}_{I}/Z^{0}_{V}>1$ multiplies
+The elastic bias opens nothing. $Z^{0}_{I}/Z^{0}_{V}>1$ multiplies
 \emph{both} thresholds in \cref{eq:thresholds} and so shifts them together; it
 cancels from the width in \cref{eq:window} entirely. It does narrow the
 prismatic-interstitial/basal-vacancy window in a practical sense, by pushing
 $x_c$ toward unity, but it cannot create an interval where none exists.
 
-\textbf{What positions $x$ inside the window is the production bias.} The
+What positions $x$ inside the window is the production bias. The
 excess of freely migrating vacancies left when more of the interstitial yield is
 locked into in-cascade clusters, $\eta=\varepsilon_V/\varepsilon_I\gtrsim1$,
 sets where in $(x_c,x_a)$ the operating point sits; a $0$--$20\%$ excess
-suffices. \textbf{Neither substitutes for the other.} DAD opens the interval and
+suffices. Neither substitutes for the other. DAD opens the interval and
 the production bias places the point inside it: at $p^{i}=p^{v}$ the thresholds
 coincide and no value of $\eta$ can satisfy both conditions at once, while with
 the window open but $\eta$ badly placed the model simply grows one family and
 dissolves the other.
 
-\textbf{DAD is degenerate in character, and that is where it stops.}
+DAD is degenerate in character, and that is where it stops.
 \Cref{eq:Zsk} assigns one orientation factor $A_{h(k)}(p^{m})$ to every family
 sharing a habit, so the interstitial and the vacancy prismatic variants receive
 the \emph{same} pair of efficiencies and hence the same threshold,
@@ -354,8 +355,8 @@ the prismatic threshold. \Cref{sec:results-mobile} measures exactly this
 structure: boundary layers of $8$--$46\,$nm that differ by species, so $x$
 varies systematically across them.
 
-\textbf{This mechanism costs nothing to include: a spatially resolved
-formulation carries $x(\xv,t)$ natively and does not have to be told to.} Its
+This mechanism costs nothing to include: a spatially resolved
+formulation carries $x(\xv,t)$ natively and does not have to be told to. Its
 limitation is equally plain. It leaves $Z_{a_kI,\cdot}=Z_{a_kV,\cdot}$ intact
 and buys coexistence by declining to evaluate the two growth conditions at the
 same point of space and time, so it predicts \emph{segregated} coexistence and
@@ -379,7 +380,7 @@ the same for all loops and enlarge every reaction volume without separating
 characters; \emph{thermal-drift} radii do separate them, because the dilatational
 field of an interstitial loop attracts interstitials over a longer range than it
 attracts vacancies, and conversely for a vacancy loop. The result is a
-\textbf{same-type capture bias}, carried in \cref{eq:Zsk} by the factor
+same-type capture bias, carried in \cref{eq:Zsk} by the factor
 $X_{s,m}$. Defining the character-splitting factor
 \begin{equation}
   \chi\equiv
@@ -401,13 +402,13 @@ one.
 \subsubsection{Two ingredients that are not optional}
 \label{sec:not-optional}
 
-\textbf{In-cascade vacancy clustering supplies the embryos.} Without them the
+In-cascade vacancy clustering supplies the embryos. Without them the
 capture bias has nothing to act on: homogeneous nucleation of a vacancy loop
 against the prevailing interstitial bias is prohibitively slow. It is the
 \emph{same} clustering asymmetry that generates the production bias $\eta$, so
 the two must not be fitted as independent inputs.
 
-\textbf{Cascade overlap reduces the effective generation rate with dose,}
+Cascade overlap reduces the effective generation rate with dose,
 $\tilde g(\gamma)=\varepsilon(\gamma)g$, saturating over $0.01$--$0.1\,$dpa to a
 small residual fraction. This is what lets coarsening rather than unbounded
 nucleation dominate at high dose. Applied as a single scalar to both species it
@@ -495,7 +496,7 @@ Three requirements follow, and together they are the content of
       examined (\cref{tab:conservation}).
 \end{enumerate}
 
-\paragraph{Two cautions, so that neither is later mistaken for a prediction.}
+Two cautions, so that neither is later mistaken for a prediction.
 The thermal-drift radii behind \cref{eq:chi} scale as $(T_m/T)^{m_d}$ with
 $T_m=2128\,$K, so with $m_d>0$ the same-type bias, and hence $\chi$, is
 \emph{strongest at low temperature} --- while the observed vacancy \aloop{}
@@ -515,7 +516,8 @@ present parameter set exercises Resolution~1 and not Resolution~2.
 \subsection{The immobile block}
 \label{sec:immobile}
 
-\paragraph{Growth.} All nine families obey one growth law, in which the stored
+The block has five channels, and they are given in turn. All nine families
+obey one growth law, in which the stored
 content changes under the net biased flux of the correct sign:
 \begin{equation}
   \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
@@ -547,14 +549,15 @@ it presents, and the pyramid supplies that cross-section as
 $\Pi^{c_0}_{vL}=\varsigma^{\mathrm{sink}}_{c_0}\alpha_{\mathrm{sfp}}
 R^{c_0}_{vL}n^{c_0}_{vL}/2\ell$.
 
-\paragraph{Nucleation.} Cascade production deposits directly into the immobile
+Nucleation is the second channel. Cascade production deposits directly into the immobile
 families at a rate $G_k=G\,\epsilon_k$ per family, each new cluster carrying
 $m^{\mathrm{nuc}}_k$ defects, so that
 $\dot n^k_{sL}|_{\mathrm{nuc}}=J^k_{sL}=G_k/m^{\mathrm{nuc}}_k$ and
 $\dot c^k_{sL}|_{\mathrm{nuc}}=G_k$. The partition $\epsilon_k$ and the
 nucleation sizes are calibrated quantities.
 
-\paragraph{Coalescence.} Loops are removed by overlap with other loops and with
+The third channel removes loops rather than feeding them. Loops are lost by
+overlap with other loops and with
 the network. With $N=n/\Omega$, $R=\lambda\sqrt{c/n}$, and the radii capped at
 the relevant spacing ($R_{LL}=\min(R,(\Omega/n)^{1/3})$,
 $R_{LN}=\min(R,\rho_N^{-1/2})$), the Avrami overlap probabilities and rate
@@ -587,7 +590,7 @@ and $\varphi_{LL}\to1$ is the model's own statement that its mean-field
 treatment of coalescence has expired --- the detector used in
 \cref{sec:coarsening}.
 
-\paragraph{Emission.} Vacancy loops exchange vacancies across their own
+The fourth channel runs the other way. Vacancy loops exchange vacancies across their own
 perimeter at a rate set by a size-dependent binding energy computed from the
 anisotropic loop self-energy (\cref{app:emission}), one expression serving both
 characters, so that the same mechanism shrinks a vacancy loop and grows an
@@ -596,7 +599,8 @@ imposed. This channel replaces the two fitted annealing lifetimes of the
 mean-field model. It returns vacancies to the mobile pool through $\spvec S_{vL}$
 in \cref{eq:master-c}.
 
-\paragraph{The basal chain.} The three basal states are linked by two one-way
+The fifth channel exists only on the basal branch. Its three states are
+linked by two one-way
 activated transfers,
 \begin{equation}
   c_0 \;\xrightarrow{\;\nu_{\mathrm{col}}\;}\; c_f
@@ -611,8 +615,8 @@ The chain is basal and has no prismatic counterpart: \emph{ab initio}-parameteri
 formation energies place the prismatic vacancy \aloop{} loop \emph{below} both
 the compact cavity and the faulted basal loop, so the planar prismatic loop is
 already the ground-state geometry rather than something a compact cluster must
-convert into~\citep{varvenne2014vacancy}. \textbf{None of the basal-chain rates
-is calibrated}; the formulation gives their Arrhenius form and no measurement in
+convert into~\citep{varvenne2014vacancy}. None of the basal-chain rates
+is calibrated; the formulation gives their Arrhenius form and no measurement in
 this work supplies the barriers, so the chain is switched off in the calculation
 of \cref{sec:results} and its consequences are discussed in
 \cref{sec:conclusions}.
@@ -659,7 +663,7 @@ from the three carried moments,
   \label{eq:lognormal}
 \end{equation}
 $\Delta_k\ge1$ is Cauchy--Schwarz on a non-negative measure, so
-\textbf{$\Delta_k<1$ is not a loose tolerance but a defect}: it says the three
+$\Delta_k<1$ is not a loose tolerance but a defect: it says the three
 carried numbers are not the moments of any distribution. Keeping the triple
 realizable places a real constraint on how each channel debits $q$, and
 \cref{app:moments} states the three rules that follow --- of which the one most
@@ -679,7 +683,7 @@ of \cref{sec:conversion} as the distribution loop sizes are drawn from.
 The system integrated is two blocks with different structure, and the difference
 between them is the whole of the numerical method.
 
-\paragraph{Mobile block --- four fields, spatially coupled, no time derivative.}
+Mobile block --- four fields, spatially coupled, no time derivative.
 \begin{equation}
   \spvec 0 = \nabla\!\cdot\!\bigl(\spmat D_{\mathrm{ten}}\nabla\spvec c_M\bigr)
     + \spvec P_M
@@ -692,7 +696,7 @@ between them is the whole of the numerical method.
 $4\times N_{\mathrm{node}}$ unknowns, nonlinear and algebraic, coupled across
 the mesh by the divergence term alone.
 
-\paragraph{Immobile block --- 27 fields, pointwise, no spatial coupling.}
+Immobile block --- 27 fields, pointwise, no spatial coupling.
 For each family $(s,k)\in\mathcal F$ at each node independently,
 \begin{align}
   \dot n^k_{sL} &= J^k_{sL} - \Delta N - \Phi^k_{\min} \pm \Gamma^{n}_{\theta}
@@ -712,7 +716,7 @@ and $\Gamma_\theta$ the basal-chain transfers of \cref{eq:basal-chain}.
 Together with the evolving network density $\rho_N$ and the atom-balance
 accumulators of \cref{sec:results-conservation}, this is a system of ordinary
 differential equations at each node --- $3\times9+1$ fields plus accumulators ---
-in which no neighbor's state appears. \textbf{The mobile species are the only
-thing that couples one node to another}, and freezing them, as
+in which no neighbor's state appears. The mobile species are the only
+thing that couples one node to another, and freezing them, as
 \cref{sec:split} does, removes the spatial coupling by construction rather
 than by approximation.

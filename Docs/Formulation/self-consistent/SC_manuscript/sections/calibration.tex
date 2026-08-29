@@ -126,7 +126,7 @@ flat inside the box and infinite outside. The reported parameter set is
 therefore a MAP point, and the weights $w_f$ are an explicit statement about the
 relative credibility of the two data sets rather than a tuning knob.
 
-\textbf{The logarithmic form matters and was not the original choice.} An
+The logarithmic form matters and was not the original choice. An
 absolute-ratio residual $(d-d^{\exp})/d^{\exp}$ is bounded below by $-1$ and
 unbounded above, so it penalizes a model that is a factor of two \emph{high}
 four times as heavily as one that is a factor of two \emph{low}. Against a
@@ -134,7 +134,7 @@ diameter the model systematically underpredicts, that asymmetry rewards
 shrinking. \Cref{eq:objective} is symmetric under inversion of the ratio, which
 is the property a ratio of two positive quantities should have.
 
-\paragraph{What has \emph{not} been done.} No posterior has been sampled. The
+What has \emph{not} been done. No posterior has been sampled. The
 full Bayesian pipeline this framing points at --- a space-filling design
 screened by variance-based global sensitivity analysis, a Gaussian-process
 emulator trained on it to stand in for the solver, and Markov-chain sampling of
@@ -178,7 +178,7 @@ Quantity & mean & s.d. & points \\
 \Cref{fig:fit-A,fig:fit-C} show the fit against the measurements, and
 \cref{fig:parity} the parity plot over all 78 points.
 
-\textbf{The \cloop{} agreement is not evidence of a well-determined basal model.}
+The \cloop{} agreement is not evidence of a well-determined basal model.
 Five points at two temperatures, all above 14\,dpa, are fitted by four
 parameters. The near-zero means in the last two rows say the fit reproduces those
 five points, which is close to a statement about the number of degrees of
@@ -253,7 +253,7 @@ $Z^{0}_{i}$         & 1.3000$^{\dagger}$ & $p^{v}$ & 1.6000$^{\dagger}$ &
 \subsection{Four parameters rest on their bounds}
 \label{sec:bias-caveat}
 
-\textbf{A lever on its bound is not a fitted value.} Of the calibrated set, the
+A lever on its bound is not a fitted value. Of the calibrated set, the
 four bias parameters and the three small-size-floor parameters sit exactly on
 the edge of the admissible box, which means the data wanted to push them further
 and the box stopped them. The number to check is what the fitted anisotropy
@@ -290,14 +290,14 @@ $p^{m}$ is the only anisotropy the model has --- would settle it, and would turn
 the four $^{\dagger}$ entries of \cref{tab:fitted} from constraints into fixed
 inputs.
 
-\paragraph{Two further caveats on the transfer of this set to
-\cref{sec:results}.} First, the fit is a $0$-D fit: it is the march's slow step
+Two further caveats on the transfer of this set to
+\cref{sec:results}. First, the fit is a $0$-D fit: it is the march's slow step
 term for term --- one templated function, the same binary, the same switches,
 differing only in whether the mobile species are frozen --- so the parameters
 transfer exactly. What does not transfer is everything the $0$-D cannot see: in
 the $0$-D the vacancy pool is free and re-equilibrates, where the march pins it
 to the fast solve, and the two need not move a given quantity in the same
-direction. Second, \textbf{the fit carries no grain-boundary loop channel},
+direction. Second, the fit carries no grain-boundary loop channel,
 because the $0$-D has no boundary; the calculation of \cref{sec:results} does.
 The parameters and that calculation are therefore not strictly a matched pair,
 and \cref{sec:results-volume} reports what the mismatch costs.

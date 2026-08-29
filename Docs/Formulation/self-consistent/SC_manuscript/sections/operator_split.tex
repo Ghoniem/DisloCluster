@@ -61,7 +61,7 @@ alternates:
       mobile values frozen at $\spvec c^{\star}_M$.
 \end{enumerate}
 
-\paragraph{The fast step must be inside the loop.} If the mobile field is
+The fast step must be inside the loop. If the mobile field is
 instead replayed from a previously recorded calculation, the scheme is not an
 operator split at all: $\spvec c_M$ never responds to the immobile state the
 march is building, so a starting state away from quasi-steady state can never
@@ -69,7 +69,7 @@ relax. Any spatially uniform seed is such a state, because it carries no
 boundary layer while the true $\spvec c^{\star}_M(\xv)$ is pinned to thermal
 equilibrium on every Dirichlet face.
 
-\paragraph{Solver settings must be shared across compared routes.} The spatial
+Solver settings must be shared across compared routes. The spatial
 code's default makes the mobile solve a \emph{projected} Newton iteration that
 does not converge on this problem: it caps out at $53.6\%$ error in $c^{i}$.
 The projection is disabled for every route reported here. Left at the default on
@@ -96,7 +96,7 @@ dispatch --- a measured factor of $1.24$ at the end of the march reported here,
 and considerably higher early on, when much of the domain still shares one
 state.
 
-\paragraph{The integrator is chosen by measurement.} CVODE with backward
+The integrator is chosen by measurement. CVODE with backward
 differentiation formulas and a dense linear solver, at
 $\mathrm{rtol}=10^{-6}$, $\mathrm{atol}=10^{-20}$. Against a tight reference,
 BDF with a dense or a full-band solver gives a maximum relative error of
@@ -133,7 +133,7 @@ order $100$ CVODE internal steps per point per substep, which is why BDF --- but
 stiffness cost scales with the dimension of the coupled \emph{block}, not with
 how many independent blocks there are.
 
-\textbf{The coupling did not vanish; it moved to where it is affordable.} The
+The coupling did not vanish; it moved to where it is affordable. The
 tightly coupled problem still exists: it is the fast solve, $362\,468$ unknowns,
 $4\,\mathrm{m}\,12\,\mathrm{s}$ measured on 24 cores, against
 $1\,\mathrm{m}\,12\,\mathrm{s}$ for an entire slow sweep over all $90\,617$
@@ -164,8 +164,8 @@ and hence of the sinks, within that substep. This is a first-order Lie--Trotter
 error, $O(\Delta\gamma)$ per step and one-sided: with strengthening sinks the
 loops are slightly over-grown.
 
-\textbf{The accuracy dial is the fast-solve cadence, not the dose-snapshot
-spacing.} The march advances the immobile block in $n_{\mathrm{sub}}$ substeps
+The accuracy dial is the fast-solve cadence, not the dose-snapshot
+spacing. The march advances the immobile block in $n_{\mathrm{sub}}$ substeps
 per dose interval and re-solves the mobile field every $n_{\mathrm{fem}}$
 substeps, so the splitting error is first order in the interval between fast
 solves and not in the interval between output snapshots. Two practical notes

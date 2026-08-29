@@ -2,8 +2,8 @@
 
 \subsection{What the calculation establishes}
 
-\paragraph{Self-consistency in sense~(a) is achievable and is a constraint worth
-accepting.} Every capture efficiency in \cref{eq:Zsk} and every sink strength in
+Self-consistency in sense~(a) is achievable and is a constraint worth
+accepting. Every capture efficiency in \cref{eq:Zsk} and every sink strength in
 \cref{eq:KL}, for all nine families, is generated from the same diffusion
 tensors that transport the mobile species, through one anisotropy parameter
 $p^{m}$ per species. The formulation therefore cannot simultaneously believe
@@ -15,8 +15,8 @@ pushes $p^{v}$ to the edge of its admissible range rather than trading it
 against a free efficiency. That is a feature. A model that cannot hide a
 deficiency in a bias factor is a model whose deficiencies are visible.
 
-\paragraph{Self-consistency in sense~(b) holds where it can be made exact, and
-is measured where it cannot.} Stored defects transfer to machine precision and
+The second sense holds where it can be made exact and is measured where it
+cannot. Stored defects transfer to machine precision and
 loop number to the integer draw, at every dose tested. The sink strength ---
 which the transfer does not force --- came within $2\%$ of continuity only after
 an inconsistency in the \cloop{} Burgers vector between the two representations
@@ -28,8 +28,8 @@ this geometry is feasibility: a quarter of the basal loops on a
 so a hybrid calculation there would have to carry the refused population in the
 continuum and account for it separately.
 
-\paragraph{Spatial resolution changes the answer, not just its presentation.}
-The boundary layers of \cref{sec:results-mobile} are $8$--$46\,$nm wide, they
+Beyond what the two consistency constraints buy, spatial resolution changes
+the answer and not merely its presentation. The boundary layers of \cref{sec:results-mobile} are $8$--$46\,$nm wide, they
 order themselves by species mobility, and they narrow by a factor of two as the
 sink density grows --- none of which a mean-field $k^{2}_{gb}$ can express. More
 consequentially, the loop population in the outermost shell is numerous and
@@ -38,8 +38,8 @@ the domain and interior means of the \cloop{} density differ by a factor of
 $873$. A spatially averaged model does not have this problem because it cannot
 see it, and it reports the wrong number without any indication that it has.
 
-\paragraph{The operator split makes the problem tractable and the cost is
-understood.} $7.8\times10^{7}$ stiff ordinary differential equations were
+That resolution is affordable, and the reason is worth separating from the
+physics. $7.8\times10^{7}$ stiff ordinary differential equations were
 integrated in $1\,\mathrm{h}\,04\,\mathrm{m}$ on 24 cores, not because a
 million-equation stiff system was solved but because the frozen-mobile
 construction turns it into $72\,928$ independent 36-dimensional ones ---
@@ -49,16 +49,16 @@ The bill arrives as a first-order splitting error whose dial is the fast-solve
 cadence, and the two sides of the calculation cost within $7\%$ of each other,
 which is the balance that cadence was chosen to produce.
 
-\paragraph{Conservation closes with the boundary carried explicitly.} Both atom
-balances close on production to the digit, with the loop-at-boundary channel
+With the split in place, conservation can be audited channel by channel, and
+it closes once the boundary is carried explicitly. Both atom balances close on production to the digit, with the loop-at-boundary channel
 taking $5.1\%$ of vacancy production against $0.08\%$ of interstitial. That the
 channel had to be booked separately rather than left in the residual is a
 methodological point worth generalizing: closure by difference is not a check,
 because a channel omitted from it reappears silently in the remainder and
 nothing looks wrong.
 
-\paragraph{A grain boundary absorbs loops, and the zone is a prediction.} The
-size-gated removal of \cref{eq:gbloop} produces a denuded zone $\sim5\,$nm wide
+The channel that had to be added to close that balance is also the one that
+makes a prediction. The size-gated removal of \cref{eq:gbloop} produces a denuded zone $\sim5\,$nm wide
 in which the loop density falls to the concentration floor and the mean diameter
 recovers monotonically from $3.5$ to $58\,$nm. It also demonstrates something a
 mean-field treatment structurally cannot: a channel that acts only within a
@@ -68,8 +68,8 @@ everywhere.
 
 \subsection{What it does not establish, and the leading open problem}
 
-\paragraph{The \cloop{} population is too numerous and too small, and this is the
-central discrepancy.} At $573\,$K the interior gives $N_c$ 9.5 times the
+The \cloop{} population is too numerous and too small, and this is the
+central discrepancy. At $573\,$K the interior gives $N_c$ 9.5 times the
 measurement and $d_c$ 0.53 times it. The two errors are not independent: the
 number balance pins the total content and the growth balance pins the size, so
 the density is their quotient, and a model that removes loops faster than it
@@ -82,9 +82,9 @@ factor of four, because the size bias is already inside the Avrami kernel and
 applying it twice removes disproportionate content, shrinks the family, weakens
 the rate and \emph{raises} the density.
 
-The diagnosis that survives all of this is that \textbf{a channel is missing
+The diagnosis that survives all of this is that a channel is missing
 which removes vacancy loop \emph{number} without shortening the survivors'
-lives}. Peripheral emission shrinks a loop continuously and never removes one;
+lives. Peripheral emission shrinks a loop continuously and never removes one;
 coalescence removes loops in proportion to how fast they are growing; the
 boundary channel removes the large end but acts only near a surface, and
 \cref{sec:results-volume} shows it does not close the interior deficit. What the
@@ -94,8 +94,8 @@ dissolution channel for the perfect basal state, or an absorption cross-section
 that grows faster with size than $R$ --- is the single most valuable next piece
 of physics.
 
-\paragraph{The basal chain is uncalibrated and switched off.} Nothing in the
-data supplies the collapse and unfaulting barriers of \cref{eq:basal-chain}.
+A second gap lies upstream of that one. The basal chain is uncalibrated and
+switched off, because nothing in the data supplies the collapse and unfaulting barriers of \cref{eq:basal-chain}.
 Switched on with placeholder rates, it inverts the family ordering: the
 prismatic-to-basal density ratio, which should be of order 10, becomes 0.19.
 That inversion is a property of the placeholders, not a prediction, and it is
@@ -106,21 +106,22 @@ supply it is bounded only by the transfer feeding it. Whether it should have a
 sink of its own must be settled \emph{before} $\nu_{\mathrm{uf}}$ is fitted; the
 two are not separately identifiable from a steady $c_p$ density.
 
-\paragraph{Four calibrated parameters rest on their bounds.} $p^{v}$, $p^{i}$
+Three narrower reservations attach to the calibration itself. Four of its
+parameters rest on their bounds: $p^{v}$, $p^{i}$
 and both $Z^{0}_m$ sit on the edge of the admissible box, so they report where
 the box is and not where the optimum is. The implied vacancy diffusion
 anisotropy, $D_\parallel/D_{\mathrm{basal}}=16.8$, is a strong claim that the
 loop data cannot support on their own.
 
-\paragraph{The calibration and the calculation are not a matched pair.} The
+The calibration and the calculation are also not a matched pair, since the
 parameter set was fitted in a $0$-D model with no boundary, and the calculation
 carries a boundary loop channel that removes $5\%$ of vacancy production.
 
-\paragraph{The \cloop{} data are thin.} Five points, two temperatures, all above
+And the \cloop{} data are thin: five points, two temperatures, all above
 14\,dpa, against four fitted parameters. The model places resolvable basal loops
 from $10^{-2}\,$dpa, and nothing in the data constrains that.
 
-\paragraph{No posterior was sampled.} \Cref{sec:objective} establishes that the
+Finally, no posterior was sampled. \Cref{sec:objective} establishes that the
 reported set is a maximum \emph{a posteriori} point under a stated likelihood and
 bounded uniform priors; it does not accompany it with a credible interval.
 
