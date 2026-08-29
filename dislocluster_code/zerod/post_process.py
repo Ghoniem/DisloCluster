@@ -310,9 +310,16 @@ def _calculate_conservation(time, concentrations, rate_equations):
 
     # The grain-boundary loop ledger, present only when the state carries it.
     # y has one row per state component, so its presence IS the switch: a run
-    # without the channel simply has no rows 38/39 and `gb_loops` stays None.
-    gb_i = y[38] if y.shape[0] > 39 else None
-    gb_v = y[39] if y.shape[0] > 39 else None
+    # without the channel simply has no ledger rows and `gb_loops` stays None.
+    #
+    # IT IS ALWAYS THE LAST TWO ROWS, and the widths that carry it are exactly
+    # `immobile.state_width`'s: 21 / 31 / 40 against 19 / 29 / 38. Testing for
+    # row 38 alone was right for a solver state and wrong for the one this
+    # function is usually handed -- `field.to_legacy_layout` re-expresses a
+    # self-consistent march in the 19-slot layout, so the ledger arrives at 19
+    # and 20, the test failed, and the channel vanished from the balance.
+    gb_i = y[-2] if y.shape[0] in (21, 31, 40) else None
+    gb_v = y[-1] if y.shape[0] in (21, 31, 40) else None
 
     interstitial = _balance(I_stored, acc['cum_prod_i'], acc['cum_recomb_i'],
                             acc['cum_sink_i'], mobile=I_mobile, gb_loops=gb_i)

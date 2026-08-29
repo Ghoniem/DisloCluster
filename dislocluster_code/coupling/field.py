@@ -475,7 +475,20 @@ def to_legacy_layout(Y, loop_model=0):
     # appended families and the second moments as a tail would hand the 0-D
     # post-processing a state it has no reading for, in the one place that
     # exists to keep it from having to.
-    return out[:, :19] if out.shape[1] > 19 else out
+    #
+    # THE GRAIN-BOUNDARY LEDGER IS THE ONE EXCEPTION, and it has to be. It is
+    # an accumulator, not a family, so the 0-D balance does have a reading for
+    # it -- and truncating it away is what made a `gb_absorption` run's
+    # conservation figures omit the very channel they exist to show: the
+    # absorbed atoms silently reappeared in `grain_boundary`, which is closure
+    # by difference, so nothing looked wrong. It is always the last two
+    # components (`immobile.N_GBACC`), and the result is width 21, which is
+    # exactly `immobile.state_width`'s legacy-plus-ledger width.
+    if out.shape[1] <= 19:
+        return out
+    if out.shape[1] in (21, 31, 40):
+        return np.concatenate([out[:, :19], out[:, -2:]], axis=1)
+    return out[:, :19]
 
 
 def run_loop_model(run_dir):
