@@ -680,7 +680,63 @@ def _overlay_family(P, F, rng, fam, n_loops, loop_scale, gap=1.4,
     return quads, rgba
 
 
-def _overlay_explicit(pop, fam, loop_scale=1.0):
+def _clip_convex_polygon(poly, N, bb, tol=1e-9):
+    """Sutherland-Hodgman: a convex polygon against the half-spaces x.N^T <= b.
+
+    The domain is the convex hull of the CD nodes, so it IS an intersection of
+    half-spaces and clipping against them one at a time is exact. The polygon
+    stays planar because every cut is by a plane, so the result can be fanned
+    back into triangles without leaving the loop's habit plane.
+    """
+    for k in range(len(bb)):
+        if len(poly) == 0:
+            return poly
+        s = poly @ N[k] - bb[k]                     # <= 0 is inside
+        keep = s <= tol
+        if keep.all():
+            continue
+        if not keep.any():
+            return np.empty((0, 3))
+        out, m = [], len(poly)
+        for i in range(m):
+            j = (i + 1) % m
+            if keep[i]:
+                out.append(poly[i])
+            if keep[i] != keep[j]:
+                t = s[i] / (s[i] - s[j])
+                out.append(poly[i] + t * (poly[j] - poly[i]))
+        poly = np.asarray(out, dtype=float)
+    return poly
+
+
+def _clip_quads(quads, is_rim, faces):
+    """Cut a quad soup at the crystal surface, keeping the (Q,4,3) format.
+
+    A clipped convex polygon has up to `4 + n_faces` vertices, which does not
+    fit a quad array -- so it is fanned into triangles and each triangle is
+    emitted as a degenerate quad `(a, b, c, c)`. `_disc_quads` already uses
+    that trick for the disc fan itself, so nothing downstream has to change.
+    """
+    N, bb = faces
+    V = quads.reshape(-1, 3) @ N.T - bb[None, :]        # (4Q, F)
+    V = V.reshape(len(quads), 4, -1)
+    inside = V <= 1e-9
+    whole = inside.all(axis=(1, 2))                     # every vertex inside
+    gone = (~inside).all(axis=1).any(axis=1)            # wholly past one face
+    out_q = [quads[whole]]
+    out_r = [is_rim[whole]]
+    for i in np.flatnonzero(~whole & ~gone):
+        poly = _clip_convex_polygon(quads[i], N, bb)
+        if len(poly) < 3:
+            continue
+        tri = np.stack([np.stack([poly[0], poly[j], poly[j + 1], poly[j + 1]])
+                        for j in range(1, len(poly) - 1)])
+        out_q.append(tri)
+        out_r.append(np.full(len(tri), is_rim[i]))
+    return np.concatenate(out_q), np.concatenate(out_r)
+
+
+def _overlay_explicit(pop, fam, loop_scale=1.0, faces=None):
     """Draw a population that was HANDED to us, rather than one packed here.
 
     `_overlay_family` invents a platelet field: it places one disc per CD node
@@ -700,6 +756,14 @@ def _overlay_explicit(pop, fam, loop_scale=1.0):
     `pop` is `(centres, radii)` in b. `loop_scale` still multiplies the radii,
     and the caller passes 1.0 to draw them at true size -- which for a sparse
     family on a 500 nm crystal is genuinely small, and is the honest picture.
+
+    CLIPPED AT THE CRYSTAL SURFACE, like `discrete_loops.render`. `sample_family`
+    places loop CENTRES inside the body and never asks whether the disc fits, so
+    every loop centred within `r` of a face overhangs it -- 27% of the <c>
+    family at 10 dpa on the 500 nm prism, by up to 40 nm. That is a property of
+    the sampling and not of the drawing, so the loops in `loops_*.csv` are
+    whole and only the picture is cut, which is exactly what the discrete
+    render does.
     """
     centres, radii = pop
     centres = np.asarray(centres, dtype=float).reshape(-1, 3)
@@ -708,6 +772,10 @@ def _overlay_explicit(pop, fam, loop_scale=1.0):
         return np.empty((0, 4, 3)), np.empty((0, 4))
     _, _, _, _, normal, color = fam
     quads, is_rim = _disc_quads(centres, radii, _platelet_frame(normal))
+    if faces is not None:
+        quads, is_rim = _clip_quads(quads, is_rim, faces)
+        if len(quads) == 0:
+            return np.empty((0, 4, 3)), np.empty((0, 4))
     rgb = np.asarray(to_rgb(color))
     rgba = np.tile(np.append(rgb, 1.0), (len(quads), 1))
     rgba[is_rim, :3] = 0.55 * rgb
@@ -863,7 +931,7 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                 pop = (loop_population or {}).get(st)
                 if pop is not None:
                     q, fc = _overlay_explicit(pop, FAMILIES[loop_family],
-                                              loop_scale)
+                                              loop_scale, faces=faces)
                 else:
                     q, fc = _overlay_family(P, F, rng, FAMILIES[loop_family],
                                             n_loops, loop_scale, faces=faces)
