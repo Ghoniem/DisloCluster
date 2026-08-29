@@ -598,6 +598,26 @@ inline bool is_reduced(const Parameters& P) {
     return P.acc_mode == ACC_QUADRATURE || P.acc_mode == ACC_STATE_RELAX;
 }
 
+// How many accumulators are CARRIED, and where each one lives in the full
+// state.
+//
+// THE REDUCED SOLVE ONLY TOUCHES WHAT THIS MAPPING NAMES. `red_idx` sent every
+// accumulator to N_PHYS + a, which is right for the original six (12..17) and
+// sends a seventh to 18 -- rho_N. So the grain-boundary ledger was never
+// gathered, never integrated and never read back: the march SWEPT the loops
+// correctly (the family equations are in the reduced core) and reported an
+// absorption of exactly zero. A channel that works and cannot be measured is
+// the worst of both.
+inline int n_acc(const Parameters& P) {
+    return N_ACC + (P.gb_absorption ? N_GBACC : 0);
+}
+
+// Accumulator a -> its index in the full state. The six are contiguous at
+// N_PHYS; the ledger sits at the very end, after the moments.
+inline int acc_full_idx(const Parameters& P, int a) {
+    return a < N_ACC ? (N_PHYS + a) : (IDX_GB_I + (a - N_ACC));
+}
+
 // Size of the implicit core (everything but the appended accumulators).
 inline int n_moments(const Parameters& P) { return P.moments ? 3 : 2; }
 
@@ -607,7 +627,7 @@ inline int red_core(const Parameters& P) {
 
 // Dimension of the implicit block actually solved.
 inline int red_dim(const Parameters& P) {
-    return red_core(P) + (P.acc_mode == ACC_STATE_RELAX ? N_ACC : 0);
+    return red_core(P) + (P.acc_mode == ACC_STATE_RELAX ? n_acc(P) : 0);
 }
 
 // Reduced index j -> index into the full state.
@@ -620,8 +640,8 @@ inline int red_dim(const Parameters& P) {
 // At n_fam = 8 the appended families follow through fam_n_idx / fam_c_idx.
 inline int red_idx(const Parameters& P, int j) {
     const int n_core = red_core(P);
-    if (j >= n_core)            // modes 1/2: the six accumulators, appended
-        return N_PHYS + (j - n_core);
+    if (j >= n_core)            // modes 1/2: the accumulators, appended
+        return acc_full_idx(P, j - n_core);
     int t = j;
     if (!P.freeze_mobile) {
         if (t < N_MOB) return t;

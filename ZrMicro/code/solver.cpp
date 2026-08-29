@@ -221,7 +221,7 @@ static int ws_ensure(Workspace& ws, const Parameters& P,
     ws.y = N_VNew_Serial(neq, ws.sunctx);
     if (!ws.y) return 102;
     if (P.acc_mode == ACC_QUADRATURE) {
-        ws.yQ = N_VNew_Serial(N_ACC, ws.sunctx);
+        ws.yQ = N_VNew_Serial(n_acc(P), ws.sunctx);
         if (!ws.yQ) return 103;
     }
     if (P.acc_mode == ACC_STATE_RELAX) {
@@ -472,7 +472,8 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
     else
         for (int k = 0; k < N_EQ; ++k)      NV_Ith_S(y, k) = P.y0[k];
     if (use_quad)
-        for (int k = 0; k < N_ACC; ++k) NV_Ith_S(yQ, k) = P.y0[N_PHYS + k];
+        for (int k = 0; k < n_acc(P); ++k)
+            NV_Ith_S(yQ, k) = P.y0[acc_full_idx(P, k)];
 
     if (CVodeReInit(cvode_mem, t_eval[0], y) != CV_SUCCESS) return 134;
     if (use_quad && CVodeQuadReInit(cvode_mem, yQ) != CV_SUCCESS) return 135;
@@ -505,7 +506,8 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
             for (int k = 0; k < N_MOB; ++k) full[k] = P.y0[k];   // frozen or seeded
             for (int j = 0; j < NEQ_SOLVE; ++j) full[red_idx(P, j)] = NV_Ith_S(y, j);
             if (use_quad)
-                for (int k = 0; k < N_ACC; ++k) full[N_PHYS + k] = NV_Ith_S(yQ, k);
+                for (int k = 0; k < n_acc(P); ++k)
+                    full[acc_full_idx(P, k)] = NV_Ith_S(yQ, k);
         } else {
             for (int k = 0; k < N_EQ; ++k) full[k] = NV_Ith_S(y, k);
         }

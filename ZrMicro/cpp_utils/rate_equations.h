@@ -49,7 +49,8 @@ struct SolverCtx {
     bool   acc_valid;          // memo holds a usable entry
     double acc_t;              // t it was taken at
     double acc_y[N_RED_MAX];   // reduced state it was taken at
-    double acc[N_ACC];         // the six accumulator rates there
+    double acc[N_ACC + N_GBACC];  // the accumulator rates there
+                               // (+2 when the GB ledger is carried)
     long   nq_hit;             // quadrature memo hits
     long   nq_miss;            // quadrature memo misses (full core re-evaluated)
 };

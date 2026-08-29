@@ -70,7 +70,7 @@ int rhs_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector ydot,
     C.acc_valid = true;
     C.acc_t = static_cast<double>(t);
     for (int j = 0; j < n; ++j)       C.acc_y[j] = yr[j];
-    for (int k = 0; k < N_ACC; ++k)   C.acc[k]   = df[N_PHYS + k];
+    for (int k = 0; k < n_acc(P); ++k) C.acc[k] = df[acc_full_idx(P, k)];
     return 0;
 }
 
@@ -88,7 +88,8 @@ int quad_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector yQdot,
             same = (C.acc_y[j] == NV_Ith_S(y, j));
         if (same) {
             ++C.nq_hit;
-            for (int k = 0; k < N_ACC; ++k) NV_Ith_S(yQdot, k) = C.acc[k];
+            for (int k = 0; k < n_acc(P); ++k)
+                NV_Ith_S(yQdot, k) = C.acc[k];
             return 0;
         }
     }
@@ -100,7 +101,8 @@ int quad_zrmicro_reduced(sunrealtype t, N_Vector y, N_Vector yQdot,
 
     zrcore::rhs_core<double>(yf, df, P);
 
-    for (int k = 0; k < N_ACC; ++k) NV_Ith_S(yQdot, k) = df[N_PHYS + k];
+    for (int k = 0; k < n_acc(P); ++k)
+        NV_Ith_S(yQdot, k) = df[acc_full_idx(P, k)];
     return 0;
 }
 
