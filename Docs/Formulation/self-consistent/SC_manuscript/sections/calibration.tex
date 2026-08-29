@@ -14,25 +14,39 @@ is active, the crystallography is measured, and the transport is generated from
 a single anisotropy parameter per species.}
 \label{tab:controls}
 \centering\small
-\begin{tabularx}{\textwidth}{@{}llX@{}}
+% EVERY COLUMN MUST WRAP. With the middle column set `l` the long example
+% lists set the table's natural width past \textwidth, the X column is left
+% with none, and the third column vanishes off the page entirely -- which is
+% what this table did before. Two X columns share whatever the label column
+% does not take, and both wrap.
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}XX@{}}
 \toprule
 Class & Example & What a change does \\
 \midrule
-Model controls & families carried, moments carried, emission model,
-  basal chain on/off, grain-boundary loop channel on/off &
-  Selects which terms of \cref{eq:block-n,eq:block-c,eq:block-q} are
-  integrated at all. Changing one changes the model, not its parameters. \\
-Crystallography & $a$, $c$, $\Omega$, $(\bvec\!\cdot\!\nvec)_k$, $\lambda_k$ &
+Model controls &
+  families carried; moments carried; emission model; basal chain on/off;
+  grain-boundary loop channel on/off &
+  Selects which terms of \cref{eq:block-n,eq:block-c,eq:block-q} are integrated
+  at all. Changing one changes the model, not its parameters. \\
+\addlinespace
+Crystallography &
+  $a$, $c$, $\Omega$, $(\bvec\!\cdot\!\nvec)_k$, $\lambda_k$ &
   Fixed by measurement (\cref{tab:cd-families}). Not free. \\
-Transport & $p^{m}$, $E^{m}_{\mathrm{eff}}$, $\nu_m$, $z_c$ &
+\addlinespace
+Transport &
+  $p^{m}$, $E^{m}_{\mathrm{eff}}$, $\nu_m$, $z_c$ &
   Sets both the diffusion tensors (\cref{eq:Emsplit}) and, through them, the
   orientation factors $A_{h(k)}(p^{m})$ in every capture efficiency. \\
-Elastic and character bias & $Z^{0}_m$, $X_{s,m}$ (through $\chi$), $Z_N$ &
-  The parts of \cref{eq:Zsk} that the diffusion tensors do \emph{not} generate. \\
-Reaction and geometry constants & $\varepsilon_k$, $m^{\mathrm{nuc}}_k$,
-  $c_{LL}$, $c_{LN}$, $\kappa_{LL}$, $\kappa_{LN}$,
-  $\varsigma^{\mathrm{sink}}_k$, $m_{\min}$, $\nu_{\mathrm{vanish}}$,
-  $m_{\mathrm{vanish}}$ &
+\addlinespace
+Elastic and character bias &
+  $Z^{0}_m$, $X_{s,m}$ (through $\chi$), $Z_N$ &
+  The parts of \cref{eq:Zsk} that the diffusion tensors do \emph{not}
+  generate. \\
+\addlinespace
+Reaction and geometry constants &
+  $\varepsilon_k$, $m^{\mathrm{nuc}}_k$, $c_{LL}$, $c_{LN}$, $\kappa_{LL}$,
+  $\kappa_{LN}$, $\varsigma^{\mathrm{sink}}_k$, $m_{\min}$,
+  $\nu_{\mathrm{vanish}}$, $m_{\mathrm{vanish}}$ &
   Nucleation, coalescence, sink prefactors, and the small-size floor. This is
   the calibrated set. \\
 \bottomrule
