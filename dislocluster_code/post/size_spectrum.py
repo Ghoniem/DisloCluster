@@ -202,30 +202,66 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
     cmap = plt.get_cmap("viridis")
     cols = [cmap(t) for t in np.linspace(0.06, 0.86, len(doses))]
 
-    # A FIXED WINDOW BELOW THE PEAK, not the data's full range. At the first
+    # LINEAR IN DIAMETER, AS A MEASURED SIZE DISTRIBUTION IS PLOTTED, and the
+    # ordinate is dN/dd rather than dN/dln(d) to match: a TEM size histogram is
+    # counts per nanometre of diameter against diameter, and plotting the
+    # log-density against a linear axis would misstate the area under every
+    # peak.
+    #
+    # THREE DECADES OF ORDINATE, not the data's full range. At the first
     # snapshot every family is monodisperse to three decimal places, so its
-    # log-normal is very nearly a delta function and its tails fall to 1e-270;
-    # on an unbounded log axis that spans 300 decades and every curve in the
-    # panel is flattened into a horizontal line. Six decades is what a size
-    # distribution is ever read over.
-    DECADES = 6.0
+    # log-normal is nearly a delta function whose tails fall to 1e-270; on an
+    # unbounded log axis that spans 300 decades and flattens every curve in the
+    # panel into a horizontal line.
+    DECADES = 3.0
+
+    # A RESOLUTION LIMIT, and it has to be applied before the axes are scaled.
+    # dN/dd carries a factor 1/d relative to dN/dln(d), so it amplifies the
+    # small-diameter tail of every log-normal; below about a nanometre that
+    # tail is both unresolvable in a micrograph and, here, dominated by the few
+    # nodes whose dispersion has run away. Plotting from D_MIN is what an
+    # experimental size distribution does, and the peak and the upper limit are
+    # taken over the visible window so that an invisible spike cannot set them.
+    D_MIN = 1.0
+
+    vis = d >= D_MIN
+
+    def _window(curves):
+        """(peak, largest visible diameter) over the plotted range."""
+        pk, hi = 0.0, D_MIN
+        for yv in curves:
+            v = yv[vis]
+            if v.size == 0 or v.max() <= 0:
+                continue
+            pk = max(pk, float(v.max()))
+        for yv in curves:
+            v = yv[vis]
+            if v.size == 0 or v.max() <= 0:
+                continue
+            above = np.flatnonzero(v >= pk * 10 ** (-DECADES))
+            if above.size:
+                hi = max(hi, float(d[vis][above[-1]]))
+        return pk, hi
 
     for j, slug in enumerate(slugs):
         ax = axes.ravel()[j]
-        peak = 0.0
+        peak, curves = 0.0, []
         for cdx, dose in enumerate(doses):
             y, st = data[(slug, dose)]
             if st["count"] <= 0:
                 continue
-            yv = y / max(st["volume_m3"], 1e-300)
+            yv = y / max(st["volume_m3"], 1e-300) / d      # dN/dd
+            curves.append(yv)
             peak = max(peak, float(yv.max()))
-            ax.plot(d, yv, color=cols[cdx], lw=1.9, label=f"{dose:g} dpa")
-        ax.set_xscale("log")
+            ax.plot(d[vis], yv[vis], color=cols[cdx], lw=1.9,
+                    label=f"{dose:g} dpa")
         ax.set_yscale("log")
+        peak, hi = _window(curves)
         if peak > 0:
-            ax.set_ylim(peak * 10 ** (-DECADES), peak * 4)
+            ax.set_ylim(peak * 10 ** (-DECADES), peak * 3)
+            ax.set_xlim(0.0, 1.08 * hi)
         ax.set_xlabel("loop diameter $d$ [nm]")
-        ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}\ln d$  [m$^{-3}$]")
+        ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(LABEL[slug], fontsize=11)
         ax.grid(alpha=0.3, which="both")
         ax.legend(fontsize=8, loc="upper left")
@@ -234,19 +270,23 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
     ax = axes.ravel()[len(slugs)]
     fam_col = {"c": "#1f4fbf", "a1": "#c62828", "a1v": "#00838f",
                "cp": "#4527a0"}
-    pk = 0.0
+    pk, curves = 0.0, []
     for slug in slugs:
         y, st = data[(slug, doses[-1])]
         if st["count"] <= 0:
             continue
-        yv = y / max(st["volume_m3"], 1e-300)
+        yv = y / max(st["volume_m3"], 1e-300) / d
+        curves.append(yv)
         pk = max(pk, float(yv.max()))
-        ax.plot(d, yv, color=fam_col.get(slug, "k"), lw=2.0, label=LABEL[slug])
-    ax.set_xscale("log"); ax.set_yscale("log")
+        ax.plot(d[vis], yv[vis], color=fam_col.get(slug, "k"), lw=2.0,
+                label=LABEL[slug])
+    ax.set_yscale("log")
+    pk, hi = _window(curves)
     if pk > 0:
-        ax.set_ylim(pk * 10 ** (-DECADES), pk * 4)
+        ax.set_ylim(pk * 10 ** (-DECADES), pk * 3)
+        ax.set_xlim(0.0, 1.08 * hi)
     ax.set_xlabel("loop diameter $d$ [nm]")
-    ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}\ln d$  [m$^{-3}$]")
+    ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
     ax.set_title(f"all families at {doses[-1]:g} dpa", fontsize=11)
     ax.grid(alpha=0.3, which="both")
     ax.legend(fontsize=8, loc="upper left")
@@ -285,25 +325,33 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
                              squeeze=False)
     for j, slug in enumerate(slugs):
         ax = axes[0, j]
-        pk = 0.0
+        pk, curves = 0.0, []
         for region in ("domain", "interior", "shell"):
             d, data = sets[region]
             key = [k for k in data if k[0] == slug][0]
             y, st = data[key]
             if st["count"] <= 0:
                 continue
-            yv = y / max(st["volume_m3"], 1e-300)
+            yv = y / max(st["volume_m3"], 1e-300) / d
+            curves.append(yv)
             pk = max(pk, float(yv.max()))
             col, ls, lw = style[region]
-            ax.plot(d, yv, color=col, ls=ls, lw=lw,
+            ax.plot(d[d >= 1.0], yv[d >= 1.0], color=col, ls=ls, lw=lw,
                     label=f"{region} ($\\Delta$ med {st['delta_med']:.3f})")
-        ax.set_xscale("log"); ax.set_yscale("log")
+        ax.set_yscale("log")
+        vis = d >= 1.0
+        pk = max((float(yv[vis].max()) for yv in curves if yv[vis].size), default=0.0)
         if pk > 0:
-            ax.set_ylim(pk * 1e-5, pk * 4)
-        ax.set_xlim(0.5, 300)
+            ax.set_ylim(pk * 1e-3, pk * 3)
+            hi = 1.0
+            for yv in curves:
+                a = np.flatnonzero(yv[vis] >= pk * 1e-3)
+                if a.size:
+                    hi = max(hi, float(d[vis][a[-1]]))
+            ax.set_xlim(0.0, 1.08 * hi)
         ax.set_xlabel("loop diameter $d$ [nm]")
         if j == 0:
-            ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}\ln d$  [m$^{-3}$]")
+            ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(f"{LABEL[slug]} at {dose:g} dpa", fontsize=11)
         ax.grid(alpha=0.3, which="both")
         ax.legend(fontsize=7.5, loc="upper left")

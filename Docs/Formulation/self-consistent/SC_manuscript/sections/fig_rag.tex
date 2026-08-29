@@ -1,131 +1,158 @@
 % The reaction admissibility graph for the nine families. Drawn here rather
 % than lifted from the mean-field treatment: that graph is a size-resolved
 % ladder over four families, and this model carries moments over nine, with a
-% basal chain and a grain-boundary loop channel that the ladder has no vertex
-% or edge for.
+% basal chain and a grain-boundary loop channel the ladder has no vertex or
+% edge for.
+%
+% EVERY EDGE IS CHECKED AGAINST THE SOLVER, not against the prose. The earlier
+% version of this figure omitted the cascade sources of C_2i, C_3i and of the
+% prismatic vacancy loops; the mobile clustering ladder and its dissociation
+% edges entirely; the homogeneous loop-nucleation channel that 2i+2i and i+3i
+% feed; and the capture edges onto the basal family. Each of those appears in
+% `rate_equations_core.h`, and each is now drawn.
+%
+% The four mobile species are boxed together so that capture onto a loop can be
+% ONE arrow per family rather than four: the growth law sums over all four
+% species with a sign set by whether the polarity matches the family's, so the
+% bundle is faithful and the alternative is twelve crossing arrows.
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[
   font=\small, >=Latex,
-  mob/.style={draw, rounded corners=2pt, minimum height=7mm, minimum width=11mm,
-              fill=blue!8, draw=blue!55},
+  mob/.style={draw, rounded corners=2pt, minimum height=7mm,
+              minimum width=10mm, fill=blue!8, draw=blue!55},
   ipop/.style={draw, rounded corners=2pt, align=center, fill=red!8,
-               draw=red!60, minimum height=9mm, inner sep=3pt},
+               draw=red!60, minimum height=8mm, inner sep=3pt},
   vpop/.style={draw, rounded corners=2pt, align=center, fill=cyan!10,
-               draw=cyan!55!black, minimum height=9mm, inner sep=3pt},
+               draw=cyan!55!black, minimum height=8mm, inner sep=3pt},
   bpop/.style={draw, rounded corners=2pt, align=center, fill=violet!10,
-               draw=violet!60, minimum height=9mm, inner sep=3pt},
+               draw=violet!60, minimum height=8mm, inner sep=3pt},
   ext/.style={draw, align=center, fill=black!6, draw=black!45,
-              minimum height=8mm, inner sep=3pt},
-  capture/.style={->, thick, blue!65},
-  emitE/.style={->, dashed, orange!85!black},
+              minimum height=7mm, inner sep=3pt},
+  clus/.style={->, thick, blue!70},
+  capture/.style={->, very thick, blue!60},
+  diss/.style={->, dashed, orange!85!black},
   rec/.style={<->, very thick, red!75},
   coal/.style={->, thick, orange!80!black},
   chain/.style={->, very thick, violet!70},
   snk/.style={->, thick, black!50},
-  gbl/.style={->, very thick, green!45!black}]
+  gbl/.style={->, very thick, green!45!black},
+  src/.style={->, thick, green!55!black}]
 
-  \node[ext] (G) at (0,4.6) {cascade source $G$~(P6)};
+  % ---- cascade source ---------------------------------------------------
+  \node[ext] (G) at (-1.2,5.5) {cascade source $G$};
 
-  % ---- positive polarity ------------------------------------------------
-  \node[mob] (Ci)  at (-4.8,2.4) {$C_i$};
-  \node[mob] (C2i) at (-3.1,3.5) {$C_{2i}$};
-  \node[mob] (C3i) at (-1.6,3.5) {$C_{3i}$};
-  \node[ipop] (ai) at (3.2,2.4) {$(i,a_1),(i,a_2),(i,a_3)$ \\
-                                 \scriptsize prismatic $\langle a\rangle$,
-                                 interstitial};
-  \node[anchor=west, font=\itshape, text=black!60] at (-6.6,3.9)
-       {positive polarity};
+  % ---- the mobile block -------------------------------------------------
+  \node[mob] (Cv)  at (-6.2,3.0) {$C_v$};
+  \node[mob] (Ci)  at (-2.6,3.0) {$C_i$};
+  \node[mob] (C2i) at (-0.2,3.0) {$C_{2i}$};
+  \node[mob] (C3i) at ( 2.2,3.0) {$C_{3i}$};
+  \node[draw, rounded corners=3pt, dashed, draw=blue!45, inner sep=6pt,
+        fit=(Cv)(Ci)(C2i)(C3i), label={[font=\scriptsize, text=blue!60,
+        anchor=south east]south east:{mobile species}}] (MOB) {};
 
-  % ---- datum ------------------------------------------------------------
-  \draw[ultra thick] (-6.6,0) -- (7.8,0);
-  \node[anchor=east, text=black!55, font=\scriptsize] at (7.8,0.3)
-       {linear sinks (datum)};
+  % ---- immobile families ------------------------------------------------
+  \node[ipop] (ai) at (-3.4,0.3)
+       {$(i,a_1),(i,a_2),(i,a_3)$\\[-1pt]
+        \scriptsize prismatic $\langle a\rangle$, interstitial};
+  \node[vpop] (av) at (-3.4,-2.2)
+       {$(v,a_1),(v,a_2),(v,a_3)$\\[-1pt]
+        \scriptsize prismatic $\langle a\rangle$, vacancy};
+  \node[bpop] (c0) at (-5.6,-4.7) {$c_0$\\[-1pt]\scriptsize SFP};
+  \node[bpop] (cf) at (-2.6,-4.7) {$c_f$\\[-1pt]\scriptsize faulted};
+  \node[bpop] (cp) at ( 0.4,-4.7) {$c_p$\\[-1pt]\scriptsize perfect};
 
-  % ---- negative polarity ------------------------------------------------
-  \node[mob] (Cv) at (-4.8,-2.4) {$C_v$};
-  \node[vpop] (av) at (0.6,-1.4) {$(v,a_1),(v,a_2),(v,a_3)$ \\
-                                  \scriptsize prismatic $\langle a\rangle$,
-                                  vacancy};
-  \node[bpop] (c0) at (-1.0,-4.6) {$c_0$ \\ \scriptsize SFP};
-  \node[bpop] (cf) at (2.0,-4.6) {$c_f$ \\ \scriptsize faulted};
-  \node[bpop] (cp) at (5.0,-4.6) {$c_p$ \\ \scriptsize perfect};
-  \node[anchor=west, font=\itshape, text=black!60] at (-6.6,-4.0)
-       {negative polarity};
+  % ---- external reservoirs ----------------------------------------------
+  \node[ext] (NET) at (5.4,0.3)  {network\\[-1pt]\scriptsize $\rho_N$};
+  \node[ext] (GB)  at (5.4,-3.0) {grain\\[-1pt]boundary};
 
-  % ---- external ---------------------------------------------------------
-  \node[ext] (NET) at (7.0,1.5) {network \\ \scriptsize $\rho_N$};
-  \node[ext] (GB)  at (7.0,-1.7) {grain \\ boundary};
+  % ---- P4/P5 cascade sources --------------------------------------------
+  \draw[src] (G.west) to[bend right=25]
+       node[above left, pos=0.75, font=\scriptsize] {$G_m$ (P4)} (Cv.north);
+  \draw[src] (G.south) -- node[right, pos=0.6, font=\scriptsize] {} (Ci.north);
+  \draw[src] (G.south) -- (C2i.north);
+  \draw[src] (G.south east) to[bend left=10] (C3i.north);
+  \draw[src] (G.east) to[bend left=44]
+       node[right, pos=0.35, font=\scriptsize] {$J_k$ (P5)} (ai.east);
+  \draw[src] (G.east) to[bend left=52] (av.east);
+  \draw[src, dashed] (G.east) to[bend left=58] (cf.east);
 
-  % ---- P6 sources -------------------------------------------------------
-  \draw[->, thick, green!50!black] (G.west) to[bend right=20]
-        node[left, pos=0.6, font=\scriptsize] {$G_m$} (Ci.north);
-  \draw[->, thick, green!50!black] (G.east) to[bend left=12]
-        node[above, pos=0.6, font=\scriptsize] {$G_k$} (ai.north);
-  \draw[->, thick, green!50!black] (G.west) to[bend right=48]
-        node[left, pos=0.85, font=\scriptsize] {$G_m$} (Cv.west);
+  % ---- P2 clustering, P3 dissociation ------------------------------------
+  \draw[clus] (Ci.north east) to[bend left=30]
+       node[above, font=\scriptsize] {$\beta^{i,i}$ (P2)} (C2i.north west);
+  \draw[clus] (C2i.north east) to[bend left=30]
+       node[above, font=\scriptsize] {$\beta^{i,2i}$} (C3i.north west);
+  \draw[diss] (C2i.south west) to[bend left=30]
+       node[below, font=\scriptsize] {$\alpha^{i,2i}$ (P3)} (Ci.south east);
+  \draw[diss] (C3i.south west) to[bend left=30]
+       node[below, font=\scriptsize] {$\alpha^{i,3i}$} (C2i.south east);
 
-  % ---- P2 capture -------------------------------------------------------
-  \draw[capture] (Ci.east) -- node[above, pos=0.45, font=\scriptsize]
-        {$\phi_{km}$~(P2)} (ai.west);
-  \draw[capture] (Cv.east) -- node[above, pos=0.4, font=\scriptsize]
-        {$\phi_{km}$} (av.west);
-  \draw[capture] (Cv.south east) to[bend right=16]
-        node[below, pos=0.6, font=\scriptsize] {$\phi_{km}$} (c0.west);
-  \draw[capture] (Ci.south) to[bend right=14]
-        node[left, pos=0.55, font=\scriptsize] {shrink} (av.north west);
+  % ---- P1 recombination and vacancy capture by clusters ------------------
+  \draw[rec] (Cv) -- node[above, font=\scriptsize] {$R_{i,v}$ (P1)} (Ci);
+  \draw[->, thick, red!60] (Cv.north east) to[bend left=22]
+       node[above, pos=0.55, font=\scriptsize] {$R_{v,2i},R_{v,3i}$} (C3i.north west);
 
-  % ---- P5 emission ------------------------------------------------------
-  \draw[emitE] (av.south west) to[bend left=10]
-        node[right, pos=0.45, font=\scriptsize] {$\varepsilon$~(P5)}
-        (Cv.north east);
-  \draw[emitE] (cf.west) to[bend left=8]
-        node[below, pos=0.55, font=\scriptsize] {$\varepsilon$} (Cv.south east);
+  % ---- P6 homogeneous loop nucleation -------------------------------------
+  \draw[src, thick] (C3i.south) to[bend left=14]
+       node[right, pos=0.55, font=\scriptsize]
+       {$R_{i,3i}+R_{2i,2i}$ (P6)} (ai.north east);
 
-  % ---- P1 recombination -------------------------------------------------
-  \draw[rec] (Ci) -- node[left, font=\scriptsize] {$R_{i,v}$~(P1)} (Cv);
+  % ---- P7 capture at a loop or the SFP ------------------------------------
+  \draw[capture] (MOB.south) to[bend right=6]
+       node[left, pos=0.6, font=\scriptsize] {$\phi_{km}$ (P7)} (ai.north);
+  \draw[capture] (MOB.south west) to[bend right=16] (av.north west);
+  \draw[capture] (MOB.south west) to[bend right=34] (cf.north west);
+  \draw[capture] (Cv.south) to[bend right=24] (c0.west);
 
-  % ---- P3 coalescence ---------------------------------------------------
-  \draw[coal] (ai.north east) to[out=50, in=130, looseness=5]
-        node[above, font=\scriptsize] {$\varphi_{LL}$~(P3)} (ai.north west);
-  \draw[coal] (cf.south west) to[out=-130, in=-50, looseness=5]
-        node[below, font=\scriptsize] {$\varphi_{LL}$} (cf.south east);
+  % ---- P8 peripheral emission ---------------------------------------------
+  \draw[diss] (av.west) to[bend right=22]
+       node[left, pos=0.5, font=\scriptsize] {$S_{vL}$ (P8)} (Cv.south west);
+  \draw[diss] (cf.south) to[bend right=40] (Cv.south);
 
-  % ---- P7 basal chain ---------------------------------------------------
-  \draw[chain] (c0) -- node[above, font=\scriptsize] {$\nu_{\mathrm{col}}$~(P7)}
-        (cf);
-  \draw[chain] (cf) -- node[above, font=\scriptsize] {$\nu_{\mathrm{uf}}$~(P7)}
-        (cp);
+  % ---- P9 loop-loop coalescence -------------------------------------------
+  \draw[coal] (ai.north west) to[out=150, in=210, looseness=5]
+       node[left, font=\scriptsize] {$\varphi_{LL}$ (P9)} (ai.south west);
+  \draw[coal] (cf.south west) to[out=-140, in=-40, looseness=5]
+       node[below, font=\scriptsize] {$\varphi_{LL}$} (cf.south east);
 
-  % ---- P4 network sinks, P8 loop-network transfer -----------------------
-  \draw[snk] (C3i.east) to[bend left=18]
-        node[above, pos=0.6, font=\scriptsize] {$R_{m,s}$~(P4)} (NET.north west);
-  \draw[chain] (ai.east) to[bend left=6]
-        node[above, pos=0.5, font=\scriptsize] {$\varphi_{LN}$~(P8)} (NET.west);
+  % ---- P10 loop-network, P11 mobile-network -------------------------------
+  \draw[chain] (ai.east) -- node[above, font=\scriptsize]
+       {$\varphi_{LN}$ (P10)} (NET.west);
+  \draw[snk] (C3i.east) to[bend left=16]
+       node[above, pos=0.7, font=\scriptsize] {$R_{m,s}$ (P11)} (NET.north);
 
-  % ---- P9 Dirichlet, P10 loop absorption at the boundary ----------------
-  \draw[snk] (Cv.south) to[bend right=32]
-        node[below, pos=0.8, font=\scriptsize] {Dirichlet~(P9)} (GB.south west);
-  \draw[gbl] (av.east) to[bend left=4]
-        node[above, pos=0.6, font=\scriptsize] {$\nu_{gb}$~(P10)} (GB.west);
-  \draw[gbl] (cp.north) to[bend right=10]
-        node[right, pos=0.5, font=\scriptsize] {$\nu_{gb}$} (GB.south);
+  % ---- P12 basal chain ----------------------------------------------------
+  \draw[chain] (c0) -- node[above, font=\scriptsize]
+       {$\nu_{\mathrm{col}}$ (P12)} (cf);
+  \draw[chain] (cf) -- node[above, font=\scriptsize]
+       {$\nu_{\mathrm{uf}}$} (cp);
+
+  % ---- P13 Dirichlet, P14 size-gated loop absorption ----------------------
+  \draw[snk] (MOB.east) to[bend left=8]
+       node[above, pos=0.6, font=\scriptsize] {Dirichlet (P13)} (GB.north);
+  \draw[gbl] (av.east) to[bend right=6]
+       node[above, pos=0.6, font=\scriptsize] {$\nu_{gb}$ (P14)} (GB.west);
+  \draw[gbl] (cp.east) to[bend right=12] (GB.south);
 \end{tikzpicture}
 \caption{Reaction admissibility graph for the nine families of
-\cref{eq:families}. Vertices above the datum carry positive (interstitial)
-polarity, those below it negative (vacancy) polarity. Blue arrows are monomer
-capture (P2), which acts on a vacancy loop with the opposite sign when the
-captured species is an interstitial; dashed orange is thermal emission (P5);
-the heavy red double arrow is recombination (P1); orange loops are coalescence
-(P3); violet is the one-way basal chain $c_0\to c_f\to c_p$ (P7) and the
-loop--network transfer (P8); gray is absorption at the network (P4) and the
-Dirichlet condition on the mobile species at a grain boundary (P9). The green
-edges (P10) are the channel introduced in \cref{sec:gb-loops}, by which a loop
-that has grown large enough to intersect a boundary is absorbed by it --- an
-edge with no counterpart in a mean-field treatment, where a loop has no size
-relative to a boundary that is itself only a sink strength. The three prismatic
-variants of each character are drawn as one vertex for legibility; they are
-separate populations that exchange nothing with one another and differ only in
-habit normal.}
+\cref{eq:families}, with every edge class of \cref{tab:rag-processes}. The four
+mobile species are boxed together because capture onto a loop sums over all of
+them (\cref{eq:growth}), with a sign set by whether the species' polarity
+matches the family's, so one bundled arrow per family is faithful where four
+would be unreadable. Cascade production (green) feeds all four mobile species
+and, as a separate partition of the same displacement rate, nucleates the
+prismatic loops of both characters and the basal family directly; the dashed
+source onto $c_f$ becomes a source onto $c_0$ instead when the basal chain is
+active, which it is not in \cref{sec:results}. The interstitial prismatic
+family has a second, homogeneous nucleation channel (P6) fed by
+$2i+2i$ and $i+3i$ reactions among the mobile clusters, which is why the
+mobile ladder and the loop populations are not separable. Dashed orange edges
+run backwards from a population to the mobile pool: dissociation of a small
+cluster (P3) and peripheral emission from a vacancy loop (P8). The three
+prismatic variants of each character are drawn as one vertex for legibility;
+they are separate populations that exchange nothing with one another and differ
+only in habit normal, and the pyramid $c_0$ is not a loop --- it has no Burgers
+vector, no perimeter and no coalescence channel, and enters only through a
+capture cross-section.}
 \label{fig:rag}
 \end{figure}

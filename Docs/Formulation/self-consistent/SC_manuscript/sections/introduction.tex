@@ -4,216 +4,174 @@ Zirconium and its alloys --- Zircaloy-2 and Zircaloy-4 in light-water reactor
 fuel cladding, Zr--2.5\,Nb in CANDU pressure tubes, and the low-tin variants M5
 and ZIRLO in pressurized-water reactor service --- operate under prolonged
 neutron exposure at displacement rates of $10^{-8}$ to
-$10^{-7}\,\mathrm{dpa\,s^{-1}}$ and accumulate total damage of 5--30\,dpa over a
-fuel-cycle lifetime~\citep{Adamson2019,LemaignanMotta1994}. The microstructural
-changes that result --- nucleation and growth of \aloop{} prismatic loops, the
+$10^{-7}\,\mathrm{dpa\,s^{-1}}$ and accumulate 5--30\,dpa over a fuel-cycle
+lifetime~\citep{Adamson2019,LemaignanMotta1994}. The microstructural changes
+that follow --- nucleation and growth of \aloop{} prismatic loops, the
 comparatively delayed appearance of \cloop{}-component basal vacancy loops,
 dislocation channeling under load, anisotropic irradiation growth and creep, and
 stress-driven hydride reorientation --- are the principal source of property
-degradation in Zr-based components, manifested as hardening, loss of uniform
-elongation, axial growth of fuel assemblies, and creep-down of pressure
+degradation in Zr-based components, and they manifest as hardening, loss of
+uniform elongation, axial growth of fuel assemblies and creep-down of pressure
 tubes~\citep{Northwood1977,Griffiths1988,OnimusBechade2012,Cinbiz2016}.
 Predicting those changes across the joint envelope of dose, temperature, texture
-and applied stress is the central quantitative challenge of fuel-element and
+and applied stress is the central quantitative problem of fuel-element and
 pressure-tube qualification.
 
-Cluster dynamics (CD), in the form it took in the late 1970s and early
-1980s~\citep{Ghoniem1977,Ghoniem1979a,Ghoniem1980,Hayns1976,Kiritani1973},
-remains the workhorse mesoscopic theory for that prediction. It treats each
-defect species and size as a population whose concentration evolves under
-coupled master rate equations balancing in-cascade production,
-diffusion-controlled reactions, thermal emission and absorption at fixed
+Cluster dynamics, in the form it took in the late 1970s and early
+1980s~\citep{Ghoniem1977,Ghoniem1979a,Ghoniem1980,Hayns1976,Kiritani1973}, remains
+the workhorse mesoscopic theory for that prediction. It treats each defect
+species and size as a population whose concentration evolves under coupled master
+rate equations balancing in-cascade production, diffusion-controlled reactions,
+thermal emission and absorption at fixed
 sinks~\citep{BrailsfordBullough1972,Wiedersich1972,Mansur1978}. Its advantages
-are direct access to time scales far beyond molecular
+are access to time scales far beyond molecular
 dynamics~\citep{Bacon2009,Marian2017}, explicit resolution of the cluster-size
-distribution and therefore of every quantity that enters a macroscopic property
-model~\citep{GolubovSingh2001,Holt1988}, and modest cost relative to kinetic
-Monte Carlo, which together make CD the meeting point between atomistic
+distribution and therefore of every quantity entering a macroscopic property
+model~\citep{GolubovSingh2001,Holt1988}, and a cost low enough relative to
+kinetic Monte Carlo that it can serve as the meeting point between atomistic
 parameterization~\citep{Christensen2015,PatraTrinkle2019} and engineering-scale
 prediction~\citep{KohnertWirth2017,OnimusBechade2012}.
 
-\subsection{The mean-field assumption, and where it fails}
-\label{sec:intro-meanfield}
-
-Classical CD is a \emph{mean-field, spatially averaged} theory. Every
-concentration is a single number for the whole material, every sink is
-represented by a sink strength $k^{2}$ that has already been averaged over an
-assumed random and statistically uniform distribution of absorbers, and the
-transport that connects a mobile defect to a sink appears only through that
+In its classical form, however, cluster dynamics is a spatially averaged,
+mean-field theory. Every concentration is a single number for the whole
+material, every sink is represented by a sink strength $k^{2}$ already averaged
+over an assumed random and statistically uniform distribution of absorbers, and
+the transport connecting a mobile defect to a sink appears only through that
 average. Three distinct assumptions are folded into this, and each fails under
-conditions that are not exotic.
-
-\paragraph{Spatial uniformity.} A sink strength is meaningful only if the
-diffusion field around each absorber has relaxed to a common far-field value
-before it meets the next absorber. Near a free surface, a grain boundary, or a
-denuded band, it has not: the mobile concentration varies by orders of magnitude
-over a distance comparable with the boundary-layer width, and a single average
-concentration is not merely imprecise, it does not describe any point in the
-material. The consequences are structural rather than quantitative. In the
-calculations reported below, the outermost shell of a
+conditions that are not exotic. The first is spatial uniformity: a sink strength
+is meaningful only if the diffusion field around each absorber relaxes to a
+common far-field value before it meets the next absorber, and near a free
+surface, a grain boundary or a denuded band it does not, the mobile
+concentration varying by orders of magnitude over a distance comparable with the
+boundary-layer width. The failure is structural rather than quantitative,
+because a single average concentration then describes no point in the material;
+in the calculations reported below, the outermost shell of a
 \SI{500}{\nano\meter} grain carries essentially the entire prismatic loop
 population, so a domain average of the loop density is a statement about the
-boundary layer and not about the material.
-
-\paragraph{Diluteness.} The Avrami-type coalescence kernels that CD uses to
-represent loop--loop and loop--network interaction are derived by assuming that
-absorbers are placed independently and at random. Once the volume fraction swept
-by growing loops becomes appreciable, the placement is no longer independent ---
-loops that have already coalesced are correlated by construction --- and the
-mean-field estimate of the overlap probability ceases to be an estimate of
-anything. This is the point at which the population must be represented as
-discrete objects rather than as a density, and locating it is a prediction the
-model can make about itself.
-
-\paragraph{Isotropy inherited from cubic metals.} Self-interstitial migration in
-$\alpha$-Zr is strongly anisotropic, prism-plane mobility exceeding basal
-mobility by roughly an order of magnitude, and vacancy migration is anisotropic
-more weakly~\citep{Christensen2015,PatraTrinkle2019}. Most CD treatments of
-zirconium nevertheless retain isotropic diffusion constants taken from the
+boundary layer and not about the material. The second is diluteness. The
+Avrami-type kernels that represent loop--loop and loop--network interaction are
+derived by assuming absorbers are placed independently and at random; once the
+volume fraction swept by growing loops becomes appreciable the placement is no
+longer independent, since loops that have coalesced are correlated by
+construction, and the mean-field estimate of the overlap probability ceases to
+estimate anything. That is the point at which the population must be represented
+as discrete objects rather than as a density, and locating it is a prediction
+the model can make about itself. The third is an isotropy inherited from cubic
+metals. Self-interstitial migration in $\alpha$-Zr is strongly anisotropic,
+prism-plane mobility exceeding basal mobility by roughly an order of magnitude,
+and vacancy migration is anisotropic more
+weakly~\citep{Christensen2015,PatraTrinkle2019}; most cluster-dynamics treatments
+of zirconium nevertheless retain isotropic diffusion constants taken from the
 body-centered cubic literature and recover the missing directionality through
-independently fitted bias factors. That conflation is not a
-book-keeping convenience: it allows a model to believe simultaneously that
-diffusion is isotropic and that its sinks are biased by the anisotropy of that
-same diffusion, and it severs the relation between atomic-scale parameters and
-predicted dimensional change.
+independently fitted bias factors. That conflation permits a model to hold
+simultaneously that diffusion is isotropic and that its sinks are biased by the
+anisotropy of that same diffusion, and it severs the relation between
+atomic-scale parameters and predicted dimensional change.
 
-\subsection{Spatially resolved cluster dynamics}
-\label{sec:intro-srcd}
-
-Spatially resolved cluster dynamics (SRCD) replaces the averaged concentrations
-by fields $c(\xv,t)$ obeying reaction--diffusion equations on a meshed domain,
-so that the transport a mean-field sink strength summarizes is instead solved
+Spatially resolved cluster dynamics replaces the averaged concentrations by
+fields $c(\xv,t)$ obeying reaction--diffusion equations on a meshed domain, so
+that the transport a mean-field sink strength summarizes is instead solved
 for~\citep{spatialCD2024,christien2009cluster,barashev2015theoretical}. Three
-things follow that a mean-field model cannot supply.
-
-First, the boundary layer is resolved rather than parameterized. A grain
-boundary in mean-field CD is a number, $k^2_{gb}\sim 6\sqrt{k^2}/d$; in SRCD it
-is a Dirichlet condition, and the depleted zone in front of it --- whose width
-is set by the competition between the local diffusivity and the local sink
-density, and which therefore differs for each mobile species and evolves through
-the transient --- is an output. The denuded zones seen in irradiated
-microstructures are a direct consequence, and they are among the few
-observations that speak to the transport parameters rather than to the reaction
-parameters.
-
-Second, quantities that are degenerate in a mean-field model become
-distinguishable. \Cref{sec:coexistence} shows that diffusional anisotropy
-difference opens a window of the mobile flux ratio over which prismatic
+consequences follow that a mean-field model cannot supply. The boundary layer
+becomes resolved rather than parameterized: a grain boundary is no longer a
+number $k^{2}_{gb}\sim6\sqrt{k^{2}}/d$ but a Dirichlet condition, and the
+depleted zone in front of it --- whose width is set by the competition between
+the local diffusivity and the local sink density, and which therefore differs for
+each mobile species and evolves through the transient --- becomes an output. The
+denuded zones seen in irradiated microstructures are a direct consequence, and
+they are among the few observations that speak to the transport parameters
+rather than to the reaction parameters. Quantities degenerate in a mean-field
+model also become distinguishable: \cref{sec:coexistence} shows that diffusional
+anisotropy opens a window of the mobile flux ratio over which prismatic
 interstitial and basal vacancy loops grow together, but that the window is a
-condition on \emph{one number}; a mean-field model carries that number once,
-while a spatially resolved model carries it as a field, and the observed
-coexistence of both loop characters can then be a statement about different
-points of the same grain rather than about a single balance holding everywhere.
+condition on one number, which a mean-field model carries once and a spatially
+resolved model carries as a field, so that the observed coexistence of both loop
+characters can be a statement about different points of one grain rather than
+about a single balance holding everywhere. Finally, the fields are the natural
+input to a discrete model, since dislocation dynamics, micromechanical models of
+channeling and fracture models all require defect positions and sizes rather than
+densities; a spatially resolved continuum field carries the information a
+discrete population must reproduce, and the conversion between the two becomes a
+well-posed problem with conservation laws attached rather than a rescaling of a
+single
+average~\citep{li2025coupledCDDD,ji2022concurrent,li2020coupled}.
 
-Third, the fields are the natural input to a discrete model. Dislocation
-dynamics, micromechanical models of channeling, and fracture models all require
-defect positions and sizes, not densities. A spatially resolved continuum field
-carries the information a discrete population must reproduce --- local number,
-local size, local orientation --- and the conversion between the two becomes a
-well-posed problem with conservation laws attached, rather than a rescaling of a
-single average~\citep{li2025coupledCDDD,ji2022concurrent,li2020coupled}.
-
-\subsection{Self-consistency}
-\label{sec:intro-selfconsistency}
-
-\textbf{The model is self-consistent in two distinct senses, and both are
-restrictive.} They are independent requirements --- a model can satisfy either
-without the other --- and the term is used in this paper only for the
-conjunction.
-
-\paragraph{(a) Within the continuum model: every bias factor follows from
-anisotropic diffusion theory.} Every capture efficiency that appears in a loop
-growth law, and every sink strength that the same loops impose on the mobile
-species, is generated from the \emph{same} anisotropic diffusion tensors that
-transport those species, through the tensorial form of the
-diffusional-anisotropy-difference (DAD)
+The model presented here is self-consistent in two distinct and independent
+senses, and the term is used in this paper only for their conjunction. In the
+first, internal to the continuum model, every bias factor follows from
+anisotropic diffusion theory: each capture efficiency appearing in a loop growth
+law, and each sink strength the same loops impose on the mobile species, is
+generated from the same anisotropic diffusion tensors that transport those
+species, through the tensorial form of the diffusional-anisotropy-difference
 correction~\citep{woo1988theory,woo1981sink,woo1982intrinsic,po2026tensorialdad}.
-This holds for \emph{all} variants --- the three prismatic habits of each
-character and the three basal states alike --- so one anisotropy parameter per
-mobile species fixes the bias of every one of the nine families, and there is no
-independent set of phenomenological bias factors anywhere in the model. What the
-constraint rules out is worth stating as a possibility rather than an
-abstraction: a model that diffuses the mobile species with one anisotropy while
-biasing its sinks with an independently fitted pair can hold simultaneously the
-two beliefs that diffusion is isotropic and that the sinks are biased by the
-anisotropy of that diffusion. Generating both from one $p^{m}$ removes that
-possibility by construction. The immediate consequence is that a change in the
-transport anisotropy now moves the growth laws and the sink strengths together,
-in the directions the transport dictates, and cannot be absorbed by refitting a
-bias.
-
-\paragraph{(b) Between the continuum and the discrete descriptions: the transfer
-preserves what defines the microstructure.} The same population must be
-representable as continuum fields or as a set of discrete loops, and the map
-between the two must not create or destroy the quantities that make it the same
-population. \Cref{sec:conversion} states the requirements and their ranking:
-stored defects exactly, loop number to the integer draw, the dispersion of the
-size distribution to the truncation of the sampling, and the sink strength
-reported rather than forced. Sense~(b) is what makes a hybrid calculation
-meaningful --- continuum where the population is dilute, discrete where it is
-not, with the choice made on grounds of dose and computational cost rather than
-of physics --- and it is what turns the conversion into a problem with
-conservation laws attached instead of a rescaling of an average.
-
-The two senses meet at the loop's capture cross-section. Sense~(a) makes that
-cross-section a function of the transport tensors alone; sense~(b) requires the
-discrete population to present the same cross-section as the continuum field it
-replaces. A failure of either shows up in the transfer ledger of
-\cref{sec:ledger} as a discontinuity in sink strength, which is why that ledger
-is reported and not merely checked.
+This holds for all variants, the three prismatic habits of each character and
+the three basal states alike, so one anisotropy parameter per mobile species
+fixes the bias of every one of the nine families and no independent set of
+phenomenological bias factors appears anywhere in the model. What the constraint
+rules out is the possibility described above, of diffusing the mobile species
+with one anisotropy while biasing the sinks with an independently fitted pair;
+generating both from a single $p^{m}$ removes it by construction, at the price
+that a change in transport anisotropy now moves the growth laws and the sink
+strengths together, in the directions the transport dictates, and cannot be
+absorbed by refitting a bias. In the second sense, which holds between the
+continuum and the discrete descriptions, the transfer between them preserves the
+quantities that make them descriptions of one microstructure. \Cref{sec:conversion}
+states the requirements and their ranking: stored defects exactly, loop number
+to the integer draw, the dispersion of the size distribution to the truncation of
+the sampling, and the sink strength reported rather than forced. That second
+sense is what makes a hybrid calculation meaningful, continuum where the
+population is dilute and discrete where it is not, with the choice made on
+grounds of dose and computational cost rather than of physics. The two senses
+meet at the loop's capture cross-section, which the first makes a function of
+the transport tensors alone and which the second requires the discrete
+population to reproduce; a failure of either therefore appears in the transfer
+ledger of \cref{sec:ledger} as a discontinuity in sink strength, which is why
+that ledger is reported and not merely checked.
 
 The immobile population is correspondingly expanded, from the lumped
 stress-aligned pair of the earlier mean-field model to nine crystallographically
 resolved families: the three prismatic variants $a_1,a_2,a_3$ of both
-interstitial and vacancy character, and a three-state basal vacancy chain
-running from the stacking-fault pyramid through the faulted loop to the perfect
-loop. The expansion follows the experimental loop
+interstitial and vacancy character, and a three-state basal vacancy chain running
+from the stacking-fault pyramid through the faulted loop to the perfect loop. The
+expansion follows the experimental loop
 character~\citep{jostsons1977nature,griffiths1988review,carpenter1981study,%
-tournadre2012experimental,harte2017effect}: prismatic \aloop{} loops of both
-signs, and basal \cloop{}-component loops that are predominantly \emph{faulted}
-and that form by collapse of a pyramidal precursor rather than by accretion.
-Each family carries the first three moments of its size distribution, so that
-the width of the distribution --- not only its mean --- is transported, and the
-conversion to a discrete population can draw loop sizes from a distribution
-instead of assigning every loop at a point the same size.
-
-\subsection{Contributions and outline}
-\label{sec:intro-outline}
+tournadre2012experimental,harte2017effect}, which reports prismatic \aloop{}
+loops of both signs and basal \cloop{}-component loops that are predominantly
+faulted and that form by collapse of a pyramidal precursor rather than by
+accretion. Each family carries the first three moments of its size distribution,
+so that the width of the distribution and not only its mean is transported, and
+the conversion to a discrete population can draw loop sizes from a distribution
+rather than assigning every loop at a point the same size.
 
 This paper reports the formulation, its numerical solution, and its first
-application to a spatially resolved single crystal. Specifically:
+application to a spatially resolved single crystal. It presents an SRCD
+formulation for $\alpha$-Zr that is self-consistent in the first sense above,
+with the capture efficiencies and sink strengths of all nine families generated
+from the diffusion tensors and no independent bias
+(\cref{sec:classes,sec:formulation}); a two-time-scale operator split that makes
+of order $10^{6}$ stiff ordinary differential equations per substep tractable,
+together with the cost argument justifying it and the splitting error that pays
+for it (\cref{sec:split}); a continuum-to-discrete conversion that is
+self-consistent in the second sense, with its conservation guarantees stated and
+ranked and its residual discrepancies measured, and a grain-boundary treatment
+that makes the boundary a sink for immobile loops as well as for mobile defects
+(\cref{sec:conversion}); a calibration against 78 experimental measurements of
+loop density and diameter, presented as a maximum \emph{a posteriori} estimate
+under stated priors and with an explicit account of which parameters the data
+determine and which the bounds determine (\cref{sec:calibration}); and a
+\SI{500}{\nano\meter} hexagonal single-crystal calculation to 10\,dpa reporting
+the mobile and immobile fields, the closed atom balance including the boundary
+channel, the predicted denuded zone, the discrete loop population the fields
+imply, and the reconstructed size distribution of every variant
+(\cref{sec:results}).
 
-\begin{enumerate}[label=(\roman*),itemsep=2pt]
-\item an SRCD formulation for $\alpha$-Zr that is self-consistent in sense~(a):
-      the capture efficiencies and sink strengths of all nine families are
-      generated from the diffusion tensors, with no independent bias
-      (\cref{sec:classes,sec:formulation});
-\item a two-time-scale operator split that makes of order $10^{6}$ stiff
-      ordinary differential equations per substep tractable, with the cost
-      argument that justifies it and the splitting error that pays for it
-      (\cref{sec:split});
-\item a continuum-to-discrete conversion that is self-consistent in sense~(b),
-      with its conservation guarantees stated and ranked and its residual
-      discrepancies measured, and a grain-boundary treatment that makes the
-      boundary a sink for immobile loops as well as for mobile defects
-      (\cref{sec:conversion});
-\item a calibration against 78 experimental measurements of loop density and
-      diameter, presented as a maximum \emph{a posteriori} estimate under stated
-      priors, with an explicit account of which parameters the data determine
-      and which the bounds determine (\cref{sec:calibration}); and
-\item a \SI{500}{\nano\meter} hexagonal single-crystal calculation to 10\,dpa
-      reporting mobile and immobile fields, the closed atom balance including
-      the boundary channel, the predicted denuded zone, and the discrete loop
-      population the fields imply (\cref{sec:results}).
-\end{enumerate}
-
-\Cref{sec:classes} fixes the defect classes and the reactions among them.
-\Cref{sec:formulation} gives the formulation, beginning from the general master
-equation and reducing it to the equations actually integrated.
-\Cref{sec:split} is the solution method. \Cref{sec:conversion} is the
-continuum-to-discrete map and the grain-boundary models. \Cref{sec:calibration}
-is the calibration. \Cref{sec:results} is the single-crystal study, and
-\cref{sec:conclusions} draws the conclusions and states what remains open.
-Four appendices collect the capture-efficiency derivation, the moment closure,
-the peripheral-emission model that replaces fitted annealing lifetimes, and the
-state-vector layout.
+The remainder is organized as follows. \Cref{sec:classes} fixes the defect
+classes and the reactions among them. \Cref{sec:formulation} gives the
+formulation, beginning from the general master equation and reducing it to the
+equations actually integrated. \Cref{sec:split} is the solution method,
+\cref{sec:conversion} the continuum-to-discrete map and the grain-boundary
+models, and \cref{sec:calibration} the calibration. \Cref{sec:results} is the
+single-crystal study and \cref{sec:conclusions} draws the conclusions and states
+what remains open. Four appendices collect the capture-efficiency derivation,
+the moment closure, the peripheral-emission model that replaces fitted annealing
+lifetimes, and the state-vector layout.

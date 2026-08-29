@@ -1,8 +1,5 @@
 \section{Defect Classes and Reactions}\label{sec:classes}
 
-\subsection{The general class set}
-\label{sec:classes-general}
-
 The primary irradiation defects in hcp zirconium are vacancies, self-interstitial
 atoms and their clusters. Because the lattice is elastically and
 crystallographically anisotropic, a cluster is not specified by its size alone:
@@ -18,48 +15,45 @@ with
   \bvec_c \parallel [0001],
   \label{eq:burgers-general}
 \end{equation}
-the \cloop{} loops carrying a Burgers-vector component along the hexagonal axis.
+the latter carrying a Burgers-vector component along the hexagonal axis.
 
-Four principal cluster families span the population, together with the two free
+Four principal cluster families span that population, together with the two free
 monomers~\citep{Carpenter1988,Northwood1977,OnimusBechade2012,Yi2013,Doriot2015}:
 \begin{equation}
   I_n^{a},\qquad V_n^{a},\qquad S_n,\qquad V_n^{c},
   \label{eq:zr-loop-classes}
 \end{equation}
 where $I_n^{a}$ is an interstitial prismatic \aloop{} loop of $n$ excess
-self-interstitials on a $\{10\bar10\}$ habit; $V_n^{a}$ a vacancy prismatic loop
-of the same habit and Burgers vector but opposite character; $S_n$ a basal
-stacking-fault pyramid (SFP) of $n$ aggregated vacancies, bounded by basal
-$\tfrac16\langle20\bar23\rangle$ and prismatic facets, formed directly from
-collapsed cascade vacancy debris; and $V_n^{c}$ a basal vacancy \cloop{}-component
-loop, which nucleates above a temperature- and dose-rate-dependent threshold, in
-part by unfaulting of supercritical SFPs, and which drives breakaway irradiation
-growth at high fluence~\citep{holt1986c,HoltCausey1993,Yi2013}. The free monomers
-are the mono-interstitial $C_i$ and the monovacancy $C_v$. No helium and no
-three-dimensional void population is carried: Zr alloys generate a negligible
-$(n,\alpha)$ helium yield, and multi-vacancy cascade debris in $\alpha$-Zr
-collapses onto basal or prismatic habits rather than forming compact
+self-interstitials on a $\{10\bar10\}$ habit, $V_n^{a}$ a vacancy prismatic loop
+of the same habit and Burgers vector but opposite character, $S_n$ a basal
+stacking-fault pyramid of $n$ aggregated vacancies bounded by basal
+$\tfrac16\langle20\bar23\rangle$ and prismatic facets and formed directly from
+collapsed cascade vacancy debris, and $V_n^{c}$ a basal vacancy
+\cloop{}-component loop, which nucleates above a temperature- and
+dose-rate-dependent threshold, in part by unfaulting of supercritical pyramids,
+and which drives breakaway irradiation growth at high
+fluence~\citep{holt1986c,HoltCausey1993,Yi2013}. The free monomers are the
+mono-interstitial $C_i$ and the monovacancy $C_v$. Neither helium nor a
+three-dimensional void population is carried, because Zr alloys generate a
+negligible $(n,\alpha)$ helium yield and multi-vacancy cascade debris in
+$\alpha$-Zr collapses onto basal or prismatic habits rather than forming compact
 cavities~\citep{Northwood1977,OnimusBechade2012}.
 
-The classification separates \emph{character} --- interstitial or vacancy ---
-from \emph{crystallography} --- prismatic, basal pyramidal, or basal planar ---
-and both distinctions are load-bearing. Two families that share a habit plane
-and a Burgers vector but differ in character, $I_n^a$ and $V_n^a$, respond to
-the same mobile fluxes with opposite sign; two families that share a character
-but differ in habit, $V_n^a$ and $V_n^c$, present differently oriented capture
-cross-sections to an anisotropic diffusion field and therefore compete for the
-same vacancies on unequal terms. It is that second competition, taken up in
-\cref{sec:coexistence}, that the self-consistent formulation exists to describe
-without a free parameter.
+This classification separates character, interstitial or vacancy, from
+crystallography, prismatic or basal, and both distinctions carry weight. Two
+families sharing a habit plane and a Burgers vector but differing in character,
+$I_n^a$ and $V_n^a$, respond to the same mobile fluxes with opposite sign, while
+two families sharing a character but differing in habit, $V_n^a$ and $V_n^c$,
+present differently oriented capture cross-sections to an anisotropic diffusion
+field and therefore compete for the same vacancies on unequal terms. It is that
+second competition, taken up in \cref{sec:coexistence}, which the self-consistent
+formulation exists to describe without a free parameter.
 
-\subsection{The reduced set actually integrated}
-\label{sec:classes-reduced}
-
-\Cref{eq:zr-loop-classes} is size-resolved: each family is an infinite ladder in
-$n$. The model solved here replaces the ladder by a small number of \emph{moments}
-of the size distribution per family (\cref{sec:moments}) and resolves instead the
-crystallographic \emph{variants} that a size-resolved but variant-lumped model
-cannot distinguish. Writing the character as $s\in\{i,v\}$ and the habit as
+\Cref{eq:zr-loop-classes} is size-resolved, each family being an infinite ladder
+in $n$. The model solved here replaces the ladder by a small number of moments of
+the size distribution per family (\cref{sec:moments}) and resolves instead the
+crystallographic variants that a size-resolved but variant-lumped model cannot
+distinguish. Writing the character as $s\in\{i,v\}$ and the habit as
 $k\in\{a_1,a_2,a_3,c_0,c_f,c_p\}$, the families carried are
 \begin{equation}
   \mathcal F=
@@ -71,64 +65,53 @@ $k\in\{a_1,a_2,a_3,c_0,c_f,c_p\}$, the families carried are
   \label{eq:families}
 \end{equation}
 nine in all, of which eight are dislocation loops and one is not: $c_0$ is the
-stacking-fault pyramid, the precursor from which the basal loops form. Write
-$\mathcal F_L=\mathcal F\setminus\{(v,c_0)\}$ for the eight loop families;
-every statement below that invokes a perimeter, a line density or a coalescence
+stacking-fault pyramid, the precursor from which the basal loops form. We write
+$\mathcal F_L=\mathcal F\setminus\{(v,c_0)\}$ for the eight loop families, and
+every statement below invoking a perimeter, a line density or a coalescence
 channel is a statement about $\mathcal F_L$.
 
 Three features distinguish \cref{eq:families} from the lumped, stress-aligned
 pair of the earlier mean-field model, and each is a statement about
-crystallography rather than about the solver.
-
-\begin{enumerate}[itemsep=3pt]
-\item \textbf{The prismatic loops are resolved into their three variants
-      $a_1,a_2,a_3$, of both characters.} The variants carry their own habit
-      normals $\hat{\bm a}_k$, so the resolved stress on each is computed rather
-      than parameterized, and the response to an arbitrary stress state is a
-      redistribution among the three rather than a shift of one scalar. At zero
-      deviatoric stress they are equivalent by symmetry, receive equal shares,
-      and summing them recovers the lumped population exactly --- which is the
-      regression test on the change.
-\item \textbf{There is no basal interstitial family.} Basal interstitial
-      \cloop{} loops are not a reported population in neutron-irradiated Zr. A
-      formal $c_i$ population is retained in the growth inequalities of
-      \cref{sec:coexistence} for symmetry but is not a state variable.
-\item \textbf{The basal vacancy population is a three-state chain,}
-      $c_0\to c_f\to c_p$. The pyramid $c_0$ is not planar and stores its
-      vacancies with a nearly isotropic relaxation volume, whereas the faulted
-      state $c_f$ and the perfect state $c_p$ are planar and store different
-      vacancy content per unit area. Both transitions are thermally activated
-      and both are one-way.
-\end{enumerate}
+crystallography rather than about the solver. The prismatic loops are resolved
+into their three variants of both characters, so that each carries its own habit
+normal $\hat{\bm a}_k$, the resolved stress on each is computed rather than
+parameterized, and the response to an arbitrary stress state is a redistribution
+among the three rather than a shift of one scalar; at zero deviatoric stress the
+three are equivalent by symmetry, receive equal shares, and sum to the lumped
+population exactly, which is the regression test on the change. There is no basal
+interstitial family, because basal interstitial \cloop{} loops are not a reported
+population in neutron-irradiated Zr; a formal $c_i$ population is retained in the
+growth inequalities of \cref{sec:coexistence} for symmetry but is not a state
+variable. And the basal vacancy population is a three-state chain
+$c_0\to c_f\to c_p$, in which the pyramid is not planar and stores its vacancies
+with a nearly isotropic relaxation volume while the faulted and perfect states
+are planar and store different vacancy content per unit area; both transitions
+are thermally activated and both are one-way.
 
 \input{sections/fig_hcp}
 
-The two habits are mutually \emph{orthogonal}: the normals $\hat{\bm a}_k$ of the
-three prismatic variants lie in $(0001)$, while the basal normal is $[0001]$
-itself. That orthogonality is why no single electron-beam direction images both
-populations at true size --- a zone axis showing one family face-on views the
-other edge-on --- so any comparison of \cref{eq:families} against TEM densities
-must combine at least two zone axes, and a single-axis micrograph constrains at
-most one habit. It is also why the calibration of \cref{sec:calibration} treats
-the \aloop{} and \cloop{} data as separate target sets rather than as one.
+The two habits are mutually orthogonal: the normals $\hat{\bm a}_k$ of the three
+prismatic variants lie in $(0001)$ while the basal normal is $[0001]$ itself.
+That orthogonality is why no single electron-beam direction images both
+populations at true size, a zone axis showing one family face-on viewing the
+other edge-on, so that any comparison of \cref{eq:families} against
+transmission-electron-microscope densities must combine at least two zone axes
+and a single-axis micrograph constrains at most one habit. It is also why the
+calibration of \cref{sec:calibration} treats the \aloop{} and \cloop{} data as
+separate target sets rather than as one.
 
-\subsection{Geometry: from content to radius}
-\label{sec:classes-geometry}
-
-Each family carries a character sign $\eta_s$ ($+1$ interstitial, $-1$ vacancy)
-and three spatially resolved fields: the \emph{cluster density}
-$n^k_{sL}(\xv)$, clusters per host atom; the \emph{defect content}
-$c^k_{sL}(\xv)$, point defects stored in that family per host atom; and the
-\emph{second content} $q^k_{sL}(\xv)$ of \cref{sec:moments}, which carries the
-width of the size distribution. All three are dimensionless, so a number density
-per unit volume is $n/\Omega$ and a stored-defect density is $c/\Omega$, with
-$\Omega$ the atomic volume.
-
-The quantity that converts loop area into stored defects is not $|\bvec|$ but the
-edge component $\bvec\!\cdot\!\nvec$: a loop of radius $R$ holds
-$\pi R^2(\bvec\!\cdot\!\nvec)/\Omega$ defects. The mean radius, the mean size and
-the line density of family $(s,k)$ therefore follow from its content and density
-as
+Each family carries a character sign $\eta_s$, $+1$ for interstitial and $-1$ for
+vacancy, and three spatially resolved fields: the cluster density $n^k_{sL}(\xv)$
+in clusters per host atom, the defect content $c^k_{sL}(\xv)$ in point defects
+stored per host atom, and the second content $q^k_{sL}(\xv)$ of
+\cref{sec:moments}, which carries the width of the size distribution. All three
+are dimensionless, so a number density per unit volume is $n/\Omega$ and a
+stored-defect density is $c/\Omega$, with $\Omega$ the atomic volume. The
+quantity converting loop area into stored defects is not $|\bvec|$ but the edge
+component $\bvec\!\cdot\!\nvec$, since a loop of radius $R$ holds
+$\pi R^{2}(\bvec\!\cdot\!\nvec)/\Omega$ defects, so that the mean radius, the
+mean size and the line density of family $(s,k)$ follow from its content and
+density as
 \begin{equation}
   R^k_{sL}=\lambda_k\sqrt{\frac{c^k_{sL}}{n^k_{sL}}},
   \qquad
@@ -143,14 +126,14 @@ with one geometric length per habit: $\lambda_a$ shared by all six prismatic
 families, and $\lambda_{c_f}$, $\lambda_{c_p}$ for the two basal states.
 \Cref{eq:radius} describes a planar object and does not apply to the pyramid,
 whose stored vacancies fill a volume rather than bound an area; its size follows
-from the volumetric relation
+instead from the volumetric relation
 \begin{equation}
   R^{c_0}_{vL}=\left(\frac{m^{c_0}_{vL}\,\Omega}{\sqrt8}\right)^{1/3},
   \label{eq:Rsfp}
 \end{equation}
-so the pyramid carries no $\lambda_k$, no Burgers vector and no line density.
-What it does carry is a capture cross-section, and \cref{sec:formulation} shows
-that a cross-section is the only thing either the growth law or the sink
+so that the pyramid carries no $\lambda_k$, no Burgers vector and no line
+density. What it does carry is a capture cross-section, and \cref{sec:formulation}
+shows that a cross-section is the only thing either the growth law or the sink
 strengths ever ask of a family. \Cref{tab:cd-families} lists the nine families
 with the crystallography that fixes their geometry.
 
@@ -186,60 +169,73 @@ $c_0$ & $(0001)$ base & partials & $v$ &
 \end{tabularx}
 \end{table}
 
-\subsection{Reaction classes}
-\label{sec:classes-reactions}
-
-The coupled kinetics are generated from a directed multigraph --- the
-\emph{reaction admissibility graph} (RAG) --- whose vertices are the admissible
-cluster states and whose edges are the elementary reactions permitted by the
-polarity, habit-plane and mobility constraints above. The master equations
-follow by a deterministic graph walk: at each vertex the time derivative is the
-signed sum of the rate kernels of all incoming (gain) and outgoing (loss) edges.
-Vertices partition by polarity,
+The coupled kinetics are generated from a directed multigraph, the reaction
+admissibility graph, whose vertices are the admissible cluster states and whose
+edges are the elementary reactions permitted by the polarity, habit-plane and
+mobility constraints above. The master equations follow by a deterministic graph
+walk, the time derivative at each vertex being the signed sum of the rate kernels
+of all incoming and outgoing edges incident on it. Vertices partition by
+polarity,
 \begin{align}
-  \mathcal V^{+} &= \{C_i\}\cup\{C_{2i},C_{3i}\}\cup\{(i,a_k)\}, \\
+  \mathcal V^{+} &= \{C_i,C_{2i},C_{3i}\}\cup\{(i,a_k)\}, \\
   \mathcal V^{-} &= \{C_v\}\cup\{(v,a_k)\}\cup\{(v,c_0),(v,c_f),(v,c_p)\},
 \end{align}
-so the interstitial prismatic families lie on the positive branch and the six
-vacancy families on the negative one. \Cref{tab:rag-processes} catalogs the edge
-classes; \cref{fig:rag} draws the graph for the family set of
-\cref{eq:families}.
+so that the interstitial prismatic families lie on the positive branch and the
+six vacancy families on the negative one. \Cref{tab:rag-processes} catalogs the
+fourteen edge classes and \cref{fig:rag} draws the graph, and both are drawn
+against the equations summarized in \cref{sec:summary-equations} rather than
+against a description of them.
+
+Three of those classes deserve comment, because they are absent from the
+mean-field treatment this model replaces and are easily overlooked. Cascade
+production is not one edge but two partitions of the same displacement rate: a
+part $G_m$ deposited into the mobile species, and a part $J_k$ that nucleates
+loops directly, with its own share for the prismatic families of \emph{both}
+characters as well as for the basal family. Alongside that cascade route the
+interstitial prismatic family has a second, homogeneous nucleation channel fed by
+$2i+2i$ and $i+3i$ reactions among the mobile clusters, so that the mobile ladder
+and the loop populations are not separable even in principle. And the grain
+boundary appears twice, as a Dirichlet condition on the mobile species and as a
+size-gated removal acting on the loops themselves; the second has no counterpart
+in a mean-field treatment, where a loop has no size relative to a boundary that
+is itself only a sink strength.
 
 \begin{table}[htbp]
 \caption{Admissible process classes of the irradiated-Zr reaction admissibility
 graph. Each elementary reaction maps to one abstract edge class and one rate
 kernel; the explicit kernels appear in \cref{sec:formulation} at the equation
-indicated. P10 has no counterpart in the mean-field treatment and is introduced
+indicated. P14 has no counterpart in the mean-field treatment and is introduced
 in \cref{sec:gb-loops}.}
 \label{tab:rag-processes}
 \centering\small
-\begin{tabular}{@{}llll@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{0.32\textwidth}Xl@{}}
 \toprule
-Process & Abstract edge class & Kernel & Given in \\
+& Process & Kernel & Given in \\
 \midrule
-P1: vacancy--SIA recombination & cross-polarity (annihilation) &
-  $R_{i,v}$ & \cref{eq:rates} \\
-P2: monomer capture by loop or SFP & growth / shrinkage &
-  $\phi_{km}$ & \cref{eq:growth} \\
-P3: cluster--cluster coalescence & same-polarity &
-  $\varphi_{LL},\varphi_{LN}$ & \cref{eq:avrami} \\
-P4: absorption at the network & sink edge &
-  $R_{m,s}$ & \cref{eq:sinkconc} \\
-P5: thermal monomer emission & dissociation &
-  $\mathcal E_{2i},\mathcal E_{3i}$ & \cref{eq:rates} \\
-P6: cascade defect production & source edge &
-  $G_m,\,G_k$ & \cref{eq:master-c} \\
-P7: SFP $\to c_f$ collapse, $c_f\to c_p$ unfaulting &
-  inter-population transfer & $\nu_{\mathrm{col}},\nu_{\mathrm{uf}}$ &
-  \cref{eq:basal-chain} \\
-P8: loop absorbed by the network & network-evolution edge &
-  $\varphi_{LN}$ & \cref{eq:avrami} \\
-P9: absorption at a grain boundary, mobile & Dirichlet boundary &
-  --- & \cref{eq:bc} \\
-P10: absorption at a grain boundary, \emph{loops} & size-gated removal &
-  $\nu_{gb}$ & \cref{eq:gbloop} \\
+P1  & vacancy--interstitial recombination, and vacancy capture by a mobile
+      cluster & $R_{i,v}$, $R_{v,2i}$, $R_{v,3i}$ & \cref{eq:rates} \\
+P2  & clustering among mobile species & $\beta^{m,n}$ & \cref{eq:rates} \\
+P3  & thermal dissociation of a mobile cluster & $\alpha^{m,n}$ &
+      \cref{eq:rates} \\
+P4  & cascade production into the mobile species & $G_m$ & \cref{eq:master-c} \\
+P5  & cascade nucleation of loops, both characters & $J_k$ & \cref{eq:block-n} \\
+P6  & homogeneous loop nucleation from mobile clusters &
+      $R_{i,3i}+R_{2i,2i}$ & \cref{eq:block-n} \\
+P7  & capture at a loop or the pyramid, of either polarity & $\phi_{km}$ &
+      \cref{eq:growth} \\
+P8  & peripheral emission from a vacancy loop & $S_{vL}$ & \cref{eq:Semit} \\
+P9  & loop--loop coalescence & $\varphi_{LL}$ & \cref{eq:avrami} \\
+P10 & loop--network coalescence & $\varphi_{LN}$ & \cref{eq:avrami} \\
+P11 & absorption of a mobile species at the network & $R_{m,s}$ &
+      \cref{eq:sinkconc} \\
+P12 & basal chain transfer, $c_0\to c_f\to c_p$ &
+      $\nu_{\mathrm{col}},\nu_{\mathrm{uf}}$ & \cref{eq:basal-chain} \\
+P13 & absorption of a mobile species at a grain boundary & Dirichlet &
+      \cref{eq:bc} \\
+P14 & size-gated absorption of \emph{loops} at a grain boundary & $\nu_{gb}$ &
+      \cref{eq:gbloop} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \input{sections/fig_rag}
