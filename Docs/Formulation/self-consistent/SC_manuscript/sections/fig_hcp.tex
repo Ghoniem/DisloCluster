@@ -1,0 +1,169 @@
+% The hcp cell and every Burgers vector the model carries. Drawn rather than
+% included as a raster, for three reasons: the raster was drawn at an arbitrary
+% axial ratio where alpha-Zr's is 1.5944 and the distinction matters here (it is
+% what separates the two basal states); it carried no Burgers vectors, which are
+% the thing a reader needs from this figure; and its colors were unrelated to
+% the family colors every other figure in the paper uses.
+%
+% PROJECTION: elevation 20 deg, azimuth -45 deg, applied through TikZ's own
+% x/y/z keys, so the coordinates below are the crystal's and the axial ratio is
+% exact by construction rather than by drafting. The azimuth is -45 and not -60
+% for a reason: at -60 the hexagon's vertices project in coincident pairs, the
+% left and right edges come out vertical, and the prism reads as a rectangular
+% block rather than a hexagonal one.
+%
+% The three panels sit in bottom-aligned minipages so that the (a)/(b)/(c)
+% labels land on one line; aligning the tikzpictures themselves by `baseline`
+% cannot do that, because each panel's origin sits at a different height within
+% its own drawing.
+\definecolor{famA1}{HTML}{C62828}
+\definecolor{famA2}{HTML}{2E7D32}
+\definecolor{famA3}{HTML}{B38600}
+\definecolor{famA1v}{HTML}{00838F}
+\definecolor{famA2v}{HTML}{00695C}
+\definecolor{famA3v}{HTML}{6A1B9A}
+\definecolor{famCf}{HTML}{1F4FBF}
+\definecolor{famCp}{HTML}{4527A0}
+
+\begin{figure}[htbp]
+\centering
+%---------------------------------------------------------------- (a) the cell
+\begin{minipage}[b]{0.30\textwidth}\centering
+\begin{tikzpicture}[
+    x={(1.20cm,-0.411cm)}, y={(1.20cm,0.411cm)}, z={(0cm,1.60cm)},
+    >=Latex, line join=round]
+  \def\h{1.5944}                      % c/a for alpha-Zr, not sqrt(8/3)
+  \foreach \i/\X/\Y in {0/1.000/0.000, 1/0.500/0.866, 2/-0.500/0.866,
+                        3/-1.000/0.000, 4/-0.500/-0.866, 5/0.500/-0.866} {
+    \coordinate (B\i) at (\X,\Y,0);
+    \coordinate (T\i) at (\X,\Y,\h);
+  }
+
+  % --- what the camera cannot see, first and dashed
+  \draw[gray!45, dashed] (B1) -- (B2) -- (B3) -- (B4);
+  \draw[gray!45, dashed] (B2) -- (T2);
+
+  % --- the second-order {11-20} plane: a diagonal THROUGH the cell, normal to
+  %     an <a> direction. Lightly filled: solid, it hides the cell it cuts.
+  \draw[famA3, densely dashed, fill=famA3!14]
+    (0,0.866,0) -- (0,-0.866,0) -- (0,-0.866,\h) -- (0,0.866,\h) -- cycle;
+
+  % --- a first-order {10-10} face, front-facing at this azimuth
+  \fill[famA1!28, draw=famA1!80]
+    (B5) -- (B0) -- (T0) -- (T5) -- cycle;
+
+  % --- the basal habit (0001). The TOP face is the visible one from here.
+  \fill[famCf!25, draw=famCf!80]
+    (T0) -- (T1) -- (T2) -- (T3) -- (T4) -- (T5) -- cycle;
+
+  % --- the remaining visible edges
+  \draw[gray!70] (B4) -- (B5) -- (B0) -- (B1);
+  \draw[gray!70] (B0) -- (T0);  \draw[gray!70] (B1) -- (T1);
+  \draw[gray!70] (B3) -- (T3);  \draw[gray!70] (B4) -- (T4);
+  \draw[gray!70] (B5) -- (T5);
+
+  % --- the two shortest lattice translations
+  \draw[->, very thick, famA1] (0,0,\h) -- (1.0,0,\h);
+  \node[famA1, font=\footnotesize] at (1.36,0.12,\h) {$a$};
+  \draw[->, very thick, famCp] (0,0,0) -- (0,0,\h);
+  \node[famCp, font=\footnotesize] at (0.20,0.34,{\h*0.50}) {$c$};
+\end{tikzpicture}
+\\[2pt]
+{\scriptsize\color{gray}$c/a=1.5944$}\\[1pt]
+{\small (a)}
+\end{minipage}
+\hfill
+%------------------------------------------------- (b) plan view, prismatic set
+\begin{minipage}[b]{0.32\textwidth}\centering
+\begin{tikzpicture}[scale=1.15, >=Latex, line join=round]
+  % the {10-10} first-order traces bisect the <a> directions
+  \foreach \A in {30,90,150}
+    \draw[famA3!55, densely dashed] (\A-180:1.28) -- (\A:1.28);
+  \node[font=\scriptsize, famA3, anchor=south west] at (30:1.22)
+       {$\{10\bar10\}$};
+
+  % basal section, viewed down [0001]
+  \draw[gray!60, fill=gray!6]
+    (0:1) -- (60:1) -- (120:1) -- (180:1) -- (240:1) -- (300:1) -- cycle;
+
+  % the three prismatic Burgers vectors, interstitial (long, solid) and vacancy
+  % (short, dashed): the two characters share habit and b and differ only in
+  % what they store, which no arrow can show.
+  \foreach \A/\ci/\cv/\lbl/\pos in {%
+      0/famA1/famA1v/{$a_1,a_1^{v}$}/{right},
+      60/famA2/famA2v/{$a_2,a_2^{v}$}/{above right},
+      120/famA3/famA3v/{$a_3,a_3^{v}$}/{above left}} {
+    \draw[->, very thick, \ci] (0,0) -- (\A:1.00);
+    \draw[->, thick, \cv, densely dashed] (0,0) -- (\A:0.58);
+    \node[font=\scriptsize, \ci, \pos] at (\A:1.04) {\lbl};
+  }
+  \node[font=\scriptsize, anchor=north] at (0,-1.32) {$[0001]$ into the page};
+\end{tikzpicture}
+\\[2pt]
+{\scriptsize $\bm b=\tfrac13\langle11\bar20\rangle$ for all six\\[1pt]
+ solid: interstitial\quad dashed: vacancy}\\[1pt]
+{\small (b)}
+\end{minipage}
+\hfill
+%----------------------------------------------------- (c) elevation, basal set
+\begin{minipage}[b]{0.32\textwidth}\centering
+% ONLY the family names sit beside the arrows. The Burgers vectors go in the
+% legend below: at this scale a symbol long enough to name b crowds either the
+% c-axis scale bar or the other family's arrow, whichever side it is put on.
+\begin{tikzpicture}[scale=1.06, >=Latex, line join=round]
+  \def\h{1.5944}
+  % the c axis, for scale, clear of everything
+  \draw[gray!55, |<->|] (1.30,0) -- (1.30,\h);
+  \node[gray!70, font=\scriptsize, anchor=west] at (1.35,{\h/2}) {$c$};
+
+  % the (0001) habit, seen edge-on
+  \draw[famCf!70, fill=famCf!16] (-1.25,-0.05) rectangle (1.10,0.05);
+  \node[font=\scriptsize, famCf, anchor=north] at (0.40,-0.09) {$(0001)$};
+
+  % c_p: perfect, b = [0001], edge component the full c
+  \draw[->, very thick, famCp] (0.62,0.05) -- (0.62,\h);
+  \node[font=\scriptsize, famCp, anchor=south] at (0.62,{\h+0.05}) {$c_p$};
+
+  % c_f: faulted, b = 1/6<20-23>: inclined, edge component c/2
+  \draw[->, very thick, famCf] (-0.15,0.05) -- (-1.00,{\h/2});
+  \draw[famCf!50, densely dotted] (-1.00,{\h/2}) -- (-0.15,{\h/2});
+  \draw[famCf!50, densely dotted] (-0.15,0.05) -- (-0.15,{\h/2});
+  \node[font=\scriptsize, famCf, anchor=south] at (-0.60,{\h/2+0.12})
+       {$c_f$};
+  \node[font=\scriptsize, famCf, anchor=west] at (-0.10,{\h/4}) {$c/2$};
+\end{tikzpicture}
+\\[2pt]
+{\scriptsize
+ \textcolor{famCf}{$c_f$}: $\bm b=\tfrac16\langle20\bar23\rangle$,
+ edge component $c/2$\\[1pt]
+ \textcolor{famCp}{$c_p$}: $\bm b=[0001]$, edge component $c$}\\[1pt]
+{\small (c)}
+\end{minipage}
+
+\caption{The hcp cell of $\alpha$-Zr and every Burgers vector the model carries,
+drawn at the physical axial ratio $c/a=1.5944$ rather than the ideal
+$\sqrt{8/3}=1.6330$. \textbf{(a)}~The cell, with the three planes that matter:
+the basal $(0001)$ plane (blue), the habit of $c_0$, $c_f$ and $c_p$; a
+first-order prismatic $\{10\bar10\}$ face (red), a side face of the prism; and a
+second-order $\{11\bar20\}$ plane (yellow, dashed), a diagonal \emph{through}
+the cell rather than a face of it. The arrows are the two shortest lattice
+translations, $a=\tfrac13\langle11\bar20\rangle$ in the basal plane and
+$c=[0001]$ along the cell axis. \textbf{(b)}~Plan view down $[0001]$: the three
+prismatic variants at $60^\circ$ to one another, each drawn twice --- long and
+solid for the interstitial family, short and dashed for its vacancy partner,
+which shares the habit plane and the Burgers vector and differs only in what it
+stores. The dashed yellow lines are the $\{10\bar10\}$ traces, which bisect the
+Burgers directions. \textbf{(c)}~The basal pair, seen edge-on. The perfect state
+$c_p$ has $\bm b=[0001]$ normal to its habit, so its edge component is the full
+$c$; the faulted state $c_f$ has the inclined
+$\bm b=\tfrac16\langle20\bar23\rangle$, whose edge component is $c/2$ --- one
+removed basal layer against two. That factor of two is why
+$\lambda_{c_p}=\lambda_{c_f}/\sqrt2$ in \cref{tab:cd-families}, and it is why
+the axial ratio has to be drawn correctly. The pyramid $c_0$ has no Burgers
+vector and so appears in neither panel. The inclined pyramidal planes containing
+$\langle c+a\rangle=\tfrac13\langle11\bar23\rangle$ carry \emph{no} family: that
+vector is the glide vector accommodating $c$-axis strain in deformation, and its
+planes are not observed habit planes for irradiation-induced loops, so the
+absence is an experimental statement and not a truncation.}
+\label{fig:hcp-cell}
+\end{figure}
