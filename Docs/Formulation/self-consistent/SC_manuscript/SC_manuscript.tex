@@ -1,0 +1,118 @@
+%=====================================================================
+%  A Self-Consistent Spatially-Resolved Cluster Dynamics Model
+%  for Irradiated Zirconium
+%
+%  For submission to the Journal of Nuclear Materials (Elsevier).
+%
+%  Build:  latexmk -pdf SC_manuscript.tex     (latexmkrc sets the engine)
+%  Prose and comments are in American English.
+%
+%  The sections live in sections/ and are \input here in order. That is not
+%  decoration: this manuscript is assembled from three sources of very
+%  different provenance -- an internal formulation report, a general
+%  cluster-dynamics treatment, and the DisloCluster code -- and keeping the
+%  sections separate is what lets each one be checked against its own source.
+%=====================================================================
+\documentclass[preprint,3p,times]{elsarticle}
+
+% lmodern BEFORE anything asks for a glyph. elsarticle wants T1 Computer
+% Modern, whose EC fonts MiKTeX ships only as METAFONT sources; generating
+% them fails here and the compile dies naming a font rather than anything in
+% the document. See latexmkrc.
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{siunitx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc,positioning,shapes.geometric,arrows.meta,fit}
+\usepackage[nameinlink,capitalise]{cleveref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\journal{Journal of Nuclear Materials}
+
+%---------------------------------------------------------------------
+%  Macros. Taken from the formulation report so that every equation
+%  transplanted from it keeps its notation unchanged -- retyping an
+%  equation into different symbols is how two documents come to disagree.
+%---------------------------------------------------------------------
+\newcommand{\aloop}{\ensuremath{\langle a\rangle}}
+\newcommand{\cloop}{\ensuremath{\langle c\rangle}}
+\newcommand{\ba}{\ensuremath{\langle a\rangle}}
+\newcommand{\bc}{\ensuremath{\langle c\rangle}}
+\newcommand{\xv}{\bm{x}}
+\newcommand{\dpa}{\mathrm{dpa}}
+\newcommand{\spvec}[1]{\bm{\mathsf{#1}}}   % species-space vector
+\newcommand{\spmat}[1]{\bm{\mathsf{#1}}}   % species-space matrix
+\newcommand{\Dten}{\bm{D}}
+\newcommand{\bvec}{\bm{b}}
+\newcommand{\nvec}{\bm{n}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\Zdad}{Z^{\mathrm{DAD}}}
+\DeclareMathOperator{\tr}{tr}
+
+% Loop-family shorthand. The nine families the model carries are named by
+% habit and character throughout: c_f, c_p, c_0 basal; a_1..a_3 prismatic
+% interstitial; a_1^v..a_3^v prismatic vacancy.
+\newcommand{\cf}{\ensuremath{c_{f}}}
+\newcommand{\cp}{\ensuremath{c_{p}}}
+\newcommand{\czero}{\ensuremath{c_{0}}}
+
+\sisetup{range-phrase=--,range-units=single}
+\DeclareSIUnit{\dpaunit}{dpa}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{A Self-Consistent Spatially-Resolved Cluster Dynamics Model for
+       Irradiated Zirconium}
+
+\author[ucla]{Nasr M.\ Ghoniem\corref{cor}}
+\ead{ghoniem@ucla.edu}
+\author[miami]{Giacomo Po}
+\author[miami]{Matthew Maron}
+\author[miami]{Ruben Escobar}
+\author[kapl]{Benjamin Ramirez Flores}
+\author[kapl]{Kristopher Baker}
+\author[bettis]{Thomas Black}
+\author[bettis]{James Hollenbeck}
+
+\cortext[cor]{Corresponding author.}
+
+\address[ucla]{Department of Mechanical and Aerospace Engineering,
+  University of California Los Angeles, Los Angeles, CA 90095, USA}
+\address[miami]{Department of Mechanical and Aerospace Engineering,
+  University of Miami, Coral Gables, FL 33146, USA}
+\address[kapl]{Knolls Atomic Power Laboratory, Fluor Marine Propulsion, LLC,
+  Niskayuna, NY 12309, USA}
+\address[bettis]{Bettis Atomic Power Laboratory, Fluor Marine Propulsion, LLC,
+  West Mifflin, PA 15122, USA}
+
+\input{sections/abstract}
+
+\end{frontmatter}
+
+\input{sections/introduction}
+\input{sections/defect_classes}
+\input{sections/formulation}
+\input{sections/operator_split}
+\input{sections/continuum_discrete}
+\input{sections/calibration}
+\input{sections/results}
+\input{sections/conclusions}
+
+\appendix
+\input{sections/appendices}
+
+\bibliographystyle{elsarticle-num}
+\bibliography{self-consistent}
+
+\end{document}

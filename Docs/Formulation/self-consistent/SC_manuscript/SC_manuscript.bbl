@@ -1,0 +1,293 @@
+\begin{thebibliography}{10}
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{\texttt{#1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \def\href#1#2{#2} \def\path#1{#1}\fi
+
+\bibitem{Adamson2019}
+B.~Adamson, R.\, E.~Coleman, C.\, M.~Griffiths, Irradiation effects in
+  zirconium alloys, Tech. Rep. IAEA-TECDOC-2020, International Atomic Energy
+  Agency, Vienna, comprehensive IAEA review: irradiation growth, loop data, SPP
+  evolution, void data, dose/temperature dependences for BWR, PWR, and CANDU
+  Zircaloys. (2019).
+
+\bibitem{LemaignanMotta1994}
+C.~Lemaignan, A.~T. Motta, Zirconium alloys in nuclear applications, in: R.~W.
+  Cahn, P.~Haasen, E.~J. Kramer (Eds.), Materials Science and Technology: A
+  Comprehensive Treatment, Volume 10B, VCH, 1994, pp. 1--51.
+
+\bibitem{Northwood1977}
+D.~O. Northwood, Irradiation damage in zirconium and its alloys, Atomic Energy
+  Review 15~(4) (1977) 547--610.
+
+\bibitem{Griffiths1988}
+M.~Griffiths, A review of microstructure evolution in zirconium alloys during
+  irradiation, Journal of Nuclear Materials 159 (1988) 190--218, review:
+  $\langle c\rangle$-component loops and voids in Zr; formation mechanism;
+  temperature window 625--775\,K for voids; He role in cavity stabilization;
+  irradiation growth mechanisms; SPP influence.
+\newblock \href {https://doi.org/10.1016/0022-3115(88)90029-5}
+  {\path{doi:10.1016/0022-3115(88)90029-5}}.
+
+\bibitem{OnimusBechade2012}
+F.~Onimus, J.-L. B{\'e}chade, Radiation effects in zirconium alloys, in:
+  R.~J.~M. Konings (Ed.), Comprehensive Nuclear Materials, Elsevier, 2012, Ch.
+  4.01, pp. 1--31.
+\newblock \href {https://doi.org/10.1016/B978-0-08-056033-5.00064-4}
+  {\path{doi:10.1016/B978-0-08-056033-5.00064-4}}.
+
+\bibitem{Cinbiz2016}
+M.~N. Cinbiz, D.~A. Koss, A.~T. Motta, The influence of stress state on the
+  reorientation of hydrides in a zirconium alloy, Journal of Nuclear Materials
+  477 (2016) 157--164.
+\newblock \href {https://doi.org/10.1016/j.jnucmat.2016.05.013}
+  {\path{doi:10.1016/j.jnucmat.2016.05.013}}.
+
+\bibitem{Ghoniem1977}
+N.~M. Ghoniem, A dynamic rate theory for the response of metals during steady
+  state and pulsed irradiation, Ph.d. thesis (nuclear engineering), University
+  of Wisconsin--Madison (1977).
+
+\bibitem{Ghoniem1979a}
+N.~M. Ghoniem, D.~D. Cho, The simultaneous clustering of point defects during
+  irradiation, Physica Status Solidi (a) 54 (1979) 171--178.
+\newblock \href {https://doi.org/10.1002/pssa.2210540121}
+  {\path{doi:10.1002/pssa.2210540121}}.
+
+\bibitem{Ghoniem1980}
+N.~M. Ghoniem, S.~Sharafat, A numerical solution to the {Fokker--Planck}
+  equation describing the evolution of the interstitial loop microstructure
+  during irradiation, Journal of Nuclear Materials 92 (1980) 121--135.
+\newblock \href {https://doi.org/10.1016/0022-3115(80)90148-8}
+  {\path{doi:10.1016/0022-3115(80)90148-8}}.
+
+\bibitem{Hayns1976}
+M.~R. Hayns, The transient stages of damage accumulation in irradiated
+  materials with point defect clusters, Journal of Nuclear Materials 59 (1976)
+  175--187.
+\newblock \href {https://doi.org/10.1016/0022-3115(76)90163-5}
+  {\path{doi:10.1016/0022-3115(76)90163-5}}.
+
+\bibitem{Kiritani1973}
+M.~Kiritani, Analysis of the clustering process of supersaturated lattice
+  vacancies, Journal of the Physical Society of Japan 35 (1973) 95--107.
+\newblock \href {https://doi.org/10.1143/JPSJ.35.95}
+  {\path{doi:10.1143/JPSJ.35.95}}.
+
+\bibitem{BrailsfordBullough1972}
+A.~D. Brailsford, R.~Bullough, The rate theory of swelling due to void growth
+  in irradiated metals, Journal of Nuclear Materials 44~(2) (1972) 121--135.
+\newblock \href {https://doi.org/10.1016/0022-3115(72)90091-8}
+  {\path{doi:10.1016/0022-3115(72)90091-8}}.
+
+\bibitem{Wiedersich1972}
+H.~Wiedersich, On the theory of void formation during irradiation, Radiation
+  Effects 12 (1972) 111--125.
+\newblock \href {https://doi.org/10.1080/00337577208231128}
+  {\path{doi:10.1080/00337577208231128}}.
+
+\bibitem{Mansur1978}
+L.~K. Mansur, Void swelling in metals and alloys under irradiation: an
+  assessment of the theory, Nuclear Technology 40~(1) (1978) 5--34.
+\newblock \href {https://doi.org/10.13182/NT78-2} {\path{doi:10.13182/NT78-2}}.
+
+\bibitem{Bacon2009}
+D.~J. Bacon, F.~Gao, Y.~N. Osetsky, The primary damage state in fcc, bcc and
+  hcp metals as seen in molecular dynamics simulations, Journal of Nuclear
+  Materials 276 (2000) 1--12.
+\newblock \href {https://doi.org/10.1016/S0022-3115(99)00165-8}
+  {\path{doi:10.1016/S0022-3115(99)00165-8}}.
+
+\bibitem{Marian2017}
+J.~Marian, C.~S. Becquart, C.~Domain, S.~L. Dudarev, M.~R. Gilbert, R.~J.
+  Kurtz, D.~R. Mason, K.~Nordlund, A.~E. Sand, L.~L. Snead, T.~Suzudo, B.~D.
+  Wirth, Recent advances in modeling and simulation of the exposure and
+  response of tungsten to fusion energy conditions, Nuclear Fusion 57 (2017)
+  092008.
+\newblock \href {https://doi.org/10.1088/1741-4326/aa5e8d}
+  {\path{doi:10.1088/1741-4326/aa5e8d}}.
+
+\bibitem{GolubovSingh2001}
+S.~I. Golubov, A.~M. Ovcharenko, A.~V. Barashev, B.~N. Singh, Grouping method
+  for the approximate solution of a kinetic equation describing the evolution
+  of point-defect clusters, Philosophical Magazine A 81 (2001) 643--658.
+\newblock \href {https://doi.org/10.1080/01418610108212164}
+  {\path{doi:10.1080/01418610108212164}}.
+
+\bibitem{Holt1988}
+A.~Holt, R.\, Microstructure of {Zr-2.5Nb} pressure tubes, Journal of Nuclear
+  Materials 159 (1988) 310--338, zr-2.5Nb CANDU pressure tube microstructure
+  under neutron irradiation; He bubbles at grain boundaries
+  ($\sim5\times10^{20}$\,m$^{-3}$, $\sim$1.5\,nm); $\beta$-Zr decomposition;
+  irradiation growth and creep.
+\newblock \href {https://doi.org/10.1016/0022-3115(88)90030-1}
+  {\path{doi:10.1016/0022-3115(88)90030-1}}.
+
+\bibitem{Christensen2015}
+M.~Christensen, W.~Wolf, C.~Freeman, E.~Wimmer, R.~B. Adamson, L.~Hallstadius,
+  P.~E. Cantonwine, E.~V. Mader, Diffusion of point defects, nucleation of
+  dislocation loops, and effect of hydrogen in hcp-{Zr}: {Ab} initio and
+  classical simulations, Journal of Nuclear Materials 460 (2015) 82--96.
+\newblock \href {https://doi.org/10.1016/j.jnucmat.2015.02.013}
+  {\path{doi:10.1016/j.jnucmat.2015.02.013}}.
+
+\bibitem{PatraTrinkle2019}
+A.~Patra, D.~R. Trinkle, First-principles vacancy diffusion and {Onsager}
+  transport coefficients in {Zr}, Computational Materials Science 170 (2019)
+  109176.
+\newblock \href {https://doi.org/10.1016/j.commatsci.2019.109176}
+  {\path{doi:10.1016/j.commatsci.2019.109176}}.
+
+\bibitem{KohnertWirth2017}
+A.~A. Kohnert, B.~D. Wirth, L.~Capolungo, Modeling microstructural evolution in
+  irradiated materials with cluster dynamics methods: a review, Computational
+  Materials Science 149 (2018) 442--459.
+\newblock \href {https://doi.org/10.1016/j.commatsci.2018.02.049}
+  {\path{doi:10.1016/j.commatsci.2018.02.049}}.
+
+\bibitem{spatialCD2024}
+M.~Maron, Y.~Li, I.~Lalani, K.~Baker, B.~Ramirez~Flores, T.~Black,
+  J.~Hollenbeck, N.~Ghoniem, G.~Po, Spatially-resolved cluster dynamics
+  modeling of irradiation growth, International Journal of Plasticity 181
+  (2024) 103989.
+\newblock \href {https://doi.org/10.1016/j.ijplas.2024.103989}
+  {\path{doi:10.1016/j.ijplas.2024.103989}}.
+
+\bibitem{christien2009cluster}
+F.~Christien, A.~Barbu, Cluster dynamics modelling of irradiation growth of
+  zirconium single crystals, Journal of Nuclear Materials 393~(1) (2009)
+  153--161.
+
+\bibitem{barashev2015theoretical}
+A.~V. Barashev, S.~I. Golubov, R.~E. Stoller, Theoretical investigation of
+  microstructure evolution and deformation of zirconium under neutron
+  irradiation, Journal of Nuclear Materials 461 (2015) 85--94.
+
+\bibitem{li2025coupledCDDD}
+Y.~Li, M.~Maron, K.~Baker, B.~Ramirez~Flores, T.~Black, J.~Hollenbeck,
+  I.~Lalani, N.~Ghoniem, G.~Po, Coupled cluster and dislocation dynamics
+  modeling of microstructure evolution in irradiated materials, Journal of the
+  Mechanics and Physics of Solids 206 (2025) 106366.
+\newblock \href {https://doi.org/10.1016/j.jmps.2025.106366}
+  {\path{doi:10.1016/j.jmps.2025.106366}}.
+
+\bibitem{ji2022concurrent}
+C.~Ji, Y.~Cui, Y.~Li, N.~Ghoniem, A concurrent irradiation-mechanics multiscale
+  coupling model, Journal of the Mechanics and Physics of Solids 167 (2022)
+  105005.
+\newblock \href {https://doi.org/10.1016/j.jmps.2022.105005}
+  {\path{doi:10.1016/j.jmps.2022.105005}}.
+
+\bibitem{li2020coupled}
+Y.~Li, G.~Po, N.~Ghoniem, Coupled cluster-dislocation dynamics of
+  irradiation-induced defects, Materialia 14 (2020) 100891.
+
+\bibitem{woo1988theory}
+C.~Woo, Theory of irradiation deformation in non-cubic metals: effects of
+  anisotropic diffusion, Journal of Nuclear Materials 159 (1988) 237--256.
+
+\bibitem{woo1981sink}
+C.~H. Woo, The sink strength of a dislocation loop in the effective medium
+  approximation, Journal of Nuclear Materials 98~(3) (1981) 279--294.
+\newblock \href {https://doi.org/10.1016/0022-3115(81)90154-9}
+  {\path{doi:10.1016/0022-3115(81)90154-9}}.
+
+\bibitem{woo1982intrinsic}
+C.~H. Woo, Intrinsic bias differential between vacancy loops and interstitial
+  loops, Journal of Nuclear Materials 107~(1) (1982) 20--30.
+\newblock \href {https://doi.org/10.1016/0022-3115(82)90554-3}
+  {\path{doi:10.1016/0022-3115(82)90554-3}}.
+
+\bibitem{po2026tensorialdad}
+G.~Po, A tensorial derivation of the {DAD} effect, Tech. rep., Department of
+  Mechanical and Aerospace Engineering, University of Miami, internal technical
+  note (2026).
+
+\bibitem{jostsons1977nature}
+A.~Jostsons, P.~Kelly, R.~Blake, The nature of dislocation loops in neutron
+  irradiated zirconium, Journal of Nuclear Materials 66~(3) (1977) 236--256.
+
+\bibitem{griffiths1988review}
+M.~Griffiths, A review of microstructure evolution in zirconium alloys during
+  irradiation, Journal of Nuclear Materials 159 (1988) 190--218.
+
+\bibitem{carpenter1981study}
+G.~Carpenter, J.~Watters, A study of electron irradiation damage in zirconium
+  using a high voltage electron microscope, Journal of Nuclear Materials 96~(3)
+  (1981) 213--226.
+
+\bibitem{tournadre2012experimental}
+L.~Tournadre, F.~Onimus, J.-L. B{\'e}chade, D.~Gilbon, J.-M. Clou{\'e}, J.-P.
+  Mardon, X.~Feaugas, O.~Toader, C.~Bachelet, Experimental study of the
+  nucleation and growth of c-component loops under charged particle
+  irradiations of recrystallized zircaloy-4, Journal of nuclear materials
+  425~(1-3) (2012) 76--82.
+
+\bibitem{harte2017effect}
+A.~Harte, D.~J{\"a}dern{\"a}s, M.~Topping, P.~Frankel, C.~Race, J.~Romero,
+  L.~Hallstadius, E.~C. Darby, M.~Preuss, The effect of matrix chemistry on
+  dislocation evolution in an irradiated zr alloy, Acta Materialia 130 (2017)
+  69--82.
+
+\bibitem{kelly1973characterization}
+P.~Kelly, R.~Blake, The characterization of dislocation loops in neutron
+  irradiated zirconium, Philosophical Magazine 28~(2) (1973) 415--426.
+
+\bibitem{ChoiKim2013}
+S.~I. Choi, J.~H. Kim, Radiation-induced dislocation and growth behavior of
+  zirconium and zirconium alloys -- a review, Nuclear Engineering and
+  Technology 45~(3) (2013) 385--392.
+\newblock \href {https://doi.org/10.5516/NET.07.2013.035}
+  {\path{doi:10.5516/NET.07.2013.035}}.
+
+\bibitem{Carpenter1988}
+G.~J.~C. Carpenter, J.~F. Watters, R.~W. Gilbert, Dislocations generated by
+  neutron irradiation in zirconium, Journal of Nuclear Materials 159 (1988)
+  86--100.
+
+\bibitem{Yi2013}
+X.~Yi, M.~L. Jenkins, M.~Briceno, S.~G. Roberts, Z.~Zhou, M.~A. Kirk, In situ
+  study of self-ion irradiation damage in {W} and {Zr} at room temperature,
+  Philosophical Magazine 93~(14) (2013) 1715--1738.
+\newblock \href {https://doi.org/10.1080/14786435.2012.754110}
+  {\path{doi:10.1080/14786435.2012.754110}}.
+
+\bibitem{Doriot2015}
+S.~Doriot, B.~Verhaeghe, J.-L. B{\'e}chade, D.~Menut, D.~Gilbon, J.-P. Mardon,
+  B.~Cazalis, J.-L. Bernier, Microstructural evolution of {M5} alloy under
+  {PWR} conditions, Journal of {ASTM} International 12 (2015).
+
+\bibitem{holt1986c}
+R.~Holt, R.~Gilbert, < c> component dislocations in annealed zircaloy
+  irradiated at about 570 k, Journal of Nuclear Materials 137~(3) (1986)
+  185--189.
+
+\bibitem{HoltCausey1993}
+R.~A. Holt, A.~R. Causey, Irradiation creep and growth of {Zr-2.5Nb} pressure
+  tubes, Journal of Nuclear Materials 209 (1993) 221--231.
+
+\bibitem{marchrico2023}
+J.~F. March-Rico, B.~D. Wirth, Stress states and point defect capture radii of
+  dislocation a-loops and c-loops in alpha-zirconium, Journal of Nuclear
+  Materials 587 (2023) 154752.
+\newblock \href {https://doi.org/10.1016/j.jnucmat.2023.154752}
+  {\path{doi:10.1016/j.jnucmat.2023.154752}}.
+
+\bibitem{marchrico2025}
+J.~F. March-Rico, S.~Blondel, B.~D. Wirth, Atomistically-informed cluster
+  dynamics modeling of concurrent interstitial and vacancy a-loop evolution in
+  irradiated alpha-zirconium, Acta Materialia 288 (2025) 120777.
+\newblock \href {https://doi.org/10.1016/j.actamat.2025.120777}
+  {\path{doi:10.1016/j.actamat.2025.120777}}.
+
+\bibitem{liu2020two}
+S.-M. Liu, I.~J. Beyerlein, W.-Z. Han, Two-dimensional vacancy platelets as
+  precursors for basal dislocation loops in hexagonal zirconium, Nature
+  Communications 11~(1) (2020) 5766.
+
+\bibitem{varvenne2014vacancy}
+C.~Varvenne, O.~Mackain, E.~Clouet, Vacancy clustering in zirconium: An
+  atomic-scale study, Acta materialia 78 (2014) 65--77.
+
+\end{thebibliography}

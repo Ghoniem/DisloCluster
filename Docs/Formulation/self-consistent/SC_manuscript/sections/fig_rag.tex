@@ -1,0 +1,131 @@
+% The reaction admissibility graph for the nine families. Drawn here rather
+% than lifted from the mean-field treatment: that graph is a size-resolved
+% ladder over four families, and this model carries moments over nine, with a
+% basal chain and a grain-boundary loop channel that the ladder has no vertex
+% or edge for.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  font=\small, >=Latex,
+  mob/.style={draw, rounded corners=2pt, minimum height=7mm, minimum width=11mm,
+              fill=blue!8, draw=blue!55},
+  ipop/.style={draw, rounded corners=2pt, align=center, fill=red!8,
+               draw=red!60, minimum height=9mm, inner sep=3pt},
+  vpop/.style={draw, rounded corners=2pt, align=center, fill=cyan!10,
+               draw=cyan!55!black, minimum height=9mm, inner sep=3pt},
+  bpop/.style={draw, rounded corners=2pt, align=center, fill=violet!10,
+               draw=violet!60, minimum height=9mm, inner sep=3pt},
+  ext/.style={draw, align=center, fill=black!6, draw=black!45,
+              minimum height=8mm, inner sep=3pt},
+  capture/.style={->, thick, blue!65},
+  emitE/.style={->, dashed, orange!85!black},
+  rec/.style={<->, very thick, red!75},
+  coal/.style={->, thick, orange!80!black},
+  chain/.style={->, very thick, violet!70},
+  snk/.style={->, thick, black!50},
+  gbl/.style={->, very thick, green!45!black}]
+
+  \node[ext] (G) at (0,4.6) {cascade source $G$~(P6)};
+
+  % ---- positive polarity ------------------------------------------------
+  \node[mob] (Ci)  at (-4.8,2.4) {$C_i$};
+  \node[mob] (C2i) at (-3.1,3.5) {$C_{2i}$};
+  \node[mob] (C3i) at (-1.6,3.5) {$C_{3i}$};
+  \node[ipop] (ai) at (3.2,2.4) {$(i,a_1),(i,a_2),(i,a_3)$ \\
+                                 \scriptsize prismatic $\langle a\rangle$,
+                                 interstitial};
+  \node[anchor=west, font=\itshape, text=black!60] at (-6.6,3.9)
+       {positive polarity};
+
+  % ---- datum ------------------------------------------------------------
+  \draw[ultra thick] (-6.6,0) -- (7.8,0);
+  \node[anchor=east, text=black!55, font=\scriptsize] at (7.8,0.3)
+       {linear sinks (datum)};
+
+  % ---- negative polarity ------------------------------------------------
+  \node[mob] (Cv) at (-4.8,-2.4) {$C_v$};
+  \node[vpop] (av) at (0.6,-1.4) {$(v,a_1),(v,a_2),(v,a_3)$ \\
+                                  \scriptsize prismatic $\langle a\rangle$,
+                                  vacancy};
+  \node[bpop] (c0) at (-1.0,-4.6) {$c_0$ \\ \scriptsize SFP};
+  \node[bpop] (cf) at (2.0,-4.6) {$c_f$ \\ \scriptsize faulted};
+  \node[bpop] (cp) at (5.0,-4.6) {$c_p$ \\ \scriptsize perfect};
+  \node[anchor=west, font=\itshape, text=black!60] at (-6.6,-4.0)
+       {negative polarity};
+
+  % ---- external ---------------------------------------------------------
+  \node[ext] (NET) at (7.0,1.5) {network \\ \scriptsize $\rho_N$};
+  \node[ext] (GB)  at (7.0,-1.7) {grain \\ boundary};
+
+  % ---- P6 sources -------------------------------------------------------
+  \draw[->, thick, green!50!black] (G.west) to[bend right=20]
+        node[left, pos=0.6, font=\scriptsize] {$G_m$} (Ci.north);
+  \draw[->, thick, green!50!black] (G.east) to[bend left=12]
+        node[above, pos=0.6, font=\scriptsize] {$G_k$} (ai.north);
+  \draw[->, thick, green!50!black] (G.west) to[bend right=48]
+        node[left, pos=0.85, font=\scriptsize] {$G_m$} (Cv.west);
+
+  % ---- P2 capture -------------------------------------------------------
+  \draw[capture] (Ci.east) -- node[above, pos=0.45, font=\scriptsize]
+        {$\phi_{km}$~(P2)} (ai.west);
+  \draw[capture] (Cv.east) -- node[above, pos=0.4, font=\scriptsize]
+        {$\phi_{km}$} (av.west);
+  \draw[capture] (Cv.south east) to[bend right=16]
+        node[below, pos=0.6, font=\scriptsize] {$\phi_{km}$} (c0.west);
+  \draw[capture] (Ci.south) to[bend right=14]
+        node[left, pos=0.55, font=\scriptsize] {shrink} (av.north west);
+
+  % ---- P5 emission ------------------------------------------------------
+  \draw[emitE] (av.south west) to[bend left=10]
+        node[right, pos=0.45, font=\scriptsize] {$\varepsilon$~(P5)}
+        (Cv.north east);
+  \draw[emitE] (cf.west) to[bend left=8]
+        node[below, pos=0.55, font=\scriptsize] {$\varepsilon$} (Cv.south east);
+
+  % ---- P1 recombination -------------------------------------------------
+  \draw[rec] (Ci) -- node[left, font=\scriptsize] {$R_{i,v}$~(P1)} (Cv);
+
+  % ---- P3 coalescence ---------------------------------------------------
+  \draw[coal] (ai.north east) to[out=50, in=130, looseness=5]
+        node[above, font=\scriptsize] {$\varphi_{LL}$~(P3)} (ai.north west);
+  \draw[coal] (cf.south west) to[out=-130, in=-50, looseness=5]
+        node[below, font=\scriptsize] {$\varphi_{LL}$} (cf.south east);
+
+  % ---- P7 basal chain ---------------------------------------------------
+  \draw[chain] (c0) -- node[above, font=\scriptsize] {$\nu_{\mathrm{col}}$~(P7)}
+        (cf);
+  \draw[chain] (cf) -- node[above, font=\scriptsize] {$\nu_{\mathrm{uf}}$~(P7)}
+        (cp);
+
+  % ---- P4 network sinks, P8 loop-network transfer -----------------------
+  \draw[snk] (C3i.east) to[bend left=18]
+        node[above, pos=0.6, font=\scriptsize] {$R_{m,s}$~(P4)} (NET.north west);
+  \draw[chain] (ai.east) to[bend left=6]
+        node[above, pos=0.5, font=\scriptsize] {$\varphi_{LN}$~(P8)} (NET.west);
+
+  % ---- P9 Dirichlet, P10 loop absorption at the boundary ----------------
+  \draw[snk] (Cv.south) to[bend right=32]
+        node[below, pos=0.8, font=\scriptsize] {Dirichlet~(P9)} (GB.south west);
+  \draw[gbl] (av.east) to[bend left=4]
+        node[above, pos=0.6, font=\scriptsize] {$\nu_{gb}$~(P10)} (GB.west);
+  \draw[gbl] (cp.north) to[bend right=10]
+        node[right, pos=0.5, font=\scriptsize] {$\nu_{gb}$} (GB.south);
+\end{tikzpicture}
+\caption{Reaction admissibility graph for the nine families of
+\cref{eq:families}. Vertices above the datum carry positive (interstitial)
+polarity, those below it negative (vacancy) polarity. Blue arrows are monomer
+capture (P2), which acts on a vacancy loop with the opposite sign when the
+captured species is an interstitial; dashed orange is thermal emission (P5);
+the heavy red double arrow is recombination (P1); orange loops are coalescence
+(P3); violet is the one-way basal chain $c_0\to c_f\to c_p$ (P7) and the
+loop--network transfer (P8); gray is absorption at the network (P4) and the
+Dirichlet condition on the mobile species at a grain boundary (P9). The green
+edges (P10) are the channel introduced in \cref{sec:gb-loops}, by which a loop
+that has grown large enough to intersect a boundary is absorbed by it --- an
+edge with no counterpart in a mean-field treatment, where a loop has no size
+relative to a boundary that is itself only a sink strength. The three prismatic
+variants of each character are drawn as one vertex for legibility; they are
+separate populations that exchange nothing with one another and differ only in
+habit normal.}
+\label{fig:rag}
+\end{figure}

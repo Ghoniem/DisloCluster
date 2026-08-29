@@ -1,0 +1,12 @@
+# pdflatex + bibtex, so LaTeX Workshop and the command line agree.
+#
+# LMODERN IS NOT OPTIONAL HERE. elsarticle asks for T1-encoded Computer Modern,
+# whose EC fonts MiKTeX supplies only as METAFONT sources; generating ecrm1000
+# at 600 dpi fails on this machine and the compile dies with no PDF and an error
+# that names a font rather than anything the author wrote. `lmodern` in the
+# preamble substitutes scalable Type1 faces and the problem disappears -- the
+# same fix source 1's preamble carries, and for the same reason.
+$pdf_mode = 1;
+$bibtex_use = 2;          # run bibtex, and clean its output on -C
+$pdflatex = 'pdflatex -interaction=nonstopmode -synctex=1 %O %S';
+$clean_ext = 'bbl nav out snm synctex.gz spl run.xml bcf';

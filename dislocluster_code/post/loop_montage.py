@@ -88,8 +88,21 @@ def _crop_white(img, tol=0.995):
 
 def montage(run, family='c', doses=DEFAULT_DOSES, layout=None, out_file=None,
             planes=DEFAULT_PLANES, panel_labels=False, dpi=200,
-            panel_size=(3.3, 3.2), verbose=True):
+            panel_size=(3.3, 3.2), verbose=True, loop_source='packed',
+            loop_region='interior'):
+    """Assemble the dose evolution of ONE loop family into one figure.
+
+    `loop_source` is `march_report.write_3d`'s, and means the same thing:
+    `'packed'` fills each panel with exaggerated non-overlapping platelets,
+    which shows where the population is dense and how its size varies;
+    `'discrete'` draws the real `sum_j n_j V_j` loops that
+    `post.discrete_loops` exports, at true radii and their sampled positions,
+    so the montage and the discrete render show the same objects.
+    """
     run = Path(run)
+    if loop_source not in ('packed', 'discrete'):
+        raise SystemExit(f"loop_source must be 'packed' or 'discrete', "
+                         f"not {loop_source!r}")
     key = BY_SLUG.get(family)
     if key is None:
         raise SystemExit(f"unknown family {family!r}; "
@@ -118,11 +131,19 @@ def montage(run, family='c', doses=DEFAULT_DOSES, layout=None, out_file=None,
     for j, i in enumerate(idx):
         t0 = time.perf_counter()
         f = tmp / f"panel_{j}.png"
+        if loop_source == 'discrete':
+            from dislocluster_code.post.march_report import _discrete_populations
+            pop = _discrete_populations(run, used[j], loop_region,
+                                        verbose=False).get(family)
+            kw = dict(loop_scale=1.0,
+                      loop_population=({i: pop} if pop else {}))
+        else:
+            kw = dict(loop_scale=LOOP_SCALE[key])
         plot_field_panels(
             None, [i], [used[j]], species=(FAMILY_BG[key],), loop_family=key,
-            loop_scale=LOOP_SCALE[key], plane=planes, fields={i: frames[i]},
+            plane=planes, fields={i: frames[i]},
             out_file=f, column_titles=False, title=None,
-            figsize_per_panel=panel_size)
+            figsize_per_panel=panel_size, **kw)
         panels.append(f)
         if verbose:
             print(f"    panel {j + 1}/{n} rendered "
@@ -179,13 +200,21 @@ def main(argv=None):
     ap.add_argument('--panel-labels', action='store_true',
                     help='draw a bare (a)/(b)/(c)/(d) in each panel')
     ap.add_argument('--dpi', type=int, default=200)
+    ap.add_argument('--loop-source', choices=('packed', 'discrete'),
+                    default='packed',
+                    help="'packed' fills the panel with exaggerated "
+                         "platelets; 'discrete' draws the population "
+                         "discrete_loops exports, at true radii")
+    ap.add_argument('--loop-region', choices=('interior', 'domain'),
+                    default='interior')
     a = ap.parse_args(argv)
     layout = None
     if a.layout:
         r, c = a.layout.lower().split('x')
         layout = (int(r), int(c))
     montage(a.run_dir, family=a.family, doses=a.doses, layout=layout,
-            out_file=a.out, panel_labels=a.panel_labels, dpi=a.dpi)
+            out_file=a.out, panel_labels=a.panel_labels, dpi=a.dpi,
+            loop_source=a.loop_source, loop_region=a.loop_region)
 
 
 if __name__ == '__main__':
