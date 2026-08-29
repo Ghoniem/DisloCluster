@@ -116,17 +116,51 @@ single average~\citep{li2025coupledCDDD,ji2022concurrent,li2020coupled}.
 \subsection{Self-consistency}
 \label{sec:intro-selfconsistency}
 
-The model presented here is self-consistent in a specific and restrictive sense.
-Every capture efficiency that appears in a loop growth law, and every sink
-strength that the same loops impose on the mobile species, is generated from the
-\emph{same} anisotropic diffusion tensors that transport those species, through
-the tensorial form of the diffusional-anisotropy-difference (DAD)
+\textbf{The model is self-consistent in two distinct senses, and both are
+restrictive.} They are independent requirements --- a model can satisfy either
+without the other --- and the term is used in this paper only for the
+conjunction.
+
+\paragraph{(a) Within the continuum model: every bias factor follows from
+anisotropic diffusion theory.} Every capture efficiency that appears in a loop
+growth law, and every sink strength that the same loops impose on the mobile
+species, is generated from the \emph{same} anisotropic diffusion tensors that
+transport those species, through the tensorial form of the
+diffusional-anisotropy-difference (DAD)
 correction~\citep{woo1988theory,woo1981sink,woo1982intrinsic,po2026tensorialdad}.
-There is no independent set of phenomenological bias factors. One consequence is
-immediate and is the reason the constraint is worth imposing: a change of the
-diffusion anisotropy now moves the growth laws and the sink strengths together,
+This holds for \emph{all} variants --- the three prismatic habits of each
+character and the three basal states alike --- so one anisotropy parameter per
+mobile species fixes the bias of every one of the nine families, and there is no
+independent set of phenomenological bias factors anywhere in the model. What the
+constraint rules out is worth stating as a possibility rather than an
+abstraction: a model that diffuses the mobile species with one anisotropy while
+biasing its sinks with an independently fitted pair can hold simultaneously the
+two beliefs that diffusion is isotropic and that the sinks are biased by the
+anisotropy of that diffusion. Generating both from one $p^{m}$ removes that
+possibility by construction. The immediate consequence is that a change in the
+transport anisotropy now moves the growth laws and the sink strengths together,
 in the directions the transport dictates, and cannot be absorbed by refitting a
 bias.
+
+\paragraph{(b) Between the continuum and the discrete descriptions: the transfer
+preserves what defines the microstructure.} The same population must be
+representable as continuum fields or as a set of discrete loops, and the map
+between the two must not create or destroy the quantities that make it the same
+population. \Cref{sec:conversion} states the requirements and their ranking:
+stored defects exactly, loop number to the integer draw, the dispersion of the
+size distribution to the truncation of the sampling, and the sink strength
+reported rather than forced. Sense~(b) is what makes a hybrid calculation
+meaningful --- continuum where the population is dilute, discrete where it is
+not, with the choice made on grounds of dose and computational cost rather than
+of physics --- and it is what turns the conversion into a problem with
+conservation laws attached instead of a rescaling of an average.
+
+The two senses meet at the loop's capture cross-section. Sense~(a) makes that
+cross-section a function of the transport tensors alone; sense~(b) requires the
+discrete population to present the same cross-section as the continuum field it
+replaces. A failure of either shows up in the transfer ledger of
+\cref{sec:ledger} as a discontinuity in sink strength, which is why that ledger
+is reported and not merely checked.
 
 The immobile population is correspondingly expanded, from the lumped
 stress-aligned pair of the earlier mean-field model to nine crystallographically
@@ -150,16 +184,19 @@ This paper reports the formulation, its numerical solution, and its first
 application to a spatially resolved single crystal. Specifically:
 
 \begin{enumerate}[label=(\roman*),itemsep=2pt]
-\item a self-consistent SRCD formulation for $\alpha$-Zr in which capture
-      efficiencies and sink strengths are generated from the diffusion tensors
+\item an SRCD formulation for $\alpha$-Zr that is self-consistent in sense~(a):
+      the capture efficiencies and sink strengths of all nine families are
+      generated from the diffusion tensors, with no independent bias
       (\cref{sec:classes,sec:formulation});
 \item a two-time-scale operator split that makes of order $10^{6}$ stiff
       ordinary differential equations per substep tractable, with the cost
       argument that justifies it and the splitting error that pays for it
       (\cref{sec:split});
-\item a continuum-to-discrete conversion with stated conservation guarantees,
-      and a grain-boundary treatment that makes the boundary a sink for immobile
-      loops as well as for mobile defects (\cref{sec:conversion});
+\item a continuum-to-discrete conversion that is self-consistent in sense~(b),
+      with its conservation guarantees stated and ranked and its residual
+      discrepancies measured, and a grain-boundary treatment that makes the
+      boundary a sink for immobile loops as well as for mobile defects
+      (\cref{sec:conversion});
 \item a calibration against 78 experimental measurements of loop density and
       diameter, presented as a maximum \emph{a posteriori} estimate under stated
       priors, with an explicit account of which parameters the data determine

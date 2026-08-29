@@ -2,18 +2,31 @@
 
 \subsection{What the calculation establishes}
 
-\paragraph{Self-consistency is achievable and is a constraint worth accepting.}
-Every capture efficiency in \cref{eq:Zsk} and every sink strength in
-\cref{eq:KL} is generated from the same diffusion tensors that transport the
-mobile species, through one anisotropy parameter $p^{m}$ per species. The
-formulation therefore cannot simultaneously believe that diffusion is isotropic
-and that its sinks are biased by the anisotropy of that diffusion, which is a
-state most cluster-dynamics treatments of zirconium are free to occupy. The
-price is that anisotropy can no longer be absorbed by refitting a bias, and
-\cref{sec:bias-caveat} shows the price being paid: the fit pushes $p^{v}$ to the
-edge of its admissible range rather than trading it against a free efficiency.
-That is a feature. A model that cannot hide a deficiency in a bias factor is a
-model whose deficiencies are visible.
+\paragraph{Self-consistency in sense~(a) is achievable and is a constraint worth
+accepting.} Every capture efficiency in \cref{eq:Zsk} and every sink strength in
+\cref{eq:KL}, for all nine families, is generated from the same diffusion
+tensors that transport the mobile species, through one anisotropy parameter
+$p^{m}$ per species. The formulation therefore cannot simultaneously believe
+that diffusion is isotropic and that its sinks are biased by the anisotropy of
+that diffusion, which is a state most cluster-dynamics treatments of zirconium
+are free to occupy. The price is that anisotropy can no longer be absorbed by
+refitting a bias, and \cref{sec:bias-caveat} shows the price being paid: the fit
+pushes $p^{v}$ to the edge of its admissible range rather than trading it
+against a free efficiency. That is a feature. A model that cannot hide a
+deficiency in a bias factor is a model whose deficiencies are visible.
+
+\paragraph{Self-consistency in sense~(b) holds where it can be made exact, and
+is measured where it cannot.} Stored defects transfer to machine precision and
+loop number to the integer draw, at every dose tested. The sink strength ---
+which the transfer does not force --- came within $2\%$ of continuity only after
+an inconsistency in the \cloop{} Burgers vector between the two representations
+was removed, and locating it is what the ledger of \cref{eq:ledger} is for: a
+discontinuity there is a crystallography error announcing itself, not a
+numerical tolerance to be widened. What sense~(b) does \emph{not} yet deliver on
+this geometry is feasibility: a quarter of the basal loops on a
+\SI{500}{\nano\meter} grain do not fit inside it (\cref{sec:results-discrete}),
+so a hybrid calculation there would have to carry the refused population in the
+continuum and account for it separately.
 
 \paragraph{Spatial resolution changes the answer, not just its presentation.}
 The boundary layers of \cref{sec:results-mobile} are $8$--$46\,$nm wide, they

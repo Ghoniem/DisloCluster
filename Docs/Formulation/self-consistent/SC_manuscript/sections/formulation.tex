@@ -213,8 +213,18 @@ single change of $p^{v}$ therefore pushes the basal and prismatic families in
 shrinkage, or the reverse. Any statement about the effect of anisotropy that
 does not distinguish the two habits is incomplete.
 
-\subsection{Coexistence, and what a spatially resolved model adds}
+\subsection{Conditions for the growth of every variant}
 \label{sec:coexistence}
+
+The experimental record poses a problem that a mean-field model does not
+automatically solve, and the analysis that follows is what forces the
+formulation to be self-consistent in the sense of
+\cref{sec:intro-selfconsistency}(a). It is also the analysis that decides which
+of the nine families grow, at what mobile fluxes, and under what conditions two
+of them can grow at once.
+
+\subsubsection{The growth conditions}
+\label{sec:growconds}
 
 Define the mobile flux aggregates and their ratio,
 \begin{equation}
@@ -222,41 +232,285 @@ Define the mobile flux aggregates and their ratio,
   \qquad
   \Phi_V=\overline D^{v}c^{v},
   \qquad
-  x\equiv\frac{\Phi_V}{\Phi_I}.
+  x\equiv\frac{\Phi_V}{\Phi_I},
   \label{eq:fluxscales}
 \end{equation}
-The net driving force on a family of character sign $\eta_s$ is
-$F_s=\eta_s(Z_{s,I}\Phi_I-Z_{s,V}\Phi_V)$, so that
+which reduce to $\Phi_I=\overline D^{i}c^{i}$ and
+$\Phi_V=\overline D^{v}c^{v}$ in the monomer approximation. With $Z_{s,m}$ the
+capture efficiency of family $s$ for mobile species $m$, the net driving force
+on a family of character sign $\eta_s=\pm1$ is
 \begin{equation}
-  \text{interstitial family grows}\iff x<\frac{Z_{s,I}}{Z_{s,V}},
+  F_s=\eta_s\left(Z_{s,I}\Phi_I-Z_{s,V}\Phi_V\right),
+  \label{eq:Fsigma}
+\end{equation}
+so that each family grows or shrinks according to which side of its own
+threshold the ratio $x$ falls on:
+\begin{equation}
+  \text{interstitial family }s\text{ grows}\iff x<\frac{Z_{s,I}}{Z_{s,V}},
   \qquad
-  \text{vacancy family grows}\iff x>\frac{Z_{s,I}}{Z_{s,V}} .
+  \text{vacancy family }s\text{ grows}\iff x>\frac{Z_{s,I}}{Z_{s,V}} .
   \label{eq:growconds}
 \end{equation}
-Under identical local fluxes and identical capture coefficients an interstitial
-and a vacancy loop of the same orientation therefore \emph{cannot} both grow.
-The observed coexistence of both characters is thus a statement that at least
-one idealization has failed.
 
-Diffusional anisotropy resolves part of it. Because $A_a$ and $A_c$ differ, the
-prismatic and basal thresholds in \cref{eq:growconds} differ, and there is a
-finite window of $x$ over which prismatic interstitial and basal vacancy loops
-grow together; the window has width $g(p^{v})/g(p^{i})$ with
-$g(p)=2/(1+p^{-3})$, strictly increasing, so it is open exactly when
-$p^{i}<p^{v}$. But DAD is degenerate in \emph{character}: $A_{h(k)}$ knows the
-habit and nothing else, so it cannot by itself support the observed coexistence
-of interstitial and vacancy loops on the \emph{same} prismatic variant.
+\Cref{eq:growconds} is the whole of the growth problem, and it says something
+uncomfortable. Every family reduces to \emph{one} threshold, the ratio of its
+own two efficiencies, and $x$ is a single number. Under identical local fluxes
+and identical capture coefficients an interstitial and a vacancy loop of the
+same orientation therefore \emph{cannot} both grow: whichever side of the shared
+threshold $x$ lies on, one of them is shrinking. Yet both prismatic characters
+are observed together in irradiated
+Zr~\citep{jostsons1977nature,griffiths1988review,carpenter1981study,%
+marchrico2025}. Coexistence is thus a statement that at least one idealization
+has failed --- homogeneity, identical capture coefficients, identical nucleation
+pathways, identical variants, or identical irradiation history --- and the
+remainder of this subsection identifies which, and what each candidate can and
+cannot deliver.
 
-Two resolutions are carried, and the first is what a spatially resolved model
-supplies for free. \Cref{eq:growconds} is a condition on one number, and in a
-mean-field model that number exists once for the whole material. In SRCD, $x$ is
-a \emph{field}: it varies by orders of magnitude between the interior and the
-boundary layer, because $c^{v}$ and $c^{i}$ have different diffusivities and
-therefore different boundary-layer widths. Coexistence can then be a statement
-about different points of the same grain rather than about one balance holding
-everywhere. The second resolution is the character factor $X_{s,m}$ of
-\cref{eq:Zsk}, which enters as a re-parameterization of the efficiencies and not
-as a structural change.
+\subsubsection{What diffusional anisotropy does, and where it stops}
+\label{sec:dad-window}
+
+With the diffusion tensors and the orientation factors of
+\cref{eq:pm,eq:Afactors}, the prismatic and basal thresholds separate:
+\begin{equation}
+  x_a=\frac{Z^{0}_{I}A_a(p^{i})}{Z^{0}_{V}A_a(p^{v})},
+  \qquad
+  x_c=\frac{Z^{0}_{I}A_c(p^{i})}{Z^{0}_{V}A_c(p^{v})},
+  \label{eq:thresholds}
+\end{equation}
+and because $A_a(p)=(p+p^{-2})/2$ exceeds $A_c(p)=p$ for $p<1$ while the two
+coincide at $p=1$, the ordering $x_c<x_a$ holds whenever $p^{i}<p^{v}$.
+Prismatic interstitial and basal vacancy loops then grow \emph{together}
+throughout
+\begin{equation}
+  \boxed{\;x_c<x<x_a\;},
+  \qquad
+  \ln\frac{x_a}{x_c}=\ln\frac{g(p^{v})}{g(p^{i})},
+  \qquad
+  g(p)\equiv\frac{2}{1+p^{-3}},
+  \label{eq:window}
+\end{equation}
+with $g$ strictly increasing, so the window is open exactly when $p^{i}<p^{v}$
+and closes as $p^{i}\to p^{v}$. In the near-isotropic-vacancy limit
+$p^{v}\simeq1$ the width reduces to the familiar form
+$x_a-x_c=(Z^{0}_{I}/Z^{0}_{V})(1-(p^{i})^{3})/2(p^{i})^{2}$. At
+$200\,^{\circ}$C, with $Z^{0}_{I}/Z^{0}_{V}\approx1.05$--$1.15$ and
+$p^{i}\approx0.89$--$0.92$~\citep{woo1988theory,christien2009cluster,%
+barashev2015theoretical,li2020coupled}, the window is open but narrow:
+$x_c\approx1.0<x<x_a\approx1.2$.
+
+Three things are worth separating here, because they are routinely conflated.
+
+\textbf{The elastic bias opens nothing.} $Z^{0}_{I}/Z^{0}_{V}>1$ multiplies
+\emph{both} thresholds in \cref{eq:thresholds} and so shifts them together; it
+cancels from the width in \cref{eq:window} entirely. It does narrow the
+prismatic-interstitial/basal-vacancy window in a practical sense, by pushing
+$x_c$ toward unity, but it cannot create an interval where none exists.
+
+\textbf{What positions $x$ inside the window is the production bias.} The
+excess of freely migrating vacancies left when more of the interstitial yield is
+locked into in-cascade clusters, $\eta=\varepsilon_V/\varepsilon_I\gtrsim1$,
+sets where in $(x_c,x_a)$ the operating point sits; a $0$--$20\%$ excess
+suffices. \textbf{Neither substitutes for the other.} DAD opens the interval and
+the production bias places the point inside it: at $p^{i}=p^{v}$ the thresholds
+coincide and no value of $\eta$ can satisfy both conditions at once, while with
+the window open but $\eta$ badly placed the model simply grows one family and
+dissolves the other.
+
+\textbf{DAD is degenerate in character, and that is where it stops.}
+\Cref{eq:Zsk} assigns one orientation factor $A_{h(k)}(p^{m})$ to every family
+sharing a habit, so the interstitial and the vacancy prismatic variants receive
+the \emph{same} pair of efficiencies and hence the same threshold,
+\begin{equation}
+  \frac{Z_{a_k I,I}}{Z_{a_k I,V}}
+  \;\xrightarrow[\ \text{DAD alone}\ ]{}\;
+  \frac{Z_{a_k V,I}}{Z_{a_k V,V}} .
+  \label{eq:dad-degenerate}
+\end{equation}
+The prismatic window closes identically, and DAD is silent on the coexistence of
+interstitial and vacancy \aloop{} loops on one habit --- which is the
+coexistence the experiments report. Two mechanisms remove that degeneracy, and
+the formulation carries both.
+
+\subsubsection{Resolution 1: the flux ratio is a field}
+\label{sec:resolution-field}
+
+Promote $x$ to $x(\xv,t)=\Phi_V(\xv,t)/\Phi_I(\xv,t)$. Because interstitials
+migrate far faster than vacancies, the interstitial channel responds first and
+most sharply to any transient or gradient.
+
+In \emph{time}, the nucleation transient --- which in Zr extends over of order
+$1\,$dpa --- is strongly interstitial-rich, so $x(t)\ll x_c$ and interstitial
+loops grow while vacancy loops merely nucleate and sit sub-critical; as the
+vacancy supersaturation builds, $x(t)$ rises into $(x_c,x_a)$ and the vacancy
+families begin to grow, with the interstitial loops established earlier
+persisting alongside them.
+
+In \emph{space}, sinks --- grain boundaries, free surfaces, precipitates, the
+network --- make the mobile fields non-uniform, and because the interstitial
+diffusion length far exceeds the vacancy one, interstitials drain into the far
+field while vacancies pile up locally, so $x(\xv)$ is depressed far from sinks
+and enhanced near them. A single specimen then contains regions on both sides of
+the prismatic threshold. \Cref{sec:results-mobile} measures exactly this
+structure: boundary layers of $8$--$46\,$nm that differ by species, so $x$
+varies systematically across them.
+
+\textbf{This mechanism costs nothing to include: a spatially resolved
+formulation carries $x(\xv,t)$ natively and does not have to be told to.} Its
+limitation is equally plain. It leaves $Z_{a_kI,\cdot}=Z_{a_kV,\cdot}$ intact
+and buys coexistence by declining to evaluate the two growth conditions at the
+same point of space and time, so it predicts \emph{segregated} coexistence and
+cannot give locally simultaneous growth in a homogeneous volume.
+
+\subsubsection{Resolution 2: capture is character-resolved}
+\label{sec:resolution-character}
+
+March-Rico, Blondel and Wirth~\citep{marchrico2025} compute the defect--loop
+interaction energy atomistically and replace geometric intersection by a
+drift--diffusion capture,
+\begin{equation}
+  \bm J_\alpha=-\bm D_\alpha\left[\nabla c^{\alpha}
+    +\frac{c^{\alpha}}{k_BT}\nabla E^{\alpha L}_{\mathrm{int}}\right],
+  \qquad \alpha=i,v,
+  \label{eq:drift-diffusion}
+\end{equation}
+which reduces in the rate equations to effective capture radii entering
+additively in the reaction volume. \emph{Spontaneous} capture radii are nearly
+the same for all loops and enlarge every reaction volume without separating
+characters; \emph{thermal-drift} radii do separate them, because the dilatational
+field of an interstitial loop attracts interstitials over a longer range than it
+attracts vacancies, and conversely for a vacancy loop. The result is a
+\textbf{same-type capture bias}, carried in \cref{eq:Zsk} by the factor
+$X_{s,m}$. Defining the character-splitting factor
+\begin{equation}
+  \chi\equiv
+  \frac{Z_{a_kI,I}/Z_{a_kI,V}}{Z_{a_kV,I}/Z_{a_kV,V}}
+  =\frac{X_{iI}X_{vV}}{X_{iV}X_{vI}},
+  \label{eq:chi}
+\end{equation}
+the prismatic window $Z_{a_kV,I}/Z_{a_kV,V}<x<Z_{a_kI,I}/Z_{a_kI,V}$ is
+non-empty if and only if $\chi>1$, with logarithmic width $\ln\chi$.
+
+\Cref{eq:chi} is the exact character analogue of the orientation width
+\cref{eq:window}: $\ln(x_a/x_c)$ measures how far diffusional anisotropy
+separates prismatic from basal, and $\ln\chi$ how far thermal-drift capture
+separates interstitial from vacancy \emph{within} one prismatic habit. Because
+$\chi>1$ opens a genuine interval, a single uniform steady $x$ satisfies both
+conditions at once --- which is the stronger claim, and the more falsifiable
+one.
+
+\subsubsection{Two ingredients that are not optional}
+\label{sec:not-optional}
+
+\textbf{In-cascade vacancy clustering supplies the embryos.} Without them the
+capture bias has nothing to act on: homogeneous nucleation of a vacancy loop
+against the prevailing interstitial bias is prohibitively slow. It is the
+\emph{same} clustering asymmetry that generates the production bias $\eta$, so
+the two must not be fitted as independent inputs.
+
+\textbf{Cascade overlap reduces the effective generation rate with dose,}
+$\tilde g(\gamma)=\varepsilon(\gamma)g$, saturating over $0.01$--$0.1\,$dpa to a
+small residual fraction. This is what lets coarsening rather than unbounded
+nucleation dominate at high dose. Applied as a single scalar to both species it
+rescales dose without moving $x$: it is a rate effect, not a threshold effect.
+
+\Cref{tab:mechanisms} summarizes the division of labor.
+
+\begin{table}[htbp]
+\caption{What each ingredient does to the growth criterion \cref{eq:growconds}.
+Only the last two separate loops of the same prismatic orientation; only
+character-resolved capture does so locally and instantaneously.}
+\label{tab:mechanisms}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.20\textwidth}
+                              >{\raggedright\arraybackslash}p{0.20\textwidth}X@{}}
+\toprule
+Ingredient & Acts on & What it does, and does not do \\
+\midrule
+Elastic bias $Z^{0}_{I}/Z^{0}_{V}$ & both thresholds together &
+  Shifts $x_a$ and $x_c$ jointly; opens no window, and narrows the
+  prismatic-interstitial/basal-vacancy window by pushing $x_c$ toward unity. \\
+\addlinespace
+Diffusional anisotropy, $p^{i}<p^{v}$ & orientation &
+  Opens the prismatic-interstitial/basal-vacancy window of width
+  \cref{eq:window}. Cannot separate loops of one orientation,
+  \cref{eq:dad-degenerate}. \\
+\addlinespace
+Production bias $\eta$ & position of $x$ &
+  Places $x$ inside whatever window exists. Creates no window; with $x_a=x_c$ it
+  merely switches which family grows. \\
+\addlinespace
+Flux field $x(\xv,t)$ & position of $x$, resolved in space and time &
+  Lets the two prismatic conditions be met at different doses or different
+  places. Predicts \emph{segregated} coexistence. Native to a spatially
+  resolved model. \\
+\addlinespace
+Thermal-drift capture, $\chi>1$ & character &
+  Opens the prismatic window of logarithmic width $\ln\chi$; gives \emph{local}
+  simultaneous growth. Needs in-cascade clustering for the embryos, and still
+  needs $x$ positioned inside. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsubsection{Why this forces the formulation}
+\label{sec:forces-formulation}
+
+Three requirements follow, and together they are the content of
+\cref{sec:classes,sec:formulation}.
+
+\begin{enumerate}[itemsep=3pt]
+\item \textbf{The immobile families must be crystallographic.} A scalar
+      aligned/non-aligned split can express \emph{how much} of a population a
+      stress favors but not \emph{which} prismatic system it favors, and it has
+      no meaning at all under a multiaxial stress or a stress field. Resolving
+      $a_1,a_2,a_3$ makes the resolved stress on each habit a computed
+      quantity, and carrying both characters on each variant is what makes
+      \cref{eq:chi} representable at all. Splitting the basal population into a
+      faulted and a perfect state is forced separately, by the fact that the two
+      store different vacancy content per unit area (\cref{tab:cd-families}).
+\item \textbf{The capture efficiencies must come from the transport tensors.}
+      This is sense~(a) of \cref{sec:intro-selfconsistency}, and
+      \cref{eq:window} is why it matters rather than merely being tidy: the
+      width of the co-growth window is a function of the transport anisotropy
+      \emph{alone}. A model that diffuses with one anisotropy and biases its
+      sinks with an independent phenomenological pair
+      $(\delta_i,\delta_v)$ can therefore report a window that its own transport
+      does not support. The phenomenological pair remains recoverable as the
+      exact map
+      \begin{equation}
+        \delta_m=\frac{A_a(p^{m})-A_c(p^{m})}{A_a(p^{m})+A_c(p^{m})}
+                =\frac{1-(p^{m})^{3}}{1+3(p^{m})^{3}},
+        \label{eq:deltamap}
+      \end{equation}
+      which gives $\delta_i\approx0.07$--$0.09$ and $\delta_v\approx0$ at the
+      $200\,^{\circ}$C anisotropies above. Note that $Z^{0}_{I}/Z^{0}_{V}$ does
+      not appear in $\delta_m$ and must be carried separately, which is why
+      \cref{eq:Zsk} is the more faithful input.
+\item \textbf{The mobile field must be spatially resolved.}
+      \Cref{sec:resolution-field} is not available to a $0$-D model. It requires
+      $x(\xv,t)$, hence the reaction--diffusion problem of \cref{eq:master-c}
+      with real boundary conditions --- and it is one of the two independent
+      reasons for the spatial treatment, the other being that surfaces and grain
+      boundaries are the dominant defect sink in any specimen small enough to be
+      examined (\cref{tab:conservation}).
+\end{enumerate}
+
+\paragraph{Two cautions, so that neither is later mistaken for a prediction.}
+The thermal-drift radii behind \cref{eq:chi} scale as $(T_m/T)^{m_d}$ with
+$T_m=2128\,$K, so with $m_d>0$ the same-type bias, and hence $\chi$, is
+\emph{strongest at low temperature} --- while the observed vacancy \aloop{}
+fraction \emph{increases} with temperature. These are not contradictory: the
+temperature dependence of the vacancy fraction is controlled largely by
+nucleation, by vacancy mobility, and by thermal emission from small vacancy
+clusters, none of which is contained in $\chi$. But reproducing the measured
+vacancy fraction against temperature is a genuine test of the combined model
+rather than something it obtains for free. The related hazard is double
+counting: the same-type capture bias \emph{is} an elastic-interaction effect,
+and so is the conventional dislocation bias $Z^{0}_{I}/Z^{0}_{V}>1$. Only one of
+the two should carry the interstitial--vacancy asymmetry. In the calibration of
+\cref{sec:calibration} the fitted $\chi=1$, so the asymmetry is carried by
+$Z^{0}$ alone and the question does not arise --- which is also to say that the
+present parameter set exercises Resolution~1 and not Resolution~2.
 
 \subsection{The immobile block}
 \label{sec:immobile}
