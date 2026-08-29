@@ -87,36 +87,113 @@ def select_doses(doses, n=6):
 
 
 # ── 3d/ ──────────────────────────────────────────────────────────────────────
+def _discrete_populations(run_dir, dose, region="interior", verbose=True):
+    """`{slug: (centres_b, radii_b)}` -- the loops `discrete_loops` exports.
+
+    Built by calling `discrete_loops.build` with its OWN defaults, not by
+    reading the CSV it writes: the draw is seeded (`seed=0`) and the whole
+    family sequence is replayed in one `populate` call, so this reproduces the
+    export loop for loop, and it works before the export has run. Reading the
+    CSV would have tied `3d/` to `discrete_loops/` having been written first,
+    which in `driver.report` it has not.
+    """
+    from dislocluster_code.post import discrete_loops as DL
+    # `coplanar_tol="plane"` is what `discrete_loops.main` passes and NOT what
+    # `build` defaults to. Without it coalescence merges loops that are merely
+    # close rather than on a shared habit plane, and the two figures disagree:
+    # 78 <c> loops here against the export's 1031 at 1 dpa. Every argument that
+    # changes the draw has to be the export's, not the function's.
+    _, pops, _, _, _ = DL.build(run_dir, dose, region=region, seed=0,
+                                coalesce_pass=True, coplanar_tol="plane",
+                                verbose=False)
+    out = {}
+    for pop in pops:
+        if len(pop):
+            out[pop.fam["key"]] = (np.asarray(pop.centers, dtype=float),
+                                   np.asarray(pop.radii, dtype=float))
+    if verbose:
+        got = ", ".join(f"{k} {len(v[1])}" for k, v in sorted(out.items()))
+        print(f"    discrete population at {dose:.4g} dpa: {got or 'none'}")
+    return out
+
+
 def write_3d(doses, frames, idx, out_dir, planes=DEFAULT_PLANES,
-             overlays=True, verbose=True):
+             overlays=True, verbose=True, run_dir=None,
+             loop_source="packed", loop_region="interior", suffix="",
+             only_overlays=False):
+    """Static 3-D panels for the selected snapshots.
+
+    `loop_source` decides what the `loops_*` overlays draw:
+
+    - ``"packed"`` (the default, and every figure this module has written) is a
+      DECORATION. One platelet per CD node, greedily packed until the domain is
+      full, radii exaggerated by `LOOP_SCALE`. It shows where the population is
+      dense and how its size varies across the domain; its count is the
+      figure's packing capacity and not a loop density.
+    - ``"discrete"`` draws the population `post.discrete_loops` exports -- the
+      real count, at the sampled positions, with the polydisperse sampled radii
+      and no exaggeration. The same loops then appear in `3d/loops_<fam>_*.png`
+      and in `discrete_loops/loops_<fam>_*.png`.
+
+    THE TWO ANSWER DIFFERENT QUESTIONS and neither is a better version of the
+    other. In particular `discrete_loops`' own default is `region="interior"`,
+    which places loops UNIFORMLY from interior statistics -- so a discrete
+    overlay deliberately carries no boundary structure, which is exactly what
+    the packed overlay is drawn to show. Pass `loop_region="domain"` for a
+    field-following discrete population instead.
+
+    `suffix` is appended to every filename and `only_overlays` skips the field
+    panels, so a second set can be written beside the first rather than over
+    it -- the comparison is the point, and overwriting one with the other
+    destroys it.
+    """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    if loop_source not in ("packed", "discrete"):
+        raise ValueError(f"loop_source must be 'packed' or 'discrete', "
+                         f"not {loop_source!r}")
+    if loop_source == "discrete" and run_dir is None:
+        raise ValueError("loop_source='discrete' needs run_dir")
     written = []
     for i in idx:
         d, tag = float(doses[i]), dose_tag(float(doses[i]))
-        for group in [g for g in (MOBILE, DENSITY_A1, CONTENT_A1,
-                                  MOMENT2_A1) if g]:
+        groups = ([] if only_overlays else
+                  [g for g in (MOBILE, DENSITY_A1, CONTENT_A1,
+                               MOMENT2_A1) if g])
+        for group in groups:
             for sp in group:
-                out = out_dir / f"{FILE_SLUG[sp]}_{tag}.png"
+                out = out_dir / f"{FILE_SLUG[sp]}_{tag}{suffix}.png"
                 plot_field_panels(None, [i], [d], species=(sp,), plane=planes,
                                   fields={i: frames[i]}, out_file=out,
                                   column_titles=False,
                                   title=f"{SPECIES[sp][1]}   {d:.4g} dpa")
                 written.append(out)
         if overlays:
+            pops = (_discrete_populations(run_dir, d, loop_region, verbose)
+                    if loop_source == "discrete" else {})
             for k, slug in FAMILY_SLUG_A1.items():
-                out = out_dir / f"loops_{slug}_{tag}.png"
+                out = out_dir / f"loops_{slug}_{tag}{suffix}.png"
+                if loop_source == "discrete":
+                    pop = pops.get(slug)
+                    kw = dict(loop_scale=1.0,
+                              loop_population=({i: pop} if pop else {}))
+                    note = (f"{len(pop[1])} loops, true radii"
+                            if pop else "no loops at this dose")
+                else:
+                    kw = dict(loop_scale=LOOP_SCALE[k])
+                    note = f"platelet radii x{LOOP_SCALE[k]:g}, not to scale"
                 plot_field_panels(
                     None, [i], [d], species=(FAMILY_BG[k],), loop_family=k,
-                    loop_scale=LOOP_SCALE[k], plane=planes, fields={i: frames[i]},
+                    plane=planes, fields={i: frames[i]},
                     out_file=out, column_titles=False,
                     title=(f"{FAMILIES[k][0]} loop population at {d:.4g} dpa "
-                           f"(platelet radii x{LOOP_SCALE[k]:g}, not to scale)"))
+                           f"({note})"), **kw)
                 written.append(out)
         if verbose:
-            n_panels = (len(MOBILE) + len(DENSITY_A1) + len(CONTENT_A1)
-                        + len(MOMENT2_A1)
-                        + (len(FAMILY_SLUG_A1) if overlays else 0))
+            n_panels = (0 if only_overlays else
+                        len(MOBILE) + len(DENSITY_A1) + len(CONTENT_A1)
+                        + len(MOMENT2_A1))
+            n_panels += len(FAMILY_SLUG_A1) if overlays else 0
             print(f"  3d/ {tag}: {n_panels} panels")
     return written
 
@@ -359,6 +436,19 @@ def main(argv=None):
                     help="movie frames per output interval (1 = solved "
                          "snapshots only); interpolated frames are labelled")
     ap.add_argument("--mc-samples", type=int, default=4_000_000)
+    ap.add_argument("--loop-source", choices=("packed", "discrete"),
+                    default="packed",
+                    help="what the 3d/ loops_* overlays draw. 'packed' is the "
+                         "decorative platelet fill (exaggerated radii, count "
+                         "set by packing capacity); 'discrete' draws the "
+                         "population discrete_loops exports -- same loops, "
+                         "same positions, true radii")
+    ap.add_argument("--loop-region", choices=("interior", "domain"),
+                    default="interior",
+                    help="with --loop-source discrete: which state the "
+                         "population is drawn from. 'interior' matches the "
+                         "export and places loops uniformly; 'domain' follows "
+                         "the field and keeps the boundary structure")
     args = ap.parse_args(argv)
 
     run = Path(args.run_dir)
@@ -372,7 +462,8 @@ def main(argv=None):
     print(f"static figures at: "
           f"{', '.join(f'{doses[i]:.4g}' for i in idx)} dpa\n")
 
-    write_3d(doses, frames, idx, run / "3d")
+    write_3d(doses, frames, idx, run / "3d", run_dir=run,
+             loop_source=args.loop_source, loop_region=args.loop_region)
     write_gb(doses, frames, idx, run / "gb")
 
     if not args.no_movies:

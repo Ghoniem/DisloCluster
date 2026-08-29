@@ -680,6 +680,40 @@ def _overlay_family(P, F, rng, fam, n_loops, loop_scale, gap=1.4,
     return quads, rgba
 
 
+def _overlay_explicit(pop, fam, loop_scale=1.0):
+    """Draw a population that was HANDED to us, rather than one packed here.
+
+    `_overlay_family` invents a platelet field: it places one disc per CD node
+    and stops when the domain is full, so its count is the packing capacity of
+    the figure and not the loop density, and it exaggerates the radii so the
+    discs are visible. Useful as a field decoration, useless as a population.
+
+    This draws the discrete population `post.discrete_loops` builds -- the
+    actual `sum_j n_j V_j` loops at their sampled positions and their
+    polydisperse sampled radii -- so the same loops appear in the field panel
+    and in the discrete render, and a reader can put the two side by side.
+
+    NO NON-OVERLAP TEST, deliberately. Real loops do overlap in projection, and
+    the packing rule exists only to keep an invented field legible; applying it
+    to a real population would silently delete loops.
+
+    `pop` is `(centres, radii)` in b. `loop_scale` still multiplies the radii,
+    and the caller passes 1.0 to draw them at true size -- which for a sparse
+    family on a 500 nm crystal is genuinely small, and is the honest picture.
+    """
+    centres, radii = pop
+    centres = np.asarray(centres, dtype=float).reshape(-1, 3)
+    radii = np.asarray(radii, dtype=float).reshape(-1) * float(loop_scale)
+    if centres.size == 0:
+        return np.empty((0, 4, 3)), np.empty((0, 4))
+    _, _, _, _, normal, color = fam
+    quads, is_rim = _disc_quads(centres, radii, _platelet_frame(normal))
+    rgb = np.asarray(to_rgb(color))
+    rgba = np.tile(np.append(rgb, 1.0), (len(quads), 1))
+    rgba[is_rim, :3] = 0.55 * rgb
+    return quads, rgba
+
+
 _DEFAULT_VIEW = {"x": (10.0, -80.0), "y": (10.0, -80.0), "z": (55.0, -70.0)}
 # Two orthogonal cuts need a viewpoint that is edge-on to neither. The
 # single-cut angles are nearly frontal (elev 10) or nearly overhead (elev 55);
@@ -691,6 +725,7 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                       plane="y", view=None, n_slice=200,
                       log=None, floor_decades=5.0, vlims=None,
                       loop_family=None, n_loops=None, loop_scale=45.0, seed=0,
+                      loop_population=None,
                       figsize_per_panel=(3.3, 3.2), out_file=None, title=None,
                       column_titles=True, fields=None, row_labels=None,
                       orientation=True, cbar_fontsize=7.0, zoom=1.22):
@@ -720,6 +755,12 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                    real local field, so relative sizes stay meaningful.
     n_loops      : platelets to draw. None fills the domain with as many
                    non-overlapping platelets as fit (see _overlay_family).
+    loop_population: `{step: (centres_b, radii_b)}` -- draw THESE loops instead
+                   of packing an invented field. This is how a panel is made to
+                   show the same population `post.discrete_loops` exports, so
+                   the field figure and the discrete render agree loop for loop;
+                   `loop_scale` then normally wants to be 1.0. Ignored for any
+                   step the dict has no entry for, which falls back to packing.
     column_titles: draw the "<dose> dpa" header above each column. Turn this off
                    for a single-dose figure whose `title` already names the dose,
                    otherwise the two headers overlap.
@@ -819,8 +860,13 @@ def plot_field_panels(evl_dir, steps, doses, species=("Cv", "Ci"),
                 q, fc = _grid_quads(X, Y, Z, S, norm, faces)
                 quads.append(q); colors.append(fc)
             if loop_family is not None:
-                q, fc = _overlay_family(P, F, rng, FAMILIES[loop_family],
-                                        n_loops, loop_scale, faces=faces)
+                pop = (loop_population or {}).get(st)
+                if pop is not None:
+                    q, fc = _overlay_explicit(pop, FAMILIES[loop_family],
+                                              loop_scale)
+                else:
+                    q, fc = _overlay_family(P, F, rng, FAMILIES[loop_family],
+                                            n_loops, loop_scale, faces=faces)
                 quads.append(q); colors.append(fc)
             # ONE collection for the cuts and the platelets together, so that
             # matplotlib depth-sorts them against each other polygon by polygon.
