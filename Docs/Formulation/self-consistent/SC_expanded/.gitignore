@@ -1,0 +1,13 @@
+# LaTeX build products. The PDF is kept -- it is the deliverable and a reader
+# without a TeX installation still needs it -- but nothing that latexmk can
+# regenerate from the sources belongs in history.
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+build.log

@@ -1,3 +1,0 @@
-a \ b
-c \[1mm] d
-e \bar f
