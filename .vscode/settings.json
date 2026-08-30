@@ -15,20 +15,8 @@
     ],
     "latex-workshop.latex.tools": [
         {
-            "name": "texify",
-            "command": "C:\\Users\\Owner\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\texify.exe",
-            "args": [
-                "--pdf",
-                "--synctex=1",
-                "--tex-option=-interaction=nonstopmode",
-                "--tex-option=-file-line-error",
-                "%DOC_EXT%"
-            ],
-            "env": {}
-        },
-        {
             "name": "pdflatex",
-            "command": "C:\\Users\\Owner\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\pdflatex.exe",
+            "command": "pdflatex",
             "args": [
                 "-synctex=1",
                 "-interaction=nonstopmode",
@@ -39,7 +27,7 @@
         },
         {
             "name": "bibtex",
-            "command": "C:\\Users\\Owner\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\bibtex.exe",
+            "command": "bibtex",
             "args": [
                 "%DOCFILE%"
             ],
@@ -47,7 +35,7 @@
         },
         {
             "name": "latexmk",
-            "command": "C:\\Users\\Owner\\AppData\\Local\\Programs\\MiKTeX\\miktex\\bin\\x64\\latexmk.exe",
+            "command": "latexmk",
             "args": [
                 "-cd",
                 "-synctex=1",
@@ -58,15 +46,21 @@
                 "%DOC%"
             ],
             "env": {}
+        },
+        {
+            "name": "texify",
+            "command": "texify",
+            "args": [
+                "--pdf",
+                "--synctex=1",
+                "--tex-option=-interaction=nonstopmode",
+                "--tex-option=-file-line-error",
+                "%DOC_EXT%"
+            ],
+            "env": {}
         }
     ],
     "latex-workshop.latex.recipes": [
-        {
-            "name": "texify (MiKTeX, no perl)",
-            "tools": [
-                "texify"
-            ]
-        },
         {
             "name": "pdflatex x2 + bibtex",
             "tools": [
@@ -80,6 +74,12 @@
             "name": "latexmk (needs perl)",
             "tools": [
                 "latexmk"
+            ]
+        },
+        {
+            "name": "texify (MiKTeX only)",
+            "tools": [
+                "texify"
             ]
         }
     ],
