@@ -1,0 +1,937 @@
+% GW_Phase4_D1M2_Presentation
+% Built from Docs/Formulation/self-consistent/SC_manuscript.
+% Style follows GW_Phase4_D1M1_Presentation.
+\documentclass[aspectratio=169,10pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{array}
+
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{blocks}[rounded][shadow=true]
+\setbeamertemplate{itemize items}[circle]
+
+\definecolor{gwblue}{RGB}{56,56,158}
+\definecolor{gwlight}{RGB}{226,228,244}
+\setbeamercolor{structure}{fg=gwblue}
+\setbeamercolor{frametitle}{bg=gwblue,fg=white}
+\setbeamercolor{title}{bg=gwblue,fg=white}
+\setbeamercolor{block title}{bg=gwblue!75,fg=white}
+\setbeamercolor{block body}{bg=gwlight!55,fg=black}
+\setbeamerfont{frametitle}{size=\large,series=\mdseries}
+\setbeamerfont{title}{size=\Large,series=\mdseries}
+
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=3.0ex,dp=1.4ex,leftskip=0.35cm]{frametitle}%
+    \usebeamerfont{frametitle}\insertframetitle%
+  \end{beamercolorbox}%
+}
+\setbeamertemplate{footline}{%
+  \hfill\usebeamercolor[fg]{structure}\tiny
+  \insertframenumber/\inserttotalframenumber\hspace{3mm}\vspace{2mm}%
+}
+
+\newcommand{\aloop}{$\langle a\rangle$}
+\newcommand{\cloop}{$\langle c\rangle$}
+\newcommand{\spvec}[1]{\bm{\mathsf{#1}}}
+\newcommand{\spmat}[1]{\bm{\mathsf{#1}}}
+\newcommand{\xv}{\bm{x}}
+\newcommand{\FIG}{../Formulation/self-consistent/SC_manuscript/figures}
+\newcommand{\foot}[1]{\par\vspace{1ex}%
+  \begingroup\footnotesize\raggedright #1\par\endgroup}
+
+\title{A Self-Consistent Spatially Resolved Cluster Dynamics Model\\for Irradiated Zirconium}
+\author{N. Ghoniem, G. Po, M. Marron \& R. Escobar}
+\date{August 31, 2026}
+
+\begin{document}
+
+% ---------------------------------------------------------------- title
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+  \vfill
+  \begin{beamercolorbox}[wd=\paperwidth,center]{title}
+    \vspace{2.2ex}
+    {\usebeamerfont{title}A Self-Consistent Spatially Resolved\\[4pt]
+     Cluster Dynamics Model for Irradiated Zirconium}
+    \vspace{2.2ex}
+  \end{beamercolorbox}
+  \vspace{5ex}
+  \begin{center}
+    {\large N. Ghoniem, G. Po, M. Marron \& R. Escobar}\\[3ex]
+    {\footnotesize Multiscale Materials Solutions --- Deliverable D1/M2}\\[3ex]
+    {\normalsize August 31, 2026}
+  \end{center}
+  \vfill
+\end{frame}}
+
+% ---------------------------------------------------------------- 2
+\begin{frame}{What D1/M2 delivers}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Three things}
+\begin{itemize}\small
+  \item A \textbf{self-consistent} cluster-dynamics model: every bias factor is
+        generated from the \emph{same} diffusion tensors that transport the
+        mobile species.
+  \item A \textbf{continuum $\to$ discrete} conversion that preserves stored
+        defects exactly and loop number to the integer draw.
+  \item A \textbf{two-time-scale integration} that makes $2.1\times10^{8}$
+        stiff equations tractable.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Demonstrated on}
+\begin{itemize}\small
+  \item A 500\,nm hexagonal $\alpha$-Zr single crystal, 800\,nm tall.
+  \item $T=573$\,K, $G=10^{-7}\,\mathrm{dpa\,s^{-1}}$, zero applied stress.
+  \item $0\to40$\,dpa in 13 dose intervals, 90\,663 nodes.
+  \item Calibrated against \textbf{78 TEM measurements} across twelve
+        temperatures and four decades of dose.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\foot{The model is self-consistent in two senses --- in the bias factors, and
+in the continuum/discrete transfer --- and both are load-bearing for what
+follows.}
+\end{frame}
+
+% ---------------------------------------------------------------- 3
+\begin{frame}{From D1/M1 to D1/M2}
+\centering
+\small\begin{tabular}{@{}p{0.24\textwidth}p{0.33\textwidth}p{0.35\textwidth}@{}}
+\toprule
+ & \textbf{D1/M1 (SRCD)} & \textbf{D1/M2 (this work)} \\
+\midrule
+Immobile families & 4 (aligned / non-aligned) & \textbf{9} crystallographic \\
+Moments carried & density, content & \textbf{+ second moment $q$} \\
+Capture efficiencies & phenomenological $Z=1+\delta$ & \textbf{Woo}, from the
+  diffusion tensor \\
+Size distribution & not resolved & \textbf{log-normal closure} \\
+Grain boundary & Dirichlet, mobile only & \textbf{+ size-gated loop removal} \\
+Discrete loops & visualization only & \textbf{conserving conversion} \\
+Calibration & --- & \textbf{MAP against 78 measurements} \\
+\bottomrule
+\end{tabular}
+\foot{The single structural change is that the anisotropy now enters
+\emph{once}, through the diffusion tensors, and reaches the loops through the
+capture efficiencies rather than through an independent set of fitted biases.}
+\end{frame}
+
+% ---------------------------------------------------------------- 4
+\begin{frame}{The nine immobile families}
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+Family & Habit & Character & Burgers vector \\
+\midrule
+$a_1,a_2,a_3$ & prismatic $\{10\bar10\}$ & interstitial & $\tfrac13\langle11\bar20\rangle$ \\
+$a_1^{v},a_2^{v},a_3^{v}$ & prismatic $\{10\bar10\}$ & vacancy & $\tfrac13\langle11\bar20\rangle$ \\
+$c_0$ & basal, stacking-fault pyramid & vacancy & --- (no line) \\
+$c_f$ & basal $(0001)$, faulted & vacancy & $\tfrac12[0001]$ \\
+$c_p$ & basal $(0001)$, perfect & vacancy & $\tfrac12[0001]$ \\
+\bottomrule
+\end{tabular}
+\vspace{1ex}
+\foot{$|b_{\langle a\rangle}|=a=3.23$\,\AA{} and $|b_{\langle c\rangle}|=c/2=2.575$\,\AA{}
+with the \emph{physical} axial ratio $c/a=1.5944$, not the ideal $\sqrt{8/3}$.
+The same four numbers are used by the 0-D model, the continuum solver and the
+discrete conversion --- a mismatch there was a factor of two in the \cloop{}
+Burgers vector.}
+\end{frame}
+
+% ---------------------------------------------------------------- 5
+\begin{frame}{Two populations, two kinds of equation}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Mobile --- $v,i,2i,3i$}
+\begin{itemize}\small
+  \item Four concentration fields $\spvec c_M(\xv)$.
+  \item \textbf{Spatially coupled} by diffusion.
+  \item \textbf{No time derivative}: a steady reaction--diffusion problem.
+  \item Dirichlet at grain boundaries.
+  \item $4\times90\,663=362\,652$ unknowns.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Immobile --- nine loop families}
+\begin{itemize}\small
+  \item Three moments each: $n^k_{sL}$, $c^k_{sL}$, $q^k_{sL}$.
+  \item \textbf{Pointwise}: no neighbor's state appears.
+  \item Stiff ODEs in dose.
+  \item $27\times90\,663=2\,447\,901$ unknowns.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\foot{That asymmetry --- one block coupled and algebraic, the other pointwise
+and stiff --- is what the operator split of \S4 exploits, and it is the reason
+the calculation is affordable at all.}
+\end{frame}
+
+% ---------------------------------------------------------------- 6
+\begin{frame}{The mobile master equation}
+\begin{block}{}
+\[
+  \spvec 0 = \nabla\!\cdot\!\bigl(\spmat D_{\mathrm{ten}}\nabla\spvec c_M\bigr)
+    + \spvec P_M
+    + \tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M
+    + (\spmat E-\spmat D)\spvec c_M + \spvec S_{vL}
+\]
+\end{block}
+\vspace{-1ex}
+\begin{center}\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+$\nabla\!\cdot\!(\spmat D_{\mathrm{ten}}\nabla\spvec c_M)$ & anisotropic transport of the four mobile species \\
+$\spvec P_M$ & cascade production (dose rate $\times$ survival $\times$ partition) \\
+$\tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M$ & second-order reactions: recombination and clustering \\
+$\spmat E\spvec c_M$ & thermal dissociation of mobile clusters \\
+$-\spmat D\spvec c_M$ & absorption at immobile sinks: network $+$ loops \\
+$\spvec S_{vL}$ & vacancies returned by peripheral emission from loops \\
+\bottomrule
+\end{tabular}
+\end{center}
+\foot{Steady, not quasi-steady: $\partial_t\spvec c_M$ is absent by
+construction, which is what allows the coupled problem to be solved a handful
+of times over a march rather than at every step.}
+\end{frame}
+
+% ---------------------------------------------------------------- 7
+\begin{frame}{Absorption: where the loops act back on the mobile species}
+\[
+  \spmat D = \mathrm{diag}\{\spvec\omega\odot\spvec C_s\}
+             + \spmat D_d\,\spmat K_{\mathcal L},
+  \qquad
+  C_s^{v}=\frac{a^2}{z_c}\rho_N,\quad C_s^{i}=\frac{a^2}{z_c}Z_N\rho_N
+\]
+With $\omega^{m}=z_c\nu^{m}e^{-E^{m}_{\mathrm{mig}}/k_BT}$ and
+$\overline D^{m}=(a^{2}/z_c)\,\omega^{m}$, the first term is simply
+\[
+  \spvec\omega\odot\spvec C_s
+  =\bigl(\overline D^{v}\rho_N,\;Z_N\overline D^{i}\rho_N,\;
+         Z_N\overline D^{2i}\rho_N,\;Z_N\overline D^{3i}\rho_N\bigr)
+\]
+\vspace{-1ex}
+\begin{block}{}\small
+$a^2$ and $z_c$ cancel: the network term is the classical
+$\overline D^{m}k^{2}_N$. Splitting it into a frequency and a sink
+concentration is 0-D bookkeeping, not a second physical quantity.
+\end{block}
+\foot{The loops enter the \emph{second} term only, through
+$k_m^{2}=\sum_{(s,k)}Z_{sk,m}\rho^{k}_{sL}+\dots$ --- they must not also appear
+in $\spvec C_s$, or their absorption would be counted once as a network sink
+and once as loop growth.}
+\end{frame}
+
+% ---------------------------------------------------------------- 8
+\begin{frame}{Anisotropy enters once, through one number per species}
+\begin{columns}[T]
+\begin{column}{0.50\textwidth}
+\small
+Migration energies are split at fixed $\overline D$:
+\[
+  E_m^{\langle11,22\rangle}=E_m^{\mathrm{eff}}+2k_BT\ln p^{m}
+\]
+\vspace{-2ex}
+\[
+  E_m^{\langle33\rangle}=E_m^{\mathrm{eff}}-4k_BT\ln p^{m}
+\]
+so a change in $p^{m}$ alters \emph{directionality}, never overall mobility.
+
+\vspace{1ex}
+The same $p^{m}$ builds the Woo capture efficiencies:
+\[
+  Z_{\mathrm{basal}}=Z^{0}_mp^{m},\qquad
+  Z_{\mathrm{prism}}=Z^{0}_m\frac{p^{m}+p_m^{-2}}{2}
+\]
+\end{column}
+\begin{column}{0.46\textwidth}
+\begin{block}{Fixed from transport, not from loop counts}\small
+\[
+  p^{v}=1.02,\qquad p^{i}=0.70
+\]
+implying an interstitial migration anisotropy of \textbf{0.106\,eV} at 573\,K
+--- a falsifiable prediction, open to atomistic test.
+\end{block}
+\end{column}
+\end{columns}
+\foot{This is the point of the self-consistency: because every bias follows
+from the diffusion tensors, the anisotropy \emph{cannot} absorb a shortfall by
+refitting a bias. It is an input, and what is left over has to appear somewhere
+that can be named.}
+\end{frame}
+
+% ---------------------------------------------------------------- 9
+\begin{frame}{Simultaneous \aloop{} and \cloop{} growth}
+\small
+Both growth conditions reduce to bounds on a single number --- the arrival ratio
+\[
+  A/B=\overline D^{v}c_v\Big/\textstyle\sum_m \overline D^{m}c_m|m|
+\]
+and the window between them has width $g(p^{v})/g(p^{i})$ with
+$g(p)=2/(1+p^{-3})$, strictly increasing. Hence
+\begin{block}{}
+\centering\normalsize
+Co-growth of both families is possible \textbf{if and only if} $p^{i}<p^{v}$.
+\end{block}
+\vspace{1ex}
+The calibrated pair $p^{i}=0.70<p^{v}=1.02$ satisfies it with margin.
+\foot{Two limits worth stating: the criterion governs the \emph{absorption flux}
+only --- cascade nucleation is unaffected by anisotropy --- and an isotropic
+calculation is another parameter point, not a zero of the criterion, so a ratio
+taken against one cannot test a statement about signs.}
+\end{frame}
+
+% ---------------------------------------------------------------- 10
+\begin{frame}{The immobile block: three moments per family}
+\small
+Restricting the master equation to indices that do not diffuse leaves a
+birth--death equation on the integer size $m$. Three successive reductions:
+\begin{enumerate}\small
+  \item Treat $m$ as continuous, truncate Kramers--Moyal at second order
+        $\Rightarrow$ Fokker--Planck in $m$.
+  \item Multiply by $m^{j}$, integrate $\Rightarrow$ an \emph{exact} moment
+        hierarchy; retain $j=0,1,2$.
+  \item Close it with a log-normal $f_k(m)$.
+\end{enumerate}
+\[
+  n^k_{sL}=\!\int\! f_k\,dm,\qquad
+  c^k_{sL}=\!\int\! m f_k\,dm,\qquad
+  q^k_{sL}=\!\int\! m^{2} f_k\,dm
+\]
+\[
+  \bar m^k_{sL}=\frac{c^k_{sL}}{n^k_{sL}},\qquad
+  \Delta_k\equiv\frac{q^k_{sL}n^k_{sL}}{(c^k_{sL})^{2}}=e^{s_k^{2}}\ \ge 1
+\]
+\foot{$\Delta_k\ge1$ is Cauchy--Schwarz on a non-negative measure. It is not a
+tolerance: $\Delta<1$ is a defect in the equations, and it is the sharpest
+available check that every channel is closed consistently.}
+\end{frame}
+
+% ---------------------------------------------------------------- 11
+\begin{frame}{The second moment earns its place}
+\small
+The Fokker--Planck contribution to $\dot q$ is
+\[
+  \dot q^k_{sL}\big|_{\mathrm{FP}}
+  = 2\Pi^k_{sL}\Bigl[\underbrace{\Sigma^{\mathrm{net}}_k\bar m^k_{sL}\Delta_k^{3/8}}_{\text{drift}}
+    +\underbrace{\tfrac12\Sigma^{\mathrm{gro}}_k\Delta_k^{-1/8}}_{\text{spreading}}\Bigr]
+\]
+\begin{block}{}
+At $\Sigma^{\mathrm{net}}_k=0$ the drift vanishes but
+$\dot q^k_{sL}=\Pi^k_{sL}\Sigma^{\mathrm{gro}}_k\Delta_k^{-1/8}>0$: the
+distribution \textbf{keeps broadening at fixed mean size and fixed number}.
+No pair of lower moments can express that.
+\end{block}
+\vspace{0.5ex}
+The closure reaches the rest of the model in exactly one place --- as
+$\Delta_k^{-1/8}$ on the sink prefactor --- and reaches the discrete conversion
+as the distribution loop sizes are drawn from.
+\foot{Drift carries $\Delta^{3/8}$ and spreading $\Delta^{-1/8}$: a family that
+has already broadened broadens \emph{faster}. The dispersion is self-amplifying
+through the drift, which is a real feature and, at one node in the calculation,
+a visible one.}
+\end{frame}
+
+% ---------------------------------------------------------------- 12
+\begin{frame}{Loss channels, and the sign that is easy to get wrong}
+\small
+Coalescence, by an Avrami overlap on the family's own size:
+\[
+  \varphi_{LL}=1-e^{-\kappa_{LL}\frac43\pi R^3_{LL}N},\qquad
+  \varphi_{LN}=1-e^{-\kappa_{LN}\pi R^2_{LN}\rho_N}
+\]
+\[
+  \Delta N=\nu_{LL}\varphi_{LL}n+\Delta N_{LN},\qquad
+  \Delta Q=\Delta_k\bigl(\bar m^{2}\Delta N-2\bar m\Delta C\bigr)
+\]
+\begin{block}{A coalescing loop does not leave the family --- it MERGES}
+Its defects stay; only $\Delta C_{LN}$ is lost. Fewer loops holding the same
+content are \emph{larger} loops, so like-loop coalescence \textbf{raises} $q$.
+Debiting $\Delta N\langle m^2\rangle$ --- the natural-looking reading ---
+inverts the sign on the largest single term in the equation.
+\end{block}
+\foot{Measured consequence of getting it wrong: $q$ crossed zero at 1\,dpa and
+was negative on 40\% of the $c_p$ nodes at 10\,dpa. Coalescence carries
+$\sim98\%$ of the loop-number loss, so this is not a small term.}
+\end{frame}
+
+% ---------------------------------------------------------------- 13
+\begin{frame}{The distribution leaks at both ends}
+\small
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{Small end} (vanishing) & \textbf{Large end} (coalescence) \\
+\midrule
+Removes & loops below $m_{\mathrm{van}}$ & the biggest loops \\
+Weight & $1-\Phi^{(j)}$, \emph{below} the mean & $\Phi^{(j)}$, \emph{above} it \\
+Effect on $\bar m$ & \textbf{raises} it & lowers it \\
+Realizability & automatic --- what remains is a genuine sub-measure \\
+\bottomrule
+\end{tabular}
+\end{center}
+\[
+  \Xi^k_j=\bigl[1-\Phi^{(j)}_k(m_{\mathrm{van}})\bigr]\times
+  \{n^k_{sL},\,c^k_{sL},\,q^k_{sL}\},\qquad
+  \Phi^{(j)}_k(m_\theta)=\tfrac12\mathrm{erfc}\!\left(
+    \frac{\ln m_\theta-\mu_k-js_k^{2}}{s_k\sqrt2}\right)
+\]
+\begin{block}{}
+Because $\Phi^{(2)}>\Phi^{(1)}>\Phi^{(0)}$, the complements reverse that
+ordering: what the small-end leak removes is \emph{smaller} than the family
+mean, so \textbf{the density falls while the surviving mean size rises}.
+\end{block}
+\foot{That is the one trade coalescence cannot make. It was the first channel
+found that moves density and diameter the way the measurements want them
+moved --- fewer \emph{and} larger.}
+\end{frame}
+
+% ---------------------------------------------------------------- 14
+\begin{frame}{Grain boundaries: two populations, two mechanisms}
+\begin{columns}[T]
+\begin{column}{0.46\textwidth}
+\begin{block}{Mobile --- Dirichlet}\small
+\[c^{v}=e^{-E^{f}_v/k_BT},\quad c^{i}=c^{2i}=c^{3i}=0\]
+on $\partial\Omega_D$. Thermal equilibrium is imposed; the layer that develops
+is a result, not an input.
+\end{block}
+\end{column}
+\begin{column}{0.50\textwidth}
+\begin{block}{Loops --- size-gated removal}\small
+A loop of radius $R^k=\lambda_k\sqrt m$ at distance $x$ touches the face when
+\[m\ge m_{gb}(x)=(x/\lambda_k)^{2}\]
+so the absorbed fraction of each moment is
+$\Theta^k_j=\Phi^{(j)}_k(m_{gb})\times\{n,c,q\}$.
+\end{block}
+\end{column}
+\end{columns}
+\vspace{1ex}
+\foot{A loop cannot be given a boundary condition --- it is untransported and
+has no flux to set. What it has is a \emph{size}, and the family already
+carries the distribution of sizes needed to say what fraction of it reaches the
+wall. The channel costs no new parameter beyond a rate $\nu_{gb}$.}
+\end{frame}
+
+% ---------------------------------------------------------------- 15
+\begin{frame}{The operator split, and why it is legitimate}
+\small
+Lie--Trotter, alternating over each substep:
+\begin{enumerate}\small
+  \item \textbf{Fast solve} --- the steady mobile field
+        $\spvec c_M^{*}(\xv)$ for the immobile state currently held.
+  \item \textbf{Slow march} --- the immobile ODEs integrated at every point
+        with the mobile species \emph{frozen}.
+\end{enumerate}
+\begin{block}{The decoupling is by construction, not by approximation}
+The only thing coupling neighboring points is diffusion of the mobile species.
+Freeze the mobile field and the spatial coupling is \emph{gone}: a point's
+immobile ODEs depend on its own loop populations and the four numbers pinned
+into $\spvec c_M$.
+\end{block}
+\vspace{0.5ex}
+Splitting error is first order in the dose spanned between fast solves --- so
+the fast-solve cadence, not the substep count, is the accuracy dial.
+\foot{The bill is paid in splitting error and nowhere else. The coupled problem
+has not been approximated away; it has been moved to where it is affordable.}
+\end{frame}
+
+% ---------------------------------------------------------------- 16
+\begin{frame}{What the split buys, in numbers}
+\centering
+\begin{tabular}{@{}lr@{}}
+\toprule
+ & flops for one implicit factorization \\
+\midrule
+Split: $73\,518$ independent $36\times36$ systems & $3.4\times10^{9}$ \\
+Coupled: one $3\,263\,868$-dimensional system & $3.5\times10^{19}$ \\
+\midrule
+\textbf{Ratio} & $\bm{1.0\times10^{10}}$ \\
+\bottomrule
+\end{tabular}
+\vspace{2ex}
+
+\begin{columns}[T]
+\begin{column}{0.47\textwidth}
+\begin{block}{Measured, 500\,nm case}\small
+\begin{tabular}{@{}lr@{}}
+march total & 1\,h 10\,m \\
+one fast solve ($\times26$) & 1\,m 54\,s \\
+one slow substep ($\times78$) & 15.3\,s \\
+dedup factor & $\times1.23$ \\
+\end{tabular}
+\end{block}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{block}{Why frequency matters}\small
+The fast solve has \emph{no time derivative}, so the coupled problem is solved
+\textbf{26 times over the march} rather than at every timestep. The
+counterfactual is $\sim$25\,h for the 4-species mobile block alone.
+\end{block}
+\end{column}
+\end{columns}
+\foot{Sparsity softens the coupled figure but does not rescue it: a 3-D FE
+Jacobian still factorizes at $O(N^2)$ with fill growing as $O(N^{4/3})$.}
+\end{frame}
+
+% ---------------------------------------------------------------- 17
+\begin{frame}{Continuum $\to$ discrete: what must be preserved}
+\small
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Invariant across a transfer & Requirement & Achieved \\
+\midrule
+Stored defects & exact & to $10^{-16}$ (rescaled) \\
+Loop number & exact & to the integer draw \\
+Size dispersion & preserved & to the sampling truncation \\
+Sink strength & continuous & 0.97--1.04 at every dose \\
+\bottomrule
+\end{tabular}
+\end{center}
+\[
+  \lambda^k_{sj}=\frac{n^k_{sL}(\xv_j)}{\Omega}V_j,\qquad
+  \Lambda^k_s=\sum_j\lambda^k_{sj},\qquad
+  N_{\mathrm{draw}}=\mathrm{round}(\Lambda^k_s)
+\]
+\begin{block}{}
+A calculation may therefore be run as continuum, as discrete, or as a hybrid,
+with the choice made on grounds of \textbf{dose and cost} rather than of
+physics.
+\end{block}
+\foot{Rounding rather than drawing a Poisson total is deliberate: $\mathrm{Var}
+=\Lambda$ there, and a dose sweep whose count fluctuates by $\sqrt\Lambda$
+between snapshots is dominated by counting noise.}
+\end{frame}
+
+% ---------------------------------------------------------------- 18
+\begin{frame}{Nodal volumes, and what a sparse cell means}
+\small
+$V_j$ is estimated by \textbf{Monte Carlo}: points drawn uniformly in the
+bounding box, rejected against the convex hull, each survivor assigned to its
+nearest node.
+\[
+  V_j=\frac{M_j}{M}V_\Omega,\qquad M=4\times10^{6},\qquad
+  \text{error}\sim M^{-1/2}
+\]
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{The one condition}\small
+The cells must tile the crystal exactly. They do: every accepted sample is
+charged to exactly one node, so $\sum_jV_j=V_\Omega$ identically, however
+coarse the sampling. Error moves volume \emph{between} cells; it cannot change
+their sum.
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Two things it is not}\small
+Not the FEM mesh --- the cells are built on the concentration trial-function
+nodes and share only the point set. And a node with \emph{zero} volume is a
+correct answer, not a failure: $\sim12\%$ receive none.
+\end{block}
+\end{column}
+\end{columns}
+\vspace{0.5ex}
+\foot{No cell expects a whole loop: $\lambda\sim10^{-2}$ typically. The draw is
+taken once for the \emph{family} and the nodes sampled from the multinomial ---
+rounding node by node would return zero everywhere and convert nothing.}
+\end{frame}
+
+% ---------------------------------------------------------------- 19
+\begin{frame}{Calibration: what is fitted and what is not}
+\small
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Class & Examples & Fitted? \\
+\midrule
+Model controls & which families, which channels & no --- selects physics \\
+Crystallography & $a$, $c$, $\Omega$, Burgers vectors & no --- measured \\
+Transport & $p^{v}=1.02$, $p^{i}=0.70$ & \textbf{no --- pinned} \\
+Rate parameters & capture prefactors, coalescence & \textbf{yes} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\vspace{1ex}
+\textbf{Targets:} 78 TEM measurements --- 73 \aloop{} and 5 \cloop{}, twelve
+temperatures, four decades of dose.
+
+\textbf{Estimator:} maximum \emph{a posteriori} under stated priors, on
+$\log_{10}(\text{model}/\text{experiment})$, symmetric under inversion of the
+ratio.
+
+\textbf{Search:} staged bounded Nelder--Mead, polished jointly. One objective
+evaluation is 0.2--0.5\,s, which is what makes a refit tractable.
+\foot{The 0-D estimator and the 3-D slow step are the \emph{same binary with
+the same switches}, differing only in whether the mobile species are frozen ---
+so a parameter set fitted in 0-D is one the 3-D code runs term for term.}
+\end{frame}
+
+% ---------------------------------------------------------------- 20
+\begin{frame}{Prismatic \aloop{} loops against experiment}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fit_A_density.png}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fit_A_diameter.png}
+\end{column}
+\end{columns}
+\foot{Number density (left) and diameter (right) by temperature. Density
+$0.88\times$ the measurement over 71 points and diameter $1.21\times$ over 44,
+across twelve temperatures and four decades of dose.}
+\end{frame}
+
+% ---------------------------------------------------------------- 21
+\begin{frame}{Basal \cloop{} loops, and the parity plot}
+\begin{columns}[c]
+\begin{column}{0.34\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fit_C_density.png}
+\end{column}
+\begin{column}{0.34\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fit_C_diameter.png}
+\end{column}
+\begin{column}{0.30\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fit_parity.png}
+\end{column}
+\end{columns}
+\foot{On the \emph{fixed} anisotropy the calibration reproduces the basal loop
+diameter without it being adjusted --- \textbf{100.7\,nm against 95\,nm
+measured}. What it does not reach is the basal density, which remains
+$2.1\times$ the measurement.}
+\end{frame}
+
+% ---------------------------------------------------------------- 22
+\begin{frame}{What the calibration does not achieve}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{A prismatic temperature trend}\small
+The mean conceals it: resolved by temperature the model runs high at both ends
+and low in the middle, a factor of six low near 600\,K. Four independent
+searches reach the same place.
+\vspace{0.5ex}
+
+Two readings the data cannot separate: the nucleation term may carry the wrong
+temperature dependence, or the high-$T$ points may not measure the same
+population.
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Four parameters on their bounds}\small
+$Z^{0}_{v}=1.30$ and $\xi_c=2.00$ at their ceilings; both coalescence exponents
+at theirs.
+\vspace{0.5ex}
+
+$Z^{0}_{v}$ and $\xi_c$ both multiply the basal capture rate and are nearly
+degenerate --- one statement, not two: \textbf{given a stated anisotropy the
+model cannot deliver the measured basal population without a prefactor no
+transport argument supplies.}
+\end{block}
+\end{column}
+\end{columns}
+\foot{That is sharper than earlier calibrations supported. With $p^{v}$ free it
+absorbed the discrepancy; pinned, the shortfall is forced into the capture
+prefactor and \emph{not} the diffusion tensor. It is testable by
+character-resolved measurements at 600--700\,K.}
+\end{frame}
+
+% ---------------------------------------------------------------- 23
+\begin{frame}{The demonstration case}
+\begin{columns}[c]
+\begin{column}{0.46\textwidth}
+\centering\includegraphics[width=0.92\textwidth]{\FIG/fe_mesh.png}
+\end{column}
+\begin{column}{0.50\textwidth}
+\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+Geometry & hexagonal prism \\
+Width $\times$ height & 500 $\times$ 800\,nm \\
+Elements & 60\,965 tets \\
+CD nodes & 90\,663 \\
+Boundary layer & 100\,nm at 20\,nm \\
+\midrule
+Temperature & 573\,K \\
+Dose rate & $10^{-7}\,\mathrm{dpa\,s^{-1}}$ \\
+Applied stress & zero \\
+Dose range & $10^{-4}\to40$\,dpa \\
+Intervals & 13 \\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
+\foot{Dirichlet on every face, so the entire surface is grain boundary. The
+mesh is cut in half so the interior refinement is visible.}
+\end{frame}
+
+% ---------------------------------------------------------------- 24
+\begin{frame}{Mobile species, early and late}
+\centering\includegraphics[height=0.66\textheight]{\FIG/mobile_early_late.png}
+\foot{$10^{-4}$\,dpa (left) and 40\,dpa (right), on two orthogonal mid-cuts.
+The boundary layers order themselves by species mobility --- the vacancy, least
+mobile, is depleted over the shortest distance --- and narrow by a factor of two
+as $k^{2}$ grows with the loop population the same calculation is building.}
+\end{frame}
+
+% ---------------------------------------------------------------- 25
+\begin{frame}{The three moments: basal faulted family $c_f$}
+\centering\includegraphics[height=0.66\textheight]{\FIG/moments_cf.png}
+\foot{Number density, content and second moment at $10^{-4}$ and 40\,dpa. The
+three rows are not three views of one thing --- they answer different questions
+and their spatial structures differ, which is the argument for carrying all
+three.}
+\end{frame}
+
+% ---------------------------------------------------------------- 26
+\begin{frame}{The three moments: prismatic variant $a_1$}
+\centering\includegraphics[height=0.66\textheight]{\FIG/moments_a1.png}
+\foot{The same three moments for one prismatic interstitial variant. The
+prismatic family stays small and numerous where the basal family grows large and
+sparse --- the two are not scaled versions of one another.}
+\end{frame}
+
+% ---------------------------------------------------------------- 27
+\begin{frame}{The atom balance closes --- on an open system}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/conservation_v.png}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/fractions_v.png}
+\end{column}
+\end{columns}
+\foot{The six accumulators integrate a 0-D balance with \emph{no transport
+term}, so on a Dirichlet domain the residual is not solver error --- it is the
+atoms that left through the surface. At 40\,dpa the boundary absorbs
+\textbf{96\%} of interstitial production as mobile species and a further
+\textbf{27\%} of vacancy production as loops.}
+\end{frame}
+
+% ---------------------------------------------------------------- 28
+\begin{frame}{The loop-denuded zone}
+\centering\includegraphics[width=0.94\textwidth]{\FIG/denuded_zone.png}
+\foot{Solid: grain-boundary loop absorption active. Dashed: the identical
+calculation without it, differing in that one switch and nothing else. The zone
+is $\sim5$\,nm wide, and across it the mean loop diameter recovers from
+\textbf{6.8 to 144\,nm}. The channel also \emph{raises} the \cloop{} density in
+the deep interior by a factor of 4--5, because removing the shell's sinks
+changes the mobile field everywhere --- something a mean-field $k^2_{gb}$
+structurally cannot do.}
+\end{frame}
+
+% ---------------------------------------------------------------- 29
+\begin{frame}{Domain mean or interior mean? It is not a detail}
+\centering\small
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+& Region & $N_a$ (m$^{-3}$) & $d_a$ (nm) & $N_c$ (m$^{-3}$) & $d_c$ (nm) \\
+\midrule
+\multirow{2}{*}{loop channel off}
+ & domain   & $3.79\times10^{23}$ & 4.29 & $3.98\times10^{23}$ & 17.60 \\
+ & interior & $2.80\times10^{21}$ & 5.79 & $1.75\times10^{21}$ & 249.84 \\
+\midrule
+\multirow{2}{*}{loop channel on}
+ & domain   & $3.86\times10^{21}$ & 5.58 & $2.26\times10^{21}$ & 103.79 \\
+ & interior & $7.06\times10^{21}$ & 5.98 & $5.31\times10^{21}$ & 133.01 \\
+\bottomrule
+\end{tabular}
+\vspace{1ex}
+\foot{At 40\,dpa. \textbf{Without} the channel the two differ by $135\times$ in
+$N_a$ and $227\times$ in $N_c$ --- the domain average is measuring the boundary
+shell and nothing else. \textbf{With} it the disparity collapses to $1.8\times$
+and $2.4\times$ and changes sign, the interior now carrying more loops than the
+domain mean. That is the strongest single argument for the channel: it removes
+an artifact that makes the most natural summary statistic meaningless.}
+\end{frame}
+
+% ---------------------------------------------------------------- 30
+\begin{frame}{Loop density and size against dose}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/loop_density.png}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering\includegraphics[width=\textwidth]{\FIG/loop_sizes_vs_exp.png}
+\end{column}
+\end{columns}
+\foot{Model lines against the measured points, $10^{-4}\to40$\,dpa. The march
+now reaches beyond the \cloop{} measurements at 35\,dpa, so the comparison is at
+matched dose rather than extrapolated. Everything saturates by $\sim$1\,dpa:
+from 1 to 40\,dpa the densities move under $9\%$ and the radii not at all.}
+\end{frame}
+
+% ---------------------------------------------------------------- 31
+\begin{frame}{Against experiment --- and the direction of the discrepancy}
+\small
+At 573\,K and 24.5\,dpa the measurements give
+$N_c=8.0\times10^{20}\,\mathrm{m^{-3}}$ and $d_c=95$\,nm. The interior at
+40\,dpa:
+\begin{center}
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & $N_c/N^{\exp}$ & $d_c/d^{\exp}$ \\
+\midrule
+loop channel on & 6.6 & 1.40 \\
+loop channel off & 2.2 & 2.63 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{block}{The direction has changed with the refit}
+Earlier parameter sets produced \emph{more, smaller} \cloop{} loops --- the
+signature of a model removing loops faster than it grows them. This one
+produces \textbf{more and larger}: stored basal content, which scales as
+$N_cd_c^{3}$, is $18\times$ what is observed.
+\end{block}
+\foot{The two errors no longer oppose each other, and that is a harder failure
+to excuse. It is not a size problem a growth term could absorb --- it is too
+much vacancy content retained in basal loops.}
+\end{frame}
+
+% ---------------------------------------------------------------- 32
+\begin{frame}{The conversion, exercised at four doses}
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Family & $10^{-4}$\,dpa & $10^{-2}$\,dpa & 1\,dpa & 40\,dpa \\
+\midrule
+$c_f$ (basal, vacancy)          & 5 & 238 & 642 & 691 \\
+$a_1$ (prismatic, interstitial) & 1 &  55 & 213 & 232 \\
+$a_1^{v}$ (prismatic, vacancy)  & 1 &  23 &  69 &  75 \\
+\bottomrule
+\end{tabular}
+\vspace{1.5ex}
+
+The number of loops is not a parameter of the conversion: it is
+$\sum_jn_jV_j$, the number the field says is present. The ledger closes on
+stored defects to machine precision and on loop number to the integer draw at
+every one of the four doses.
+\foot{The three interstitial prismatic variants stay \emph{exactly} equal in
+number (232 each at 40\,dpa), which is the isotropic variant weighting under
+zero applied stress; the three vacancy variants likewise (75 each).}
+\end{frame}
+
+% ---------------------------------------------------------------- 33
+\begin{frame}{The discrete basal population}
+\centering\includegraphics[height=0.64\textheight]{\FIG/loops_c_4dose.png}
+\foot{(a) $10^{-4}$, (b) $10^{-2}$, (c) 1 and (d) 40\,dpa, drawn at true radius
+over the continuum content field. Loops are clipped at the crystal surface for
+drawing; the exported loops are whole.}
+\end{frame}
+
+% ---------------------------------------------------------------- 34
+\begin{frame}{Every family superimposed}
+\centering\includegraphics[width=\textwidth]{\FIG/loops_all_4dose.png}
+\foot{Basal \cloop{} in blue, the interstitial prismatic variants and the
+vacancy variants in their own colours, at true radius and sampled position. What
+the sequence shows is not the basal family becoming more numerous but its loops
+becoming very much \emph{larger}, until at 40\,dpa they dominate the drawing at
+a diameter an order of magnitude above the prismatic variants.}
+\end{frame}
+
+% ---------------------------------------------------------------- 35
+\begin{frame}{Two regimes, and the limits of the mean field}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{At $10^{-4}$\,dpa}\small
+5 basal and 6 prismatic loops in
+$1.3\times10^{8}\,\mathrm{nm^{3}}$ --- a population so dilute that a continuum
+density describing it is a statement about an \emph{ensemble}, not about this
+crystal.
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{At 40\,dpa}\small
+Basal loops 131\,nm across at a mean spacing of 57\,nm --- each loop is
+\emph{wider than the distance to its neighbour}. This is where the Avrami
+kernels work hardest and are least defensible.
+\end{block}
+\end{column}
+\end{columns}
+\vspace{1ex}
+\begin{block}{And most basal loops do not fit}
+At 40\,dpa, \textbf{419 of 691} \cloop{} loops (60.6\%) are centered within
+their own radius of a face and overhang it, by up to 88\,nm; the prismatic
+figure is 3.5\%. A discrete-dislocation solver would decline them, and their
+defects would remain in the continuum.
+\end{block}
+\foot{The conversion spans both regimes, which is what makes it a check on the
+mean field rather than a convenience --- and the refusal fraction is the
+argument for a larger crystal.}
+\end{frame}
+
+% ---------------------------------------------------------------- 36
+\begin{frame}{Reconstructed size distributions}
+\centering\includegraphics[height=0.62\textheight]{\FIG/size_spectrum_dose.png}
+\foot{Population per unit $\ln d$ per cubic metre at four doses, over six
+decades below the peak. By 1\,dpa the \emph{shape} has essentially stopped
+changing: the 1\,dpa and 40\,dpa curves are nearly coincident in every panel, so
+the population saturates in shape as well as in its aggregates.}
+\end{frame}
+
+% ---------------------------------------------------------------- 37
+\begin{frame}{One node misbehaves, and it is structural}
+\small
+At 1 and 40\,dpa a single node of the 90\,663 --- node 51\,609, at
+$x=214.2$\,nm, the point of the prism \emph{furthest} from any face --- carries
+$\Delta=4.7\times10^{3}$ and $6.2\times10^{3}$, against a median of 1.070.
+Every other node stays below $\Delta=1.5$.
+\begin{block}{The mechanism is in the moment equation}
+Drift carries $\Delta_k^{3/8}$ and spreading $\Delta_k^{-1/8}$: a family that
+has already broadened broadens \emph{faster} while its spreading is damped ---
+the dispersion is self-amplifying through the drift. Everywhere else that
+feedback is held in check by coalescence and by the finite mobile flux; at the
+one point where the flux is largest and no boundary channel acts, it is not.
+\end{block}
+\foot{$\Delta\ge1$ is never violated, so no realizability check fires. The
+remedy is not a tolerance --- it is a statement about where the closure is
+valid, and the gap between the outlier and the rest of the crystal is three
+orders of magnitude with nothing in between.}
+\end{frame}
+
+% ---------------------------------------------------------------- 38
+\begin{frame}{Conclusions}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{What is established}\small
+\begin{itemize}
+  \item Every bias follows from the diffusion tensors through one $p^{m}$ per
+        species. The anisotropy is an \textbf{input}, not a fitted absorber.
+  \item Spatial resolution matters: boundary layers order by mobility and
+        narrow by $2\times$; a domain mean without the loop channel measures
+        the boundary shell.
+  \item The transfer preserves what defines the population, so
+        continuum / discrete / hybrid is a \textbf{cost} decision.
+  \item $2.1\times10^{8}$ stiff equations in 1\,h 10\,m on 8 cores.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{What is open}\small
+\begin{itemize}
+  \item The basal density, $2.1\times$ the measurement, with the capture
+        prefactor on its bound --- absorption, not transport.
+  \item The prismatic temperature trend, a factor of six low near 600\,K.
+  \item $p^{i}=0.70$ implies $0.106$\,eV of migration anisotropy at 573\,K ---
+        \textbf{open to atomistic test}.
+  \item Whether $c_p$ needs a sink of its own; it is a terminal population.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\foot{The useful outcome is that a shortfall now has to appear somewhere it can
+be named. With the anisotropy pinned, the model cannot quietly refit a bias to
+hide it.}
+\end{frame}
+
+\end{document}

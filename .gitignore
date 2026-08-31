@@ -76,3 +76,13 @@ build.log
 # Figure build intermediates and material-file backups are products, not sources.
 Docs/Formulation/self-consistent/SC_manuscript/figures/_loops_all_panels/
 MoDELib3/Library/Materials/*.bak_*
+# Beamer build products
+Docs/Presentations/*.aux
+Docs/Presentations/*.log
+Docs/Presentations/*.nav
+Docs/Presentations/*.out
+Docs/Presentations/*.snm
+Docs/Presentations/*.toc
+Docs/Presentations/*.fls
+Docs/Presentations/*.fdb_latexmk
+Docs/Presentations/~$*
