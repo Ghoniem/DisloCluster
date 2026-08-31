@@ -1,3 +1,823 @@
+%=====================================================================
+%  Supplementary Material
+%
+%  Everything from here to the bibliography is appendix. The four
+%  appendices are collected under one unnumbered heading so that the
+%  journal can carry them as supplementary material as a block, while
+%  each remains an \appendix section -- so \cref still prints
+%  "Appendix A", "Appendix B", ... and no cross-reference in the main
+%  text has to change.
+%=====================================================================
+\clearpage
+\section*{Supplementary Material}
+
+The material collected here supports the main text and is not needed to follow
+it. \Cref{app:derivation} carries out in full the two reductions that take the
+general master equation \cref{eq:master} to the mobile and immobile blocks of
+\cref{sec:summary-equations}, and supplies along the way the definitions of the
+two flux sums $\Sigma^{\mathrm{net}}_k$ and $\Sigma^{\mathrm{gro}}_k$ and of the
+floor current $\Phi^k_{\min}$, which the main text uses without deriving; it
+closes with the three rules that keep the moment triple realizable, two of them
+consequences of the reduction and the third the one closure the immobile block
+needs beyond the log-normal itself. \Cref{app:woo} gives the orientation factors
+that build the capture efficiencies and the co-growth criterion that follows
+from them; \cref{app:emission} the peripheral emission channel and the loop
+binding energy it is computed from; and \cref{app:state} the layout of the
+integrated state vector.
+
+\section{From the master equation to the two blocks}
+\label{app:derivation}
+
+\Cref{eq:master} is one equation per species label $\alpha$, per defect content
+$n$ and per mesh node, and \cref{sec:master} states the two reductions that
+bring it to \cref{eq:block-mobile,eq:block-n,eq:block-c,eq:block-q} without
+carrying either out. They are carried out here. Both start from one partition of
+the index set $(\alpha,n)$: the mobile set $\mathcal M$ of
+\cref{eq:mobile-classes}, four species of fixed defect content and finite
+diffusivity, and its complement, the immobile clusters, grouped by habit and
+character into the nine families $\mathcal F$ of \cref{eq:families} and indexed
+within a family by the defect content $m$ alone. That partition is what
+separates the two reductions, because the terms of \cref{eq:master} that couple
+different indices --- the pairwise kernel $\mathcal K$, the coagulation kernel
+$\mathcal C$, the emission rates $\varepsilon$, the transfer $\theta$ and the
+absorption $\mathcal D$ at fixed sinks --- each split according to how many of
+their partners lie in $\mathcal M$, and every piece lands in exactly one of the
+two blocks. \Cref{tab:d-terms} is that accounting, and the rest of this appendix
+is its justification.
+
+One claim is worth making before the algebra, because it is what the accounting
+is for. Nothing below is added to \cref{eq:master}. The mobile block is that
+equation restricted to $\mathcal M$; the immobile block is the same equation
+restricted to one family and integrated against $m^{j}$ for $j=0,1,2$. Every
+term of \cref{eq:block-n,eq:block-c,eq:block-q} is therefore the moment of a
+term of \cref{eq:master}, including the four --- coalescence, the basal
+transfers, the grain-boundary removal and the dissolution channel --- that an
+earlier presentation of this model appended to the moment equations after the
+fact. Appending them is what makes their weights look like conventions; deriving
+them is what fixes those weights, and in one case fixes a sign.
+
+\begin{table}[htbp]
+\centering
+\small
+\caption{Where each term of \cref{eq:master} goes. The coupling terms split by
+how many of their partners are mobile, no piece appears twice and none is left
+over --- which is the bookkeeping statement behind the identity between
+\cref{eq:KL} and \cref{eq:growth}, and behind the claim that the immobile block
+is a moment of \cref{eq:master} rather than a moment plus four appended
+channels.}
+\label{tab:d-terms}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+Term of \cref{eq:master} & Mobile block, \cref{eq:block-mobile}
+                         & Immobile block, \cref{eq:block-n,eq:block-c,eq:block-q}\\
+\midrule
+$-\nabla\!\cdot\!\bm J^\alpha_n$
+  & $\nabla\!\cdot\!(\spmat D_{\mathrm{ten}}\nabla\spvec c_M)$
+  & absent: $\bm D^\alpha_n=\bm0$ for an immobile cluster \\[3pt]
+$G^\alpha_n$
+  & $\spvec P_M=G\varepsilon\spvec f$
+  & the nucleation currents $J^k_{sL}$ at $m^{\mathrm{nuc}}_k$ \\[3pt]
+$\mathcal K$, both partners mobile
+  & $\tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M$
+  & feeds $J^{a_k}_{iL}$ through the $2i\!+\!2i$, $i\!+\!3i$ and $2i\!+\!3i$ channels \\[3pt]
+$\mathcal K$, one partner mobile
+  & $-\spmat D_d\spmat K_{\mathcal L}\spvec c_M$
+  & the drift and diffusion of the size ladder, $F_k$ and $D_k$ \\[3pt]
+$\mathcal C$, both partners immobile
+  & ---
+  & like-loop coalescence: $-\Delta N_{LL}$ on $n$, zero on $c$,
+    $+\Delta_k\bar m^{2}\Delta N_{LL}$ on $q$ \\[3pt]
+$\varepsilon$, mobile emitter
+  & $\spmat E\spvec c_M$
+  & --- \\[3pt]
+$\varepsilon$, loop emitter
+  & $\spvec S_{vL}$
+  & the emission channel inside $\Sigma^{\mathrm{net}}_k$ \\[3pt]
+$\theta^{\beta\to\alpha}_n$
+  & ---
+  & the basal transfers $\pm\Gamma^{n}_\theta,\pm\Gamma^{c}_\theta,
+    \pm\Gamma^{q}_\theta$ \\[3pt]
+$\mathcal D^\alpha_N(n)$
+  & $-\mathrm{diag}\{\spvec\omega\odot\spvec C_s\}\spvec c_M$
+  & loop--network coalescence, $\Delta N_{LN}$ and $\Delta C$ of
+    \cref{eq:coal} \\[3pt]
+$\mathcal D^\alpha_{gb}(n)$
+  & \cref{eq:master-bc}, the Dirichlet condition
+  & the gated boundary removal $\nu_{gb}\Theta^k_j$ \\[3pt]
+$\mathcal D^\alpha_{\mathrm{van}}(n)$
+  & the returned defects, in $\spvec S_{vL}$
+  & the complementary gate $\nu_{\mathrm{van}}\Xi^k_j$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Take the mobile block first. Restricting \cref{eq:master} to $\alpha\in\mathcal
+M$ and writing $c^{x}$ for the per-atom concentration of species $x$, the
+pairwise sum contributes to the $x$ line every reaction whose two partners are
+both mobile. Collecting the rate constants \cref{eq:rates} into one matrix
+$\spmat R_2^{x}$ per line and stacking the four into $\spmat R_2$, that
+contribution is the quadratic form whose $x$-th entry is
+\begin{equation}
+  \Bigl[\tfrac12(\spmat I\otimes\spvec c_M^{T})\,\spmat R_2\,\spvec c_M\Bigr]_{x}
+  =\tfrac12\,\spvec c_M^{T}\,\spmat R_2^{x}\,\spvec c_M ,
+  \label{eq:d-quadratic}
+\end{equation}
+in which the $\tfrac12$ removes the double count that the unrestricted double
+sum of \cref{eq:master} performs on each unordered pair $\{m,n\}$ with $m\ne n$.
+The like-species channels $i\!+\!i$ and $2i\!+\!2i$ are counted once by that
+same sum and so carry their combinatorial factors explicitly instead.
+
+Written out, \cref{eq:d-quadratic} is four symmetric $4\times4$ matrices of the
+pairwise constants \cref{eq:rates}, one per mobile line. Order the rows and
+columns as $\spvec c_M=[c^{v},c^{i},c^{2i},c^{3i}]^{T}$ and abbreviate
+$\beta^{x,y}=\beta^{y,x}$ for the constant of the channel $x+y$, so that
+$\beta^{i,v}$ carries the recombination factor $\beta_r$ and every other
+$\beta^{x,y}$ is $\omega^{x}+\omega^{y}$ with $\omega^{x}=z_c\nu_x
+\exp(-E^{m}_x/k_BT)$ the jump rate of species $x$ --- the geometric prefactor
+$A^{x,y}a^{2}/z_c\Omega$ times the capture radius $(r^{x}+r^{y})$ of
+\cref{eq:rates} being absorbed into $A^{x,y}$, which is unity on every channel
+but $i\!+\!v$. Then
+\begin{equation}
+\small
+  \spmat R_2^{v}=-\begin{bmatrix}
+      0            & \beta^{i,v}  & \beta^{2i,v} & \beta^{3i,v}\\
+      \beta^{i,v}  & 0            & 0            & 0\\
+      \beta^{2i,v} & 0            & 0            & 0\\
+      \beta^{3i,v} & 0            & 0            & 0
+    \end{bmatrix},
+  \qquad
+  \spmat R_2^{i}=\begin{bmatrix}
+      0             & -\beta^{i,v}   & +\beta^{2i,v} & 0\\
+      -\beta^{i,v}  & -2\beta^{i,i}  & -\beta^{i,2i} & -\beta^{i,3i}\\
+      +\beta^{2i,v} & -\beta^{i,2i}  & 0             & 0\\
+      0             & -\beta^{i,3i}  & 0             & 0
+    \end{bmatrix},
+  \label{eq:d-R2vi}
+\end{equation}
+\begin{equation}
+\small
+  \spmat R_2^{2i}=\begin{bmatrix}
+      0             & 0             & -\beta^{2i,v}   & +\beta^{3i,v}\\
+      0             & +\beta^{i,i}  & -\beta^{i,2i}   & 0\\
+      -\beta^{2i,v} & -\beta^{i,2i} & -4\beta^{2i,2i} & -\beta^{2i,3i}\\
+      +\beta^{3i,v} & 0             & -\beta^{2i,3i}  & 0
+    \end{bmatrix},
+  \qquad
+  \spmat R_2^{3i}=\begin{bmatrix}
+      0             & 0             & 0              & -\beta^{3i,v}\\
+      0             & 0             & +\beta^{i,2i}  & -\beta^{i,3i}\\
+      0             & +\beta^{i,2i} & 0              & -\beta^{2i,3i}\\
+      -\beta^{3i,v} & -\beta^{i,3i} & -\beta^{2i,3i} & 0
+    \end{bmatrix}.
+  \label{eq:d-R2cluster}
+\end{equation}
+
+Each matrix is read one entry at a time, and the entry is a stoichiometric
+coefficient rather than a rate: the $(x,y)$ position of $\spmat R_2^{\alpha}$ is
+$\beta^{x,y}$ times the net number of $\alpha$ produced by one $x\!+\!y$ event,
+negative when $\alpha$ is one of the two reactants. The four off-diagonal
+patterns are the four channels that keep a mobile product. Recombination
+$i\!+\!v\to\varnothing$ appears as $-\beta^{i,v}$ in $\spmat R_2^{v}$ and in
+$\spmat R_2^{i}$ and nowhere else. Its two cluster analogues do keep a product:
+$2i\!+\!v\to i$ debits $c^{v}$ and $c^{2i}$ and credits $c^{i}$, which is the
+$+\beta^{2i,v}$ sitting in $\spmat R_2^{i}$, and $3i\!+\!v\to2i$ likewise puts
+$+\beta^{3i,v}$ into $\spmat R_2^{2i}$. Clustering $i\!+\!2i\to3i$ is the
+$-\beta^{i,2i}$, $-\beta^{i,2i}$, $+\beta^{i,2i}$ column of entries running down
+the three interstitial matrices.
+
+The diagonals are where the combinatorial factors of the preceding paragraph
+sit, and they are the reason the four matrices cannot be read off the reaction
+list by inspection. For $i\!+\!i\to2i$ the event rate is
+$\tfrac12\beta^{i,i}(c^{i})^{2}$, each event consumes \emph{two} monomers and
+makes one dimer, so the $(i,i)$ entry is $-2\beta^{i,i}$ in $\spmat R_2^{i}$ and
+$+\beta^{i,i}$ in $\spmat R_2^{2i}$: a factor of two apart, and of opposite
+sign, from one channel. The $(2i,2i)$ entry is $-4\beta^{2i,2i}$ for the same
+reason once, and once again because $2i\!+\!2i$ leaves the mobile set entirely
+--- it nucleates a loop, so there is no positive counterpart anywhere.
+
+That last remark is the structural statement the matrices make. Five of the
+eight channels stay inside $\mathcal M$ and conserve defect content exactly:
+with $\spvec m_M=[-1,+1,+2,+3]^{T}$ the signed content of \cref{eq:mobile-classes},
+the identity $\sum_{\alpha}m^{\alpha}\bigl[\spmat R_2^{\alpha}\bigr]_{xy}=0$
+holds at the $(i,v)$, $(2i,v)$, $(3i,v)$, $(i,2i)$ and $(i,i)$ positions --- the
+$i\!+\!2i$ column, for instance, gives $1(-\beta)+2(-\beta)+3(+\beta)=0$. It
+fails at the remaining three, $(i,3i)$, $(2i,2i)$ and $(2i,3i)$, and that failure
+is not an error: those are the clustering channels, they have no mobile product,
+and the content they remove from $\spvec c_M$ is exactly what \cref{tab:d-terms}
+sends to the nucleation current $J^{a_k}_{iL}$ of the immobile block --- $4$
+defects per $i\!+\!3i$ event, $2$ per $2i$ lost to $2i\!+\!2i$, and $5$ per
+$2i\!+\!3i$. The mobile block does not conserve defects on its own; the two
+blocks together do, and the three non-vanishing entries of
+$\sum_{\alpha}m^{\alpha}\spmat R_2^{\alpha}$ are the audit of that transfer.
+
+Reactions with one mobile and one immobile partner are, at frozen immobile
+state, linear in $\spvec c_M$, and so are the fixed-sink terms $\mathcal
+D^\alpha_nC^\alpha_n$. Together they give $-\spmat D\spvec c_M$ of
+\cref{eq:KM}: the network through the sink concentrations \cref{eq:sinkconc},
+the loops through the sink-strength block \cref{eq:KL}. This is the only place
+the immobile state enters the mobile block, and \cref{eq:KL} builds it from the
+same efficiencies $Z_{sk,m}$ that drive growth in \cref{eq:growth}. What a
+family absorbs is therefore what the mobile species lose, family by family and
+species by species, which is the operational content of the word
+self-consistent and the reason \cref{tab:d-terms} has no row appearing twice.
+
+The emission terms divide by emitter. A mobile cluster emitting a point defect
+moves within $\mathcal M$ and gives the linear term $\spmat E\spvec c_M$, with
+$\alpha^{m,n}=\beta^{m,n}\exp(-E^{b}_{m,n}/k_BT)$; a loop emitting a vacancy
+across its own perimeter puts that vacancy into the pool and gives the source
+$\spvec S_{vL}$ of \cref{app:emission}. What is left is the transport term and
+the time derivative. Since $\bm D^\alpha_n$ vanishes on every immobile index,
+$-\nabla\!\cdot\!\bm J^\alpha_n$ survives on $\mathcal M$ alone and becomes
+$\nabla\!\cdot\!(\spmat D_{\mathrm{ten}}\nabla\spvec c_M)$; and the time
+derivative is dropped by the scale separation of \cref{sec:why-split}, with
+$\tau_M\sim(k^{2}\overline D)^{-1}$ of order microseconds against immobile
+fields evolving over $10^{7}\,$s. Assembling the pieces gives
+\cref{eq:block-mobile}, closed by \cref{eq:bc}. Note what that limit does and
+does not say: the mobile concentrations are not constant in time, since they
+track the immobile state through $\spmat D$ at every instant, but they carry no
+memory of it, which is what permits the fast solve to be called at intervals
+rather than at every step.
+
+The second reduction applies to the complement of $\mathcal M$, where transport
+is absent outright and the remaining question is what becomes of the size index.
+Fix a family $(s,k)\in\mathcal F$ and let $f_k(m,t)\,\mathrm dm$ be the number of
+its loops per host atom holding between $m$ and $m+\mathrm dm$ defects, so that
+the fields the block carries are its first three moments
+\cref{eq:moments-def}. The pairwise terms with exactly one mobile partner move a
+loop along $m$ and nowhere else: absorbing a mobile species $x$ carries the loop
+by $\mu_x=|m^{x}|\in\{1,2,3\}$, the defect content of the arriving cluster,
+upward when the polarity of $x$ matches the family's character and downward when
+it does not, and a thermal emission is the same move with $\mu=1$. Restricted to
+one family, \cref{eq:master} is therefore a birth--death process on the integer
+$m$,
+\begin{equation}
+\begin{split}
+  \frac{\partial f_k}{\partial t}=\sum_{x}\Bigl[
+    &W^{+}_{x}(m-\mu_x)\,f_k(m-\mu_x)
+    +W^{-}_{x}(m+\mu_x)\,f_k(m+\mu_x)\\
+    &-\bigl(W^{+}_{x}(m)+W^{-}_{x}(m)\bigr)f_k(m)\Bigr]
+    +J^k_{sL}\,\delta_{m,m^{\mathrm{nuc}}_k},
+\end{split}
+  \label{eq:d-birthdeath}
+\end{equation}
+with $W^{+}_{x}$ and $W^{-}_{x}$ the rates of the matching-polarity and the
+opposite-polarity step. Those rates are not free. A loop captures on its
+perimeter, so $W^{\pm}_{x}\propto R^k_{sL}=\lambda_k\sqrt m$ by
+\cref{eq:radius}, and the constant of proportionality is the same efficiency and
+the same mobility that \cref{eq:growth} already carries,
+\begin{equation}
+  W^{\pm}_{x}(m)=\pi_k\sqrt m\;\overline D^{x}\,Z_{sk,x}\,c^{x},
+  \qquad
+  W^{\mathrm{emit}}(m)=\pi_k\sqrt m\;\overline D^{v}\,Z_{sk,v}\,
+    c^{v,\mathrm{eq}}_k(m),
+  \qquad
+  \pi_k=\frac{\lambda_k\,\xi_k}{\ell},
+  \label{eq:d-Wrates}
+\end{equation}
+so that the geometric prefactor $\Pi^k_{sL}=\pi_k\sqrt{n^k_{sL}c^k_{sL}}$ of
+\cref{eq:loopprefactor} is $\pi_kn^k_{sL}\langle m^{1/2}\rangle_k$ evaluated on a
+monodisperse family. No parameter enters the size distribution that the growth
+law does not already contain.
+
+$W^{\mathrm{emit}}$ is peripheral emission, \cref{app:emission}, and it belongs
+in \cref{eq:d-birthdeath} as a fourth process rather than as a correction
+applied afterwards. It has the same prefactor and the same efficiency as vacancy
+capture --- it is the same event run backwards --- and it steps the loop by
+$\mu_v=1$ in the direction opposite to that capture, against the loop's own
+equilibrium concentration $c^{v,\mathrm{eq}}_k$ of \cref{eq:Eb} rather than
+against the field. Carrying it here rather than bolting it on is what makes the
+opposite signs it acquires in the two flux sums below a consequence instead of a
+convention. Thermal \emph{interstitial} emission has no counterpart term: it is
+$\sim10^{-8}$ of this at $873\,$K and is dropped.
+
+Treating $m$ as continuous and expanding the shifted terms of
+\cref{eq:d-birthdeath} about $m$, the zeroth-order terms cancel the loss term
+identically --- which is the statement that a size jump neither creates nor
+destroys a loop --- and what survives is the Kramers--Moyal series
+\begin{equation}
+  \frac{\partial f_k}{\partial t}
+  =\sum_{p\ge1}\frac{(-1)^{p}}{p!}\,
+    \frac{\partial^{p}}{\partial m^{p}}\bigl[a_p(m)f_k\bigr]
+   +J^k_{sL}\,\delta\!\left(m-m^{\mathrm{nuc}}_k\right),
+  \qquad
+  a_p=\sum_{x}\mu_x^{\,p}\bigl[W^{+}_{x}+(-1)^{p}W^{-}_{x}\bigr].
+  \label{eq:d-KM}
+\end{equation}
+Truncating \cref{eq:d-KM} at $p=2$ is the Fokker--Planck equation for the size
+density,
+\begin{equation}
+  \frac{\partial f_k}{\partial t}
+  =-\frac{\partial}{\partial m}\bigl[F_kf_k\bigr]
+   +\frac{\partial^{2}}{\partial m^{2}}\bigl[D_kf_k\bigr]
+   +J^k_{sL}\,\delta\!\left(m-m^{\mathrm{nuc}}_k\right),
+  \label{eq:d-FP}
+\end{equation}
+whose drift is the difference of the two directions and whose diffusion is half
+their sum,
+\begin{equation}
+  F_k=a_1=\pi_k\sqrt m\;\Sigma^{\mathrm{net}}_k,
+  \qquad
+  D_k=\tfrac12a_2=\tfrac12\,\pi_k\sqrt m\;\Sigma^{\mathrm{gro}}_k,
+  \label{eq:d-FPcoeffs}
+\end{equation}
+\begin{equation}
+  \Sigma^{\mathrm{net}}_k
+   =\eta_s\!\!\sum_{x\in\mathcal M}\!\!
+      \varsigma_s(x)\,\mu_x\,\overline D^{x}Z_{sk,x}
+      \bigl(c^{x}-c^{v,\mathrm{eq}}_k\delta_{x,v}\bigr),
+  \qquad
+  \Sigma^{\mathrm{gro}}_k
+   =\sum_{x\in\mathcal M}\!\mu_x^{2}\,\overline D^{x}Z_{sk,x}
+      \bigl(c^{x}+c^{v,\mathrm{eq}}_k\delta_{x,v}\bigr).
+  \label{eq:d-Sigmas}
+\end{equation}
+\Cref{eq:d-Sigmas} is where the two flux sums the main text uses are defined,
+and the two of them differ in \emph{three} places, not one. The obvious one is
+the sign: $\Sigma^{\mathrm{net}}_k$ carries $\varsigma_s(x)$ and
+$\Sigma^{\mathrm{gro}}_k$ does not, because a defect of either polarity moves
+the loop along $m$ and a move in either direction spreads the distribution. The
+second is the power of the step. $\Sigma^{\mathrm{gro}}_k$ is not the drift sum
+with its signs made positive: the second Kramers--Moyal coefficient weights each
+channel by $\mu_x^{2}$, one power more than the drift, because variance
+accumulates as the square of the step. For the monomer channels the two
+weightings coincide and the distinction is invisible, and for $2i$ and $3i$ it is
+not --- those two carry $3.1\%$ of the interstitial arrival in
+$\Sigma^{\mathrm{net}}_k$ and between $6\%$ and $9\%$ of $\Sigma^{\mathrm{gro}}_k$,
+so using the drift weighting for both under-estimates the spreading by $3$ to
+$6\%$.
+
+The third is the one most easily missed, and it is the reason
+$c^{v,\mathrm{eq}}_k$ of \cref{eq:Eb} appears in both with \emph{opposite}
+signs, both of them inherited from $W^{\mathrm{emit}}$ through $a_1$ and $a_2$
+of \cref{eq:d-KM}. The drift subtracts it, $a_1$ differencing the two
+directions, so the loop is driven not by $c^{v}$ but by its departure from the
+loop's own equilibrium and the channel vanishes identically at
+$c^{v}=c^{v,\mathrm{eq}}_k$ --- detailed balance by construction. That is the
+same statement as \cref{eq:Semit} entering \cref{eq:block-c} with the opposite
+sign, written as one substitution instead of two terms, and with it
+$\Sigma^{\mathrm{net}}_k$ is exactly the signed sum multiplying $\Pi^k_{sL}$ in
+\cref{eq:growth} together with that emission channel: the drift of
+\cref{eq:d-FP} \emph{is} the growth law and carries no independent content. The
+spreading takes the \emph{sum} $c^{v}+c^{v,\mathrm{eq}}_k$, because absorption
+and emission are independent events that each add variance; they do not cancel.
+A family sitting exactly at its own equilibrium therefore has
+$\Sigma^{\mathrm{net}}_k=0$ and $\Sigma^{\mathrm{gro}}_k>0$: it does not grow,
+and it keeps broadening. That is the same conclusion \cref{eq:q-FP} reaches
+from the other side, and it is the strongest argument in the formulation for
+carrying $q$ at all. Only the vacancy species carries the substitution, thermal
+interstitial emission being $\sim10^{-8}$ of it (\cref{app:emission}); and both
+reduce to the plain $c^{x}$ when the emission channel is switched off, which is
+what makes that switch a clean regression.
+
+The truncation is second order in a parameter that is not the jump size but the
+jump size measured against the width of the distribution: successive terms of
+\cref{eq:d-KM} carry one more power of $\mu_x\partial_m$, so the ratio of term
+$p+1$ to term $p$ is of order $\mu_x/\sigma_m$ with
+$\sigma_m^{2}=(\bar m^k_{sL})^{2}(\Delta_k-1)$, which is where the dispersion
+enters this appendix and is worth restating. $\Delta_k$ is the third carried
+moment expressed as a shape: by \cref{eq:lognormal} it is
+$\Delta_k=q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}=\langle m^{2}\rangle_k/\langle
+m\rangle_k^{2}$, the second moment of the family's size distribution divided by
+the square of its first, so it is a pure number, it is $1$ exactly when every
+loop in the family has the same size, and it exceeds $1$ by the relative
+variance, $\Delta_k-1=\mathrm{var}(m)/\bar m^{2}$. It is dimensionless because
+$q$, $n$ and $c$ enter it in the combination that cancels $m$; it carries no
+information about how big the loops are, only about how unequal they are; and
+under the log-normal closure it is the shape parameter outright,
+$\Delta_k=e^{s_k^{2}}$, so $s_k=\sqrt{\ln\Delta_k}$ is the standard
+deviation of $\ln m$. Three things make that small
+here, and only the first is about the absorption step alone. The mobile set
+closes at $3i$, so $\mu_x\le3$ against family means of $10^{2}$ to $10^{5}$
+defects, a ratio whose worst value anywhere on the reference march is
+$1.6\times10^{-2}$ --- reached by the prismatic interstitial family at
+$10^{-4}\,$dpa, where it has barely left its nucleus of $300$. The rates go as
+$\sqrt m$ by \cref{eq:d-Wrates}, so their relative change over one event is
+$\mu_x/2m$, the same smallness again and half of it; a rate varying
+exponentially in $m$ would not permit the truncation however small the step. And
+the distribution is broad in units of the step, which is the condition the
+expansion parameter actually names: a loop that has made $N_{\mathrm{ex}}$
+exchange events has $\sigma_m=\mu\sqrt{N_{\mathrm{ex}}}$ and hence
+$\mu/\sigma_m=N_{\mathrm{ex}}^{-1/2}$, with
+$N_{\mathrm{ex}}=2\mu^{-2}(D_k/F_k)\Delta m$ --- so the same near-cancellation
+that makes the second moment necessary, $D_k/F_k$ between $7$ and $44$, also
+multiplies the number of exchanges a loop has made for a given net growth. The
+basal family reaches $N_{\mathrm{ex}}\simeq1.5\times10^{7}$ and the prismatic one
+$3.5\times10^{4}$, giving $\mu/\sigma_m$ of $2.6\times10^{-4}$ and
+$5\times10^{-3}$.
+
+Two places where the expansion is worst are worth naming, because at both of
+them the model works outside \cref{eq:d-FP} rather than relying on it. A loop
+that has just nucleated has made no exchanges at all, its distribution is a delta
+function, and no gradient expansion describes it; that defect is real, is
+confined to a region of width $\sim\mu_x$ about $m^{\mathrm{nuc}}_k$, which is a
+percent of the nucleus, and is cured by the first few exchange events. The floor
+$m_{\min}$ is the other, where $f_k$ is cut off and its gradient is largest, and
+there the model carries an explicit current, derived next, instead of a
+Fokker--Planck flux.
+
+Multiplying \cref{eq:d-FP} by $m^{j}$ and integrating over $[m_{\min},\infty)$
+turns it into a hierarchy in the moments. Integrating the drift term once by
+parts and the diffusion term twice, with $f_k$ and its derivative vanishing as
+$m\to\infty$,
+\begin{equation}
+  \frac{\mathrm d}{\mathrm dt}\!\int_{m_{\min}}^{\infty}\!\!m^{j}f_k\,\mathrm dm
+  =j\!\int\!m^{j-1}F_kf_k\,\mathrm dm
+   +j(j-1)\!\int\!m^{j-2}D_kf_k\,\mathrm dm
+   +J^k_{sL}\bigl(m^{\mathrm{nuc}}_k\bigr)^{j}
+   -m_{\min}^{\,j}\,\Phi^k_{\min},
+  \label{eq:d-hierarchy}
+\end{equation}
+the last term being the boundary contribution at the floor, with
+\begin{equation}
+  \Phi^k_{\min}
+   =\Bigl[\,D_k\,\partial_mf_k+\bigl(\partial_mD_k-F_k\bigr)f_k\,\Bigr]_{m=m_{\min}},
+  \qquad
+  f_k(m_{\min})=\frac{n^k_{sL}}{m_{\min}s_k\sqrt{2\pi}}
+    \exp\!\left[-\frac{(\ln m_{\min}-\mu_k)^{2}}{2s_k^{2}}\right],
+  \label{eq:d-floorcurrent}
+\end{equation}
+the Fokker--Planck flux through the floor, evaluated on \cref{eq:lognormal} and
+therefore analytic in the three carried moments. \Cref{eq:d-floorcurrent} is the
+floor current that \cref{eq:block-n,eq:block-q} write as $\Phi^k_{\min}$. Two
+properties of it should be recorded. Because a delta function has no tail,
+$\Phi^k_{\min}\equiv0$ at $\Delta_k=1$: in a two-moment model the dissolution
+rate is not small but identically zero, which is why such a model under a pure
+anneal gives a falling mean size at exactly constant density, where a measurement
+reports the density falling and the surviving mean rising. And the exact
+integration by parts leaves one further boundary term,
+$j\,m_{\min}^{\,j-1}D_kf_k$ evaluated at $m=m_{\min}$, which
+\cref{eq:d-hierarchy} drops. Dropping it is the statement that loops leaving
+through the floor are booked at exactly $m_{\min}$ defects each, so that they
+debit $\Phi^k_{\min}$, $m_{\min}\Phi^k_{\min}$ and $m_{\min}^{2}\Phi^k_{\min}$
+from the three moments and release $m_{\min}\Phi^k_{\min}$ vacancies to the
+pool. That is exactly conservative, which retaining the term would not be.
+
+The three cases are then taken in turn. At $j=0$ both integrals vanish, $j$ and
+$j(j-1)$ being zero together: drift and diffusion move loops along the size axis
+and can neither create nor destroy one, so the density changes only by
+nucleation and by the floor current. At $j=1$ the diffusion integral still
+vanishes --- spreading a distribution at fixed mean moves no defects --- and the
+drift integral is, with $F_k$ from \cref{eq:d-FPcoeffs},
+\begin{equation}
+  \int_{m_{\min}}^{\infty}\!\!F_kf_k\,\mathrm dm
+   =\pi_k\,\Sigma^{\mathrm{net}}_k\,n^k_{sL}\bigl\langle m^{1/2}\bigr\rangle_k
+   =\Pi^k_{sL}\,\Sigma^{\mathrm{net}}_k\,\Delta_k^{-1/8},
+  \label{eq:d-j1}
+\end{equation}
+which is the growth law \cref{eq:growth}, reduced by the one factor
+$\Delta_k^{-1/8}$ that a spread family contributes because $\sqrt{\cdot}$ is
+concave and a spread family therefore presents less perimeter than a
+monodisperse one of the same density and content. At $j=2$ both integrals
+survive,
+\begin{equation}
+  2\!\int\!mF_kf_k\,\mathrm dm
+   =2\,\Pi^k_{sL}\,\Sigma^{\mathrm{net}}_k\,\bar m^k_{sL}\,\Delta_k^{3/8},
+  \qquad
+  2\!\int\!D_kf_k\,\mathrm dm
+   =\Pi^k_{sL}\,\Sigma^{\mathrm{gro}}_k\,\Delta_k^{-1/8},
+  \label{eq:d-j2}
+\end{equation}
+and their sum is \cref{eq:q-FP} term for term.
+
+Each of \cref{eq:d-j1,eq:d-j2} needs a half-integer moment of $f_k$, and
+supplying those is the whole work of the closure. With $f_k$ log-normal in $m$
+and its two parameters fixed by the three carried moments through
+\cref{eq:lognormal},
+\begin{equation}
+  \bigl\langle m^{\,j}\bigr\rangle_k
+   =\bigl(\bar m^k_{sL}\bigr)^{j}\,\Delta_k^{\,j(j-1)/2}
+  \qquad\text{for every real }j,
+  \label{eq:d-closure}
+\end{equation}
+which returns $\bar m^{1/2}\Delta_k^{-1/8}$ at $j=\tfrac12$ and
+$\bar m^{3/2}\Delta_k^{3/8}$ at $j=\tfrac32$ --- the two exponents that appear in
+\cref{eq:q-FP} and the only ones the model needs. A Gaussian closure gives
+neither in closed form and admits $m<0$, and that, rather than positivity alone,
+is why the closure is log-normal. At $\Delta_k=1$, \cref{eq:d-closure} returns
+$\bar m^{j}$ for every $j$, and everything in this appendix collapses onto the
+two-moment model exactly, term by term and without any rate being set to zero,
+which is the regression test on the third moment.
+
+Every power of $\Delta_k$ in \cref{eq:d-j1,eq:d-j2} arrives the same way, and
+none of them is an additional modelling assumption. A loop captures on its
+perimeter, so by \cref{eq:radius,eq:d-Wrates} both Fokker--Planck coefficients
+carry $\sqrt m$, and each of the three integrals is therefore a \emph{fractional}
+moment of $f_k$: $\langle m^{1/2}\rangle_k$ from the drift at $j=1$,
+$\langle m^{3/2}\rangle_k$ from the drift at $j=2$, and
+$\langle m^{1/2}\rangle_k$ again from the diffusion at $j=2$, $D_k$ carrying one
+power of $m$ less than $mF_k$. The prefactor is the same integral evaluated as
+though every loop in the family had the mean size,
+$\Pi^k_{sL}=\pi_k\sqrt{n^k_{sL}c^k_{sL}}=\pi_kn^k_{sL}(\bar m^k_{sL})^{1/2}$, so
+writing an integral as $\Pi^k_{sL}$ times something is precisely dividing the
+true moment by its monodisperse value, and by \cref{eq:d-closure} that ratio is
+a power of $\Delta_k$ and of nothing else:
+\begin{equation}
+  \frac{\langle m^{\,j}\rangle_k}{(\bar m^k_{sL})^{\,j}}=\Delta_k^{\,j(j-1)/2},
+  \qquad
+  j=\tfrac12\ \Rightarrow\ \Delta_k^{-1/8},
+  \qquad
+  j=\tfrac32\ \Rightarrow\ \Delta_k^{+3/8}.
+  \label{eq:d-jensen}
+\end{equation}
+That is the whole origin of the two exponents. The $-1/8$ of \cref{eq:d-j1} and
+of the second half of \cref{eq:d-j2} is $j(j-1)/2$ at $j=\tfrac12$; the $+3/8$ of
+the first half of \cref{eq:d-j2} is the same expression at $j=\tfrac32$.
+
+The sign of the exponent is the sign of the curvature, which is what makes the
+two factors pull in opposite directions. $j(j-1)/2$ is negative for $0<j<1$ and
+positive for $j>1$, so by Jensen's inequality the concave $m^{1/2}$ gives a
+family that is short of its monodisperse perimeter and the convex $m^{3/2}$ one
+that is over it: at fixed density and content, spreading a family reduces what it
+absorbs and increases how fast its second moment grows. The magnitudes are not
+equal --- $3/8$ against $1/8$ --- so broadening feeds back on $q$ three times as
+strongly, in the exponent, as it withdraws from $c$. A family whose size
+distribution has a relative variance of one, $\Delta_k=2$, therefore presents
+$\Delta_k^{-1/8}=0.92$ of the perimeter a monodisperse family of the same $n$ and
+$c$ would, and broadens at $\Delta_k^{+3/8}=1.30$ of the monodisperse rate. Both
+factors are $1$ at $\Delta_k=1$, which is the two-moment model.
+
+Collecting the three cases gives the Fokker--Planck part of the block. Writing
+\cref{eq:d-hierarchy} at $j=0,1,2$ and substituting
+\cref{eq:d-j1,eq:d-j2,eq:d-closure},
+\begin{align}
+  \left.\dot n^k_{sL}\right|_{\mathrm{FP}}
+    &= J^k_{sL} - \Phi^k_{\min},
+  \label{eq:d-assemble-n}\\
+  \left.\dot c^k_{sL}\right|_{\mathrm{FP}}
+    &= \underbrace{\Pi^k_{sL}\,\Sigma^{\mathrm{net}}_k\,\Delta_k^{-1/8}}
+       _{=\;\left.\dot c^k_{sL}\right|_{\mathrm{growth}}}
+     + \underbrace{J^k_{sL}\,m^{\mathrm{nuc}}_k}_{=\;G_k}
+     - m_{\min}\Phi^k_{\min},
+  \label{eq:d-assemble-c}\\
+  \left.\dot q^k_{sL}\right|_{\mathrm{FP}}
+    &= \underbrace{2\Pi^k_{sL}\Bigl[\Sigma^{\mathrm{net}}_k\bar m^k_{sL}
+         \Delta_k^{3/8}+\tfrac12\Sigma^{\mathrm{gro}}_k\Delta_k^{-1/8}\Bigr]}
+       _{\text{\cref{eq:q-FP}}}
+     + J^k_{sL}\bigl(m^{\mathrm{nuc}}_k\bigr)^{2}
+     - m_{\min}^{2}\Phi^k_{\min}.
+  \label{eq:d-assemble-q}
+\end{align}
+Three identifications close the gap between these and
+\cref{eq:block-n,eq:block-c,eq:block-q}, and each is a definition rather than a
+step. The drift integral at $j=1$ \emph{is} the growth law: \cref{eq:d-j1}
+returns $\Pi^k_{sL}\Sigma^{\mathrm{net}}_k$ reduced by $\Delta_k^{-1/8}$, and
+that factor is carried on $\Pi^k_{sL}$ itself, so the growth term of
+\cref{eq:block-c} and the drift of \cref{eq:d-FP} are one quantity written
+twice. The cascade content rate is the nucleation current weighted by the size
+it deposits at, $G_k=J^k_{sL}m^{\mathrm{nuc}}_k$, which is why
+\cref{eq:block-c} needs no separate nucleation symbol where
+\cref{eq:block-n,eq:block-q} carry $J^k_{sL}$ and
+$J^k_{sL}(m^{\mathrm{nuc}}_k)^{2}$. And the $j=2$ pair is \cref{eq:q-FP} term
+for term, the first half the drift and the second the spreading.
+
+\Cref{eq:d-assemble-n,eq:d-assemble-c,eq:d-assemble-q} are everything
+\cref{eq:d-FP} can produce, and they are not yet the block. What is missing is
+not missing physics: it is the four terms of \cref{eq:master} that the
+restriction to one family leaves standing but that do not move a loop along
+$m$, and so never entered \cref{eq:d-birthdeath}. They are the coagulation
+$\mathcal C$, the transfer $\theta$, and the removals $\mathcal D_{N}$,
+$\mathcal D_{gb}$ and $\mathcal D_{\mathrm{van}}$. Each is taken in turn by the
+same operation as before --- multiply by $m^{j}$, integrate --- and the weights
+that \cref{eq:block-n,eq:block-c,eq:block-q} carry come out of the integral
+rather than being assigned to it.
+
+Coalescence has both partners immobile, which is what makes it a coagulation
+rather than a transition on the size ladder. Restricting the $\mathcal C$ terms
+of \cref{eq:master} to one family and writing $M_j=\int m^{j}f_k\,\mathrm dm$,
+the gain and loss combine under the substitution $m\to m+m'$ into a single
+symmetric double integral,
+\begin{equation}
+  \left.\frac{\mathrm dM_j}{\mathrm dt}\right|_{\mathcal C}
+  =\tfrac12\!\iint\!\mathcal C_k(m,m')\,f_k(m)f_k(m')\,
+    \bigl[(m+m')^{j}-m^{j}-m'^{j}\bigr]\,\mathrm dm\,\mathrm dm' ,
+  \label{eq:d-coagmoments}
+\end{equation}
+whose bracket is $-1$ at $j=0$, $0$ at $j=1$ and $2mm'$ at $j=2$. The three
+statements the model makes about coalescence are therefore all properties of
+\cref{eq:master}: one loop is lost per event; content is conserved
+\emph{identically}, not approximately; and the second moment \emph{rises}, the
+integrand at $j=2$ being non-negative. That last is the sign most easily
+inverted, and taking it from the integral rather than from a rule about a debit
+is what makes it a theorem about a coagulation operator; the consequences of
+getting it wrong are collected at the end of this appendix.
+
+What \cref{eq:d-coagmoments} does not do on its own is close. The model carries
+no kernel $\mathcal C_k$; it carries the mean-field Avrami rate of
+\cref{eq:coal}, which is the $j=0$ integral,
+$\Delta N_{LL}=\tfrac12\iint\mathcal C_kf_kf_k$. The $j=1$ result needs nothing
+further. The $j=2$ result needs $\iint mm'\mathcal C_kf_kf_k$, which asks which
+\emph{pairs} coalesce and is not determined by $\Delta N_{LL}$ alone. Two
+closures bracket it. A size-independent kernel gives
+$\iint mm'\mathcal C_kf_kf_k=\mathcal C_k(c^k_{sL})^{2}$ against
+$\Delta N_{LL}=\tfrac12\mathcal C_k(n^k_{sL})^{2}$, hence
+$2\bar m^{2}\Delta N_{LL}$; the shape-preserving closure stated below as rule
+3, which holds $\Delta_k$ fixed through the merge and is the one implemented, gives
+$\Delta_k\bar m^{2}\Delta N_{LL}$. Both are positive, and the choice between
+them moves a magnitude and never the sign.
+
+What the choice does move is the \emph{shape}, and the two closures differ there
+in kind rather than in degree. Under the implemented one the merge is exactly
+shape-neutral. With $\mathrm dc^k_{sL}=0$ on that channel,
+\begin{equation}
+  \left.\frac{\dot\Delta_k}{\Delta_k}\right|_{LL}
+   =\frac{\dot q^k_{sL}}{q^k_{sL}}+\frac{\dot n^k_{sL}}{n^k_{sL}}
+    -\frac{2\dot c^k_{sL}}{c^k_{sL}}
+   =\frac{\Delta_k\bar m^{2}\Delta N_{LL}}{\Delta_k\bar m^{2}n^k_{sL}}
+    -\frac{\Delta N_{LL}}{n^k_{sL}}=0 ,
+  \label{eq:d-shapeneutral}
+\end{equation}
+and the loop--network channel, being a removal in proportion, leaves $\Delta_k$
+alone for the same reason. So coalescence as this model carries it is a pure
+translation of the family to larger sizes: the density falls, the content is
+untouched, the mean $\bar m^k_{sL}=c^k_{sL}/n^k_{sL}$ rises, and the width in
+units of the mean does not change. That is also why $\Delta Q$ is not an
+optional refinement. Delete it and \cref{eq:d-shapeneutral} returns
+$-\Delta N_{LL}/n^k_{sL}$ instead of zero, so $\Delta_k$ falls at the rate at
+which coalescence removes loops --- $98\%$ of the loop-number loss --- and
+reaches the unrealizable region in a few dpa.
+
+A true coagulation is not shape-neutral, and the same combination evaluated on
+the size-independent kernel says where it goes instead:
+\begin{equation}
+  \left.\frac{\dot\Delta_k}{\Delta_k}\right|_{LL}
+   =\frac{\Delta N_{LL}}{n^k_{sL}}\left(\frac{2}{\Delta_k}-1\right),
+  \label{eq:d-deltaflow}
+\end{equation}
+which vanishes only at $\Delta_k=2$ and carries the sign of $2-\Delta_k$
+everywhere else. The three moment equations integrate in closed form on that
+kernel --- $n(t)=n_0/(1+\tfrac12\mathcal C_kn_0t)$, $c$ constant,
+$q(t)=q_0+\mathcal C_kc^{2}t$ --- and give
+$\Delta_k(t)\to2$ from either side whatever $\Delta_k(0)$ is. That number is
+not arithmetic: the self-similar solution of constant-kernel coagulation is
+exponential in $m$, and an exponential has $\langle m^{2}\rangle=2\langle
+m\rangle^{2}$. $\Delta_k=2$ is therefore the coagulation's own attractor, and
+the two closures agree exactly there because that is the one shape a merge
+leaves alone.
+
+Naming the approximation that way is more useful than a bound on it. The
+shape-preserving closure holds $\Delta_k$ where it finds it, where the kernel
+would relax it toward $2$; on the two interior families of \cref{sec:results} it
+therefore under-broadens the basal one, at $\Delta_k=1.59$, and under-narrows
+the prismatic interstitial one, at $2.71$. Both errors are in the width alone,
+neither touches $n$ or $c$ directly, and both reach the rest of the model only
+through $\Delta_k^{-1/8}$ on $\Pi^k_{sL}$ and through the gates. Taking the
+distance to the fixed point as the largest error the closure can make in
+$\Delta_k$ bounds the first of those at $(2/\Delta_k)^{-1/8}$, which is $0.972$
+on the basal family and $1.039$ on the prismatic one --- under $4\%$ either way,
+because a one-eighth power is a poor lever. That is why this is the last
+approximation in the appendix worth worrying about rather than the first, and it
+is a bound on the \emph{prefactor}: the gates carry $\Delta_k$ through
+$s_k=\sqrt{\ln\Delta_k}$ and are not bounded by the same argument.
+
+The loop--network channel is not a coagulation at all, and separating it from
+the like-loop channel is what makes its weights exact. The network is a fixed
+sink, so it enters \cref{eq:master} as $\mathcal D^{\alpha}_{N}(n)$, and over one
+family the Avrami factor of \cref{eq:coal} is built from the family mean and so
+carries no dependence on $m$. A first-order removal at an $m$-independent rate
+$\nu$ takes every moment down in proportion,
+\begin{equation}
+  \left.\frac{\mathrm dM_j}{\mathrm dt}\right|_{\mathcal D_N}=-\nu M_j
+  \quad\Longrightarrow\quad
+  \bigl(-\Delta N_{LN},\;-\Delta C,\;-\Delta_k\bar m^{2}\Delta N_{LN}\bigr)
+  \label{eq:d-LN}
+\end{equation}
+on $(n,c,q)$, using $\Delta C=\nu c^k_{sL}=\bar m\,\Delta N_{LN}$ and
+$q^k_{sL}=\Delta_k\bar m^{2}n^k_{sL}$. No closure is involved: the $q$ debit is
+$-\nu q$ and nothing else. The implementation carries the two channels as one
+shape-preserving expression,
+$\Delta_k(\bar m^{2}\Delta N-2\bar m\,\Delta C)$ with
+$\Delta N=\Delta N_{LL}+\Delta N_{LN}$, and splitting it recovers exactly the two
+results above --- $+\Delta_k\bar m^{2}\Delta N_{LL}$ from the merge and
+$-\Delta_k\bar m^{2}\Delta N_{LN}$ from the removal. That the second is exact and
+only the first rests on a closure is the useful thing to know about that
+expression, and it is not visible until the two channels are derived apart.
+
+The basal transfers \cref{eq:basal-chain} are the $\theta$ term of
+\cref{eq:master}, which moves a cluster between families at fixed defect
+content. Its $m^{j}$ integral over the donor's gated distribution is
+$\Gamma^{n}_{\theta},\Gamma^{c}_{\theta},\Gamma^{q}_{\theta}$, and because the
+same term appears in the donor's equation with a minus and the receiver's with a
+plus, the $j=1$ pair cancels identically: content is conserved across the chain
+by the structure of the term, not by a constraint imposed on its rates. Only the
+number changes, the two states storing different content per unit area.
+
+The last two are the removals $\mathcal D_{gb}$ and $\mathcal D_{\mathrm{van}}$,
+and they are one integral read in opposite senses because they are the same
+kind of term gated on opposite sides. With
+$\mathcal D^{\alpha}_{gb}(m)=\nu_{gb}\mathbf 1[m\ge m_{gb}]$ from
+\cref{eq:mgb},
+\begin{equation}
+  \left.\frac{\mathrm dM_j}{\mathrm dt}\right|_{gb}
+   =-\nu_{gb}\!\!\int_{m_{gb}}^{\infty}\!\!m^{j}f_k\,\mathrm dm
+   =-\nu_{gb}\,\Phi^{(j)}_k(m_{gb})\,M_j
+   =-\nu_{gb}\,\Theta^{k}_{j},
+  \label{eq:d-gb}
+\end{equation}
+by the definition \cref{eq:Phij} of $\Phi^{(j)}_k$ as the fraction of the
+$j$-th moment above a threshold, and those defects leave the crystal.
+$\mathcal D^{\alpha}_{\mathrm{van}}(m)=\nu_{\mathrm{van}}\mathbf 1[m\le
+m_{\mathrm{van}}]$ gives the complement,
+$-\nu_{\mathrm{van}}[1-\Phi^{(j)}_k(m_{\mathrm{van}})]M_j
+ =-\nu_{\mathrm{van}}\Xi^{k}_{j}$ of \cref{eq:vanish}, and those defects return
+to the mobile pool through $\spvec S_{vL}$. Both are realizable without a rule:
+what remains after removing the mass of a distribution on one side of a
+threshold is a genuine sub-measure, so $\Delta_k\ge1$ survives by construction.
+That is the same argument as \cref{eq:d-coagmoments} at $j=2$ made on the other
+side --- these two channels cannot break realizability, and the coagulation
+cannot either, so the only channels that need a rule are the ones that carry no
+distribution and no gate.
+
+Collecting \cref{eq:d-coagmoments,eq:d-LN,eq:d-gb} and the transfer with
+\cref{eq:d-assemble-n,eq:d-assemble-c,eq:d-assemble-q} gives
+\begin{align}
+  \dot n^k_{sL} &= J^k_{sL} - \Delta N - \Phi^k_{\min} \pm \Gamma^{n}_{\theta}
+                   - \nu_{gb}\Theta^{k}_{0} - \nu_{\mathrm{van}}\Xi^{k}_{0},
+  \nonumber\\
+  \dot c^k_{sL} &= \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
+                   + G_k - \Delta C - m_{\min}\Phi^k_{\min}
+                   \pm \Gamma^{c}_{\theta}
+                   - \nu_{gb}\Theta^{k}_{1} - \nu_{\mathrm{van}}\Xi^{k}_{1},
+  \nonumber\\
+  \dot q^k_{sL} &= \left.\dot q^k_{sL}\right|_{\mathrm{FP}}
+                   + J^k_{sL}(m^{\mathrm{nuc}}_k)^{2} - m^{2}_{\min}\Phi^k_{\min}
+                   \pm \Gamma^{q}_{\theta}
+                   - \nu_{gb}\Theta^{k}_{2} - \nu_{\mathrm{van}}\Xi^{k}_{2},
+  \label{eq:d-block}
+\end{align}
+which are \cref{eq:block-n,eq:block-c,eq:block-q} term for term, and every one
+of those terms is now a moment of a term of \cref{eq:master}. One closure was
+needed along the way and only one --- the pair-weighted second moment of the
+coagulation, \cref{eq:d-coagmoments} at $j=2$ --- and it is stated below
+alongside the two channels that carry no distribution of their own and so must
+not be allowed to imply one.
+
+What remains is to record why the triple $(n,c,q)$ the reduction produces stays
+a triple of moments. $\Delta_k=q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}\ge1$ is the
+Cauchy--Schwarz inequality on a non-negative measure. A state with $\Delta_k<1$
+--- or with $q<0$ outright --- is therefore not an inaccurate description of a
+distribution; it is not the moment triple of any distribution. Most of the
+channels keep the triple realizable on their own, and the reduction above is
+where that is shown: the gated removals leave a genuine sub-measure,
+\cref{eq:d-gb}; the loop--network removal is first order at a rate independent
+of $m$ and takes every moment down in proportion, \cref{eq:d-LN}; the
+coagulation raises $q$ by \cref{eq:d-coagmoments}; and the Fokker--Planck part
+is the moment of a non-negative density. What is left needs stating, and three
+rules cover it --- the first two exact, the third a closure.
+
+\begin{enumerate}[itemsep=3pt]
+\item \textbf{Nucleation deposits at its declared size:} $J^k_{sL}
+      (m^{\mathrm{nuc}}_k)^{2}$. This is genuine broadening,
+      $J(m^{\mathrm{nuc}}-\bar m)^{2}\ge0$, and it is correct because the channel
+      really does deposit at $m^{\mathrm{nuc}}_k$.
+\item \textbf{The floor current debits at $m_{\min}$:}
+      $-m_{\min}^{2}\Phi^k_{\min}$. This is a genuine statement about the lower
+      tail.
+\item \textbf{Channels with no distribution of their own are
+      shape-preserving:} $\mathrm dq=\Delta_k(2\bar m\,\mathrm dc
+      -\bar m^{2}\mathrm dn)$. This is a closure and the only one the immobile
+      block needs beyond the log-normal itself. It is what supplies the
+      pair-weighted second moment of the coagulation,
+      \cref{eq:d-coagmoments} at $j=2$, which $\Delta N_{LL}$ alone does not
+      determine; and it is what the legacy annealing surrogate would need and
+      cannot have.
+\end{enumerate}
+
+Rule 3 fixes a magnitude, not a sign, and the distinction matters because the
+sign is where this term was got wrong. That coalescence \emph{raises} $q$ is
+\cref{eq:d-coagmoments}: a coalescing loop does not leave the family, it
+\emph{merges}, its defects stay, and fewer loops holding the same content are
+\emph{larger} loops, so the $j=2$ integrand is $2mm'\ge0$ whatever the kernel.
+Debiting it instead by the removed number times $\langle m^{2}\rangle$, which is
+the natural-looking reading, inverts the sign of the term that carries $98\%$ of
+the loop-number loss. The symptom in a calculation is not an error but a slow
+drift: on one nine-family march, $q$ crossed zero at 1\,dpa and was negative on
+$40\%$ of the basal nodes at 10\,dpa. What rule 3 then settles is how much, and
+\cref{eq:d-shapeneutral,eq:d-deltaflow} say it in the form that carries meaning:
+the rule makes coalescence exactly shape-neutral, where a true coagulation
+relaxes $\Delta_k$ toward the fixed point $\Delta_k=2$ at which a merge changes
+no shape. It is therefore not a bound but a substitution of one attractor for
+none, and its cost is $\Delta_k^{-1/8}$ on the sink prefactor and nothing else.
+
+The legacy annealing surrogate cannot be made consistent, only avoided.
+It debits content at a \emph{fixed} size, so the pair $(\mathrm dn,\mathrm dc)$
+it declares corresponds to a removed sub-population of mean $M\ne\bar m$.
+Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
+Cauchy--Schwarz permits for the removed part --- lowers $\Delta_k$ by
+$a(M/\bar m-1)^{2}$ on a narrow family. No debit is realizable, because the
+surrogate is removing loops of a size that is not there. That is an independent
+argument for the peripheral-emission channel of \cref{app:emission}, which
+deletes the fitted lifetimes outright.
+
+The two blocks differ, in the end, in exactly one structural respect, and it is
+the transport term. It survives on $\mathcal M$, where it couples every node to
+its neighbors and makes \cref{eq:block-mobile} a global nonlinear problem; and
+it is absent on $\mathcal F$, where $\bm D^\alpha_n=\bm0$ leaves a system of
+ordinary differential equations in which no neighbor's state appears. That the
+immobile block has no spatial coupling is not an approximation made for the
+convenience of the solver. It is a property of \cref{eq:master} restricted to
+clusters that do not diffuse, and it is what the operator split of
+\cref{sec:split} exploits.
+
 \section{Capture efficiencies from the diffusion tensor}
 \label{app:woo}
 
@@ -41,54 +861,6 @@ affects it, so the criterion does not govern net population evolution. And an
 isotropic calculation is not a zero of the criterion but another parameter
 point, so a ratio taken against one cannot test a statement about signs.
 
-\section{The moment closure, and the three rules that keep it realizable}
-\label{app:moments}
-
-$\Delta_k=q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}\ge1$ is the Cauchy--Schwarz inequality
-on a non-negative measure. A state with $\Delta_k<1$ --- or with $q<0$ outright
---- is therefore not an inaccurate description of a distribution; it is not the
-moment triple of any distribution. Keeping the triple realizable constrains how
-each channel debits $q$, and three rules cover every channel in the model.
-
-\begin{enumerate}[itemsep=3pt]
-\item \textbf{Nucleation deposits at its declared size:} $J^k_{sL}
-      (m^{\mathrm{nuc}}_k)^{2}$. This is genuine broadening,
-      $J(m^{\mathrm{nuc}}-\bar m)^{2}\ge0$, and it is correct because the channel
-      really does deposit at $m^{\mathrm{nuc}}_k$.
-\item \textbf{The floor current debits at $m_{\min}$:}
-      $-m_{\min}^{2}\Phi^k_{\min}$. This is a genuine statement about the lower
-      tail.
-\item \textbf{Channels with no distribution of their own are
-      shape-preserving:} $\mathrm dq=\Delta_k(2\bar m\,\mathrm dc
-      -\bar m^{2}\mathrm dn)$. Annealing and coalescence carry no size spectrum,
-      so they must not be allowed to imply one.
-\end{enumerate}
-
-Rule 3 is where the sign is easily inverted, and the term is the largest
-in the equation. A coalescing loop does not leave the family --- it
-\emph{merges}. Its defects stay; only the loop--network content is lost; and
-fewer loops holding the same content are \emph{larger} loops. Coalescence
-therefore \emph{raises} $q$. Debiting it by the removed number times
-$\langle m^{2}\rangle$, which is the natural-looking reading, inverts the sign of
-the term that carries $98\%$ of the loop-number loss. The symptom in a
-calculation is not an error but a slow drift: on one nine-family march, $q$
-crossed zero at 1\,dpa and was negative on $40\%$ of the basal nodes at 10\,dpa.
-
-The legacy annealing surrogate cannot be made consistent, only avoided.
-It debits content at a \emph{fixed} size, so the pair $(\mathrm dn,\mathrm dc)$
-it declares corresponds to a removed sub-population of mean $M\ne\bar m$.
-Debiting $q$ proportionally over-removes; debiting at $M$ --- the smallest value
-Cauchy--Schwarz permits for the removed part --- lowers $\Delta_k$ by
-$a(M/\bar m-1)^{2}$ on a narrow family. No debit is realizable, because the
-surrogate is removing loops of a size that is not there. That is an independent
-argument for the peripheral-emission channel of \cref{app:emission}, which
-deletes the fitted lifetimes outright.
-
-The gated channels --- the small-size leak and the grain-boundary removal of
-\cref{eq:gbloop} --- need no rule, because removing the mass of the distribution
-on one side of a threshold leaves a genuine sub-measure and $\Delta_k\ge1$
-survives by construction.
-
 \section{Peripheral emission and the loop binding energy}
 \label{app:emission}
 
@@ -98,21 +870,97 @@ which a loop exchanges vacancies across its own perimeter against its own
 equilibrium concentration.
 
 The binding energy of a vacancy to a loop of $m$ defects is the difference of
-the loop self-energies,
+the loop self-energies, signed by the family's character and shifted by the work
+the applied stress does on the defect it adds:
 \begin{equation}
-  E^{b}(m)=E^{f}_v+E_L(m-1)-E_L(m),
+  E^{b}_k(m)=E^{f}_v
+    -\varsigma_s(v)\bigl[E_L^{k}(m)-E_L^{k}(m-1)\bigr]
+    -\Sigma_k\Omega ,
   \label{eq:Eb}
 \end{equation}
-with $E_L$ the anisotropic elastic self-energy of a circular loop of radius
-$R=\lambda_k\sqrt m$ plus, for a faulted family, its stacking-fault term:
+with $\varsigma_s(v)=\pm1$ the polarity product of \cref{eq:growth} --- adding a
+vacancy grows a vacancy family and shrinks an interstitial one, which is the
+whole of the sign --- and $\Sigma_k=(\bvec_k\!\cdot\!\bm\sigma\!\cdot\!\nvec_k)/
+(\bvec\!\cdot\!\nvec)_k$ the resolved stress the tensor supplies.
+
+$E_L^{k}$ is the \emph{anisotropic} elastic self-energy of a circular loop of
+radius $R=\lambda_k\sqrt m$, plus the family's own fault term:
 \begin{equation}
-  E_L(m)=\frac{\mu\,(\bvec\!\cdot\!\nvec)_k^{2}\,R}{2(1-\nu)}
-         \left[\ln\frac{8R}{r_c}-2\right]
-       + \pi R^{2}\gamma_{\mathrm{sf}}\,\delta_{k,c_f}.
+  E_L^{k}(m)=\frac{\overline K_k\,|\bvec_k|^{2}\,R}{2}
+         \left[\ln\frac{8R}{|\bvec_k|}-2\right]
+       + \pi R^{2}\gamma_k ,
+  \qquad
+  \lambda_k=\sqrt{\frac{\Omega}{\pi(\bvec\!\cdot\!\nvec)_k}} .
   \label{eq:EL}
 \end{equation}
+Three things in \cref{eq:EL} are not the textbook isotropic loop and are the
+reason it is written out. The prefactor is $\overline K_k$, the
+perimeter-averaged \emph{anisotropic} energy factor --- the Stroh/Barnett--Lothe
+$K(\theta)$ for the family's own $(\bvec_k,\nvec_k)$, integrated over the loop
+line and evaluated at Fisher and Renken's $300\,$K constants for
+$\alpha$-Zr~\citep{fisher1964single} --- and \emph{not} $\mu/(1-\nu)$. The
+logarithm is scaled by $|\bvec_k|$, the full Burgers magnitude, while the
+\emph{area} the loop presents per stored defect is set by the edge component
+$(\bvec\!\cdot\!\nvec)_k$; the two differ for the faulted basal state, whose
+$\tfrac16\langle20\bar23\rangle$ vector carries a basal partial. And $\gamma_k$
+is per family rather than one $\gamma_{\mathrm{sf}}$: only $c_f$ is faulted, but
+nothing in the expression assumes that.
+
+\begin{center}\small
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Family & $\overline K_k$ & $|\bvec_k|$ & $(\bvec\!\cdot\!\nvec)_k$
+       & $\lambda_k$ & $\gamma_k$ & $\overline K_k|\bvec_k|^{2}$
+       & $\overline K_k\big/\tfrac{\mu}{1-\nu}$ \\
+       & [GPa] & [nm] & [nm] & [nm] & [J\,m$^{-2}$] & [nJ\,m$^{-1}$] & \\
+\midrule
+$a_1$--$a_3$, interstitial & 53.1 & 0.3230 & 0.3230 & 0.1514 & 0     & 5.54  & 1.062 \\
+$a_1$--$a_3$, vacancy      & 53.1 & 0.3230 & 0.3230 & 0.1514 & 0     & 5.54  & 1.062 \\
+$c_f$, faulted basal       & 53.0 & 0.3179 & 0.2575 & 0.1696 & 0.124 & 5.36  & 1.060 \\
+$c_p$, perfect basal       & 57.8 & 0.5150 & 0.5150 & 0.1199 & 0     & 15.33 & 1.156 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+$|\bvec_{c_f}|=\sqrt{(c/2)^{2}+a^{2}/3}$ and every length follows from the same
+$a=3.23\,$\AA, $c=5.15\,$\AA{} and $\Omega$ the rest of the model uses;
+$\mu/(1-\nu)=50.0\,$GPa at $\mu=33\,$GPa, $\nu=0.34$. The anisotropy is not a
+uniform rescaling, which is why it cannot be absorbed into the fit: it is
+$+6\%$ on the prismatic families and $+16\%$ on the perfect basal one, so an
+isotropic prefactor would not merely shift the emission barrier, it would
+misorder the two habits by $9\%$. The fault energy is the one number here worth
+a sensitivity check --- \emph{ab initio} values for the $I_1$ intrinsic basal
+fault scatter over $0.10$--$0.15\,$J\,m$^{-2}$ and \cref{eq:EL} is strictly
+linear in it.
+
+What the model evaluates is not \cref{eq:EL} but its derivative, the difference
+in \cref{eq:Eb} taken in the continuum limit:
+\begin{equation}
+  \frac{\mathrm dE_L^{k}}{\mathrm dm}
+    = \underbrace{\frac{\gamma_k\Omega}{(\bvec\!\cdot\!\nvec)_k}}_{\text{fault, size-independent}}
+    + \underbrace{\frac{\overline K_k|\bvec_k|^{2}\lambda_k^{2}}{4R}
+      \left[\ln\frac{8R}{|\bvec_k|}-1\right]}_{\text{capillary, }\sim\ln R/R} ,
+  \label{eq:dEdm}
+\end{equation}
+which follows from $\mathrm dR/\mathrm dm=\lambda_k^{2}/2R$. The split is what
+separates the two basal states. At $R=5\,$nm and zero stress the capillary term
+is $0.184\,$eV for $c_f$ against $0.231\,$eV for $c_p$ --- the faulted state has
+the \emph{smaller} capillary term, its $\overline K_k|\bvec_k|^{2}$ being $2.9$
+times smaller --- but $c_f$ carries a further $0.070\,$eV of fault that does not
+fall with size at all, and that reverses the total: $0.254\,$eV against
+$0.231\,$eV, so $E^{b}$ is $1.346\,$eV for $c_f$ and $1.369\,$eV for $c_p$ and
+the faulted state is the \emph{less} strongly bound of the two. The gap widens
+monotonically with size, $0.011\,$eV at $R=3\,$nm to $0.061\,$eV at $50\,$nm,
+because only the capillary halves decay; that widening is the driving force
+behind the unfaulting transfer of \cref{eq:basal-chain}, recovered here rather
+than imposed. The prismatic families sit at $0.151\,$eV with no fault term at
+all, and their $E^{b}$ splits by character: $1.449\,$eV for a vacancy family and
+$1.751\,$eV for an interstitial one, the $\varsigma_s(v)$ of \cref{eq:Eb}
+carrying the same $0.151\,$eV in opposite directions.
+
 The local equilibrium vacancy concentration at the loop periphery is then
-$c^{v,\mathrm{eq}}_k(m)=c^{v,\mathrm{eq}}\exp\bigl[-E^{b}(m)/k_BT\bigr]$, and the
+$c^{v,\mathrm{eq}}_k(m)=\exp\bigl[-E^{b}_k(m)/k_BT\bigr]$, and the
 emission current is the same capture expression run backwards against it,
 \begin{equation}
   S^{k}_{vL}=\Pi^k_{sL}\,\overline D^{v}Z_{vk,v}\;
@@ -120,7 +968,15 @@ emission current is the same capture expression run backwards against it,
   \label{eq:Semit}
 \end{equation}
 which enters \cref{eq:master-c} through $\spvec S_{vL}$ and
-\cref{eq:block-c} with the opposite sign.
+\cref{eq:block-c} with the opposite sign. It is not assembled as a separate
+term: the solver carries it as a signed driving concentration
+$c^{v}-c^{v,\mathrm{eq}}_k(\bar m^k_{sL})$ inside the same capture sum that
+\cref{eq:growth} already forms, which is the same quantity and makes detailed
+balance exact by construction --- the channel vanishes identically at
+$c^{v}=c^{v,\mathrm{eq}}_k$ --- rather than by the cancellation of an absorption
+and an emission term carrying different prefactors. Thermal \emph{interstitial}
+emission is not carried at all: at $873\,$K it is $e^{-1.4/k_BT}\approx10^{-8}$
+of the vacancy channel.
 
 Three properties recommend this over a fitted lifetime. \emph{One expression
 serves both characters}: the same mechanism shrinks a vacancy loop, by emitting

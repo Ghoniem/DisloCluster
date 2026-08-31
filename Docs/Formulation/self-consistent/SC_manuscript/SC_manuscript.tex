@@ -13,6 +13,11 @@
 %  cluster-dynamics treatment, and the DisloCluster code -- and keeping the
 %  sections separate is what lets each one be checked against its own source.
 %=====================================================================
+% elsarticle loads natbib itself (with `numbers'), so its options have to be
+% handed over before the class line. `sort&compress' is what turns a list such
+% as [1,2,3,4,5,6] into [1-6]; it also puts the keys of one \citep in
+% numerical order, so the .tex need not list them that way.
+\PassOptionsToPackage{sort&compress}{natbib}
 \documentclass[preprint,3p,times]{elsarticle}
 
 % lmodern BEFORE anything asks for a glyph. elsarticle wants T1 Computer
@@ -33,7 +38,33 @@
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{calc,positioning,shapes.geometric,arrows.meta,fit}
+% hyperref turns every cross-reference into a link: a [7] jumps to its entry in
+% the reference list, a \cref to the figure, an equation number to the equation.
+% Two things about its position. It has to come LATE, because it redefines a
+% great deal of what is loaded before it, and it has to come BEFORE cleveref,
+% which patches hyperref's own macros in turn -- reversed, the \cref links lose
+% their names. colorlinks prints colored text rather than the default colored
+% boxes, which is what a journal PDF wants.
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks = true,
+  citecolor  = blue,        % [7] and the rest of the citation labels
+  linkcolor  = blue,        % \ref, \cref, \eqref, the table of contents
+  urlcolor   = blue,
+  breaklinks = true,
+  pdftitle   = {A Self-Consistent Spatially-Resolved Cluster Dynamics Model for Irradiated Zirconium},
+}
 \usepackage[nameinlink,capitalise]{cleveref}
+% elsarticle already spells the word into the appendix NUMBER -- \ref prints
+% "Appendix A", not "A" -- so cleveref's own "Appendix" name doubles it and a
+% \cref comes out as "Appendix Appendix A". Print the number alone for this one
+% counter and leave every other reference type as cleveref sets it.
+\crefformat{appendix}{#2#1#3}
+\Crefformat{appendix}{#2#1#3}
+\crefrangeformat{appendix}{#3#1#4 to #5#2#6}
+\Crefrangeformat{appendix}{#3#1#4 to #5#2#6}
+\crefmultiformat{appendix}{#2#1#3}{ and #2#1#3}{, #2#1#3}{ and #2#1#3}
+\Crefmultiformat{appendix}{#2#1#3}{ and #2#1#3}{, #2#1#3}{ and #2#1#3}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
@@ -102,6 +133,13 @@
 
 \end{frontmatter}
 
+% The section list is long enough (nine sections, five appendices) that a
+% reader arriving for one piece of it needs a map. tocdepth 2 stops at the
+% subsections; the subsubsections are too many to be a map.
+\setcounter{tocdepth}{2}
+\tableofcontents
+\clearpage
+
 \input{sections/introduction}
 \input{sections/defect_classes}
 \input{sections/formulation}
@@ -111,10 +149,21 @@
 \input{sections/results}
 \input{sections/conclusions}
 
-\appendix
-\input{sections/appendices}
-
+% THE REFERENCE LIST PRECEDES THE SUPPLEMENTARY MATERIAL. Placing
+% \bibliography here rather than at the end of the file prints the list
+% between the acknowledgments and the appendices, which is where a reader
+% looks for it; the three \citep in sections/appendices.tex still resolve,
+% because BibTeX collects every \citation from the .aux irrespective of where
+% in the document the list is typeset.
 \bibliographystyle{elsarticle-num}
 \bibliography{self-consistent}
+
+\appendix
+% elsarticle does not reset the float counters at \appendix, so the first
+% appendix table would come out as "Table A.10" -- the body's ninth table
+% plus one, wearing an appendix prefix. Reset both.
+\setcounter{table}{0}
+\setcounter{figure}{0}
+\input{sections/appendices}
 
 \end{document}

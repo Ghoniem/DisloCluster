@@ -1,123 +1,89 @@
-\section{Continuum-to-Discrete Self-Consistency}\label{sec:conversion}
+\section{Continuum-to-Discrete Self-Consistency}\label{sec:conversion}%
+% These labels carried subsections until this section was written as continuous
+% prose. They are cross-referenced from five other sections and are kept on the
+% section itself rather than renamed there.
+\label{sec:coarsening}\label{sec:why-discrete}\label{sec:transfer}%
+\label{sec:gb-loops}\label{sec:ledger}
 
-This section is sense~(b) of \cref{sec:intro}. Sense~(a) is a
-statement \emph{inside} the continuum model, that its bias factors come from its
-transport tensors; sense~(b) is a statement \emph{between} two descriptions of
-one microstructure, that the map from continuum fields to discrete loops
-preserves the quantities that make them the same microstructure. The two are
-independent: a model could generate every efficiency from its diffusion tensors
-and still convert to a discrete population that stored the wrong number of
-defects, and a conversion could conserve everything while the continuum it
-converted carried a bias unrelated to its transport. This paper requires both,
-and this section establishes the second.
+This section is sense~(b) of \cref{sec:intro}: where sense~(a) is a statement
+\emph{inside} the continuum model, this one is \emph{between} two descriptions
+of a microstructure, that the map from continuum fields to discrete loops
+preserves what makes them the same microstructure. The two are independent --- a
+model may generate every efficiency from its diffusion tensors and still convert
+to a population storing the wrong number of defects.
 
-\subsection{Where the mean field expires, and how the model knows}
-\label{sec:coarsening}
+The second is needed because every cluster-dynamics formulation is a mean-field
+theory of a population of discrete objects. Its kernels assume absorbers placed
+independently and at random, so that overlap depends on the volume fraction
+alone --- a dilute-limit statement known to degrade as the swept fraction
+becomes
+appreciable~\citep{BrailsfordBullough1972,Mansur1978,GolubovSingh2001}. Three
+mechanisms take it apart, at different doses. Coalescence destroys spatial
+independence, a merged loop occupying the union of two former positions, so the
+Avrami estimate stops estimating anything. Local elastic interaction breaks the
+far-field assumption behind \cref{eq:Zsk}, two loops within a few radii sharing
+a stress field whose drift term is not the sum of the two isolated
+ones~\citep{marchrico2023,marchrico2025}. And gradients break the premise that
+the diffusion field has relaxed between absorbers --- the failure
+\cref{sec:intro} describes, which spatial resolution repairs for the mobile
+species but not for the loops.
 
-Every cluster-dynamics formulation is a mean-field theory of a population of
-discrete objects. Its kernels are derived on the assumption that absorbers are
-placed independently and at random, so that the probability of overlap between a
-growing loop and its neighbors is a function of the volume fraction alone. That
-assumption is a \emph{dilute-limit} statement, and it is standard in the
-rate-theory literature that it degrades as the swept fraction becomes
-appreciable~\citep{BrailsfordBullough1972,Mansur1978,GolubovSingh2001}.
-Three distinct mechanisms take it apart, and they take it apart at different
-doses:
-
-\begin{enumerate}[itemsep=3pt]
-\item \textbf{Spatial correlation from coalescence.} Once loops have merged,
-      their positions are no longer independent draws --- a merged loop occupies
-      the union of two former positions --- so the Avrami estimate of the
-      overlap probability stops estimating anything.
-\item \textbf{Local elastic interaction.} The capture efficiencies of
-      \cref{eq:Zsk} are derived for an isolated absorber in a uniform far field.
-      Two loops within a few radii of each other share a stress field, and the
-      drift term that biases capture is not the sum of the two isolated
-      ones~\citep{marchrico2023,marchrico2025}.
-\item \textbf{Gradients.} A sink strength presumes the diffusion field has
-      relaxed to a common far-field value between absorbers. In a boundary layer
-      it has not, which is the failure \cref{sec:intro} describes and
-      which spatial resolution already repairs for the mobile species --- but
-      not for the loops, whose own kernels are still mean-field in the
-      \emph{local} neighborhood.
-\end{enumerate}
-
-The model detects the first of these itself, and that is the useful property.
-The Avrami overlap fraction $\varphi_{LL}$ of \cref{eq:avrami} is the model's own
-estimate of the probability that a loop has met another; when it approaches
-unity the estimate is of order its own maximum and carries no information. The
-\emph{coarsening dose}
+The model detects the first itself, which is the useful property: $\varphi_{LL}$
+of \cref{eq:avrami} is its own estimate of the probability that a loop has met
+another, and approaching unity it is of order its own maximum and carries no
+information. The coarsening dose
 \begin{equation}
   d_{\mathrm{coarsen}}
   = \min\bigl\{\gamma:\ \varphi_{LL}(\gamma)\ge\varphi^{\star}
     \ \text{on a fraction}\ \ge f^{\star}\ \text{of interior nodes}\bigr\}
   \label{eq:dcoarsen}
 \end{equation}
-is therefore not an external criterion imposed on the model but a reading of one
-of its own state variables, and it costs nothing to evaluate. Which family
-reaches it first is a property of the formulation and not of the material: in
-otherwise identical calculations differing only in whether the capture
-efficiencies are generated from the diffusion tensors or taken as fitted
-constants, the family that coarsens first \emph{swaps} between the basal and the
-prismatic populations.
+is therefore read off one of the model's own state variables rather than imposed
+from outside, at no cost. Which family reaches it first is a property of the
+formulation and not the material: between calculations differing only in whether
+the efficiencies come from the diffusion tensors or from fitted constants, the
+family that coarsens first swaps.
 
-\subsection{Why a discrete representation is worth having}
-\label{sec:why-discrete}
+Repairing the dilute limit is not the only reason to want a discrete
+representation; it is also the interface to micromechanics. Dislocation dynamics
+computes the stress a population exerts and its resistance to a gliding line, a
+channeling model needs which obstacles a channel has swept, a fracture model the
+local obstacle spacing --- and none takes a density as input, but positions,
+radii, Burgers vectors and habit planes. The objective is therefore stronger
+than a one-way export: that the two representations be equivalent within stated
+tolerances, so a calculation may run in either, or in a hybrid, with the choice
+made on dose and cost rather than physics. That is what attaches conservation
+laws to the conversion instead of making it a rescaling.
 
-Beyond repairing the dilute limit, the discrete representation is the interface
-to micromechanics. Dislocation dynamics computes the stress a population exerts
-and the resistance it offers to a gliding line; a channeling model needs to know
-which obstacles a channel has swept and which remain; a fracture model needs the
-local obstacle spacing. None of these takes a density as input. They take
-positions, radii, Burgers vectors and habit planes.
-
-The engineering objective is therefore stronger than a one-way export. It is
-that the continuum and the discrete representations be \emph{equivalent} to
-within stated tolerances, so that a calculation may be run in either --- or in a
-hybrid, continuum where the population is dilute and discrete where it is not
---- with the choice made on grounds of dose and computational cost rather than
-of physics. That is what makes the conversion a problem with conservation laws
-attached rather than a rescaling.
-
-\subsection{The conversion and what it must preserve}
-\label{sec:transfer}
-
-The requirements cannot all be met exactly, and their ranking is a modeling
+Those requirements cannot all be met exactly, and their ranking is a modeling
 decision:
 
 \begin{enumerate}[itemsep=2pt]
-\item \textbf{Stored defects, exactly.} $\sum_\ell m_\ell$ over the discrete
-      loops of a family must equal the continuum content of the region they
-      replace. A transfer that loses defects appears downstream as a spurious
-      sink.
-\item \textbf{Loop number, to the integer draw.} A continuum density gives a
-      real expected count and a discrete population an integer one, so the best
+\item Stored defects, exactly: $\sum_\ell m_\ell$ must equal the continuum
+      content of the region the loops replace, a transfer that loses defects
+      appearing downstream as a spurious sink.
+\item Loop number, to the integer draw: a continuum density gives a real
+      expected count and a discrete population an integer one, so the best
       available is $|N_{\mathrm{draw}}-\Lambda|\le\tfrac12$.
-\item \textbf{The dispersion $\Delta_k$, to the truncation of the size
-      sampling.} This requirement did not exist before \cref{sec:moments}: a
-      monodisperse family has nothing to reproduce.
-\item \textbf{Sink strength, reported but not asserted on.} The line length a
-      discrete population presents differs from $\rho^k_{sL}$ for reasons that
-      are physical rather than numerical --- ellipticity among them --- and the
-      difference is quantified rather than forced to zero.
+\item The dispersion $\Delta_k$, to the truncation of the size sampling --- a
+      requirement that did not exist before \cref{sec:moments}, a monodisperse
+      family having nothing to reproduce.
+\item Sink strength, reported but not asserted on: the line length a discrete
+      population presents differs from $\rho^k_{sL}$ for physical rather than
+      numerical reasons, ellipticity among them.
 \end{enumerate}
 
-Only the eight loop families convert. The stacking-fault pyramid has no
-Burgers vector and no line, so it has no discrete representation in a
-dislocation code at all; it stays in the continuum across every transfer, and a
-conversion that folded its content into $c_f$ would report basal vacancies as
-dislocation content the solver would then be free to move.
+Only the eight loop families convert. The stacking-fault pyramid has no Burgers
+vector and no line, hence no discrete representation at all; folding its content
+into $c_f$ would report basal vacancies as dislocation content the solver was
+then free to move.
 
-The conversion proceeds in four steps. The fields are known at nodes that are
-not uniformly spaced, so each node must be given the volume of material it stands for. A
-restricted Voronoi tessellation supplies it, restricted in the sense that sample
-points falling outside the crystal are rejected rather than charged to the
-nearest boundary node. On a hexagonal prism the bounding box is $4/3$ of the
-crystal, so using the box would over-count the population by a third and scatter
-loops through six empty wedges outside the outline.
-
-With a volume attached to each node, the expected number of loops of family
-$(s,k)$ at node $j$ follows as
+The conversion proceeds in four steps. The fields are known at unevenly spaced
+nodes, so each must first be given the volume it stands for, which a restricted
+Voronoi tessellation supplies --- restricted in that sample points outside the
+crystal are rejected rather than charged to the nearest boundary node. On a hexagonal prism the bounding box is $4/3$ of the crystal, so
+using it would over-count by a third and scatter loops through six empty wedges.
+The expected number of loops of family $(s,k)$ at node $j$ is then
 \begin{equation}
   \lambda^k_{sj}=\frac{n^k_{sL}(\xv_j)}{\Omega}\,V_j,
   \qquad
@@ -126,65 +92,47 @@ $(s,k)$ at node $j$ follows as
   N_{\mathrm{draw}}=\operatorname{round}\bigl(\Lambda^k_s\bigr).
   \label{eq:counts}
 \end{equation}
-Both factors are needed and for different reasons: $n^k_{sL}$ says how many loops
-belong in unit material, $V_j$ how much material the node stands for. Sampling on
-$n^k_{sL}$ alone would give every node equal geometric weight and over-populate a
+Both factors are needed: sampling on $n^k_{sL}$ alone would over-populate a
 refined region in exact proportion to how well it was resolved. Rounding rather
-than drawing a Poisson total is deliberate: a Poisson total has
-$\operatorname{Var}=\Lambda$, and a dose sweep whose loop count fluctuates by
-$\sqrt\Lambda$ between snapshots is dominated by counting noise.
+than drawing a Poisson total is deliberate --- $\operatorname{Var}=\Lambda$
+there, and a dose sweep whose count fluctuates by $\sqrt\Lambda$ between
+snapshots is dominated by counting noise.
 
-Each loop's size is then drawn from its home node's own log-normal
-\cref{eq:lognormal}, not set to the node mean. With two moments there was no
-distribution to draw from and every loop at a node was identical, so the exported
-population was monodisperse by construction --- visible immediately in any size
-histogram. The sample is then rescaled so that $\sum_\ell m_\ell$ matches the
-continuum content exactly, which is requirement~1 above; the rescaling removes
-the rounding, and the residual is at the level of machine precision.
+Each loop's size is drawn from its home node's log-normal
+\cref{eq:lognormal} rather than set to the node mean, two moments having left
+nothing to draw from and every loop at a node identical. The sample is rescaled
+so that $\sum_\ell m_\ell$ matches the continuum content exactly, which is
+requirement~1, leaving a residual at machine precision. Geometry closes the
+construction: a loop becomes a polygon on its habit plane of an area matching
+$\pi R^{2}$ rather than of that circumradius --- an inscribed hexagon has only
+$82.7\%$ of the disc, and it is the stored content that must match ---
+elliptical with an axis ratio set by the anisotropy, and centered by rejection
+sampling inside the crystal.
 
-Geometry closes the construction. A loop of family $k$ becomes a polygon on its habit plane,
-of an area matching $\pi R^{2}$ rather than of that circumradius --- a regular
-$n$-gon inscribed in a circle of radius $R$ has area
-$(n/2)R^{2}\sin(2\pi/n)$, which for a hexagon is only $82.7\%$ of the disc, and
-it is the stored content that must match. Its outline is elliptical with axis
-ratio set by the anisotropy, and its center is placed by rejection sampling
-inside the crystal.
+What the domain refuses must be predicted rather than discovered. A
+discrete-dislocation solver silently declines a loop whose nodes leave the
+grain, so the conversion predicts that and keeps the refused share in the
+continuum --- counted in defects, not loops, since on one measured transfer one
+refusal in six was $83\%$ by count and $98\%$ by stored defects. On the geometry
+of \cref{sec:results} the basal population is effectively infeasible to transfer
+above $\sim0.1\,$dpa, a \cloop{} loop of mean radius $25\,$nm overhanging any
+face it lies within $25\,$nm of.
 
-What the domain refuses. A discrete-dislocation solver silently
-declines a loop whose nodes leave the grain, so the conversion must predict that
-decision and keep the refused share in the continuum. The share must be
-counted in defects, not in loops: on one measured transfer, one refusal in six
-was $83\%$ by count and $98\%$ by stored defects. On the geometry of
-\cref{sec:results} the basal population becomes effectively infeasible to
-transfer above $\sim0.1\,$dpa, because a \cloop{} loop of mean radius $25\,$nm
-centered anywhere within $25\,$nm of a face overhangs it; \cref{sec:results-discrete}
-reports the measured fraction.
-
-\subsection{Grain boundaries as sinks: two models, not one}
-\label{sec:gb-loops}
-
-A grain boundary absorbs mobile point defects and it absorbs dislocation loops,
-and the two require different treatments because the objects differ in kind.
-
-Mobile species: a Dirichlet condition. \Cref{eq:bc} pins the mobile
-concentrations at thermal equilibrium on the boundary. Absorption is then a flux,
-$-\bm D^{x}\nabla c^{x}\!\cdot\!\bm n$, and the depleted layer in front of the
-boundary is solved for. Nothing about this is parameterized: the layer width
-follows from the local diffusivity and the local sink density, differs between
-species, and evolves through the transient.
-
-Immobile loops: a size-gated removal. A loop cannot be given a
-boundary condition, because it is not transported --- it has no flux to set. What
-it has is a \emph{size}, and a loop of radius $R^k=\lambda_k\sqrt m$ centered a
-distance $x$ from the nearest face intersects that face when
+The grain boundary requires two treatments, the objects differing in kind. For
+the mobile species it is a Dirichlet condition: \cref{eq:bc} pins the
+concentrations at thermal equilibrium, absorption is the flux
+$-\bm D^{x}\nabla c^{x}\!\cdot\!\bm n$, and the depleted layer is solved for
+rather than parameterized, its width set by the local diffusivity and sink
+density and evolving through the transient. A loop cannot be given a
+boundary condition, being untransported with no flux to set. What it has is a size, and one of radius $R^k=\lambda_k\sqrt m$ centered a
+distance $x$ from the nearest face intersects it when
 \begin{equation}
-  m\;\ge\;m_{gb}(x)=\left(\frac{x}{\lambda_k}\right)^{2}.
+  m\;\ge\;m_{gb}(x)=\left(\frac{x}{\lambda_k}\right)^{2},
   \label{eq:mgb}
 \end{equation}
-The absorbed fraction of each moment is therefore the mass of the family's own
-size distribution above that threshold. Writing
-$\Phi^{(j)}_k(m_\theta)$ for the fraction of the $j$-th moment of
-\cref{eq:lognormal} lying above $m_\theta$,
+so the absorbed fraction of each moment is the mass of the family's size
+distribution above that threshold. With $\Phi^{(j)}_k(m_\theta)$ the fraction of
+the $j$-th moment of \cref{eq:lognormal} above $m_\theta$,
 \begin{equation}
   \Phi^{(j)}_k(m_\theta)
   =\tfrac12\operatorname{erfc}\!\left(
@@ -200,34 +148,25 @@ the three removals of \cref{eq:block-n,eq:block-c,eq:block-q} are
   \Theta^k_2=\Phi^{(2)}_k\bigl(m_{gb}\bigr)\,q^k_{sL},
   \label{eq:gbloop}
 \end{equation}
-at a rate $\nu_{gb}$ taken large, so that the touching fraction is removed
-essentially instantaneously and the width of the denuded zone is a
-\emph{prediction} rather than a rate parameter.
+at a rate $\nu_{gb}$ taken large, so the touching fraction is removed
+essentially instantaneously and the denuded-zone width is a prediction rather
+than a rate parameter.
 
-Three properties of \cref{eq:gbloop} are worth stating explicitly.
-
-It is automatically realizable. What remains after removing the mass
-above a threshold is a genuine sub-measure of the original distribution, so
-$\Delta_k\ge1$ continues to hold by construction. No channel written this way
-can drive the moment triple out of the region where it is the moment triple of
-something.
-
-The defects do not return to the pool. This is the whole difference
-between \cref{eq:gbloop} and the dissolution channel, which credits the freed
-vacancies back to $\spvec c_M$. A loop swallowed by a free surface takes its
-defects out of the crystal, so \cref{eq:gbloop} is booked to a grain-boundary
-ledger and to nothing else. Adding it to the dissolution term as well would
-return the atoms twice, once to the pool and once to the boundary --- and the
-symptom would be a conservation residual of the wrong sign rather than an error.
-
-The distribution must be truncated at the crystal. The log-normal has
-unbounded support and the crystal does not, so without a cap the far tail of
-\cref{eq:lognormal} contains loops larger than the grain, and \cref{eq:mgb}
-faithfully absorbs them at every distance --- reporting absorption at the center
-of a grain that no loop can reach. Capping the family at
-$m_{\max}=(R_{\max}/\lambda_k)^{2}$ with $R_{\max}$ the inradius replaces
-\cref{eq:Phij} by the mass between the threshold and the cap over the mass below
-the cap,
+Three properties of \cref{eq:gbloop} are worth stating. It is automatically
+realizable: what remains after removing the mass above a threshold is a genuine
+sub-measure, so $\Delta_k\ge1$ holds by construction. The defects do not return to the pool, the whole difference
+between it and the dissolution channel that credits freed vacancies back to
+$\spvec c_M$: a loop swallowed by a free surface takes its defects out of the
+crystal, so \cref{eq:gbloop} is booked to a grain-boundary ledger alone. Adding
+it to the dissolution term too would return the atoms twice, a conservation
+residual of the wrong sign the only symptom. And the
+distribution must be truncated at the crystal, the log-normal having unbounded
+support where the crystal has not: uncapped, the far tail of
+\cref{eq:lognormal} holds loops larger than the grain, which \cref{eq:mgb}
+faithfully absorbs at every distance, reporting absorption at a grain center no
+loop can reach. Capping at $m_{\max}=(R_{\max}/\lambda_k)^{2}$ with $R_{\max}$
+the inradius replaces \cref{eq:Phij} by the mass between threshold and cap over
+the mass below it,
 \begin{equation}
   \widetilde\Phi^{(j)}_k(m_\theta)
   =\frac{\Phi^{(j)}_k(m_\theta)-\Phi^{(j)}_k(m_{\max})}
@@ -236,20 +175,15 @@ the cap,
 \end{equation}
 which reduces to $\Phi^{(j)}_k$ exactly as $m_{\max}\to\infty$. The carried
 moments are still inverted for $(\mu_k,s_k)$ as if untruncated, so closure and
-support disagree at order $\Phi^{(j)}_k(m_{\max})$; making them consistent means
-inverting a \emph{truncated} log-normal from its truncated moments, which has no
-closed form and would put a Newton iteration inside every residual. The
-inconsistency is bounded by the very tail being discarded, which is the tail that
-has no business existing. Measured on the calculation of \cref{sec:results}, the
-truncation leaves the near field unchanged to four digits, sets the absorption
-rate at $1\,\mu$m from a boundary to exactly zero where it had been finite, and
-raises it at $200\,$nm by $4\%$ through the renormalization.
+support disagree at order $\Phi^{(j)}_k(m_{\max})$; reconciling them would mean
+inverting a truncated log-normal from truncated moments, which has no closed
+form. The inconsistency is bounded by the discarded tail, which is the tail with
+no business existing. Measured on \cref{sec:results}, truncation leaves the near field
+unchanged to four digits, sets the absorption rate $1\,\mu$m from a boundary to
+zero where it had been finite, and raises it at $200\,$nm by $4\%$.
 
-\subsection{The transfer ledger}
-\label{sec:ledger}
-
-Every transfer is audited on three totals, each summed over the whole crystal
-regardless of which representation holds them:
+Whether this holds together is settled by auditing every transfer on three
+totals, each summed over the crystal whichever representation holds them:
 \begin{align}
   \text{(I) loop number} &&
     N &= \sum_j n^k_{sj}V_j \;+\; \#\{\text{discrete loops}\}, \nonumber\\
@@ -260,20 +194,19 @@ regardless of which representation holds them:
   \text{(III) sink strength} &&
     S &= \sum_j 2\pi R^k_{sj}n^k_{sj}V_j \;+\; \sum_\ell 2\pi R_\ell . \nonumber
 \end{align}
-(I) and (II) are conservation statements and hold to the sampling tolerance of
-one loop and to machine precision respectively. (III) is a \emph{modeling}
-statement, and it is the one that catches mistakes: a discontinuity in it at a
-transfer means the two representations disagree about what a loop of a given
-content is, and that is a crystallography error rather than a numerical one.
-Reducing the residual sink discontinuity from a factor of $4.85$ to $2\%$ was
-achieved by removing an inconsistency in the \cloop{} Burgers vector between the
-two sides --- the continuum sizing a basal loop with the full $[0001]$ where the
-discrete side used $\tfrac12[0001]$ --- and not by tuning anything.
+(I) and (II) are conservation statements, holding to the sampling tolerance of
+one loop and to machine precision. (III) is a modeling statement, and the one
+that catches mistakes: a discontinuity in it means the two representations
+disagree about what a loop of a given content is, a crystallography error rather
+than a numerical one. The residual sink discontinuity fell from a
+factor of $4.85$ to $2\%$ by removing an inconsistency in the \cloop{} Burgers
+vector --- the continuum sizing a basal loop with the full $[0001]$ where the
+discrete side used $\tfrac12[0001]$ --- and not by tuning.
 
-A transfer is all-or-nothing per family. The continuum carries one mean
-size per family per node, so a size-selective transfer is not representable:
-there is no spectrum to split. More importantly, a family that is discrete
-\emph{and} still present in the continuum is a sink twice over --- once through
-its Green's function and once through \cref{eq:KL} --- and a loop whose own sink
-remains in the continuum samples its own depletion field at its own line. Zeroing
-the transferred family removes both faults, and they are the same fault.
+One constraint follows: a transfer is all-or-nothing per family. The continuum
+carries one mean size per family per node, so a size-selective transfer is not
+representable. More importantly, a family discrete \emph{and} still present in
+the continuum is a sink twice over, once through its Green's function and once
+through \cref{eq:KL}, and a loop whose own sink remains in the continuum samples
+its own depletion field at its own line. Zeroing the transferred family removes
+both, and they are the same fault.

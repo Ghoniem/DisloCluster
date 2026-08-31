@@ -49,8 +49,14 @@ from dislocluster_code import driver, paths
 from dislocluster_code.fitting import apply_refit
 
 
+#: The reference leg's dose grid, and the settings that go with it: one fast
+#: solve per interval, three immobile substeps inside it.
+REFERENCE_DOSES = [1e-4, 1e-3, 1e-2, 1e-1, 1.0, 2.0, 5.0, 10.0]
+
+
 def build_config(workbook, model_params, tag="500nmHex_Refit",
-                 gb_absorption=0):
+                 gb_absorption=0, doses=None, substeps=3, fem_every=3,
+                 movies=True):
     material = dict(C.MATERIAL, temperature_K=573.0, dose_rate_dpa_s=1e-7,
                     overrides=dict(workbook))
     geometry = dict(C.GEOMETRY, type="hexagonal", size_nm=500.0,
@@ -60,14 +66,15 @@ def build_config(workbook, model_params, tag="500nmHex_Refit",
                 boundary_lc_nm=20.0, boundary_layers_across=None)
     boundary = dict(C.BOUNDARY)
     coupling = dict(C.COUPLING, route="Adaptive", dose_seed=0.0,
-                    doses=[1e-4, 1e-3, 1e-2, 1e-1, 1.0, 2.0, 5.0, 10.0],
-                    substeps_per_interval=3, fem_every=3,
+                    doses=list(REFERENCE_DOSES if doses is None else doses),
+                    substeps_per_interval=int(substeps),
+                    fem_every=int(fem_every),
                     variant_weights=(1 / 3, 1 / 3, 1 / 3))
     solver = dict(C.SOLVER, analytic_jac=True, loop_model=1, n_fam=9,
                   emission_model=1, basal_chain=0, moments=1,
                   gb_absorption=int(gb_absorption),
                   model_params=dict(model_params))
-    output = dict(C.OUTPUT, tag=tag, figures=True, movies=True,
+    output = dict(C.OUTPUT, tag=tag, figures=True, movies=bool(movies),
                   movie_interp=5, discrete_loops=True, checkpoint=True,
                   resume="auto")
     return C.SimulationConfig.from_dicts(
@@ -139,7 +146,31 @@ def main(argv=None):
                     help='absorb loops that touch a face. Everything else is '
                          'held fixed, so a --gb run and its twin differ in one '
                          'thing and the difference measures that one thing.')
+    ap.add_argument('--no-movies', action='store_true',
+                    help='skip the field GIFs. They cost render time and no '
+                         'manuscript figure is built from them.')
+    ap.add_argument('--doses', type=float, nargs='+', default=None,
+                    metavar='DPA',
+                    help='snapshot doses, strictly increasing. These are the '
+                         'points every dose-axis figure plots AND the interval '
+                         'boundaries the march integrates between, so they set '
+                         'the resolution as well as the sampling. Default: the '
+                         'reference leg, %s.' % REFERENCE_DOSES)
+    ap.add_argument('--substeps', type=int, default=3,
+                    help='immobile substeps per interval (default 3)')
+    ap.add_argument('--fem-every', type=int, default=None, metavar='N',
+                    help='substeps between fast solves; default equals '
+                         '--substeps, i.e. ONE fast solve per interval. THIS '
+                         'IS THE ACCURACY DIAL, not --substeps: splitting '
+                         'error is first order in the dose spanned between '
+                         'fast solves, and CVODE already adapts inside a '
+                         'substep. --substeps 6 --fem-every 3 gives two fast '
+                         'solves per interval; --substeps 6 --fem-every 6 '
+                         'gives one, as the reference leg does.')
     a = ap.parse_args(argv)
+    if a.doses is not None and any(y <= x for x, y in zip(a.doses, a.doses[1:])):
+        raise SystemExit('--doses must increase strictly')
+    fem_every = a.substeps if a.fem_every is None else a.fem_every
 
     from dislocluster_code.fitting.refit_report import load
     params, meta = load(a.refit)
@@ -152,7 +183,9 @@ def main(argv=None):
         print(f"\n  material file written; backup {edits['backup'].name}")
 
     cfg = build_config(workbook, model_params, tag=a.tag,
-                       gb_absorption=1 if a.gb else 0)
+                       gb_absorption=1 if a.gb else 0, doses=a.doses,
+                       substeps=a.substeps, fem_every=fem_every,
+                       movies=not a.no_movies)
     print(f"\n  staging {a.tag} ...")
     t0 = time.time()
     prep = driver.prepare(cfg)
@@ -162,7 +195,10 @@ def main(argv=None):
     if a.dry_run:
         print("  --dry-run: staged only.")
         return run_dir
-    print("  marching ... (the reference leg took ~0.7 h)")
+    n_int = len(cfg.coupling.snaps) - 1
+    print(f"  marching ... {n_int} intervals x {a.substeps} substeps, "
+          f"{max(1, a.substeps // fem_every)} fast solve(s) per interval "
+          f"(the reference leg was 7 x 3, one fast solve each, ~0.5 h)")
     result = driver.march(prep)
     driver.report(prep, result)
     print(f"\n  done in {(time.time() - t0) / 3600:.2f} h -> {run_dir}")

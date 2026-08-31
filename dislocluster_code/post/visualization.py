@@ -225,7 +225,7 @@ class ZrMicroVisualizer:
 
     def __init__(self, simulation, results, output_dir,
                  use_dpa=True, dpa_range=None, sim_config=None, run_dir=None,
-                 n_atoms=None, open_system=False, loop_model=0):
+                 n_atoms=None, open_system=False, loop_model=0, x_floor=None):
         self.sim     = simulation
         self.results = results
         self.inp     = simulation.input_data
@@ -245,6 +245,26 @@ class ZrMicroVisualizer:
         # residual is grain-boundary absorption rather than solver error. See
         # `zerod.post_process._calculate_conservation`.
         self.open_system = bool(open_system)
+        # A lower limit for the dose axis that CROPS THE VIEW AND NOTHING ELSE.
+        # `dpa_range` masks the data, which moves any curve formed as a change
+        # since the first sample (the fractions figure subtracts `free[0]`), so
+        # it is the wrong tool for "start the axis a decade later". None keeps
+        # the limit the data sets.
+        #
+        # A SCALAR RAISES EVERY DOSE AXIS; A MAPPING RAISES ONE FIGURE'S, keyed
+        # by the name `_savefig` writes it under (`conservation_channels_v`,
+        # `vacancy_fractions`, ...). The per-figure form is what a crop
+        # normally is -- an editorial judgement about one panel, not about the
+        # run -- and applying such a judgement to every axis would quietly cut
+        # the first decade off the figures that need it, the nucleation
+        # transient among them.
+        if x_floor is None:
+            self.x_floor, self.x_floor_by_fig = None, {}
+        elif isinstance(x_floor, dict):
+            self.x_floor = None
+            self.x_floor_by_fig = {str(k): float(v) for k, v in x_floor.items()}
+        else:
+            self.x_floor, self.x_floor_by_fig = float(x_floor), {}
 
         # Locate the repository root for the provenance git tag. Prefer the
         # DisloCluster root resolved by paths.py; fall back to walking up from
@@ -322,11 +342,28 @@ class ZrMicroVisualizer:
 
     def _savefig(self, fig, name):
         """Save *fig* as ``<run_dir>/<name>.png``, close it, print confirmation."""
-        # Uniform lower dose limit on every dose-axis figure (10^-6 dpa).
+        # UNIFORM LOWER DOSE LIMIT, TAKEN FROM THE DATA. This was the constant
+        # 1e-6 dpa, which opened every dose axis two decades before the first
+        # dose a 3-D march carries (1e-4 here): a third of the panel was empty
+        # and the range that holds the data was compressed into the rest. It
+        # also silently overrode any limit an individual plot had set. The
+        # limit is the first positive abscissa instead, so a run over any dose
+        # range fills its axes; the upper limit is left to matplotlib, because
+        # clipping it hides experimental points that lie beyond the last
+        # simulated dose (the <c> data reach 35 dpa against a march to 10).
+        try:
+            x = np.asarray(self.x_data, dtype=float)
+            x = x[np.isfinite(x) & (x > 0)]
+            x_lo = float(x.min()) if x.size else 1e-6
+        except Exception:
+            x_lo = 1e-6
+        floor = self.x_floor_by_fig.get(name, self.x_floor)
+        if floor is not None:
+            x_lo = max(x_lo, floor)
         for ax in fig.axes:
             try:
                 if 'Dose' in ax.get_xlabel():
-                    ax.set_xlim(left=1e-6)
+                    ax.set_xlim(left=x_lo)
             except Exception:
                 pass
         path = self.run_dir / f'{name}.png'

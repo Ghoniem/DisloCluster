@@ -141,12 +141,22 @@ def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True,
     if verbose:
         print(f"{Path(run_dir).name}: {len(doses)} snapshots, "
               f"{Y.shape[1]} nodes, {Y.shape[2]} states")
+    # ONE VOLUME FOR BOTH REGIONS -- THE CRYSTAL, NOT ITS BOUNDING BOX.
+    # `voronoi_weights` rejects Monte-Carlo samples outside `faces`; without
+    # them every sample in the six empty wedges of a hexagonal prism was
+    # charged to whichever boundary node was nearest. The interior branch has
+    # always passed `faces` and the domain branch never did, so the two rows of
+    # any domain-vs-interior comparison were reduced on different volumes --
+    # the prism against a box 4/3 its size -- and the ratio between them
+    # carried that factor. On a cubic domain the hull IS the bounding box and
+    # nothing changes; on the hexagonal prism the domain mean moves.
+    from dislocluster_code.post.fields import domain_faces
+    faces = domain_faces(nodes)
     if region == "interior":
         from dislocluster_code.post.coarsening import interior_mask
-        from dislocluster_code.post.fields import domain_faces
         m = np.asarray(interior_mask(nodes), dtype=bool)
         w_all = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose,
-                                faces=domain_faces(nodes))
+                                faces=faces)
         w = np.where(m, w_all, 0.0)
         tot = w.sum()
         if tot <= 0.0:
@@ -157,7 +167,8 @@ def averaged_trajectory(run_dir, n_samples=4_000_000, verbose=True,
                   f"({100 * m.sum() / len(nodes):.0f}%), "
                   f"{100 * w_all[m].sum():.1f}% of the crystal volume")
     else:
-        w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose)
+        w = voronoi_weights(nodes, n_samples=n_samples, verbose=verbose,
+                            faces=faces)
     Y_avg = np.einsum("n,dns->ds", w, Y)
     # A self-consistent march stores its nine families in the immobile slots.
     # The 0-D figure suite reads them by the legacy names, so they are moved
@@ -238,6 +249,22 @@ def build_results(doses, Y_avg, sim, per_interval_accumulators=True):
     return res
 
 
+def _parse_x_floor(items):
+    """`--x-floor` as `ZrMicroVisualizer` wants it: a float, a dict, or None."""
+    if not items:
+        return None
+    per_figure, every = {}, None
+    for item in items:
+        name, sep, value = item.partition("=")
+        if sep:
+            per_figure[name.strip()] = float(value)
+        else:
+            every = float(name)
+    if per_figure and every is not None:
+        raise SystemExit("--x-floor: a bare value or FIGURE=value, not both")
+    return per_figure or every
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_dir", help="a march output directory (march_state.npz)")
@@ -250,6 +277,15 @@ def main(argv=None):
                          "'interior' is the innermost quartile, which is the "
                          "quantity a 0-D fit describes and the only one "
                          "comparable to experiment on a Dirichlet domain")
+    ap.add_argument("--x-floor", action="append", default=None,
+                    metavar="[FIGURE=]DPA",
+                    help="lower limit for a dose axis. A bare value raises "
+                         "every one; FIGURE=value raises one figure's, named "
+                         "as the file is (conservation_channels_v=1e-3). "
+                         "Repeatable. This CROPS THE VIEW and does not mask "
+                         "data, so a curve formed as a change since the first "
+                         "sample is unaffected -- which --region and a dose "
+                         "range are not.")
     args = ap.parse_args(argv)
 
     run_dir = Path(args.run_dir)
@@ -309,7 +345,7 @@ def main(argv=None):
     lm = _field.run_loop_model(run_dir)
     viz = ZrMicroVisualizer(sim, res, out.parent, use_dpa=True, run_dir=out,
                             n_atoms=n_atoms, open_system=open_system,
-                            loop_model=lm,
+                            loop_model=lm, x_floor=_parse_x_floor(args.x_floor),
                             sim_config={"source": "volume-averaged 3-D march",
                                         "loop_model": int(lm),
                                         "run_dir": str(run_dir),

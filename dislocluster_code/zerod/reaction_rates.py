@@ -526,6 +526,36 @@ class ReactionRates:
         return rate
     
     # Loop nucleation rates
+    def clustering_rate(self, concentrations=None):
+        """
+        Homogeneous loop-number nucleation from the three reactions that put a
+        cluster past the mobile cut-off, ONE LOOP PER EVENT:
+
+            i+3i  -> 4i   R_i_3i  is an event rate (unlike pair), weight 1
+            2i+2i -> 4i   R_2i_2i is the di-interstitial LOSS rate and two are
+                          lost per event, so the event rate is 0.5*R_2i_2i --
+                          the same 0.5 that i+i -> 2i already carries
+            2i+3i -> 5i   R_2i_3i is an event rate (unlike pair), weight 1
+
+        2i+3i used to be missing here -- and missing from dC2i_dt too, while
+        still depositing defects into loop content, so the di-interstitial
+        drove the reaction without being consumed by it and the 5i cluster it
+        formed was never counted as a loop.
+
+        2i+2i used to be credited at R_2i_2i, one loop per di-interstitial lost
+        rather than one per event, so each embryo came out at 2 defects where
+        the cluster is 4i. The rate constant is not the error and is unchanged
+        (k_2i_2i = 4*omega_2i agrees with MoDELib's own K for this channel to
+        0.05%), and the content credit already balanced the debit exactly.
+
+        Mean embryo size is now 4, 4 and 5 defects on the three channels.
+        """
+        if concentrations is None:
+            concentrations = self.current_concentrations
+        return (self.R_i_3i(concentrations)
+                + 0.5 * self.R_2i_2i(concentrations)
+                + self.R_2i_3i(concentrations))
+
     def nucleation_rate_iL(self, concentrations=None):
         """Nucleation rate for interstitial loops"""
         if concentrations is None:
@@ -536,12 +566,12 @@ class ReactionRates:
         f_na = self.input_data.derived['f_na']
 
         # Two a-loop nucleation sources:
-        #  (1) homogeneous clustering from i+3i and 2i+2i reactions, and
+        #  (1) homogeneous clustering from i+3i, 2i+2i and 2i+3i reactions, and
         #  (2) cascade source G_iL/n_iL_nuc (each cascade loop carries n_iL_nuc
         #      interstitials, seeded as content in dCiL_i_dt). G_iL already
         #      carries the non-aligned (1-f_a) split, so it is NOT re-scaled by f_na.
         n_iL_nuc = self.input_data.model_params.get('n_iL_nuc', 20.0)
-        rate = (f_na * (self.R_i_3i(concentrations) + self.R_2i_2i(concentrations))
+        rate = (f_na * self.clustering_rate(concentrations)
                 + self.G_iL() / n_iL_nuc)
 
         return rate
@@ -557,7 +587,7 @@ class ReactionRates:
         # Clustering source (f_a fraction) + cascade source G_aiL/n_iL_nuc
         # (G_aiL already carries the aligned f_a split).
         n_iL_nuc = self.input_data.model_params.get('n_iL_nuc', 20.0)
-        rate = (f_a * (self.R_i_3i(concentrations) + self.R_2i_2i(concentrations))
+        rate = (f_a * self.clustering_rate(concentrations)
                 + self.G_aiL() / n_iL_nuc)
         return rate
     
@@ -599,15 +629,16 @@ class ReactionRates:
         """
         Interstitial atoms deposited into loop content by the nucleation/loop
         reactions, equal to exactly the atoms removed from Ci/C2i/C3i by the
-        R_i_3i (1+3), R_2i_2i (2) and R_2i_3i (3) reactions. Splitting this by the
-        loop fractions (f_na, f_a) and adding it to dCiL_i/dCaiL_i makes loop
-        nucleation mass-conserving (mirrors rate_equations.cpp).
+        R_i_3i (1+3 per event), R_2i_2i (2 per di-interstitial lost) and
+        R_2i_3i (2+3 per event) reactions. Splitting this by the loop fractions
+        (f_na, f_a) and adding it to dCiL_i/dCaiL_i makes loop nucleation
+        mass-conserving (mirrors rate_equations.cpp).
         """
         if concentrations is None:
             concentrations = self.current_concentrations
         return (4.0 * self.R_i_3i(concentrations)
                 + 2.0 * self.R_2i_2i(concentrations)
-                + 3.0 * self.R_2i_3i(concentrations))
+                + 5.0 * self.R_2i_3i(concentrations))
 
     # Thermal annealing rates
     def annealing_rate_vL(self, concentrations=None):

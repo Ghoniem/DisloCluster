@@ -103,7 +103,12 @@ def render(run, twin=None, dose=10.0, out_file=None, dpi=200):
             if B is not None:
                 ax.plot(xc, B[fam][j], color=col, ls='--', lw=1.2, alpha=0.75,
                         label=f"{name}, no GB channel")
-        ax.set_xscale('log')
+        # LINEAR in distance. A log abscissa compresses the whole denuded
+        # zone -- which is the subject of the figure -- into the left third of
+        # the panel and stretches the flat interior across the rest, so the
+        # width of the zone cannot be read off it. The profile is a function of
+        # distance, not of its logarithm, and the recovery to the interior
+        # plateau is what the figure is for.
         ax.set_xlabel('distance to the nearest face  [nm]')
         ax.set_ylabel(lab)
         ax.grid(alpha=0.3, which='both')

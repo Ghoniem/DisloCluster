@@ -7,7 +7,7 @@
 % EVERY EDGE IS CHECKED AGAINST THE SOLVER, not against the prose. An earlier
 % version of this figure omitted the cascade sources of C_2i, C_3i and of the
 % prismatic vacancy loops; the mobile clustering ladder and its dissociation
-% edges; the homogeneous loop-nucleation channel that 2i+2i and i+3i feed; and
+% edges; the homogeneous loop-nucleation channel that 2i+2i, i+3i and 2i+3i feed; and
 % the capture edges onto the basal family. Each appears in
 % `rate_equations_core.h`, and each is now drawn.
 %
@@ -102,7 +102,7 @@
 
   % ---- P6 homogeneous nucleation, P7 capture ----------------------------
   \draw[src] (C3i.south) to[bend left=26]
-       node[right, pos=0.4, font=\scriptsize] {$R_{i,3i}+R_{2i,2i}$ (P6)}
+       node[right, pos=0.4, font=\scriptsize] {$R_{i,3i}+R_{2i,2i}+R_{2i,3i}$ (P6)}
        (ai.north east);
   \draw[capture] (MOB.south) to[bend left=4]
        node[right, pos=0.55, font=\scriptsize] {$\phi_{km}$ (P7)} (ai.north);
@@ -114,7 +114,8 @@
 
   % ---- P8 peripheral emission, returning on the far left ----------------
   \draw[diss] (av.west) to[bend left=28]
-       node[left, pos=0.72, font=\scriptsize] {$S_{vL}$ (P8)} (Cv.south);
+       node[left, pos=0.72, font=\scriptsize, align=right]
+       {$S_{vL}$ (P8)\\[-2pt]$\nu_{\mathrm{van}}$ (P15)} (Cv.south);
   \draw[diss] (cf.west) to[bend left=20] (Cv.south west);
 
   % ---- P9 loop-loop coalescence, on the free right flank ----------------
@@ -156,11 +157,13 @@ becomes a stub onto $c_0$ when the basal chain is active, which it is not in
 loop sums over all of them (\cref{eq:growth}) with a sign set by whether the
 species' polarity matches the family's, so one bundled arrow per family is
 faithful where four would be unreadable. The interstitial prismatic family has a
-second, homogeneous nucleation channel (P6) fed by $2i+2i$ and $i+3i$ reactions
-among the mobile clusters, which is why the mobile ladder and the loop
+second, homogeneous nucleation channel (P6) fed by the $2i+2i$, $i+3i$ and
+$2i+3i$ reactions among the mobile clusters, which is why the mobile ladder and the loop
 populations are not separable even in principle. Dashed orange edges run
-backwards to the mobile pool: dissociation of a small cluster (P3) and
-peripheral emission from a vacancy loop (P8). The three prismatic variants of
+backwards to the mobile pool: dissociation of a small cluster (P3), peripheral
+emission from a vacancy loop (P8), and the dissolution of a loop that has shrunk
+below the minimum stable size (P15), which returns the whole of its content at
+once where emission returns it one defect at a time. The three prismatic variants of
 each character are drawn as one vertex for legibility; they are separate
 populations that exchange nothing with one another and differ only in habit
 normal. The pyramid $c_0$ is not a loop --- it has no Burgers vector, no

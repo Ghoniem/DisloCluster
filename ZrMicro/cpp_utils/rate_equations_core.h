@@ -130,20 +130,48 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
     T emission_3i = ke_3i * C3i;
 
     // ── Nucleation rates ────────────────────────────────────────────────────
-    // Loop-number nucleation: each i+3i / 2i+2i reaction forms one loop, split
-    // between non-aligned (f_na = 1 - f_a) and aligned (f_a).
+    // Loop-number nucleation from the three clustering reactions, split between
+    // non-aligned (f_na = 1 - f_a) and aligned (f_a).
+    //
+    // ONE LOOP PER EVENT, AT THE SIZE THE EVENT MAKES. That is the rule the
+    // weights below encode, and both of them used to break it:
+    //
+    //   i+3i  -> 4i : R_i_3i  is an event rate (unlike pair), weight 1
+    //   2i+2i -> 4i : R_2i_2i is the di-interstitial LOSS rate, and two are
+    //                 lost per event, so the event rate is 0.5*R_2i_2i --
+    //                 exactly the 0.5*R_i_i that i+i -> 2i already carries
+    //   2i+3i -> 5i : R_2i_3i is an event rate (unlike pair), weight 1
+    //
+    // 2i+3i USED TO BE ABSENT HERE, and absent from ydot[2] as well, while
+    // still depositing 3 defects into loop content: the di-interstitial drove
+    // the reaction without being consumed by it and the 5i cluster it formed
+    // was never counted as a loop.
+    //
+    // 2i+2i USED TO BE CREDITED AT R_2i_2i, one loop per di-interstitial lost
+    // rather than one per event, so each embryo came out at 2 defects where
+    // the cluster is 4i. The rate constant is NOT the error and is unchanged:
+    // k_2i_2i = 4*omega_2i is corroborated against MoDELib's own Zr3d_ghoniem
+    // K for this channel to 0.05% (see the code history), and the content
+    // credit 2.0*R_2i_2i already balanced the debit exactly.
+    //
+    // Mean embryo size is now 4, 4 and 5 defects on the three channels, which
+    // is what the reactions make.
     const double nuc_iL_frac  = P.f_na;
     const double nuc_aiL_frac = P.f_a;
 
     // Two a-loop nucleation sources: homogeneous clustering, plus the cascade
     // source G_iL/G_aiL per n_iL_nuc interstitials. G_iL/G_aiL already carry
     // the (1-f_a)/f_a split, so they are NOT re-scaled by nuc_*_frac.
-    T nuc_iL  = nuc_iL_frac  * (R_i_3i + R_2i_2i) + P.G_iL  / P.n_iL_nuc;
-    T nuc_aiL = nuc_aiL_frac * (R_i_3i + R_2i_2i) + P.G_aiL / P.n_iL_nuc;
+    T nuc_clust = R_i_3i + 0.5 * R_2i_2i + R_2i_3i;
+    T nuc_iL  = nuc_iL_frac  * nuc_clust + P.G_iL  / P.n_iL_nuc;
+    T nuc_aiL = nuc_aiL_frac * nuc_clust + P.G_aiL / P.n_iL_nuc;
 
     // Interstitial atoms consumed by the nucleation/loop reactions, deposited
     // into loop content so loops nucleate at finite size and mass is conserved.
-    T nuc_content = 4.0 * R_i_3i + 2.0 * R_2i_2i + 3.0 * R_2i_3i;
+    // Each weight is the defect content the same reaction removes from the
+    // mobile block: 1+3 per i+3i event, 2 per di-interstitial lost to 2i+2i,
+    // 2+3 per 2i+3i event. Deposited == withdrawn, exactly.
+    T nuc_content = 4.0 * R_i_3i + 2.0 * R_2i_2i + 5.0 * R_2i_3i;
 
     // Vacancy loops: G_vL/G_avL are cascade vacancy ATOM rates; loop NUMBER
     // nucleation = G_vL/n_vL_nuc (content seed G_vL added to dCvL_v below).
@@ -586,7 +614,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // recovers the bits, because a family sitting at the concentration
         // floor still feeds floor-level terms into coalescence and rho_N.
         const double G_vL_basal = (nf > 4) ? P.G_vL : (P.G_vL + P.G_avL);
-        T nuc_a_num  = (R_i_3i + R_2i_2i) + T(G_iL_tot / P.n_iL_nuc);
+        T nuc_a_num  = nuc_clust + T(G_iL_tot / P.n_iL_nuc);
         T nuc_a_cont = nuc_content + T(G_iL_tot);
         f_nucn[0] = T(G_vL_basal / P.n_vL_nuc);
         f_nucc[0] = T(G_vL_basal);
@@ -903,7 +931,7 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
 
     // dC2i/dt  (Equations 38-39)
     ydot[2] = P.G_2i + 0.5 * R_i_i + R_3i_v
-              - (R_2i_v + R_i_2i + R_2i_2i + R_2i_s) - emission_2i;
+              - (R_2i_v + R_i_2i + R_2i_2i + R_2i_3i + R_2i_s) - emission_2i;
 
     // dC3i/dt  (Equations 40-41)
     ydot[3] = P.G_3i + R_i_2i

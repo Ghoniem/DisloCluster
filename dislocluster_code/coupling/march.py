@@ -299,6 +299,101 @@ def _march_fingerprint(cfg, qssa_sim, seed_evl, snaps, base_cli, N):
     )
 
 
+def _boundary_layer_retry(out, Y, x_nm, base_cli, t0, t1, cfg, gb_per_case,
+                          n_species=4, verbose=True):
+    """Re-solve failed points on an analytic boundary-layer profile.
+
+    WHAT FAILS, AND WHY IT IS NOT THE INTEGRATOR. A point that fails the slow
+    step is typically the first interior node off a Dirichlet face, and its
+    concentrations are unremarkable: on the 500 nm prism the failing node
+    carried Cv 1.95e-7 and Ci 3.08e-11 with nothing on the floor, while its
+    immediate mesh neighbours sat at the boundary values 8.46e-15 and 4.11e-27
+    -- eight and sixteen orders of magnitude away, and forty for C2i. The
+    mobile field crosses the layer inside ONE element, so the frozen values
+    handed to the immobile ODEs are not a sample of any resolved profile. No
+    tolerance can fix a coefficient that is wrong, which is why three retries
+    at successively tighter tolerances recover nothing.
+
+    THE REPAIR. A diffusion--reaction boundary layer against an absorbing
+    surface has the closed form
+
+        c(x) = c_eq + (c_inf - c_eq) (1 - exp(-x/L)),
+
+    and the march already holds everything needed to place a failed node on it.
+    Rather than build L from D/k^2 -- which would need the sink strength at a
+    node whose neighbourhood is exactly what is unresolved -- L, c_eq and c_inf
+    are FITTED per species to the points that solved successfully, by weighted
+    least squares in log c against distance. The failed node's frozen mobile
+    values are replaced by that fit evaluated at its own distance, and the
+    integration is retried.
+
+    WHAT THIS IS AND IS NOT. It repairs an under-resolved field using the
+    profile the field is known to have; it is not new physics, and it is not a
+    substitute for resolving the layer. Three limits are worth stating. The
+    exponential is the solution for a linearized sink on a PLANAR boundary, so
+    it degrades at an edge or corner of the crystal, which is where these
+    failures cluster. It moves only the four mobile values, leaving the point's
+    own immobile state untouched, so it cannot repair a state that has already
+    drifted. And a point it fails to rescue still falls through to the identity
+    step, which freezes it. The count of repaired points is reported, because a
+    march in which this fires often is a march whose boundary mesh is too
+    coarse, and that should be visible rather than absorbed.
+    """
+    bad = [q for q, o in enumerate(out) if o is None]
+    good = [q for q, o in enumerate(out) if o is not None]
+    if not bad or len(good) < 50:
+        return out, 0
+
+    xg = np.asarray(x_nm)[good]
+    Yg = np.asarray(Y)[good]
+    xb = np.asarray(x_nm)[bad]
+    y_fix = np.array([Y[q].copy() for q in bad], dtype=float)
+
+    fitted = 0
+    for m in range(n_species):
+        c = Yg[:, m]
+        pos = c > 0
+        if pos.sum() < 50:
+            continue
+        c_eq = float(np.min(c[pos]))
+        c_inf = float(np.percentile(c[pos], 99.0))
+        if not (c_inf > c_eq > 0):
+            continue
+        # Fit L by least squares on log(1 - (c - c_eq)/(c_inf - c_eq)) = -x/L,
+        # restricted to the points that are inside the layer and strictly
+        # between the two asymptotes -- outside it the expression is noise.
+        f = (c[pos] - c_eq) / (c_inf - c_eq)
+        sel = (f > 0.02) & (f < 0.98)
+        if sel.sum() < 20:
+            continue
+        xs, fs = xg[pos][sel], f[sel]
+        L = float(-np.sum(xs * xs) / np.sum(xs * np.log1p(-fs)))
+        if not np.isfinite(L) or L <= 0:
+            continue
+        y_fix[:, m] = c_eq + (c_inf - c_eq) * (1.0 - np.exp(-xb / L))
+        fitted += 1
+
+    if not fitted:
+        return out, 0
+
+    per = ([gb_per_case[q] for q in bad] if gb_per_case is not None else None)
+    st2 = {}
+    fixed = mc.run_immobile_step(base_cli, list(y_fix), t0, t1,
+                                 base_dir=paths.ZRMICRO_DIR,
+                                 dedup_rtol=0.0, stats=st2, retries=0,
+                                 per_case=per)
+    n_fixed = 0
+    for q, o in zip(bad, fixed):
+        if o is not None:
+            out[q] = o
+            n_fixed += 1
+    if verbose and bad:
+        print(f"      boundary-layer profile: {n_fixed}/{len(bad)} point(s) "
+              f"re-solved on the fitted layer ({fitted}/{n_species} species "
+              f"fitted)", flush=True)
+    return out, n_fixed
+
+
 def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                 dose_map=None, mobile_mode=None, fem_every=None, verbose=True,
                 max_failed_nodes=None, cfg=None,
@@ -329,6 +424,7 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     Returns ``(history, timing, bridge, diagnostics)``.
     """
     cfg = default_config() if cfg is None else cfg
+    n_bl_fixed = 0          # points rescued by the boundary-layer guard
     # An explicit keyword still wins over the config, so every existing caller
     # -- which passes fem_every/mobile_mode and monkey-patches the rest -- gets
     # exactly what it got before.
@@ -521,11 +617,14 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
     # `interior_mask` and `discrete_loops` use -- one definition of "how far
     # from the boundary", not three. Nodes are in b and the solver wants metres.
     gb_per_case = None
+    # The distance is wanted whether or not the loop channel is on: the
+    # boundary-layer guard below repairs an unresolved mobile profile, which is
+    # a property of the mesh and not of that channel.
+    from dislocluster_code.post.fields import gb_distance as _gbd
+    _x_b = _gbd(np.asarray(br.nodes, dtype=float))
+    _b_si = float(mfield.read_material_scalar(paths.MODELIB_MATERIAL, "b_SI"))
+    _x_nm = np.maximum(_x_b, 0.0) * _b_si * 1e9
     if int(getattr(cfg, "gb_absorption", 0)):
-        from dislocluster_code.post.fields import gb_distance as _gbd
-        _x_b = _gbd(np.asarray(br.nodes, dtype=float))
-        _b_si = float(mfield.read_material_scalar(
-            paths.MODELIB_MATERIAL, "b_SI"))
         _x_m = np.maximum(_x_b, 0.0) * _b_si
         gb_per_case = [[f"--x_gb={x:.12g}"] for x in _x_m]
         # THE SUPPORT CAP COMES FROM THE SAME GEOMETRY, so it is not a second
@@ -739,6 +838,12 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                                        per_case=gb_per_case)
             slow_s = time.perf_counter() - t_slow
             nfail = sum(o is None for o in out)
+            if nfail and nfail < N:
+                out, n_fixed = _boundary_layer_retry(
+                    out, Y, _x_nm, base_cli, a, b, cfg, gb_per_case,
+                    verbose=verbose)
+                nfail = sum(o is None for o in out)
+                n_bl_fixed += n_fixed
             if (N and nfail == N) or (max_failed_nodes is not None
                                       and nfail > max_failed_nodes):
                 bad_idx = [q for q, o in enumerate(out) if o is None]
@@ -756,7 +861,14 @@ def run_coupled(sim, qssa_sim, seed_evl, snaps, evl_out, standalone_sim=None,
                         bad_idx=np.array(bad_idx, dtype=int),
                         t_begin=float(a), t_end=float(b),
                         dose_from=float(d0), dose_to=float(d1),
-                        substep=int(k + 1), k_global=int(k_global))
+                        substep=int(k + 1), k_global=int(k_global),
+                        # THE COMMAND LINE IS PART OF THE STATE. Without it the
+                        # dump cannot be replayed: reconstructing base_cli means
+                        # rebuilding the sim object and every solver switch, and
+                        # a reconstruction that differs anywhere reproduces a
+                        # different integration. It is a short list of strings.
+                        base_cli=np.array(base_cli, dtype=object),
+                        x_nm=np.asarray(_x_nm, dtype=float))
                     print(f"      wrote {Path(dump) / 'failed_state.npz'}",
                           flush=True)
                 except Exception as exc:

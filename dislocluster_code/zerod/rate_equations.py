@@ -263,9 +263,12 @@ class RateEquations:
         # interstitials are added in dCi_dt as 2*emission_2i). Mirrors rate_equations.cpp.
         emission = self.reaction_rates.emission_2i(y)
 
-        # Consumption terms
+        # Consumption terms. R_2i_3i is the di-interstitial's share of the
+        # 2i+3i clustering reaction; it used to be absent here, so that channel
+        # consumed the 3i and left the 2i untouched.
         consumption = self.reaction_rates.R_2i_v(y) + self.reaction_rates.R_i_2i(y) \
-                      + self.reaction_rates.R_2i_2i(y) + self.reaction_rates.R_2i_s(y)
+                      + self.reaction_rates.R_2i_2i(y) + self.reaction_rates.R_2i_3i(y) \
+                      + self.reaction_rates.R_2i_s(y)
 
         return generation + formation - consumption - emission
     

@@ -68,8 +68,15 @@ given to the clusters alone. Parameters arrive as `--dad_p_<m>`, `--dad_Z0_<m>`,
 `--loop_sink_scale_<k>`, `--variant_frac_<k>`, emitted by
 `zerod/cpp_bridge.py` from the MoDELib material file.
 
-**`loop_model = 0` is bit-identical to the pre-change solver** (`sha256
-8bcc7780…` on a 25-point integration). Its `ydot` assembly and paired
+**`loop_model = 0` was bit-identical to the pre-change solver** (`sha256
+8bcc7780…` on a 25-point integration) until the two homogeneous-nucleation
+channels were corrected — `R_2i_3i` now debits `ydot[2]`, carries content weight
+5.0 and feeds the loop-number current, and `2i+2i` feeds it at `0.5*R_2i_2i`
+(one loop per event, not per 2i lost). Embryo sizes are now 4i, 4i and 5i;
+the objective moves 3.2e-7 relative, and the root
+[`CLAUDE.md`](../CLAUDE.md#two-formulations-of-the-slow-step--solverloop_model)
+carries the numbers and the `2i+2i` counterpart that was deliberately left
+alone. Its `ydot` assembly and paired
 accumulator sums in `rate_equations_core.h` are kept **verbatim** inside
 `if (P.loop_model == 0)` for that reason: regrouping `growth + nuc + G` into
 `growth + (nuc + G)` is algebraically identical and moves the 10th significant

@@ -71,6 +71,41 @@ OS_DOSE_LO = 1e-3
 HIGHT_THR  = 650.0
 HIGHT_BOOST = 2.0
 WLOOP = {'A': 1.0, 'C': 1.0}
+
+#: Per-family multipliers on the EXPERIMENTAL TARGETS, (density, diameter).
+#:
+#: THIS IS THE 0-D -> 3-D TRANSFER, NOT A FUDGE. The fit is a 0-D fit and the
+#: calculation it feeds is a 3-D one on a Dirichlet grain, where the boundary is
+#: a sink the 0-D does not have. The two therefore do NOT report the same loop
+#: population at the same parameters, and a set fitted to land the 0-D on
+#: experiment lands the 3-D interior somewhere else. Setting SLACK[f] = (s_N,
+#: s_d) fits the 0-D to (s_N N_exp, s_d d_exp) instead, so that the 3-D interior
+#: -- which is the 0-D divided by the same transfer -- lands on experiment.
+#:
+#: Both entries default to 1, which is a fit to experiment itself, and every
+#: number REPORTED (cloop_table, refit_report's parity plot and its log-ratio
+#: statistics) is against the raw measurement whatever SLACK holds. Only the
+#: objective sees the shift.
+#:
+#: The factors are measured, and they are NOT the same for the two families --
+#: which is why one global slack would be wrong. See `refit_slack`.
+SLACK = {'A': (1.0, 1.0), 'C': (1.0, 1.0)}
+
+#: Per-family weight on the DIAMETER term, relative to the density term.
+#:
+#: WITHOUT THIS THE FIT SELLS THE <c> SIZE TO BUY <c> DENSITY, and it is not a
+#: scoring artifact -- with DIAM_LOG the two terms are the same functional form,
+#: so the trade is one the objective genuinely prefers. It ends with basal loops
+#: at 200-220 nm against 95-150 nm measured, and a loop that size is not merely
+#: inaccurate: r = 110 nm in a 500 nm hexagonal prism (half-width 250 nm) is
+#: geometrically refused by `transition.fits_in_crystal`, so the continuum ->
+#: discrete handoff and the hardening cell both come out empty. The <c> diameter
+#: is a FEASIBILITY constraint on the 3-D calculation, not just a data point.
+#:
+#: Raising it is preferred to shrinking the admissible box, because a bound
+#: reports as a rail and hides whether the data wanted the value; a weight
+#: leaves the optimum interior and visible.
+WDIAM = {'A': 1.0, 'C': 1.0}
 NPTS, RTOL, ATOL = 70, 1e-6, 1e-20
 SOLVER = {'backend': 'cvode', 'lmm': 'bdf', 'linsol': 'dense'}
 
@@ -433,7 +468,9 @@ def objective_full(pdict, want_breakdown=False):
                 continue
             g = GROUPS[k][T]
             N_sim, d_sim = _sample(dose, series[k][0], series[k][1], g['dpa'].to_numpy())
-            mN, md = g['N_L'].to_numpy(), g['d'].to_numpy()
+            sN, sD = SLACK.get(k, (1.0, 1.0))
+            mN = g['N_L'].to_numpy() * sN
+            md = g['d'].to_numpy() * sD
             okN, okD = ~np.isnan(mN), ~np.isnan(md)
             res = []
             if okN.any():
@@ -445,7 +482,8 @@ def objective_full(pdict, want_breakdown=False):
                         np.maximum(d_sim[okD], 1e-12) / md[okD])) ** 2))
                 else:
                     sMSE = float(np.mean(((d_sim[okD] - md[okD]) / md[okD]) ** 2))
-                res.append(W_DIAM * sMSE); tk[k]['sD'] += sMSE * nT; tk[k]['wD'] += nT
+                res.append(WDIAM.get(k, W_DIAM) * sMSE)
+                tk[k]['sD'] += sMSE * nT; tk[k]['wD'] += nT
             if not res:
                 continue
             score = float(np.mean(res)); w = WLOOP[k] * nT

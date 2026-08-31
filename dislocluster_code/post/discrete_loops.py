@@ -855,7 +855,7 @@ def _densify_closed(pts, max_step):
 
 def render(pops, box_lo, box_hi, out_file, title="", domain_pts=None,
            max_loops=4000, elev=22.0, azim=-58.0, dpi=150, verbose=True,
-           orientation=True, clip_to_domain=True):
+           orientation=True, clip_to_domain=True, legend=True):
     """Draw the discrete population as tubular dislocation lines.
 
     Tube width is a drawing choice only -- a dislocation line has no thickness --
@@ -949,7 +949,11 @@ def render(pops, box_lo, box_hi, out_file, title="", domain_pts=None,
     handles = [plt.Line2D([], [], color=f["color"], lw=4,
                           label=f"{f['label']}  b = {f['b_tex']}   ({len(p)})")
                for f, p in ((p.fam, p) for p in pops) if len(p)]
-    ax.legend(handles=handles, loc="upper left", frameon=False, fontsize=9)
+    # The per-axes legend is suppressible because a MONTAGE carries its own.
+    # Repeated once per panel it both duplicates the shared key and, at panel
+    # width, runs off the right edge of the drawing.
+    if legend:
+        ax.legend(handles=handles, loc="upper left", frameon=False, fontsize=9)
     fig.tight_layout()
     # After tight_layout, which moves the axes the triad measures itself from.
     if orientation:

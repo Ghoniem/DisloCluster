@@ -234,9 +234,18 @@ MODELIB_TUTORIALS    = MODELIB_ROOT / "tutorials"
 COUPLED_SIM_TUTORIAL = MODELIB_TUTORIALS / "zrmicro_coupled"
 # build_modelib.sh builds on Linux, WSL and macOS alike. The old WSL-only name
 # is still accepted so a checkout that predates the rename keeps building.
+#
+# THE SUBDIRECTORY MATTERS. The script moved into `build_notes/` when the
+# manuscript was reorganized, and because only `Docs/Formulation/` was searched
+# `ensure_modelib()` reported "build script missing" and returned None -- so a
+# stale DDomp could never be rebuilt automatically, and the failure surfaced
+# much later as the bootstrap rejecting the binary for predating
+# `useImmobileSolver`. Both directories are searched now.
 MODELIB_BUILD_SCRIPT = next(
-    (DOCS_FORMULATION / n for n in ("build_modelib.sh", "build_modelib_wsl.sh")
-     if (DOCS_FORMULATION / n).is_file()),
+    (d / n
+     for d in (DOCS_FORMULATION, DOCS_FORMULATION / "build_notes")
+     for n in ("build_modelib.sh", "build_modelib_wsl.sh")
+     if (d / n).is_file()),
     DOCS_FORMULATION / "build_modelib.sh")
 
 # ── Simulation cases ─────────────────────────────────────────────────────────

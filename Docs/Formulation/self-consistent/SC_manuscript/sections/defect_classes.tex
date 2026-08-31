@@ -17,10 +17,12 @@ with
 \end{equation}
 the latter carrying a Burgers-vector component along the hexagonal axis.
 
-Four principal cluster families span that population, together with the two free
-monomers~\citep{Carpenter1988,Northwood1977,OnimusBechade2012,Yi2013,Doriot2015}:
+Five principal cluster families span the immobile part of that population,
+together with the four species that remain mobile and feed
+it~\citep{Carpenter1988,Northwood1977,OnimusBechade2012,Yi2013,Doriot2015}. The
+immobile families are
 \begin{equation}
-  I_n^{a},\qquad V_n^{a},\qquad S_n,\qquad V_n^{c},
+  I_n^{a},\qquad V_n^{a},\qquad S_n,\qquad V_n^{c_f},\qquad V_n^{c_p},
   \label{eq:zr-loop-classes}
 \end{equation}
 where $I_n^{a}$ is an interstitial prismatic \aloop{} loop of $n$ excess
@@ -28,22 +30,65 @@ self-interstitials on a $\{10\bar10\}$ habit, $V_n^{a}$ a vacancy prismatic loop
 of the same habit and Burgers vector but opposite character, $S_n$ a basal
 stacking-fault pyramid of $n$ aggregated vacancies bounded by basal
 $\tfrac16\langle20\bar23\rangle$ and prismatic facets and formed directly from
-collapsed cascade vacancy debris, and $V_n^{c}$ a basal vacancy
-\cloop{}-component loop, which nucleates above a temperature- and
-dose-rate-dependent threshold, in part by unfaulting of supercritical pyramids,
-and which drives breakaway irradiation growth at high
-fluence~\citep{holt1986c,HoltCausey1993,Yi2013}. The free monomers are the
-mono-interstitial $C_i$ and the monovacancy $C_v$. Neither helium nor a
-three-dimensional void population is carried, because Zr alloys generate a
-negligible $(n,\alpha)$ helium yield and multi-vacancy cascade debris in
-$\alpha$-Zr collapses onto basal or prismatic habits rather than forming compact
-cavities~\citep{Northwood1977,OnimusBechade2012}.
+collapsed cascade vacancy debris, $V_n^{c_f}$ a faulted basal vacancy
+\cloop{}-component loop and $V_n^{c_p}$ its perfect counterpart. The last two are
+one population at two stages of a single transformation, separated by the fault
+they do or do not carry. The faulted loop has Burgers vector
+$\tfrac16\langle20\bar23\rangle$ with edge component $c/2$, removes one basal
+layer, and is the \cloop{} loop that neutron-irradiation micrographs
+predominantly report~\citep{jostsons1977nature,griffiths1988review,carpenter1981study};
+the perfect loop has $\bvec=[0001]$, edge component $c$, removes two layers, and
+forms when a supercritical faulted loop unfaults and sheds its stacking
+fault~\citep{christiaen2019new,dai2021stability,varvenne2014vacancy}. Both are
+carried because the vacancy content stored per unit area is then a property of
+the state rather than a fitted average of the two: the perfect loop stores twice
+the vacancies per unit area that the faulted one does, so the unfaulting transfer
+of \cref{eq:basal-chain} conserves vacancies exactly while halving the area they
+occupy, and the radius, the line density and the capture cross-section of the
+population all change although its stored content does not. A model holding a
+single basal state must absorb that change into a fitted mean instead. The basal
+population as a whole appears above a temperature- and dose-rate-dependent
+threshold, by collapse of supercritical pyramids, and drives breakaway
+irradiation growth at high fluence~\citep{holt1986c,HoltCausey1993,Yi2013}.
+Neither helium nor a three-dimensional void population is carried, because Zr
+alloys generate a negligible $(n,\alpha)$ helium yield and multi-vacancy cascade
+debris in $\alpha$-Zr collapses onto basal or prismatic habits rather than
+forming compact cavities~\citep{Northwood1977,OnimusBechade2012}.
+
+The families of \cref{eq:zr-loop-classes} are fed, and drained, by the four
+species that migrate,
+\begin{equation}
+  \mathcal M=\{\,C_v,\;C_i,\;C_{2i},\;C_{3i}\,\},
+  \label{eq:mobile-classes}
+\end{equation}
+the monovacancy, the mono-interstitial and the di- and tri-interstitial, with
+signed defect contents $-1,+1,+2$ and $+3$. The two small interstitial clusters
+are state variables in their own right rather than a correction folded into
+$C_i$, and three properties make the distinction load-bearing rather than
+bookkeeping. They are produced directly, since a fraction of the interstitial
+debris of a displacement cascade emerges already clustered rather than as
+isolated
+self-interstitials~\citep{voskoboinikov2006identification,Voskoboinikov2008,Bjorkas2009Zr}.
+They remain glissile and migrate with their own diffusion
+tensors~\citep{de2002mobility,Domain2002,peng2012stability}, so each carries its
+own anisotropy parameter $p^{m}$ in \cref{eq:pm} and its own capture efficiency
+$Z_{sk,m}$ at every family in \cref{eq:Zsk}; an anisotropy assigned to $C_i$
+alone would misstate the directionality of the flux the clusters carry, which is
+the quantity the coexistence criterion of \cref{sec:coexistence} is written in.
+And they are the homogeneous nucleation channel for the interstitial prismatic
+loops, through the $2i+2i$, $i+3i$ and $2i+3i$ reactions that produce a cluster past the
+mobile cut-off, so the mobile ladder and the loop populations are not separable
+even in principle. Each also recombines with vacancies, at rates $R_{v,2i}$ and
+$R_{v,3i}$ distinct from $R_{i,v}$, and dissociates thermally against its own
+binding energy. The ladder is closed at three interstitials: anything larger is
+immobile and is carried as a loop, a truncation stated with its consequences in
+\cref{sec:formulation}.
 
 This classification separates character, interstitial or vacancy, from
 crystallography, prismatic or basal, and both distinctions carry weight. Two
 families sharing a habit plane and a Burgers vector but differing in character,
 $I_n^a$ and $V_n^a$, respond to the same mobile fluxes with opposite sign, while
-two families sharing a character but differing in habit, $V_n^a$ and $V_n^c$,
+two families sharing a character but differing in habit, $V_n^a$ and $V_n^{c_f}$,
 present differently oriented capture cross-sections to an anisotropic diffusion
 field and therefore compete for the same vacancies on unequal terms. It is that
 second competition, taken up in \cref{sec:coexistence}, which the self-consistent
@@ -170,11 +215,12 @@ $c_0$ & $(0001)$ base & partials & $v$ &
 \end{table}
 
 The coupled kinetics are generated from a directed multigraph, the reaction
-admissibility graph, whose vertices are the admissible cluster states and whose
-edges are the elementary reactions permitted by the polarity, habit-plane and
-mobility constraints above. The master equations follow by a deterministic graph
-walk, the time derivative at each vertex being the signed sum of the rate kernels
-of all incoming and outgoing edges incident on it. Vertices partition by
+admissibility graph~\citep{GhoniemRadCluster2026}, whose vertices are the
+admissible cluster states and whose edges are the elementary reactions permitted
+by the polarity, habit-plane and mobility constraints above. The master
+equations follow by a deterministic graph walk, the time derivative at each
+vertex being the signed sum of the rate kernels of all incoming and outgoing
+edges incident on it. Vertices partition by
 polarity,
 \begin{align}
   \mathcal V^{+} &= \{C_i,C_{2i},C_{3i}\}\cup\{(i,a_k)\}, \\
@@ -182,9 +228,12 @@ polarity,
 \end{align}
 so that the interstitial prismatic families lie on the positive branch and the
 six vacancy families on the negative one. \Cref{tab:rag-processes} catalogs the
-fourteen edge classes and \cref{fig:rag} draws the graph, and both are drawn
+fifteen edge classes and \cref{fig:rag} draws the graph, and both are drawn
 against the equations summarized in \cref{sec:summary-equations} rather than
-against a description of them.
+against a description of them. Every class in the table appears as a named term
+of the master equation \cref{eq:master}, and the correspondence is one to one in
+both directions: nothing in the table is missing from that equation, and no term
+of that equation lacks an edge here.
 
 Three of those classes deserve comment, because they are absent from the
 mean-field treatment this model replaces and are easily overlooked. Cascade
@@ -193,19 +242,25 @@ part $G_m$ deposited into the mobile species, and a part $J_k$ that nucleates
 loops directly, with its own share for the prismatic families of \emph{both}
 characters as well as for the basal family. Alongside that cascade route the
 interstitial prismatic family has a second, homogeneous nucleation channel fed by
-$2i+2i$ and $i+3i$ reactions among the mobile clusters, so that the mobile ladder
+the $2i+2i$, $i+3i$ and $2i+3i$ reactions among the mobile clusters, so that the mobile ladder
 and the loop populations are not separable even in principle. And the grain
 boundary appears twice, as a Dirichlet condition on the mobile species and as a
 size-gated removal acting on the loops themselves; the second has no counterpart
 in a mean-field treatment, where a loop has no size relative to a boundary that
-is itself only a sink strength.
+is itself only a sink strength. That removal has a companion gated the opposite
+way, the dissolution of loops that have shrunk below the minimum stable size,
+and the two are one process class read in the two senses: the first takes the
+loops above a threshold and sends their defects out of the crystal, the second
+takes those below one and returns them to the mobile pool.
 
 \begin{table}[htbp]
 \caption{Admissible process classes of the irradiated-Zr reaction admissibility
 graph. Each elementary reaction maps to one abstract edge class and one rate
 kernel; the explicit kernels appear in \cref{sec:formulation} at the equation
-indicated. P14 has no counterpart in the mean-field treatment and is introduced
-in \cref{sec:gb-loops}.}
+indicated, and each is one named term of \cref{eq:master}. P14 has no
+counterpart in the mean-field treatment and is introduced in
+\cref{sec:gb-loops}; P15 is its complement, gated on the other side of the
+distribution.}
 \label{tab:rag-processes}
 \centering\small
 \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{0.32\textwidth}Xl@{}}
@@ -220,7 +275,7 @@ P3  & thermal dissociation of a mobile cluster & $\alpha^{m,n}$ &
 P4  & cascade production into the mobile species & $G_m$ & \cref{eq:master-c} \\
 P5  & cascade nucleation of loops, both characters & $J_k$ & \cref{eq:block-n} \\
 P6  & homogeneous loop nucleation from mobile clusters &
-      $R_{i,3i}+R_{2i,2i}$ & \cref{eq:block-n} \\
+      $R_{i,3i}+R_{2i,2i}+R_{2i,3i}$ & \cref{eq:block-n} \\
 P7  & capture at a loop or the pyramid, of either polarity & $\phi_{km}$ &
       \cref{eq:growth} \\
 P8  & peripheral emission from a vacancy loop & $S_{vL}$ & \cref{eq:Semit} \\
@@ -234,6 +289,8 @@ P13 & absorption of a mobile species at a grain boundary & Dirichlet &
       \cref{eq:bc} \\
 P14 & size-gated absorption of \emph{loops} at a grain boundary & $\nu_{gb}$ &
       \cref{eq:gbloop} \\
+P15 & dissolution of loops below the minimum stable size &
+      $\nu_{\mathrm{van}}$ & \cref{eq:vanish} \\
 \bottomrule
 \end{tabularx}
 \end{table}

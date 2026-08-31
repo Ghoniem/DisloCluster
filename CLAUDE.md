@@ -508,11 +508,46 @@ redefined, only its directional weighting.** `p_m`, `Z0_m` and `loopSinkScale`
 are read from `Zr3d_ghoniem.txt`, not the workbook — the one file both sides
 share, and the file `anisotropy.py` writes.
 
-**The legacy path is bit-identical** (`sha256 8bcc7780…`, 25-point integration),
+**The legacy path was bit-identical** (`sha256 8bcc7780…`, 25-point integration),
 and that is why the legacy `ydot` assembly in `rate_equations_core.h` is kept
 **verbatim** inside `if (P.loop_model == 0)`. Do not tidy it: regrouping
 `growth + nuc + G` into `growth + (nuc + G)` — algebraically identical — moves
 the 10th significant digit, which was measured (`ff2980c4` vs `8bcc7780`).
+
+**That hash no longer holds, by one deliberate correction: the `2i+3i`
+channel.** It used to consume `C3i` and *not* `C2i` — `R_2i_3i` was absent from
+`ydot[2]` — while still depositing `3*R_2i_3i` into loop content and creating no
+loop at all. So the di-interstitial drove the reaction without being consumed by
+it, and the 5i cluster it formed was never counted. It is now the exact analogue
+of `i+3i`: `R_2i_3i` debits `ydot[2]`, the content weight is `5.0` (2+3), and the
+channel joins `R_i_3i + R_2i_2i` in the loop-number current (`nuc_clust`, both
+loop models). **The effect is nil in practice** — `k_2i_3i = 2*omega_2i` and
+`omega_2i/omega_i = 4.9e-6`, so the channel carries `4e-7` of homogeneous
+nucleation number and `5e-7` of its content at every dose 0–10 dpa, and the
+fitted objective moves `1.1e-6` relative (`J` 0.5333018235 → 0.5333012378, `J_A`
++1.5e-7, `J_C` +1.4e-8). **No refit is needed for this one.**
+
+**`2i+2i` was corrected too, and the rule is now ONE LOOP PER EVENT, AT THE SIZE
+THE EVENT MAKES.** `R_2i_2i` is debited whole from `ydot[2]`, so it is the
+di-interstitial *loss* rate and two are lost per event; it used to be credited as
+`R_2i_2i` loops, one per 2i lost, making each embryo 2 defects where the cluster
+is `4i`. It is now `0.5*R_2i_2i` — the same `0.5` that `i+i -> 2i` already
+carried. **The rate constant is NOT the error and is unchanged**: `k_2i_2i =
+4*omega_2i` agrees with MoDELib's own `Zr3d_ghoniem` `K` for this channel to
+0.05% (`Docs/DisloCluster Manual/history/DisloCluster Code History.tex`), and the
+content credit `2.0*R_2i_2i` already balanced the debit exactly.
+
+```
+channel   number weight   content weight   content/number   cluster
+i+3i          1                4.0              4.000         4i
+2i+2i         0.5              2.0              4.000         4i
+2i+3i         1                5.0              5.000         5i
+```
+
+`clustering_rate` / `nuc_clust` is `R_i_3i + 0.5*R_2i_2i + R_2i_3i`. Both
+corrections together move the objective **3.2e-7** relative (`J` 0.5333018235 →
+0.5333016530), because `R_2i_2i` is itself ~1e-6 of `R_i_3i` at every dose.
+**The 28-parameter refit is what settles whether either matters.**
 
 ### What the formulation change does — measured on the COUPLED MARCH
 
