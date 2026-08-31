@@ -1,8 +1,6 @@
 \section{Calibration Against Experiment}\label{sec:calibration}
 
-\subsection{Inputs, targets and the estimator}
 \label{sec:controls}\label{sec:targets}\label{sec:objective}
-
 The formulation of \cref{sec:formulation} contains several classes of input, and
 confusing them is the commonest way to misreport a calibration.
 \Cref{tab:controls} separates them by what a change to each \emph{does}; only
@@ -126,11 +124,10 @@ sensitivity analysis, a Gaussian-process emulator, and Markov-chain sampling of
 not been run, so everything below is a point estimate with no credible
 interval.
 
-\subsection{What the fit is aimed at}
 \label{sec:slack}\label{sec:pinned}
-
-The estimator is a $0$-D one and the calculation it feeds is $3$-D, on a grain
-whose whole surface absorbs. The $0$-D has no boundary, so the two report
+What that estimator is aimed at needs one further step, because it is a $0$-D
+estimator and the calculation it feeds is $3$-D, on a grain whose whole surface
+absorbs. The $0$-D has no boundary, so the two report
 different populations at the same parameters, and a set landing the $0$-D on the
 measurements lands the $3$-D interior elsewhere. The factors shift the targets by
 the measured transfer so that the calculation, not the fit, is what agrees.
@@ -183,10 +180,9 @@ $p^{i}$ for consistency, not effect, and this is where the model departs from
 treatments placing the anisotropy on the clusters alone. And \cref{eq:Emsplit}
 fixes energies, so a $p^{m}$ quoted without a temperature is incomplete.
 
-\subsection{The search}
 \label{sec:search}
-
-The remaining parameters were fitted in stages, each a bounded Nelder--Mead
+With the targets shifted onto the calculation and $p^{m}$ pinned outside the
+search, the remaining parameters were fitted in stages, each a bounded Nelder--Mead
 search over a subset with the full set polished jointly at the end: the capture
 prefactors at fixed $p^{m}$; the \aloop{} temperature trend; the \aloop{} level;
 a \cloop{} repair, needed because two coalescence exponents are shared between
@@ -205,10 +201,9 @@ must already have both diameters near experiment --- started from the
 uncalibrated set the search reaches the same basin, \cloop{} density correct at
 $1.26$ and diameter at $0.21$, which scores well and is useless.
 
-\subsection{Result}
 \label{sec:calibrated-set}
-
-\Cref{tab:fitted} lists the set, \cref{fig:fit-A,fig:fit-C} show it against the
+The set the staged search returns is the one everything after this section uses.
+\Cref{tab:fitted} lists it, \cref{fig:fit-A,fig:fit-C} show it against the
 measurements and \cref{fig:parity} is the parity plot over all 78 points.
 Agreement is the mean and standard deviation of
 $\log_{10}(\text{model}/\text{experiment})$, zero being unbiased and $+0.3$ a
@@ -300,10 +295,10 @@ $\chi$ & 1.0000$^{\ddagger}$ & $m_{\mathrm{vanish}}$ & 14.04 & $k_{\rho_N}^{\mat
 \end{tabular}
 \end{table}
 
-\subsection{What the calibration does not achieve}
 \label{sec:atrend}\label{sec:bias-caveat}
-
-The \aloop{} mean conceals the one clear deficiency. Resolved by temperature the
+Two things the set does not achieve are worth separating from what it does,
+because both bear on how the results of \cref{sec:results} should be read. The
+first is that the \aloop{} mean conceals a clear deficiency. Resolved by temperature the
 model runs high at both ends and low in the middle:
 
 \begin{center}
@@ -334,7 +329,8 @@ reason their diameters are excluded from \cref{tab:targets}. The second is
 testable by character-resolved measurements at $600$--$700\,$K, and is the more
 useful thing to ask of an experiment.
 
-Fixing $p^{m}$ removed four rails and not the pressure that produced them. Four
+The second is that fixing $p^{m}$ removed four rails and not the pressure that
+produced them. Four
 parameters in \cref{tab:fitted} rest on the edge of the box: $Z^{0}_{v}=1.30$
 and the basal sink scale $\xi_{c}=2.00$ at their ceilings, and both coalescence
 exponents $\kappa_{LL}=20$, $\kappa_{LN}=4$ at theirs. Their pattern is more

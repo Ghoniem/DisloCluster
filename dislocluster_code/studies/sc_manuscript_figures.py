@@ -54,9 +54,9 @@ MANUSCRIPT = (paths.REPO_ROOT / "Docs" / "Formulation" / "self-consistent"
               / "SC_manuscript")
 FIGDIR = MANUSCRIPT / "figures"
 
-#: Early and late. 1e-4 dpa is inside the nucleation transient and 10 dpa is the
+#: Early and late. 1e-4 dpa is inside the nucleation transient and 40 dpa is the
 #: end of the march, so the pair brackets every field the paper discusses.
-DOSES = (1e-4, 10.0)
+DOSES = (1e-4, 40.0)
 
 
 def _run_dir(name):
@@ -131,7 +131,7 @@ def fig_loops_discrete(run, verbose=True):
     out = []
     for fam in ("c", "a1"):
         f, used = loop_montage.montage(
-            run, family=fam, doses=(1e-4, 1e-2, 1.0, 10.0),
+            run, family=fam, doses=(1e-4, 1e-2, 1.0, 40.0),
             out_file=FIGDIR / f"loops_{fam}_4dose.png",
             panel_labels=True, verbose=False, loop_source="discrete")
         out.append(f)
@@ -190,7 +190,7 @@ def copies(verbose=True):
     return out
 
 
-def fig_loops_all(run, doses=(1e-4, 1e-2, 1.0, 10.0), verbose=True):
+def fig_loops_all(run, doses=(1e-4, 1e-2, 1.0, 40.0), verbose=True):
     """Every family superimposed, one panel per dose (Sec 7.8).
 
     `post.discrete_loops.render` already draws all eight populations into one
@@ -262,7 +262,7 @@ def fig_spectrum(run, verbose=True):
     """
     from dislocluster_code.post import size_spectrum as SS
     fams = ("c", "a1", "a1v")
-    d, data = SS.build(run, doses=(1e-4, 1e-2, 1.0, 10.0), slugs=fams,
+    d, data = SS.build(run, doses=(1e-4, 1e-2, 1.0, 40.0), slugs=fams,
                        verbose=verbose)
     used = sorted({k[1] for k in data})
     a = SS.render(run, d, data, fams, used, FIGDIR / "size_spectrum_dose.png")

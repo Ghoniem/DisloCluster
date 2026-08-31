@@ -180,7 +180,25 @@ whose first term carries the \emph{network alone},
   C_s^{i}=\frac{a^2}{z_c}Z_N\rho_N,
   \label{eq:sinkconc}
 \end{equation}
-and whose second carries the loops through the diagonal sink-strength block
+in which $\spvec\omega$ is not an independent parameter but the jump attempt
+frequency $\omega^{m}=z_c\nu^{m}\exp(-E^{m}_{\mathrm{mig}}/k_BT)$, tied to the
+orientationally averaged diffusivity of \cref{eq:pm} by
+$\overline D^{m}=(a^{2}/z_c)\,\omega^{m}$. Written out, the product is
+\[
+  \spvec\omega\odot\spvec C_s
+  =\bigl(\overline D^{v}\rho_N,\;
+          Z_N\overline D^{i}\rho_N,\;
+          Z_N\overline D^{2i}\rho_N,\;
+          Z_N\overline D^{3i}\rho_N\bigr),
+\]
+the lattice constant and the coordination number having cancelled between the
+two factors. The network term is therefore the classical $\overline D^{m}k^{2}_N$
+with $k^{2}_N=Z_{N,m}\rho_N$, and splitting it into a frequency and a sink
+concentration is a bookkeeping convention inherited from the $0$-D model, not a
+second physical quantity. The loop term below is built the same way, which is
+what allows the two to be added.
+
+The second term carries the loops through the diagonal sink-strength block
 \begin{equation}
   \spmat K_{\mathcal L}=\mathrm{diag}\{\spvec k^{2}\},
   \qquad
@@ -612,8 +630,17 @@ giving the number and content losses
   \Delta Q=\Delta_k\bigl(\bar m^{2}\Delta N-2\bar m\,\Delta C\bigr).
   \label{eq:coal}
 \end{equation}
-The like-loop channel merges two loops into a larger one and therefore
-\emph{conserves content}, removing density only; the loop--network channel
+Here $\Delta Q$ is the second-moment counterpart of $\Delta N$ and
+$\Delta C$ --- the $q$ that leaves with the loops these two channels remove ---
+and $\Delta_k\equiv q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}$ is the shape factor defined
+with the closure at \cref{eq:lognormal}, which is $\ge1$ for any non-negative
+size distribution and equals $e^{s_k^{2}}$ for the log-normal used there. The
+bracket is the shape-preserving combination: a channel carrying no size
+distribution of its own removes $\bar m^{2}\Delta N-2\bar m\,\Delta C$ of the
+second moment, which is the statement that it leaves the shape of the family
+untouched and moves only its mean and its number. The like-loop channel merges
+two loops into a larger one and therefore \emph{conserves content}, removing
+density only; the loop--network channel
 removes both, and the removed content is booked as network sink absorption so
 the point-defect balance stays closed. The second moment moves in opposite
 directions on the two, which is why $\Delta Q$ carries one sign and not two:
@@ -644,8 +671,16 @@ supplies the missing one. It is the physical content of the lifetime the
 emission channel deleted, written as a size condition rather than as a fitted
 rate: loops that have shrunk below a minimum stable size $m_{\mathrm{van}}$
 dissolve at $\nu_{\mathrm{van}}$, and the fraction that qualifies is read off
-the same log-normal, with the gate of \cref{eq:Phij} taken in the opposite
-sense,
+the same log-normal. Writing
+\[
+  \Phi^{(j)}_k(m_\theta)
+  =\tfrac12\operatorname{erfc}\!\left(
+     \frac{\ln m_\theta-\mu_k-j\,s_k^{2}}{s_k\sqrt2}\right)
+\]
+for the fraction of the family's $j$-th moment carried by loops \emph{larger}
+than $m_\theta$ --- the same gate \cref{eq:Phij} uses at a grain boundary, with
+$(\mu_k,s_k)$ the log-normal parameters of \cref{eq:lognormal} --- and taking it
+in the opposite sense,
 \begin{equation}
   \Xi^k_0=\bigl[1-\Phi^{(0)}_k(m_{\mathrm{van}})\bigr]n^k_{sL},
   \quad
@@ -709,7 +744,12 @@ $m^{0}$ and $m^{1}$:
     \;\pm\;\Gamma^{q}_{\theta}.
   \label{eq:qdot}
 \end{equation}
-The spreading term does not vanish when the family stops growing: at
+where $\Gamma^{q}_{\theta}$ is the second moment of the basal-chain transfer of
+\cref{eq:basal-chain}, negative for the donor state and positive for the
+receiver and zero for every prismatic family; it and its counterparts
+$\Gamma^{n}_{\theta}$ and $\Gamma^{c}_{\theta}$ are listed with every other term
+of the block in \cref{tab:block-terms}. The spreading term does not vanish when
+the family stops growing: at
 $\Sigma^{\mathrm{net}}_k=0$ the drift term is zero and
 $\dot q^k_{sL}=\Pi^k_{sL}\Sigma^{\mathrm{gro}}_k\Delta_k^{-1/8}>0$, so the
 distribution keeps broadening at fixed mean size and fixed number. There is no
@@ -762,6 +802,42 @@ Mobile block --- four fields, spatially coupled, no time derivative.
 \end{equation}
 $4\times N_{\mathrm{node}}$ unknowns, nonlinear and algebraic, coupled across
 the mesh by the divergence term alone.
+
+What the code assembles is the Galerkin weak form of that statement, and it is
+worth writing down because the discrete problem differs from
+\cref{eq:block-mobile} in three respects that matter for reading the output.
+Multiplying by a test function $\spvec w$ from the same finite-element space,
+integrating over the crystal and moving one derivative onto $\spvec w$ gives:
+find $\spvec c_M\in V_h$ with $\spvec c_M=\spvec c_M^{\mathrm{eq}}$ on
+$\partial\Omega_D$ such that, for every $\spvec w\in V_h$ vanishing there,
+\[
+  \int_\Omega \Omega_{at}\,\nabla\spvec w:\bigl(\spmat D_{\mathrm{ten}}
+      \nabla\spvec c_M\bigr)\,dV
+  =\int_\Omega \spvec w\cdot\Bigl[\spvec P_M
+    +\tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M
+    +(\spmat E-\spmat D)\spvec c_M+\spvec S_{vL}\Bigr]dV ,
+\]
+the surface term having dropped because $\spvec w$ vanishes on the Dirichlet
+boundary and no flux is imposed anywhere else. The factor $\Omega_{at}$ is the
+atomic volume, present because the fields are atom fractions and the flux is
+per unit volume.
+
+The three respects are these. The form is nonlinear through the recombination
+term, so it is solved by Newton iteration: each pass assembles the residual
+above and a tangent in which the quadratic term contributes
+$\spmat R_2\spvec c_M$ and the linear terms contribute themselves, and solves
+for an increment rather than for $\spvec c_M$. The absorption matrix
+$\spmat D$ of \cref{eq:KM} is evaluated at every quadrature point from the
+immobile state held fixed there, not interpolated from nodal values, which is
+what makes the immobile field enter as a coefficient rather than as an unknown.
+And the mobile field is represented by superposition, $\spvec c_M=\spvec
+c_M^{\mathrm{FEM}}+\spvec c_M^{\mathrm{DD}}$, with $\spvec c_M^{\mathrm{DD}}$
+the analytic field of any discrete segments present; only the corrective part
+$\spvec c_M^{\mathrm{FEM}}$ is solved for, and the discrete field enters through
+the Dirichlet data, which are reduced to
+$\spvec c_M^{\mathrm{eq}}-\spvec c_M^{\mathrm{DD}}$. It is that last point that
+makes the mobile block of an output file the corrective part and not the
+concentration, whenever discrete loops are present.
 
 The immobile block is what \cref{eq:master} becomes after the second reduction
 of \cref{sec:master} and three successive approximations, and naming them is
