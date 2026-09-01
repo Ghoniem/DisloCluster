@@ -46,6 +46,11 @@ every listing line={\textcolor{green}{\small\ttfamily\bfseries  \# }}}
 \newcommand{\ZrM}{\texttt{ZrMicro-3d}}
 \newcommand{\MoD}{\textsf{MoDELib2-NNL}}
 \newcommand{\ZrOd}{\texttt{ZrMicro-0d}}
+% The CURRENT MoDELib2, i.e. the code carrying its own iSize = 8 immobile
+% solver, as distinct from \MoD (the distributed iSize = 0 baseline) and from
+% \ZrM (this work's coupled route, whose immobile block is \ZrOd's integrator
+% run at every node).
+\newcommand{\MoDNG}{\textsf{MoDELib2-NG}}
 
 % ---- end added ----
 \begin{document}
@@ -93,13 +98,19 @@ This report documents progress on Deliverable D1, \emph{Multiscale Simulation
 Methodology}, and on Milestone D1/M1, \emph{Simulation of Initial
 Irradiation Damage}, whose objective is a spatially resolved Cluster
 Dynamics--Discrete Dislocation Dynamics framework for irradiation-induced defects
-in zirconium. Two codes implement one model. {\ZrOd} integrates nineteen coupled
-rate equations for the mobile point defects, four dislocation-loop families and an
-evolving network density; {\ZrM} solves the same reaction network on a
-finite-element mesh, treating the mobile species as a quasi-steady
-reaction--diffusion problem and marching the immobile populations pointwise. The
-spatial code began from a baseline with no immobile population; loop content, loop
-density and the kinetics that evolve them were added in turn. A parameter
+in zirconium. One model is carried by codes the report distinguishes by name.
+{\MoD} is the spatially resolved baseline as distributed: it solves the mobile
+reaction--diffusion problem on a finite-element mesh and carries no immobile
+population whatever. {\MoDNG} is that same code as it now stands, the loop
+families having been written into it in two stages --- first their stored content
+alone, with the density frozen, then the density promoted to a state variable
+together with the cascade nucleation, geometric coalescence, embryo dissolution,
+anisotropic capture and evolving network density that a free density makes
+meaningful. {\ZrOd} integrates the same reaction network as nineteen coupled rate
+equations for the mobile point defects, four dislocation-loop families and an
+evolving network density, with no transport at all; and {\ZrM} is the coupled
+route, in which {\MoDNG} supplies the quasi-steady mobile field and {\ZrOd}'s own
+integrator marches the immobile populations pointwise at every node. A parameter
 identification needs thousands of forward solves, so the reduced model serves as a
 cheap surrogate: twenty-three parameters are identified against a temperature- and
 dose-resolved database of loop densities and diameters, by a normalized
@@ -112,7 +123,7 @@ suppression, and the saturated \aloop{} diameter at low to intermediate
 temperature. The principal quantitative gap is the basal \cloop{} diameter, which
 saturates below the measured value although its number density is matched,
 pointing to missing physics in vacancy-loop coarsening. The transfer of that
-calibration is demonstrated rather than assumed: {\ZrM} reproduces the {\ZrOd}
+calibration is demonstrated rather than assumed: {\MoDNG} reproduces the {\ZrOd}
 rate coefficients to within 0.1\% and the interior mobile concentrations and
 \cloop{} density to within a few percent, every verification ratio staying
 constant in dose from about 5~dpa --- the signature of a structural difference
@@ -124,7 +135,7 @@ large ones in the interior, and stored content correspondingly \emph{enhanced} a
 the boundary for the prismatic families and \emph{depleted} there for the basal
 one, which carries into grain-size-dependent irradiation growth. The
 residual code-to-code differences are diagnosed rather than resolved: the \aloop{}
-density in {\ZrM} sits at about half the reduced-model value, consistent in sign
+density in {\MoDNG} sits at about half the reduced-model value, consistent in sign
 with a homogeneous clustering flux not yet wired into loop nucleation, and, grain
 boundaries not yet being loop sinks, the near-boundary \aloop{} density rises
 without bound and is not quantitative. The calculations are further restricted
@@ -226,6 +237,22 @@ collocation, and advances them by explicit Euler with sequential implicit loss
 factors where the present branch uses one fused semi-implicit update with
 sub-cycling. Parameter names are shared between the two because both descend from
 the same formulation, not because either was derived from the other.
+
+That development leaves two codes that share a name, and the rest of this report
+needs to tell them apart. The version arrived at above --- the eight-field immobile
+state, the loop density promoted to a state variable, and the cascade nucleation,
+geometric coalescence, embryo dissolution, DAD capture efficiencies,
+mass-conserving loop-absorption sink and evolving network density that a free
+density makes meaningful --- is the current state of the code, and from this point
+on it is called {\MoDNG}. The name {\MoD} is reserved for the distributed baseline
+this section began with, which compiles with \texttt{iSize = 0} and carries no
+immobile population at all. The distinction is not cosmetic. Everything in
+Sections~\ref{sec:mobileClusters}--\ref{sec:immobileClusters} that concerns the
+loop families is {\MoDNG}, and none of it exists in {\MoD}; the parameter
+reconciliation of Section~\ref{sec:zr3d} is between {\ZrOd} and the material file
+{\MoD} ships, which is why that comparison keeps the older name; and
+Section~\ref{sec:correspondence} sets {\MoDNG}'s native immobile solver against the
+one this work's coupled route substitutes for it.
 
 
 \subsection{Mobile defect clusters}
@@ -712,7 +739,7 @@ Primitive rate variable & jump frequency $\omega_m$ & diffusivity $D_m$ \\
 Sinks & sink concentrations, Eq.~\eqref{eq:sinks} & sink strengths $k^2$, Eq.~\eqref{eq:KL_matrix} \\
 Loop absorption & explicit, Eq.~\eqref{eq:loopabs} & sink-strength term in Eq.~\eqref{Eq:master_c} \\
 Grain boundary & lumped sink term & Dirichlet condition on the mesh boundary \\
-Loop orientation & aligned / non-aligned (SIPN) & one family per Burgers vector; separated only by resolved stress \\
+Loop orientation & aligned / non-aligned (SIPN) & the same two families, mapped onto the three crystallographic variants for the mobile solve (Section~\ref{sec:correspondence}) \\
 Atomic volume & $\Omega = 1.2\times10^{-29}$~m$^3$ & $\det(\text{lattice basis})\,b^3$ \\
 \bottomrule
 \end{tabular}
@@ -727,8 +754,10 @@ the reason the loop-absorption sink in the $3$D code must \emph{not} include a
 grain-boundary contribution: doing so would count the same absorption twice. The
 second is the way loop orientation is carried. {\ZrOd} splits each loop type into
 aligned and non-aligned populations weighted by the stress-induced preferential
-nucleation factors $f_a$ and $1-f_a$, whereas {\ZrM} indexes the three prismatic
-\aloop{} families by their Burgers vector alongside one basal \cloop{} family. The
+nucleation factors $f_a$ and $1-f_a$, and {\ZrM} carries those same families in
+its slow solver; the immobile block that the mobile solve reads, however, indexes
+the three prismatic \aloop{} families by their Burgers vector alongside one basal
+\cloop{} family, which is also how {\MoDNG} carries them natively. The
 distinction is one of bookkeeping rather than of physics, because the three
 prismatic variants are crystallographically equivalent: nothing in the model
 separates them except the stress each resolves on its own Burgers direction,
@@ -739,7 +768,9 @@ is the means by which that alignment is expressed. At zero stress the two
 descriptions coincide identically, each prismatic family carrying one third of the
 total, and that gives a useful internal check: at zero stress the three \aloop{}
 family densities must be equal, and any departure indicates an error in the
-crystallography rather than in the kinetics.
+crystallography rather than in the kinetics. The map between the two indexings is
+given in Section~\ref{sec:correspondence}, where it is shown to be an algebraic
+identity rather than a modelling choice.
 
 %==============================================================================
 \subsection{\ZrOd{}}
@@ -942,9 +973,10 @@ $G_{2i}/2$ and $G_{3i}/3$, and the atom balances satisfy
 $G_i+G_{2i}+G_{3i}+G_{iL}+G_{aiL}=G$ and $G_v+G_{vL}+G_{avL}=G$. An applied normal
 stress $\sigma_n$ aligns a fraction of the loops,
 \begin{equation}
-f=\frac{\exp(n\sigma_n\Omega/k_BT)-1}{\exp(n\sigma_n\Omega/k_BT)+2},\quad n\approx10,
+f=\frac{e^{x}-1}{e^{x}+2},\qquad x=\frac{\sigma_n\Omega}{k_BT},
 \qquad
 f_a=\tfrac{1}{3}(1+2f),\qquad f_{na}=1-f_a,
+\label{eq:falign}
 \end{equation}
 which is the orientation dependence that underlies irradiation growth and creep.
 
@@ -1352,7 +1384,8 @@ system at steady state, the component-wise expansion of Eq.~\eqref{Eq:master_c}
 reproduces the $0$D right-hand side for each of the twelve physical species term by
 term.
 
-Table~\ref{tab:correspondence} collects the mapping. Five of the operators are
+Table~\ref{tab:correspondence} collects the mapping; its third column is the
+native {\MoDNG} solver, discussed below. Five of the operators are
 strictly identical once Eq.~\eqref{eq:corr_conc} is granted --- cascade production,
 the second-order reactions, thermal emission, the network sinks and the
 point-defect fluxes --- and the individual identities were established alongside
@@ -1385,29 +1418,180 @@ exactly the point at which the reduction from three dimensions to zero introduce
 additional modelling assumptions, and they are the natural place to test the
 fidelity of the reduced model against the resolved one.
 
-\begin{table}[ht]
+The correspondence set out so far is between the reduced model and the spatially
+resolved code as this work runs it. In that route --- {\ZrM} --- {\MoDNG} supplies
+the mobile field through the quasi-steady finite-element solve of
+Eq.~\eqref{Eq:master_c}, and the immobile families are advanced at every node by
+{\ZrOd}'s own integrator, so the reduced model and the slow step of the spatial
+march are the same code with the mobile species held frozen. The spatial code in
+its current form also carries an immobile solver of its own, hereafter {\MoDNG},
+which advances the same populations natively on the same mesh and whose equations
+are Eqs.~\eqref{eq:dNdt}--\eqref{eq:dad}; it is the route used for the
+verification of Section~\ref{sec:results}. A calculation may be performed either
+way, and the third column of Table~\ref{tab:correspondence} records where the two
+agree and where they do not. Everything upstream of the loop populations is
+shared, because both use the same mobile solve: the transport operator, the
+production vector, the second-order reactions, the thermal emission, the network
+sinks and the Dirichlet boundary condition are not merely equivalent between the
+two routes but are the same assembled operators. The differences are confined to
+the immobile block.
+
+The first and most visible is the choice of loop variants. {\ZrM} inherits
+{\ZrOd}'s families, in which each polarity is split into an aligned and a
+non-aligned population --- $iL/aiL$ for the interstitial \aloop{} loops and
+$vL/avL$ for the vacancy \cloop{} loops --- by the stress-induced preferential
+nucleation fraction $f_a$ of Eq.~\eqref{eq:falign}. That split carries no
+crystallography whatever: it records only how much of each population the applied
+stress favors. {\MoDNG} instead indexes its four families by \emph{habit}, one
+basal \cloop{} family and three prismatic \aloop{} variants distinguished by their
+Burgers vector, the habit being read from the $c$-axis component of $\bm b_k$ so
+that the row selection in Eq.~\eqref{eq:dad} is a test on the loop plane and not on
+the loop polarity.
+
+The map between the two indexings is an algebraic identity rather than a modelling
+choice, which is what makes the transfer between the routes safe. Writing $x$ for
+the stress exponent of Eq.~\eqref{eq:falign}, the aligned fraction collapses to a
+single Boltzmann factor,
+\begin{equation}
+f_a=\tfrac13(1+2f)=\frac{e^{x}}{e^{x}+2},
+\label{eq:falign_boltz}
+\end{equation}
+whereas {\MoDNG} weights the three prismatic variants by Boltzmann factors on the
+stress each resolves on its own habit normal,
+\begin{equation}
+w_k=\frac{e^{x_k}}{\sum_{j=1}^{3}e^{x_j}},\qquad
+x_k=\frac{\sigma_k\Omega}{k_BT},\qquad \sum_{k}w_k=1 .
+\label{eq:variantweights}
+\end{equation}
+When one variant carries the resolved stress and the other two are unloaded,
+$x_1=x$ and $x_2=x_3=0$, so that $w_1=e^{x}/(e^{x}+2)=f_a$ identically and the
+remaining $1-f_a$ is shared equally between the two unloaded variants. The
+two-family aligned/non-aligned split is therefore the three-variant Boltzmann
+weighting written in a basis that names only ``aligned'' and ``the rest'', and
+Eq.~\eqref{eq:variantweights} is the parent of the linearized orientation weights
+$w_{a_k}(\bm\sigma)$ of Eq.~\eqref{eq:Nnuc}.
+
+Operationally the transfer is a lumping followed by a split. Passing from {\ZrM}
+to the immobile block that the mobile solve reads, the aligned and non-aligned
+members of each polarity are summed,
+\begin{equation}
+n^{a}=C_{iL}+C_{aiL},\quad c^{a}=C^{i}_{iL}+C^{i}_{aiL},\qquad
+n^{c}=C_{vL}+C_{avL},\quad c^{c}=C^{v}_{vL}+C^{v}_{avL},
+\label{eq:lumpsplit}
+\end{equation}
+the \aloop{} totals are distributed over the three prismatic variants with the
+weights $w_k$ of Eq.~\eqref{eq:variantweights}, and the vacancy totals pass to the
+single basal family unchanged; the number densities additionally take a factor
+$1/\Omega$, {\ZrOd} carrying them per atom and the spatial code per $b^3$. The inverse
+re-lumps the three variants by summation and restores the aligned/non-aligned
+ratio from the preceding state rather than resetting it to the nominal $f_a$, so
+the split survives a round trip intact. Only that direction can lose information,
+and it does so for a structural reason: the crystallographic layout carries no
+aligned/non-aligned distinction from which the split could be recovered, and the
+sum over variants is all that is well defined.
+
+At zero applied stress the distinction disappears altogether. Then $x=0$,
+$f_a=\tfrac13$ and $w_1=w_2=w_3=\tfrac13$, so the lumping and the split compose to
+the identity on every aggregate either model reports and the two descriptions
+carry exactly the same information. Every result in Section~\ref{sec:results} is
+at zero applied stress, so nothing reported there depends on which indexing is
+used; the distinction becomes observable only under load, where it is the
+mechanism through which stress-induced preferential nucleation and the SIPA
+correction of Eq.~\eqref{eq:Zindex} enter. The degeneracy also supplies a useful
+internal check, and it is the one exercised in Section~\ref{sec:results}: at zero
+stress the three prismatic densities must be equal to machine precision, and any
+departure indicates an error in the crystallography rather than in the kinetics.
+
+Three further differences are of formulation rather than of bookkeeping, and
+unlike the variant indexing they do not vanish when the stress does. The first is
+the resolution of the capture efficiencies. {\ZrM} lumps the three interstitial
+species into one arrival flux, $\phi_i=\omega_i(C_i+2C_{2i}+3C_{3i})$, and applies
+a single efficiency $Z^{a}_i$ to all of it, the four constants
+$Z^{a}_i,Z^{a}_v,Z^{c}_v,Z^{c}_i$ following from the phenomenological pair
+$(\delta_i,\delta_v)$ of Eq.~\eqref{eq:DAD}. {\MoDNG} gives every mobile species
+its own efficiency through Eq.~\eqref{eq:dad} and its own orientation-averaged
+diffusivity $\bar D_m=(\det\bm D_m)^{1/3}$, so that the absorption of species $m$
+at family $k$ is resolved species by species as
+$\phi_{km}=S_k\,\bar D_m\,Z_m\,c_m|m|$, Eq.~\eqref{eq:gdot}. Two consequences
+follow. An anisotropy assigned to the mobile clusters alone is representable in
+{\MoDNG} and invisible in {\ZrM}, where it would be absorbed into the single
+lumped flux. And because that flux transports the di- and tri-interstitials at the
+\emph{monomer} jump frequency while $\omega_{2i}/\omega_i\simeq5\times10^{-6}$,
+{\ZrM} overstates the arrival of the cluster species at the loops; the convention,
+and the reason it is nevertheless retained, are discussed at the end of
+Section~\ref{sec:zr3d}.
+
+The second is the geometric prefactor of the sink strength. {\ZrM} applies the
+single \cloop{} length scale $\ell_c$ to all four families, as
+Eq.~\eqref{eq:loopabs} shows, so that a prismatic loop is sized with the basal
+Burgers vector, whereas {\MoDNG} sizes each family with its own
+$\ell_k=\sqrt{\Omega/\pi|b_k|}$ through Eq.~\eqref{eq:geometry}. The per-family
+sink multipliers listed at the end of Section~\ref{sec:zr3d} exist precisely to
+reconcile the two, and because they are applied identically to the sink and to the
+growth flux it causes, the reconciliation is exact rather than approximate.
+
+The third concerns how vacancy loops are removed and what becomes of the smallest
+of them. {\ZrM} removes them through the constant dissolution lifetime $\tau_{vL}$
+alone and imposes no lower cut-off on the shrinking channel. {\MoDNG} retains
+$\tau_{vL}$, adds the size-dependent thermal emission $\alpha_v(m_k)$ of
+Eq.~\eqref{eq:dcdt}, and gates the shrinking flux smoothly to zero as
+$r_k\to r_{\min}$, so that a loop at the minimum stable radius stops absorbing
+rather than shrinking through it; it also interpolates the sink geometry between a
+compact bi-pyramid and a planar loop across a critical size,
+Eq.~\eqref{eq:Rtransition}, where {\ZrM} treats every immobile family as a loop at
+every size. These two are the deliberate non-correspondences of the pair: the
+bi-pyramid morphology and the size-dependent emission belong to the spatially
+resolved formulation and have no counterpart in the reduced one.
+
+The two routes finally advance the immobile block by different means, and here the
+difference is one of accuracy against cost rather than of physics. {\ZrM}
+integrates nineteen unknowns at each node --- the twelve concentrations with the
+mobile four frozen, six conservation accumulators and $\rho_N$ --- with the
+adaptive BDF integrator and exact dual-number Jacobian of Section~\ref{app:A},
+which is what makes the reduced model a faithful surrogate for the slow step of
+the spatial march rather than merely a similar model. {\MoDNG} advances its eight
+immobile fields per node in twenty fused semi-implicit sub-steps per dose step,
+treating the first-order loss coefficients implicitly because
+$\nu_{LN}\phi_{LN}\Delta t$ reaches order unity at these dose rates and an explicit
+update would drive the loop density onto its positivity floor. The conservation
+accumulators have no counterpart in {\MoDNG}, so the running defect-budget closure
+that the reduced model reports carries over to the {\ZrM} route and not to it.
+
+\begin{table}[htbp]
 \centering
 \caption{Correspondence between the $3$D spatially-resolved model
-(Section~\ref{sec:SRCD}) and the $0$D reduced model (Section~\ref{app:A}).}
+(Section~\ref{sec:SRCD}), the $0$D reduced model (Section~\ref{app:A}) and the
+native {\MoDNG} immobile solver. The mobile block above the inner rule is shared
+by {\ZrM} and {\MoDNG} operator for operator, both being the same finite-element
+solve; every difference between them lies in the immobile block below it.}
 \label{tab:correspondence}
-\renewcommand{\arraystretch}{1.3}
-\small
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{p{0.19\textwidth} p{0.29\textwidth} p{0.29\textwidth} p{0.15\textwidth}}
+\renewcommand{\arraystretch}{1.18}
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{p{0.155\textwidth} p{0.245\textwidth} p{0.235\textwidth} p{0.245\textwidth}}
 \hline
-\textbf{Quantity / term} & \textbf{\texttt{ZrMicro-3d}} & \textbf{\texttt{ZrMicro-0d}} & \textbf{Relation}\\
+\textbf{Quantity / term} & \textbf{\ZrM} & \textbf{\ZrOd} & \textbf{\MoDNG}\\
 \hline
-Mobile concentrations & $\spvec{c}_M=[c^v,c^i,c^{2i},c^{3i}]^{T}$ (fields) & $C_v,C_i,C_{2i},C_{3i}$ (scalars) & volume average \\
-Transport & $-\bm\nabla\cdot\spvec{J}$, $\bm J^x=-\bm D^x\bm\nabla c^x$ & lumped $-R_{x,s}-\text{loop\_abs}_x$ & interpretation \\
-Production & $\spvec{P}_M=G\varepsilon\spvec f$ & $\{G_v,G_i,\tfrac12 G_{2i},\tfrac13 G_{3i}\}$ & identical \\
-Second-order reactions & $\tfrac12\spvec{c}_M^{T}\spmat{R}_2^{x}\spvec{c}_M$ & $R_{a,b}=(\omega_a+\omega_b)C_aC_b$ & identical \\
-Thermal emission & $\spmat{E}\,\spvec{c}_M$ & $\mathcal E_{2i},\mathcal E_{3i}$ & identical \\
-Network sinks & $\mathrm{diag}\{\spvec\omega\odot\spvec C_s\}$ & $R_{x,s}=\omega_x C_x C_s^x$ & identical \\
-Point-defect fluxes & $\phi_v,\phi_i$ & $\phi_v,\phi_i$ & identical \\
-Loop absorption & $\spmat{D}_d\spmat{K}_{\mathcal L}$, $k_m^2$ & $\text{loop\_abs}_x$ (mass-conserving) & equivalent (interpretation) \\
-DAD loop bias & $p^m=(D_c^m/D_a^m)^{1/6}$, $Z^{\mathrm{DAD},0}$ & $\delta_i,\delta_v$ & interpretation \\
-Boundary condition & Dirichlet $c^k_{\mathrm{bnd,eq}}$, Eq.~\eqref{mobileBC} & lumped sink, $C_v^e$ & closure \\
-Loop radii & resolved geometry & $r_{X\mathcal L}=\ell\sqrt{c^x_{X\mathcal L}/n_{X\mathcal L}}$ & closure \\
+\multicolumn{4}{@{}l}{\emph{Mobile block}}\\
+Mobile concentrations & $\spvec{c}_M=[c^v,c^i,c^{2i},c^{3i}]^{T}$ (fields) & $C_v,C_i,C_{2i},C_{3i}$ (scalars) & as {\ZrM} \\
+Transport & $-\bm\nabla\cdot\spvec{J}$, $\bm J^x=-\bm D^x\bm\nabla c^x$ & lumped $-R_{x,s}-\text{loop\_abs}_x$ & as {\ZrM} \\
+Production & $\spvec{P}_M=G\varepsilon\spvec f$ & $\{G_v,G_i,\tfrac12 G_{2i},\tfrac13 G_{3i}\}$ & as {\ZrM} \\
+Second-order reactions & $\tfrac12\spvec{c}_M^{T}\spmat{R}_2^{x}\spvec{c}_M$ & $R_{a,b}=(\omega_a+\omega_b)C_aC_b$ & as {\ZrM} \\
+Thermal emission & $\spmat{E}\,\spvec{c}_M$ & $\mathcal E_{2i},\mathcal E_{3i}$ & as {\ZrM} \\
+Network sinks & $\mathrm{diag}\{\spvec\omega\odot\spvec C_s\}$ & $R_{x,s}=\omega_x C_x C_s^x$ & as {\ZrM} \\
+Boundary condition & Dirichlet $c^k_{\mathrm{bnd,eq}}$, Eq.~\eqref{mobileBC} & lumped sink, $C_v^e$ & as {\ZrM} \\
+\hline
+\multicolumn{4}{@{}l}{\emph{Immobile block}}\\
+Loop families & $iL,aiL,vL,avL$; variants selected by resolved stress, $f_a$ & $iL,aiL,vL,avL$; same $f_a$ & $c,a_1,a_2,a_3$; variants selected by Burgers vector, stress entering through $w_k$ \\
+Point-defect fluxes & $\phi_v,\phi_i$, interstitials lumped & $\phi_v,\phi_i$ & $\bar D_m c_m|m|$, one flux per species \\
+DAD loop bias & $\delta_i,\delta_v$; one $Z$ per habit and polarity & $\delta_i,\delta_v$, Eq.~\eqref{eq:DAD} & $p^m=(D^m_c/D^m_a)^{1/6}$, $Z^{\mathrm{DAD},0}$; one $Z$ per species \\
+Cluster mobility & $\omega_i$ for $i,2i,3i$ alike & $\omega_i$ for $i,2i,3i$ alike & $\bar D_m=(\det\bm D_m)^{1/3}$ \\
+Loop length scale & one $\ell_c/\ell$ for both habits & one $\ell_c/\ell$ for both habits & $\ell_k=\sqrt{\Omega/\pi|b_k|}$, per family \\
+Loop absorption & explicit and mass-conserving, Eq.~\eqref{eq:loopabs} & Eq.~\eqref{eq:loopabs} & $S_k\bar D_m Z_m c_m|m|$, Eq.~\eqref{eq:gdot} \\
+Loop radii & $r_{X\mathcal L}=\ell\sqrt{c^x_{X\mathcal L}/n_{X\mathcal L}}$ & same closure & same, plus the bi-pyramid/loop sigmoid, Eq.~\eqref{eq:Rtransition} \\
+Vacancy-loop removal & $\tau_{vL}$ only; no shrinkage cut-off & $\tau_{vL}$ only & $\tau_{vL}$, emission $\alpha_v(m_k)$, and a smooth gate at $r_{\min}$ \\
+Immobile integrator & adaptive BDF, exact Jacobian & adaptive BDF, all $19$ together & $20$ fused semi-implicit sub-steps per dose step \\
+Immobile state per node & $19$, mobile frozen & $19$ & $8$ (four families $\times$ two moments) \\
 \hline
 \end{tabular}
 \end{table}
@@ -2202,7 +2386,7 @@ Finally, the conservation diagnostics verify that these results are numerically 
 
 
 %==============================================================================
-\subsection{The {\ZrM} code results}
+\subsection{The {\MoDNG} code results}
 \label{sec:results}
 
 All results below are for a cubic domain of 1~$\mu$m side at
@@ -2216,7 +2400,7 @@ vacancy field, which saturates away from the absorbing boundary.
 
 \begin{table}[htbp]
 \centering
-\caption{Ratio of \ZrM{} interior values to {\ZrOd}, as a function of dose.}
+\caption{Ratio of {\MoDNG} interior values to {\ZrOd}, as a function of dose.}
 \label{tab:verification}
 \begin{tabular}{@{}lcccccc@{}}
 \toprule
@@ -2238,8 +2422,8 @@ this is the discriminating test: an error in a unit conversion or a rate constan
 would be integrated by the loop populations and would appear as a drift. Its
 absence indicates that the remaining differences are structural.
 
-Two residuals are not yet explained. The \aloop{} loop density sits at
-$0.53\times$ the 0-D value. The sign is consistent with the one nucleation
+Two residuals are not yet explained. The \aloop{} loop density in {\MoDNG} sits
+at $0.53\times$ the 0-D value. The sign is consistent with the one nucleation
 channel that remains unwired — the homogeneous clustering flux
 $\Phi_{\rm clus} = R_{i,3i} + R_{2i,2i}$, which would add \aloop{} loops — but
 the magnitude has not been demonstrated to follow from it. The di-interstitial

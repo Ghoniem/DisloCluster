@@ -1,7 +1,6 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  31 AUG 2026 18:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.5.6)  1 SEP 2026 16:26
 entering extended mode
  restricted \write18 enabled.
- file:line:error style messages enabled.
  %&-line parsing enabled.
 **./D1M1_main_GP.tex
 (D1M1_main_GP.tex
@@ -1037,24 +1036,24 @@ File: l3backend-pdftex.def 2026-02-18 L3 backend support: PDF output (pdfTeX)
 ) (D1M1_main_GP.aux)
 \openout1 = `D1M1_main_GP.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 51.
-LaTeX Font Info:    ... okay on input line 51.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 56.
+LaTeX Font Info:    ... okay on input line 56.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -1097,7 +1096,7 @@ File: translations-basic-dictionary-english.trsl (english translation file `tra
 nslations-basic-dictionary')
 )
 Package translations Info: loading dictionary `translations-basic-dictionary' f
-or `english'. on input line 51.
+or `english'. on input line 56.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/context/base/mkii\supp-pdf.mk
 ii
@@ -1124,7 +1123,7 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
 fg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring ON on input line 51.
+Package hyperref Info: Link coloring ON on input line 56.
  (D1M1_main_GP.out) (D1M1_main_GP.out)
 \@outlinefile=\write4
 \openout4 = `D1M1_main_GP.out'.
@@ -1139,7 +1138,7 @@ Package: inputenc 2024/02/08 v1.3d Input encoding file
 <figures/straight_lines.jpeg, id=118, 1610.015pt x 2082.78125pt>
 File: figures/straight_lines.jpeg Graphic file (type jpg)
 <use figures/straight_lines.jpeg>
-Package pdftex.def Info: figures/straight_lines.jpeg  used on input line 59.
+Package pdftex.def Info: figures/straight_lines.jpeg  used on input line 64.
 (pdftex.def)             Requested size: 614.29332pt x 794.96098pt.
 
 [1
@@ -1147,49 +1146,55 @@ Package pdftex.def Info: figures/straight_lines.jpeg  used on input line 59.
 {C:/Users/Owner/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/Owne
 r/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc} <./figures/straig
 ht_lines.jpeg>]
-LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 9
-6.
+LaTeX Font Info:    Trying to load font information for T1+lmss on input line 1
+02.
+
+(C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmss.fd
+File: t1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
+)
+LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
+09.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 1
-10.
+21.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 1
-10.
+21.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-110.
+121.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-110.
+121.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <10> on input line 110.
+(Font)              <10> on input line 121.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <7> on input line 110.
+(Font)              <7> on input line 121.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <5> on input line 110.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 110
+(Font)              <5> on input line 121.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 121
 .
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 110
+LaTeX Font Info:    Trying to load font information for U+msb on input line 121
 .
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
@@ -1198,12 +1203,6 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 [2{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathsy.en
 c}{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathit.en
 c}] (D1M1_main_GP.toc
-LaTeX Font Info:    Trying to load font information for T1+lmss on input line 4
-.
-
-(C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmss.fd
-File: t1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
-)
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 (Font)              Font shape `T1/lmtt/b/n' tried instead on input line 8.
 )
@@ -1212,7 +1211,7 @@ LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
 
  [3]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
-46.
+57.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
@@ -1220,18 +1219,18 @@ File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 }{C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-rm.enc}{C:
 /Users/Owner/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-mathex.enc}]
 LaTeX Font Info:    Trying to load font information for OT1+lmss on input line 
-233.
+260.
 
 (C:\Users\Owner\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmss.fd
 File: ot1lmss.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 ) [5]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 269.
+(Font)              <8> on input line 296.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 269.
+(Font)              <6> on input line 296.
 
 [6]
-Overfull \hbox (18.63959pt too wide) in paragraph at lines 367--369
+Overfull \hbox (18.63959pt too wide) in paragraph at lines 394--396
 \T1/lmr/m/n/10 With $\OML/lmm/m/it/10 E[]$\T1/lmr/m/n/10 , the bind-ing en-ergy
  of the $\OT1/lmr/m/n/10 (\OML/lmm/m/it/10 m \OT1/lmr/m/n/10 + \OML/lmm/m/it/10
  n\OT1/lmr/m/n/10 )$\T1/lmr/m/n/10 -size clus-ter ([]\T1/lmtt/m/n/10 mobileSpec
@@ -1239,7 +1238,7 @@ iesBindingEnergy_eV[]\T1/lmr/m/n/10 ). Component-
  []
 
 [7] [8] [9]
-Overfull \hbox (13.50987pt too wide) in paragraph at lines 520--522
+Overfull \hbox (13.50987pt too wide) in paragraph at lines 547--549
 \T1/lmr/m/n/10 cence sink. The co-a-les-cence sink is di-ag-o-nal in the loop f
 am-ily and, for each fam-ily $\OML/lmm/m/it/10 k \OMS/lmsy/m/n/10 2 f\OML/lmm/m
 /it/10 vL; a[]L; a[]L; a[]L\OMS/lmsy/m/n/10 g$\T1/lmr/m/n/10 ,
@@ -1247,185 +1246,216 @@ am-ily and, for each fam-ily $\OML/lmm/m/it/10 k \OMS/lmsy/m/n/10 2 f\OML/lmm/m
 
 [10] [11]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <14.4> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 608.
- [12]
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 635.
+ [12] [13]
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <9> on input line 704.
+(Font)              <9> on input line 731.
 
-Underfull \hbox (badness 2573) in paragraph at lines 714--715
+Underfull \hbox (badness 2573) in paragraph at lines 741--742
 []|\T1/lmr/m/n/9 Dirichlet con-di-tion on the mesh
  []
 
-[13]
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <12> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 745.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 776.
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <9> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 764.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 795.
 
-Underfull \hbox (badness 10000) in paragraph at lines 772--772
+Underfull \hbox (badness 10000) in paragraph at lines 803--803
 []|\T1/lmr/m/n/9 Reaction-rate con-
  []
 
 
-Underfull \hbox (badness 1308) in paragraph at lines 774--775
+Underfull \hbox (badness 1308) in paragraph at lines 805--806
 []|\T1/lmr/m/n/9 sum $\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 ![] \OT1/lmr/m/n/9 + \OML
 /lmm/m/it/9 ![]\OT1/lmr/m/n/9 )$\T1/lmr/m/n/9 ; re-com-bi-na-tion $\OMS/lmsy/m/
 n/9 ^^B \OML/lmm/m/it/9 ^^L[]$
  []
 
 
-Underfull \hbox (badness 5519) in paragraph at lines 777--778
+Underfull \hbox (badness 5519) in paragraph at lines 808--809
 []|\T1/lmr/m/n/9 DAD scheme $\OML/lmm/m/it/9 Z[][]\OT1/lmr/m/n/9 1[]\OML/lmm/m/
 it/9 ^^N[]$\T1/lmr/m/n/9 , $\OML/lmm/m/it/9 Z[][]\OT1/lmr/m/n/9 1[]\OML/lmm/m/i
 t/9 ^^N[]$\T1/lmr/m/n/9 ,
  []
 
 
-Underfull \hbox (badness 1102) in paragraph at lines 798--799
+Underfull \hbox (badness 1102) in paragraph at lines 829--830
 \T1/lmr/m/n/9 loop--network, Avrami gates); a-loop
  []
 
 
-Overfull \hbox (0.51288pt too wide) in paragraph at lines 762--801
+Overfull \hbox (0.51288pt too wide) in paragraph at lines 793--832
  [][] 
  []
 
 [14] [15] [16] [17] [18] [19]
-Underfull \hbox (badness 1112) in paragraph at lines 1228--1228
+Underfull \hbox (badness 1112) in paragraph at lines 1260--1260
 []\T1/lmr/m/n/10 Table 3: []Assembled second-order in-ter-ac-tion co-ef-fi-cien
 ts of \T1/lmtt/m/n/10 ZrMicro-3d\T1/lmr/m/n/10 , com-pared with the
  []
 
-
-Overfull \hbox (11.17775pt too wide) in paragraph at lines 1292--1308
+[20]
+Overfull \hbox (11.17775pt too wide) in paragraph at lines 1324--1340
  [][] 
  []
 
-[20] [21]
-Underfull \hbox (badness 10000) in paragraph at lines 1400--1400
-[]|\T1/lmr/m/n/9 Mobile con-cen-tra-
+[21] [22] [23]
+LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <8> not available
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 1573.
+
+Underfull \hbox (badness 10000) in paragraph at lines 1576--1576
+[]|$[][] \OT1/lmr/m/n/8 = [\OML/lmm/m/it/8 c[]; c[]; c[]; c[]\OT1/lmr/m/n/8 ][]
+$
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1403--1403
-[]|\T1/lmr/m/n/9 Second-order re-ac-
+Underfull \hbox (badness 10000) in paragraph at lines 1582--1582
+[]|\T1/lmr/m/n/8 Boundary con-di-
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 1407--1408
-[]|\T1/lmr/m/n/9 equivalent (in-
+Underfull \hbox (badness 10000) in paragraph at lines 1586--1587
+[]|$[]\OML/lmm/m/it/8 c[]\OMS/lmsy/m/n/8 j\OML/lmm/m/it/8 m\OMS/lmsy/m/n/8 j$\T
+1/lmr/m/n/8 , one flux per
  []
 
-[22] [23] [24]
-Overfull \hbox (4.51118pt too wide) in paragraph at lines 1678--1678
+
+Underfull \hbox (badness 10000) in paragraph at lines 1587--1588
+[]|$\OML/lmm/m/it/8 p[] \OT1/lmr/m/n/8 = (\OML/lmm/m/it/8 D[]=D[]\OT1/lmr/m/n/8
+ )[]$\T1/lmr/m/n/8 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1591--1592
+[]|\T1/lmr/m/n/8 same, plus the bi-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1591--1592
+\T1/lmr/m/n/8 pyramid/loop sig-moid,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 1592--1592
+[]|\T1/lmr/m/n/8 Vacancy-loop re-
+ []
+
+
+Underfull \hbox (badness 1205) in paragraph at lines 1593--1593
+[]|\T1/lmr/m/n/8 adaptive BDF, all $\OT1/lmr/m/n/8 19$ \T1/lmr/m/n/8 to-
+ []
+
+[24] [25] [26]
+Overfull \hbox (4.51118pt too wide) in paragraph at lines 1862--1862
  []$\OT1/lmr/m/n/9 (\OML/lmm/m/it/9 T[]; [][]; N[]; d[]\OT1/lmr/m/n/9 )$ 
  []
 
-[25] [26]
-Overfull \hbox (12.8113pt too wide) in paragraph at lines 1861--1864
+[27] [28]
+Overfull \hbox (12.8113pt too wide) in paragraph at lines 2045--2048
  [][] 
  []
 
-[27]
+[29]
 
 LaTeX Warning: `!h' float specifier changed to `!ht'.
 
-<figures/aloop_density_vs_experiment.png, id=621, 725.22945pt x 476.62065pt>
+[30]
+<figures/aloop_density_vs_experiment.png, id=675, 725.22945pt x 476.62065pt>
 File: figures/aloop_density_vs_experiment.png Graphic file (type png)
 <use figures/aloop_density_vs_experiment.png>
 Package pdftex.def Info: figures/aloop_density_vs_experiment.png  used on input
- line 2014.
+ line 2198.
 (pdftex.def)             Requested size: 217.35588pt x 142.84184pt.
-<figures/aloop_diameter_vs_experiment.png, id=623, 724.50674pt x 476.62065pt>
+<figures/aloop_diameter_vs_experiment.png, id=677, 724.50674pt x 476.62065pt>
 File: figures/aloop_diameter_vs_experiment.png Graphic file (type png)
 <use figures/aloop_diameter_vs_experiment.png>
 Package pdftex.def Info: figures/aloop_diameter_vs_experiment.png  used on inpu
-t line 2018.
+t line 2202.
 (pdftex.def)             Requested size: 217.35588pt x 142.98729pt.
-<figures/cloop_density_vs_experiment.png, id=624, 716.55705pt x 489.9906pt>
+<figures/cloop_density_vs_experiment.png, id=678, 716.55705pt x 489.9906pt>
 File: figures/cloop_density_vs_experiment.png Graphic file (type png)
 <use figures/cloop_density_vs_experiment.png>
 Package pdftex.def Info: figures/cloop_density_vs_experiment.png  used on input
- line 2024.
+ line 2208.
 (pdftex.def)             Requested size: 217.35588pt x 148.62822pt.
-<figures/cloop_diameter_vs_experiment.png, id=625, 720.5319pt x 489.9906pt>
+<figures/cloop_diameter_vs_experiment.png, id=679, 720.5319pt x 489.9906pt>
 File: figures/cloop_diameter_vs_experiment.png Graphic file (type png)
 <use figures/cloop_diameter_vs_experiment.png>
 Package pdftex.def Info: figures/cloop_diameter_vs_experiment.png  used on inpu
-t line 2028.
+t line 2212.
 (pdftex.def)             Requested size: 217.35588pt x 147.81326pt.
-[28] [29 <./figures/aloop_density_vs_experiment.png> <./figures/aloop_diameter_
-vs_experiment.png> <./figures/cloop_density_vs_experiment.png> <./figures/cloop
-_diameter_vs_experiment.png>] [30]
-<figures/point_defects.png, id=654, 517.6941pt x 350.2686pt>
+ [31] [32 <./figures/aloop_density_vs_experiment.png> <./figures/aloop_diameter
+_vs_experiment.png> <./figures/cloop_density_vs_experiment.png> <./figures/cloo
+p_diameter_vs_experiment.png>]
+<figures/point_defects.png, id=704, 517.6941pt x 350.2686pt>
 File: figures/point_defects.png Graphic file (type png)
 <use figures/point_defects.png>
-Package pdftex.def Info: figures/point_defects.png  used on input line 2081.
+Package pdftex.def Info: figures/point_defects.png  used on input line 2265.
 (pdftex.def)             Requested size: 310.50357pt x 210.08261pt.
 
-Overfull \hbox (0.92255pt too wide) in paragraph at lines 2086--2087
+Overfull \hbox (0.92255pt too wide) in paragraph at lines 2270--2271
 []\T1/lmr/m/n/10 The to-tal stored-defect curve of Fig-ure [][]6[][] ag-gre-gat
 es these chan-nels and makes the buildup,overshoot,
  []
 
-<figures/total_defect_evolution.png, id=658, 519.6213pt x 350.2686pt>
+<figures/total_defect_evolution.png, id=708, 519.6213pt x 350.2686pt>
 File: figures/total_defect_evolution.png Graphic file (type png)
 <use figures/total_defect_evolution.png>
 Package pdftex.def Info: figures/total_defect_evolution.png  used on input line
- 2090.
+ 2274.
 (pdftex.def)             Requested size: 310.50357pt x 209.31297pt.
-<figures/interstitial_fractions.png, id=659, 519.3804pt x 350.2686pt>
+<figures/interstitial_fractions.png, id=709, 519.3804pt x 350.2686pt>
 File: figures/interstitial_fractions.png Graphic file (type png)
 <use figures/interstitial_fractions.png>
 Package pdftex.def Info: figures/interstitial_fractions.png  used on input line
- 2097.
+ 2281.
 (pdftex.def)             Requested size: 217.35588pt x 146.58269pt.
-<figures/vacancy_fractions.png, id=660, 519.3804pt x 350.2686pt>
+<figures/vacancy_fractions.png, id=710, 519.3804pt x 350.2686pt>
 File: figures/vacancy_fractions.png Graphic file (type png)
 <use figures/vacancy_fractions.png>
-Package pdftex.def Info: figures/vacancy_fractions.png  used on input line 2099
+Package pdftex.def Info: figures/vacancy_fractions.png  used on input line 2283
 .
 (pdftex.def)             Requested size: 217.35588pt x 146.58269pt.
-<figures/defect_imbalance.png, id=661, 536.4843pt x 350.2686pt>
+<figures/defect_imbalance.png, id=711, 536.4843pt x 350.2686pt>
 File: figures/defect_imbalance.png Graphic file (type png)
 <use figures/defect_imbalance.png>
-Package pdftex.def Info: figures/defect_imbalance.png  used on input line 2106.
+Package pdftex.def Info: figures/defect_imbalance.png  used on input line 2290.
 
 (pdftex.def)             Requested size: 310.50357pt x 202.72835pt.
-<figures/flux_evolution.png, id=663, 519.6213pt x 350.2686pt>
+<figures/flux_evolution.png, id=713, 519.6213pt x 350.2686pt>
 File: figures/flux_evolution.png Graphic file (type png)
 <use figures/flux_evolution.png>
-Package pdftex.def Info: figures/flux_evolution.png  used on input line 2115.
+Package pdftex.def Info: figures/flux_evolution.png  used on input line 2299.
 (pdftex.def)             Requested size: 217.35588pt x 146.51854pt.
-<figures/net_flux_balance.png, id=664, 521.3076pt x 350.2686pt>
+<figures/net_flux_balance.png, id=714, 521.3076pt x 350.2686pt>
 File: figures/net_flux_balance.png Graphic file (type png)
 <use figures/net_flux_balance.png>
-Package pdftex.def Info: figures/net_flux_balance.png  used on input line 2117.
+Package pdftex.def Info: figures/net_flux_balance.png  used on input line 2301.
 
 (pdftex.def)             Requested size: 217.35588pt x 146.04288pt.
-[31 <./figures/point_defects.png>] [32 <./figures/total_defect_evolution.png> <
+[33 <./figures/point_defects.png>] [34 <./figures/total_defect_evolution.png> <
 ./figures/interstitial_fractions.png> <./figures/vacancy_fractions.png>]
-[33 <./figures/defect_imbalance.png> <./figures/flux_evolution.png> <./figures/
+[35 <./figures/defect_imbalance.png> <./figures/flux_evolution.png> <./figures/
 net_flux_balance.png>]
-<figures/loop_density.png, id=693, 533.8344pt x 449.7603pt>
+<figures/loop_density.png, id=742, 533.8344pt x 449.7603pt>
 File: figures/loop_density.png Graphic file (type png)
 <use figures/loop_density.png>
-Package pdftex.def Info: figures/loop_density.png  used on input line 2127.
+Package pdftex.def Info: figures/loop_density.png  used on input line 2311.
 (pdftex.def)             Requested size: 310.50357pt x 261.60919pt.
-<figures/loop_diameter_vs_dose.png, id=694, 706.8006pt x 489.9906pt>
+<figures/loop_diameter_vs_dose.png, id=743, 706.8006pt x 489.9906pt>
 File: figures/loop_diameter_vs_dose.png Graphic file (type png)
 <use figures/loop_diameter_vs_dose.png>
 Package pdftex.def Info: figures/loop_diameter_vs_dose.png  used on input line 
-2134.
+2318.
 (pdftex.def)             Requested size: 310.50357pt x 215.26007pt.
-<figures/loop_density_analysis.png, id=695, 517.6941pt x 350.2686pt>
+<figures/loop_density_analysis.png, id=744, 517.6941pt x 350.2686pt>
 File: figures/loop_density_analysis.png Graphic file (type png)
 <use figures/loop_density_analysis.png>
 Package pdftex.def Info: figures/loop_density_analysis.png  used on input line 
-2141.
+2325.
 (pdftex.def)             Requested size: 310.50357pt x 210.08261pt.
 
-Overfull \hbox (0.75502pt too wide) in paragraph at lines 2146--2147
+Overfull \hbox (0.75502pt too wide) in paragraph at lines 2330--2331
 \OT1/lmr/m/n/10 473$ \T1/lmr/m/n/10 and $\OT1/lmr/m/n/10 673 $\T1/lmr/m/n/10 K.
  The pre-dicted sat-u-ra-tion den-sity de-creases mono-ton-i-cally with in-crea
 s-ing temperature---
@@ -1434,247 +1464,250 @@ s-ing temperature---
 File: figures/aloop_density_vs_experiment.png Graphic file (type png)
 <use figures/aloop_density_vs_experiment.png>
 Package pdftex.def Info: figures/aloop_density_vs_experiment.png  used on input
- line 2150.
+ line 2334.
 (pdftex.def)             Requested size: 217.35588pt x 142.84184pt.
 File: figures/aloop_diameter_vs_experiment.png Graphic file (type png)
 <use figures/aloop_diameter_vs_experiment.png>
 Package pdftex.def Info: figures/aloop_diameter_vs_experiment.png  used on inpu
-t line 2152.
+t line 2336.
 (pdftex.def)             Requested size: 217.35588pt x 142.98729pt.
 File: figures/cloop_density_vs_experiment.png Graphic file (type png)
 <use figures/cloop_density_vs_experiment.png>
 Package pdftex.def Info: figures/cloop_density_vs_experiment.png  used on input
- line 2159.
+ line 2343.
 (pdftex.def)             Requested size: 217.35588pt x 148.62822pt.
 File: figures/cloop_diameter_vs_experiment.png Graphic file (type png)
 <use figures/cloop_diameter_vs_experiment.png>
 Package pdftex.def Info: figures/cloop_diameter_vs_experiment.png  used on inpu
-t line 2161.
+t line 2345.
 (pdftex.def)             Requested size: 217.35588pt x 147.81326pt.
-[34
+[36
 
- <./figures/loop_density.png>] [35 <./figures/loop_diameter_vs_dose.png> <./fig
-ures/loop_density_analysis.png>] [36]
-<figures/network_density_evolution.png, id=721, 635.2533pt x 417.7206pt>
+ <./figures/loop_density.png>] [37 <./figures/loop_diameter_vs_dose.png> <./fig
+ures/loop_density_analysis.png>] [38]
+<figures/network_density_evolution.png, id=771, 635.2533pt x 417.7206pt>
 File: figures/network_density_evolution.png Graphic file (type png)
 <use figures/network_density_evolution.png>
 Package pdftex.def Info: figures/network_density_evolution.png  used on input l
-ine 2170.
+ine 2354.
 (pdftex.def)             Requested size: 310.50357pt x 204.17497pt.
-<figures/loop_network_spacing.png, id=722, 634.16925pt x 417.7206pt>
+<figures/loop_network_spacing.png, id=772, 634.16925pt x 417.7206pt>
 File: figures/loop_network_spacing.png Graphic file (type png)
 <use figures/loop_network_spacing.png>
 Package pdftex.def Info: figures/loop_network_spacing.png  used on input line 2
-177.
+361.
 (pdftex.def)             Requested size: 217.35588pt x 143.17043pt.
-<figures/loop_loop_spacing.png, id=723, 634.5306pt x 417.7206pt>
+<figures/loop_loop_spacing.png, id=773, 634.5306pt x 417.7206pt>
 File: figures/loop_loop_spacing.png Graphic file (type png)
 <use figures/loop_loop_spacing.png>
-Package pdftex.def Info: figures/loop_loop_spacing.png  used on input line 2179
+Package pdftex.def Info: figures/loop_loop_spacing.png  used on input line 2363
 .
 (pdftex.def)             Requested size: 217.35588pt x 143.08755pt.
-<figures/conservation_channels_i.png, id=726, 525.8847pt x 350.2686pt>
+<figures/conservation_channels_i.png, id=776, 525.8847pt x 350.2686pt>
 File: figures/conservation_channels_i.png Graphic file (type png)
 <use figures/conservation_channels_i.png>
 Package pdftex.def Info: figures/conservation_channels_i.png  used on input lin
-e 2188.
+e 2372.
 (pdftex.def)             Requested size: 217.35588pt x 144.77084pt.
-<figures/conservation_channels_v.png, id=727, 525.8847pt x 350.2686pt>
+<figures/conservation_channels_v.png, id=777, 525.8847pt x 350.2686pt>
 File: figures/conservation_channels_v.png Graphic file (type png)
 <use figures/conservation_channels_v.png>
 Package pdftex.def Info: figures/conservation_channels_v.png  used on input lin
-e 2190.
+e 2374.
 (pdftex.def)             Requested size: 217.35588pt x 144.77084pt.
-<figures/conservation_error.png, id=728, 521.3076pt x 350.2686pt>
+<figures/conservation_error.png, id=778, 521.3076pt x 350.2686pt>
 File: figures/conservation_error.png Graphic file (type png)
 <use figures/conservation_error.png>
-Package pdftex.def Info: figures/conservation_error.png  used on input line 219
-7.
+Package pdftex.def Info: figures/conservation_error.png  used on input line 238
+1.
 (pdftex.def)             Requested size: 310.50357pt x 208.6342pt.
- [37 <./figures/network_density_evolution.png> <./figures/loop_network_spacing.
-png> <./figures/loop_loop_spacing.png>] [38 <./figures/conservation_channels_i.
+ [39 <./figures/network_density_evolution.png> <./figures/loop_network_spacing.
+png> <./figures/loop_loop_spacing.png>] [40 <./figures/conservation_channels_i.
 png> <./figures/conservation_channels_v.png> <./figures/conservation_error.png>
 ]
-<figures/mobile_fields.png, id=752, 1011.49092pt x 828.50328pt>
+<figures/mobile_fields.png, id=801, 1011.49092pt x 828.50328pt>
 File: figures/mobile_fields.png Graphic file (type png)
 <use figures/mobile_fields.png>
-Package pdftex.def Info: figures/mobile_fields.png  used on input line 2267.
+Package pdftex.def Info: figures/mobile_fields.png  used on input line 2451.
 (pdftex.def)             Requested size: 443.57848pt x 363.32893pt.
-<figures/immobile_density_fields.png, id=757, 1008.31104pt x 828.50328pt>
+<figures/immobile_density_fields.png, id=806, 1008.31104pt x 828.50328pt>
 File: figures/immobile_density_fields.png Graphic file (type png)
 <use figures/immobile_density_fields.png>
 Package pdftex.def Info: figures/immobile_density_fields.png  used on input lin
-e 2302.
+e 2486.
 (pdftex.def)             Requested size: 443.57848pt x 364.47935pt.
-<figures/immobile_content_fields.png, id=758, 1017.85068pt x 828.50328pt>
+<figures/immobile_content_fields.png, id=807, 1017.85068pt x 828.50328pt>
 File: figures/immobile_content_fields.png Graphic file (type png)
 <use figures/immobile_content_fields.png>
 Package pdftex.def Info: figures/immobile_content_fields.png  used on input lin
-e 2312.
+e 2496.
 (pdftex.def)             Requested size: 443.57848pt x 361.05339pt.
-<figures/loops_c_overlay.png, id=763, 1019.29608pt x 217.96632pt>
+<figures/loops_c_overlay.png, id=812, 1019.29608pt x 217.96632pt>
 File: figures/loops_c_overlay.png Graphic file (type png)
 <use figures/loops_c_overlay.png>
-Package pdftex.def Info: figures/loops_c_overlay.png  used on input line 2334.
+Package pdftex.def Info: figures/loops_c_overlay.png  used on input line 2518.
 (pdftex.def)             Requested size: 443.57848pt x 94.85449pt.
- [39] [40 <./figures/mobile_fields.png>] [41 <./figures/immobile_density_fields
-.png>] [42 <./figures/immobile_content_fields.png>]
-<figures/loops_a1_overlay.png, id=791, 1010.04552pt x 217.96632pt>
+ [41] [42 <./figures/mobile_fields.png>] [43 <./figures/immobile_density_fields
+.png>] [44 <./figures/immobile_content_fields.png>]
+<figures/loops_a1_overlay.png, id=841, 1010.04552pt x 217.96632pt>
 File: figures/loops_a1_overlay.png Graphic file (type png)
 <use figures/loops_a1_overlay.png>
-Package pdftex.def Info: figures/loops_a1_overlay.png  used on input line 2342.
+Package pdftex.def Info: figures/loops_a1_overlay.png  used on input line 2526.
 
 (pdftex.def)             Requested size: 443.57848pt x 95.72255pt.
-<figures/gb_mobile_profiles.png, id=796, 1361.85588pt x 292.25987pt>
+<figures/gb_mobile_profiles.png, id=846, 1361.85588pt x 292.25987pt>
 File: figures/gb_mobile_profiles.png Graphic file (type png)
 <use figures/gb_mobile_profiles.png>
-Package pdftex.def Info: figures/gb_mobile_profiles.png  used on input line 236
-1.
+Package pdftex.def Info: figures/gb_mobile_profiles.png  used on input line 254
+5.
 (pdftex.def)             Requested size: 443.57848pt x 95.19292pt.
-<figures/gb_density_profiles.png, id=797, 1361.5668pt x 292.25987pt>
+<figures/gb_density_profiles.png, id=847, 1361.5668pt x 292.25987pt>
 File: figures/gb_density_profiles.png Graphic file (type png)
 <use figures/gb_density_profiles.png>
-Package pdftex.def Info: figures/gb_density_profiles.png  used on input line 23
-71.
+Package pdftex.def Info: figures/gb_density_profiles.png  used on input line 25
+55.
 (pdftex.def)             Requested size: 443.57848pt x 95.21075pt.
-<figures/gb_content_profiles.png, id=798, 1362.14496pt x 292.25987pt>
+<figures/gb_content_profiles.png, id=848, 1362.14496pt x 292.25987pt>
 File: figures/gb_content_profiles.png Graphic file (type png)
 <use figures/gb_content_profiles.png>
-Package pdftex.def Info: figures/gb_content_profiles.png  used on input line 23
-80.
+Package pdftex.def Info: figures/gb_content_profiles.png  used on input line 25
+64.
 (pdftex.def)             Requested size: 443.57848pt x 95.17062pt.
-<figures/gb_size_profiles.png, id=799, 1363.87944pt x 292.25987pt>
+<figures/gb_size_profiles.png, id=849, 1363.87944pt x 292.25987pt>
 File: figures/gb_size_profiles.png Graphic file (type png)
 <use figures/gb_size_profiles.png>
-Package pdftex.def Info: figures/gb_size_profiles.png  used on input line 2387.
+Package pdftex.def Info: figures/gb_size_profiles.png  used on input line 2571.
 
 (pdftex.def)             Requested size: 443.57848pt x 95.05022pt.
- [43 <./figures/loops_c_overlay.png> <./figures/loops_a1_overlay.png> <./figure
-s/gb_mobile_profiles.png>] [44 <./figures/gb_density_profiles.png> <./figures/g
+ [45 <./figures/loops_c_overlay.png> <./figures/loops_a1_overlay.png> <./figure
+s/gb_mobile_profiles.png>] [46 <./figures/gb_density_profiles.png> <./figures/g
 b_content_profiles.png> <./figures/gb_size_profiles.png>]
-<figures/mesh_E_281218tets.png, id=823, 550.40833pt x 425.81483pt>
+<figures/mesh_E_281218tets.png, id=872, 550.40833pt x 425.81483pt>
 File: figures/mesh_E_281218tets.png Graphic file (type png)
 <use figures/mesh_E_281218tets.png>
-Package pdftex.def Info: figures/mesh_E_281218tets.png  used on input line 2419
+Package pdftex.def Info: figures/mesh_E_281218tets.png  used on input line 2603
 .
 (pdftex.def)             Requested size: 212.91577pt x 164.71565pt.
-<figures/mesh_hex400_cut_y.png, id=824, 542.025pt x 425.81483pt>
+<figures/mesh_hex400_cut_y.png, id=873, 542.025pt x 425.81483pt>
 File: figures/mesh_hex400_cut_y.png Graphic file (type png)
 <use figures/mesh_hex400_cut_y.png>
-Package pdftex.def Info: figures/mesh_hex400_cut_y.png  used on input line 2421
+Package pdftex.def Info: figures/mesh_hex400_cut_y.png  used on input line 2605
 .
 (pdftex.def)             Requested size: 212.91577pt x 167.26263pt.
-<figures/size_dist_a3_01dpa.png, id=826, 452.12112pt x 307.58112pt>
+<figures/size_dist_a3_01dpa.png, id=875, 452.12112pt x 307.58112pt>
 File: figures/size_dist_a3_01dpa.png Graphic file (type png)
 <use figures/size_dist_a3_01dpa.png>
-Package pdftex.def Info: figures/size_dist_a3_01dpa.png  used on input line 243
-0.
+Package pdftex.def Info: figures/size_dist_a3_01dpa.png  used on input line 261
+4.
 (pdftex.def)             Requested size: 212.91577pt x 144.84943pt.
-<figures/size_dist_a3_26dpa.png, id=827, 452.12112pt x 307.58112pt>
+<figures/size_dist_a3_26dpa.png, id=876, 452.12112pt x 307.58112pt>
 File: figures/size_dist_a3_26dpa.png Graphic file (type png)
 <use figures/size_dist_a3_26dpa.png>
-Package pdftex.def Info: figures/size_dist_a3_26dpa.png  used on input line 243
-2.
+Package pdftex.def Info: figures/size_dist_a3_26dpa.png  used on input line 261
+6.
 (pdftex.def)             Requested size: 212.91577pt x 144.84943pt.
-<figures/size_dist_c_01dpa.png, id=829, 452.12112pt x 307.58112pt>
+<figures/size_dist_c_01dpa.png, id=878, 452.12112pt x 307.58112pt>
 File: figures/size_dist_c_01dpa.png Graphic file (type png)
 <use figures/size_dist_c_01dpa.png>
-Package pdftex.def Info: figures/size_dist_c_01dpa.png  used on input line 2441
+Package pdftex.def Info: figures/size_dist_c_01dpa.png  used on input line 2625
 .
 (pdftex.def)             Requested size: 212.91577pt x 144.84943pt.
-<figures/size_dist_c_26dpa.png, id=830, 452.12112pt x 307.58112pt>
+<figures/size_dist_c_26dpa.png, id=879, 452.12112pt x 307.58112pt>
 File: figures/size_dist_c_26dpa.png Graphic file (type png)
 <use figures/size_dist_c_26dpa.png>
-Package pdftex.def Info: figures/size_dist_c_26dpa.png  used on input line 2443
+Package pdftex.def Info: figures/size_dist_c_26dpa.png  used on input line 2627
 .
 (pdftex.def)             Requested size: 212.91577pt x 144.84943pt.
- [45 <./figures/mesh_E_281218tets.png> <./figures/mesh_hex400_cut_y.png>]
-<figures/loops_a1_06dpa.png, id=841, 378.40572pt x 217.96632pt>
+ [47 <./figures/mesh_E_281218tets.png> <./figures/mesh_hex400_cut_y.png>]
+<figures/loops_a1_06dpa.png, id=890, 378.40572pt x 217.96632pt>
 File: figures/loops_a1_06dpa.png Graphic file (type png)
 <use figures/loops_a1_06dpa.png>
-Package pdftex.def Info: figures/loops_a1_06dpa.png  used on input line 2452.
+Package pdftex.def Info: figures/loops_a1_06dpa.png  used on input line 2636.
 (pdftex.def)             Requested size: 212.91577pt x 122.64566pt.
-<figures/loops_a2_06dpa.png, id=842, 378.40572pt x 217.96632pt>
+<figures/loops_a2_06dpa.png, id=891, 378.40572pt x 217.96632pt>
 File: figures/loops_a2_06dpa.png Graphic file (type png)
 <use figures/loops_a2_06dpa.png>
-Package pdftex.def Info: figures/loops_a2_06dpa.png  used on input line 2454.
+Package pdftex.def Info: figures/loops_a2_06dpa.png  used on input line 2638.
 (pdftex.def)             Requested size: 212.91577pt x 122.64566pt.
-<figures/loops_a3_06dpa.png, id=843, 378.40572pt x 217.96632pt>
+<figures/loops_a3_06dpa.png, id=892, 378.40572pt x 217.96632pt>
 File: figures/loops_a3_06dpa.png Graphic file (type png)
 <use figures/loops_a3_06dpa.png>
-Package pdftex.def Info: figures/loops_a3_06dpa.png  used on input line 2455.
+Package pdftex.def Info: figures/loops_a3_06dpa.png  used on input line 2639.
 (pdftex.def)             Requested size: 212.91577pt x 122.64566pt.
-<figures/loops_c_06dpa.png, id=844, 395.17236pt x 217.96632pt>
+<figures/loops_c_06dpa.png, id=893, 395.17236pt x 217.96632pt>
 File: figures/loops_c_06dpa.png Graphic file (type png)
 <use figures/loops_c_06dpa.png>
-Package pdftex.def Info: figures/loops_c_06dpa.png  used on input line 2457.
+Package pdftex.def Info: figures/loops_c_06dpa.png  used on input line 2641.
 (pdftex.def)             Requested size: 212.91577pt x 117.44064pt.
- [46 <./figures/size_dist_a3_01dpa.png> <./figures/size_dist_a3_26dpa.png> <./f
-igures/size_dist_c_01dpa.png> <./figures/size_dist_c_26dpa.png>] [47 <./figures
+ [48 <./figures/size_dist_a3_01dpa.png> <./figures/size_dist_a3_26dpa.png> <./f
+igures/size_dist_c_01dpa.png> <./figures/size_dist_c_26dpa.png>] [49 <./figures
 /loops_a1_06dpa.png> <./figures/loops_a2_06dpa.png> <./figures/loops_a3_06dpa.p
 ng> <./figures/loops_c_06dpa.png>]
-Overfull \hbox (14.39604pt too wide) in paragraph at lines 2508--2509
+Overfull \hbox (14.39604pt too wide) in paragraph at lines 2692--2693
 []\T1/lmr/bx/n/10 The spa-tial model re-pro-duces the mean-field ki-net-ics in 
 the well-mixed limit. \T1/lmtt/m/n/10 ZrMicro-3d
  []
 
-[48] [49] [50] (D1M1_main_GP.bbl) [51] (D1M1_main_GP.aux)
+[50] [51] [52] (D1M1_main_GP.bbl) [53] (D1M1_main_GP.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
 Package rerunfilecheck Info: File `D1M1_main_GP.out' has not changed.
-(rerunfilecheck)             Checksum: 70882C42BF2D8F9EEF993B4EDC5F5672;3954.
+(rerunfilecheck)             Checksum: EE9550E4D8D5D66D87A94D0BEF5D52A1;3959.
  ) 
 Here is how much of TeX's memory you used:
- 36607 strings out of 467691
- 786559 string characters out of 5414988
- 1207111 words of memory out of 5000000
- 64760 multiletter control sequences out of 15000+600000
- 748263 words of font info for 121 fonts, out of 8000000 for 9000
+ 36625 strings out of 467691
+ 786764 string characters out of 5414988
+ 1200052 words of memory out of 5000000
+ 64770 multiletter control sequences out of 15000+600000
+ 756214 words of font info for 125 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 84i,19n,96p,1917b,1168s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,19n,96p,1917b,1166s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbsy10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx10.p
 fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx12.p
-fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx9.pf
-b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pf
-b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi10.pf
-b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi5.pfb
-><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi6.pfb>
-<C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi7.pfb><
-C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><C
-:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi9.pfb><C:
-/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib10.pfb><C
-:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib7.pfb><C
-:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:
-/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/
-Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/U
-sers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr5.pfb><C:/Use
-rs/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr6.pfb><C:/Users
-/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr7.pfb><C:/Users/O
-wner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Users/Own
-er/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr9.pfb><C:/Users/Owner
-/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb><C:/Users/Owner
-/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri9.pfb><C:/Users/Owner/
-AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss10.pfb><C:/Users/Owner/
-AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss9.pfb><C:/Users/Owner/A
-ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmssbx10.pfb><C:/Users/Owner
-/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users/Owner
-/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/Users/Owner/
-AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy7.pfb><C:/Users/Owner/A
-ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/Owner/Ap
-pData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy9.pfb><C:/Users/Owner/App
-Data/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Owner/App
-Data/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Owner/App
-Data/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppD
-ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtti10.pfb><C:/Users/Owner/App
-Data/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/U
-sers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/ms
-bm10.pfb>
-Output written on D1M1_main_GP.pdf (51 pages, 11547061 bytes).
+fb><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx8.pf
+b><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmbx9.pfb
+><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmex10.pfb
+><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi10.pfb
+><C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi5.pfb>
+<C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi6.pfb><
+C:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi7.pfb><C
+:/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi8.pfb><C:
+/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmi9.pfb><C:/
+Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib10.pfb><C:
+/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmmib7.pfb><C:
+/Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr10.pfb><C:/
+Users/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr12.pfb><C:/U
+sers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr17.pfb><C:/Us
+ers/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr5.pfb><C:/User
+s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr6.pfb><C:/Users/
+Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr7.pfb><C:/Users/Ow
+ner/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr8.pfb><C:/Users/Owne
+r/AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmr9.pfb><C:/Users/Owner/
+AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri10.pfb><C:/Users/Owner/
+AppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri8.pfb><C:/Users/Owner/A
+ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmri9.pfb><C:/Users/Owner/Ap
+pData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss10.pfb><C:/Users/Owner/Ap
+pData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmss9.pfb><C:/Users/Owner/App
+Data/Local/Programs/MiKTeX/fonts/type1/public/lm/lmssbx10.pfb><C:/Users/Owner/A
+ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy10.pfb><C:/Users/Owner/A
+ppData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy6.pfb><C:/Users/Owner/Ap
+pData/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy7.pfb><C:/Users/Owner/App
+Data/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy8.pfb><C:/Users/Owner/AppD
+ata/Local/Programs/MiKTeX/fonts/type1/public/lm/lmsy9.pfb><C:/Users/Owner/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtk10.pfb><C:/Users/Owner/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt10.pfb><C:/Users/Owner/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt8.pfb><C:/Users/Owner/AppDat
+a/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtt9.pfb><C:/Users/Owner/AppData
+/Local/Programs/MiKTeX/fonts/type1/public/lm/lmtti10.pfb><C:/Users/Owner/AppDat
+a/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msam10.pfb><C:/User
+s/Owner/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/symbols/msbm1
+0.pfb>
+Output written on D1M1_main_GP.pdf (53 pages, 11635162 bytes).
 PDF statistics:
- 1156 PDF objects out of 1200 (max. 8388607)
- 294 named destinations out of 1000 (max. 500000)
+ 1218 PDF objects out of 1440 (max. 8388607)
+ 299 named destinations out of 1000 (max. 500000)
  509 words of extra memory for PDF output out of 10000 (max. 10000000)
 
