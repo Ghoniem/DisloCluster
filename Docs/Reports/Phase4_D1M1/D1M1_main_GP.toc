@@ -1,0 +1,20 @@
+\babel@toc {english}{}\relax 
+\contentsline {section}{\numberline {1}Introduction}{4}{section.1}%
+\contentsline {section}{\numberline {2}Spatially Resolved Cluster Dynamics}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Recent developments in the {\textsf {MoDELib2-NNL}} code}{4}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Mobile defect clusters}{5}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Bias factors and loop sink strengths}{8}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Immobile defect clusters}{9}{subsection.2.4}%
+\contentsline {section}{\numberline {3}The \texttt {ZrMicro} Code}{12}{section.3}%
+\contentsline {subsection}{\numberline {3.1}\texttt {ZrMicro-0d}{}}{14}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}\texttt {ZrMicro-3d}{}}{19}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Correspondence between the codes}{21}{subsection.3.3}%
+\contentsline {section}{\numberline {4}Parameter Identification for the \texttt {ZrMicro-0d} CD Model}{22}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Forward model, observation operator, and identification targets}{23}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Objective functional and parameter normalization}{24}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Identification workflow and optimization algorithms}{25}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}First-round optimization results}{27}{subsection.4.4}%
+\contentsline {section}{\numberline {5}Results}{30}{section.5}%
+\contentsline {subsection}{\numberline {5.1}The \texttt {ZrMicro-0d} code results}{30}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}The {\texttt {ZrMicro-3d}} code results}{37}{subsection.5.2}%
+\contentsline {section}{\numberline {6}Conclusions}{47}{section.6}%

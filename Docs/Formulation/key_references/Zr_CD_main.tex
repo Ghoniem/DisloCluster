@@ -1,0 +1,1365 @@
+\maketitle
+
+%======================================================================
+%                              INTRODUCTION
+%======================================================================
+\section{Introduction}\label{sec:introduction}
+
+Zirconium and its alloys---Zircaloy-2 and Zircaloy-4 in light-water
+reactor (LWR) fuel cladding, Zr--2.5\,Nb in CANDU pressure tubes, and
+the more recent low-tin variants M5 and ZIRLO in pressurized-water
+reactor (PWR) service---operate under prolonged neutron exposure at
+displacement rates of $10^{-8}$ to $10^{-7}$\,dpa/s and accumulate
+total damage of 5--30\,dpa over a typical fuel-cycle lifetime
+\citep{Adamson2019,LemaignanMotta1994}. The microstructural changes
+that result—nucleation and growth of $\langle a\rangle$ prismatic
+loops, the comparatively delayed appearance of $\langle c\rangle$
+-component basal vacancy loops, dislocation channeling under tensile
+load, anisotropic irradiation growth and creep, and stress-driven
+hydride reorientation—are the principal source of property
+degradation in Zr-based components, manifested as hardening, loss of
+uniform elongation, axial growth of fuel assemblies, lateral
+creep-down of pressure tubes, and delayed hydride cracking
+\citep{Northwood1977,Griffiths1988,OnimusBechade2012,Cinbiz2016}.
+Predicting these property changes from first principles, across the
+joint envelope of dose, temperature, alloy composition, texture, and
+applied stress, is the central quantitative challenge of fuel-element
+and pressure-tube qualification.
+
+The cluster-dynamics (CD) framework, introduced in its modern form
+during the late 1970s and early 1980s
+\citep{Ghoniem1977,Ghoniem1979a,Ghoniem1980,Hayns1976,Kiritani1973},
+remains the workhorse mesoscopic theory for radiation-induced
+microstructure evolution. CD treats each defect species and size as a
+separate population whose concentration evolves under a coupled set
+of master rate equations balancing in-cascade production,
+diffusion-controlled reactions, thermal emission, and absorption at
+fixed sinks
+\citep{BrailsfordBullough1972,Wiedersich1972,Mansur1978}. Its three
+defining advantages are (i) direct access to time scales
+($10^{0}$--$10^{8}$\,s) that lie far beyond molecular dynamics
+\citep{Bacon2009,Marian2017}; (ii) explicit resolution of the
+cluster-size distribution—and therefore of every quantity that
+enters the macroscopic property models, from sink-strength to
+growth-strain calculations
+\citep{GolubovSingh2001,Holt1988}; and (iii) modest computational
+cost relative to spatially resolved kinetic Monte Carlo or atomistic
+simulation, which together make CD the natural meeting point between
+atomistic-scale parameterization
+\citep{Christensen2015,PatraTrinkle2019} and engineering-scale
+prediction \citep{KohnertWirth2017,OnimusBechade2012}.
+
+In zirconium specifically, CD has been used to follow the dose
+evolution of $\langle a\rangle$-loop number density and mean size, to
+test nucleation criteria for $\langle c\rangle$-component basal
+vacancy loops, and to convert resolved cluster-size distributions
+into anisotropic growth strain through models of the Holt
+DAD/EID class \citep{Holt1988,HoltCausey1993,Christensen2015}.
+The persistent challenge is that the principal defect populations in
+hcp Zr—prismatic interstitial $\langle a\rangle$-loops on
+$\{10\bar{1}0\}$ habit planes with Burgers vector
+$\tfrac{1}{3}\langle 11\bar{2}0\rangle$, and faulted vacancy
+$\langle c\rangle$-component loops on $\{0001\}$ basal planes with
+Burgers vector $\tfrac{1}{6}\langle 20\bar{2}3\rangle$—differ in
+both habit plane and Burgers vector, with strongly anisotropic
+point-defect diffusivities and size-dependent capture biases that are
+not well captured by isotropic single-loop-family CD treatments
+inherited from body-centered cubic metals
+\citep{Carpenter1988,Yi2013,Onimus2004}.
+
+
+SIA migration in $\alpha$-Zr is strongly anisotropic, with prism-plane
+mobility exceeding basal mobility by roughly an order of magnitude
+\citep{Christensen2015,PatraTrinkle2019}. Vacancy diffusion is
+similarly anisotropic, though more weakly. Most CD treatments of
+zirconium retain isotropic diffusion constants taken from the BCC
+literature, conflating the underlying anisotropy with effective
+sink-bias factors and obscuring the relationship between atomic-scale
+parameters and observed dimensional change.
+
+Beyond a critical nucleus size, individual cluster equations are
+typically replaced by a Fokker–Planck (FP) representation
+\citep{Wagner1981,Russell1984} or a grouping/binning scheme
+\citep{GolubovSingh2001,KohnertWirth2017}. Each closure has known
+limitations: FP closures lose accuracy at the discrete-to-continuous
+transition; grouping closures introduce mass-conservation errors
+unless the inter-bin flux is explicitly designed; and few
+formulations rigorously analyze the \emph{accuracy} of the closure in
+a way that allows the user to trade fidelity for system size with
+quantified error.
+
+The primary irradiation defects in hcp zirconium are vacancies, self-interstitial
+atoms, and their associated clusters.  Because the hcp lattice is elastically
+and crystallographically anisotropic, defect clusters cannot be classified only
+by size.  Their Burgers-vector character and habit plane also determine their
+contribution to irradiation growth, hardening, and defect sink evolution.
+The experimentally observed dislocation-loop population in irradiated Zr and
+Zr alloys is commonly grouped into $\langle a\rangle$ loops and
+$c$-component loops~\citep{Kelly1973,ChoiKim2013,Tournadre2012}.
+The $\langle a\rangle$ loops have Burgers vector
+\begin{equation}
+  \mathbf{b}_a =
+  \frac{1}{3}\langle 11\bar{2}0\rangle ,
+\end{equation}
+whereas the $c$-component loops contain a Burgers-vector component parallel
+to the hcp $c$ axis.
+
+For the cluster-dynamics formulation used here, the full crystallographic
+loop population is reduced to four principal cluster families:
+\begin{equation}
+  I_n^a, \qquad V_n^a, \qquad S_n, \qquad V_n^c .
+  \label{eq:zr_loop_classes}
+\end{equation}
+Here, $I_n^a$ denotes an interstitial $\langle a\rangle$ loop containing
+$n$ excess self-interstitial atoms, $V_n^a$ denotes a vacancy
+$\langle a\rangle$ loop containing $n$ missing atoms, $S_n$ denotes a basal
+stacking-fault pyramid (SFP) of $n$ aggregated vacancies, and $V_n^c$ denotes
+a vacancy-type $c$-component loop.  This notation separates the defect
+character (interstitial or vacancy) from the crystallographic character
+($\langle a\rangle$, basal pyramidal, or $c$-component).
+
+The $\langle a\rangle$ loops are associated primarily with prismatic or
+near-prismatic habit planes.  Atomistic simulations indicate that
+$\langle a\rangle$ loops may occur as either interstitial or vacancy loops,
+and that the energetics of alternative prismatic habit planes can be close;
+relaxation and rotation between prismatic variants can therefore occur during
+loop evolution~\citep{HulseRace2021}.  In contrast, $c$-component loops in
+Zr are generally associated with basal habit planes and are commonly treated
+as vacancy-type loops.  Atomistic studies and continuum arguments suggest
+that vacancy aggregation into basal platelets provides a natural precursor
+for the formation of basal $c$-component dislocation loops
+~\citep{WooLiu2009,LiuBeyerleinHan2020}.  Recent transmission electron
+microscopy observations of nanoscale vacancy platelets support this picture
+and provide direct experimental evidence for a vacancy-mediated pathway to
+basal loop formation~\citep{LiuBeyerleinHan2020}.
+
+This three-population representation is a deliberate simplification.  It does
+not attempt to track every possible loop habit plane, fault structure, or
+mixed Burgers-vector state.  Instead, it retains the four cluster classes most relevant
+to irradiation growth: prismatic $\langle a\rangle$ interstitial and vacancy
+loops, basal stacking-fault pyramids, and basal $c$-component vacancy loops.
+The two $\langle a\rangle$ populations set the balance of defect storage and
+recovery on the prismatic systems; the SFPs collect cascade vacancy debris on
+the basal plane and, on unfaulting, feed the $c$-component loops, which in turn
+carry the delayed basal damage responsible for high-fluence irradiation growth.  The model state vector for the loop sector
+is therefore written as
+\begin{equation}
+  \mathcal{C}_{\rm loop}
+  =
+  \left\{
+  I_n^a,\,
+  V_n^a,\,
+  S_n,\,
+  V_n^c
+  \right\}_{n=1}^{n_{\max}} .
+  \label{eq:zr_loop_state_vector}
+\end{equation}
+
+Figure~\ref{fig:zr_three_loops} illustrates the reduced classification.  The
+hcp crystal is represented schematically as a hexagonal prism, with hidden or
+interior prism edges shown by dashed lines.  The prismatic
+$\langle a\rangle$ interstitial loop, $I_n^a$, is drawn as a solid platelet
+to indicate its interstitial character.  The prismatic $\langle a\rangle$
+vacancy loop, $V_n^a$, is drawn as a dotted platelet with similar
+crystallographic orientation but opposite defect character.  The basal
+$c$-component vacancy loop, $V_n^c$, is drawn as a dotted basal platelet, and
+the basal stacking-fault pyramid, $S_n$, is drawn as a dotted three-dimensional
+pyramid seated on the upper basal plane.  Thus solid outlines denote
+interstitial-type defects, dotted outlines denote vacancy-type defects, and
+the platelet or pyramid orientation identifies the dominant habit-plane class.
+
+In the rate equations that follow, each of the four families is assigned
+separate formation, migration, transformation, and sink-absorption rates,
+together with the SFP-to-$c$-loop unfaulting transfer.  This lets the model
+distinguish ordinary $\langle a\rangle$ evolution from the delayed nucleation
+and growth of basal $c$-component damage while keeping the internal state
+vector small enough for large-scale parametric calculations.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    >=latex, scale=1.0, line join=round, font=\scriptsize,
+    intcol/.style={green!55!black},
+    vaccol/.style={blue!70!black},
+    ccol/.style={red!75!black},
+    sfpcol/.style={orange!85!black},
+    edge/.style={black, thick},
+    hidden/.style={black, dashed, thin},
+    dotv/.style={draw=#1, line width=0.9pt, dash pattern=on 0.5pt off 1.6pt},
+    intplate/.style={draw=green!55!black, line width=1.0pt, fill=green!18},
+    intside/.style={draw=green!55!black, line width=1.0pt, fill=green!30},
+    vacplate/.style={dotv=blue!70!black, fill=blue!12},
+    vacside/.style={dotv=blue!70!black, fill=blue!20},
+    cplate/.style={dotv=red!75!black, fill=red!12},
+    cside/.style={dotv=red!75!black, fill=red!22},
+    sfpface/.style={dotv=orange!85!black, fill=orange!16}
+  ]
+  \definecolor{paleyellow}{RGB}{245,235,150}
+  \newcommand{\atomcube}[3][0.07]{%
+    \begin{scope}[shift={#2}]
+      \def\hs{#1}%
+      \pgfmathsetmacro{\dd}{0.5*\hs}%
+      % front face
+      \fill[#3] (-\hs,-\hs) -- (\hs,-\hs) -- (\hs,\hs) -- (-\hs,\hs) -- cycle;
+      % top face
+      \fill[#3!92!white] (-\hs,\hs) -- (\hs,\hs) -- (\hs+\dd,\hs+\dd) -- (-\hs+\dd,\hs+\dd) -- cycle;
+      % right face
+      \fill[#3!78!black] (\hs,-\hs) -- (\hs+\dd,-\hs+\dd) -- (\hs+\dd,\hs+\dd) -- (\hs,\hs) -- cycle;
+      % outline
+      \draw[black, line width=0.3pt]
+        (-\hs,-\hs) -- (\hs,-\hs) -- (\hs,\hs) -- (-\hs,\hs) -- cycle
+        (-\hs,\hs) -- (-\hs+\dd,\hs+\dd) -- (\hs+\dd,\hs+\dd) -- (\hs,\hs)
+        (\hs+\dd,\hs+\dd) -- (\hs+\dd,-\hs+\dd) -- (\hs,-\hs);
+    \end{scope}%
+  }
+
+  %==== hexagonal prism (hcp cell) ====
+  \def\H{6.2}
+  \def\rx{2.05}
+  \def\ry{0.62}
+  \def\sx{0.55}
+  % depth offset used for 3-D extrusions
+  \def\dxx{0.16}
+  \def\dyy{0.10}
+  % Top hexagon vertices (T1 = back-top, T5 = front-bottom-left)
+  \coordinate (T0) at (-\rx, 0);
+  \coordinate (T1) at (-\rx+\sx,  \ry);
+  \coordinate (T2) at ( \rx-\sx,  \ry);
+  \coordinate (T3) at ( \rx, 0);
+  \coordinate (T4) at ( \rx-\sx, -\ry);
+  \coordinate (T5) at (-\rx+\sx, -\ry);
+  % Bottom hexagon
+  \coordinate (B0) at (-\rx,-\H);
+  \coordinate (B1) at (-\rx+\sx,-\H+\ry);
+  \coordinate (B2) at ( \rx-\sx,-\H+\ry);
+  \coordinate (B3) at ( \rx,-\H);
+  \coordinate (B4) at ( \rx-\sx,-\H-\ry);
+  \coordinate (B5) at (-\rx+\sx,-\H-\ry);
+
+  % (1) TOP hexagon boundary solid (except the T2--T3 fold, drawn dotted below)
+  \draw[edge] (T3)--(T4)--(T5)--(T0)--(T1)--(T2);
+
+  % back vertical edge (hidden)
+  \draw[hidden] (T1)--(B1);
+  % bottom hexagon back edges hidden
+  \draw[hidden] (B1)--(B0) (B1)--(B2);
+
+  % bottom hexagon (visible front part solid; B2--B3 is dotted hidden line)
+  \draw[edge] (B0)--(B5)--(B4)--(B3);
+  % vertical edges (visible)
+  \draw[edge] (T0)--(B0);
+  \draw[edge] (T5)--(B5);
+  \draw[edge] (T4)--(B4);
+  \draw[edge] (T3)--(B3);
+  \draw[hidden] (T2)--(B2);
+
+  % (2) top-right small triangle: hypotenuse (T2--T3) is a hidden line -> dotted
+  \draw[edge] (T2)--(T3);
+  % (3) lower-right small triangle: its top side (B2--B3) is hidden -> dotted
+  \draw[hidden] (B2)--(B3);
+
+  % interior reference vertical (dashed)
+  \draw[hidden] ($(T0)!0.5!(T3)$)--($(B0)!0.5!(B3)$);
+
+  %================= (a) Basal stacking-fault pyramid (SFP) on TOP plane =====
+  \begin{scope}[shift={(-0.15,0.05)}]
+    \coordinate (p0) at (-0.85,0.0);
+    \coordinate (p1) at (-0.45,0.26);
+    \coordinate (p2) at ( 0.45,0.26);
+    \coordinate (p3) at ( 0.85,0.0);
+    \coordinate (p4) at ( 0.45,-0.26);
+    \coordinate (p5) at (-0.45,-0.26);
+    \coordinate (apex) at (0.05,1.15);
+    \fill[sfpface, fill opacity=0.55] (p1)--(p2)--(apex)--cycle;
+    \draw[sfpface] (p0)--(p5)--(apex)--cycle;
+    \draw[sfpface] (p5)--(p4)--(apex)--cycle;
+    \draw[sfpface] (p4)--(p3)--(apex)--cycle;
+    \draw[sfpface] (p0)--(apex);
+    \draw[sfpface] (p3)--(apex);
+    \draw[dotv=orange!85!black] (p0)--(p1)--(p2)--(p3)--(p4)--(p5)--cycle;
+      \atomcube[0.12]{(-0.45,-0.13)}{paleyellow}
+      \atomcube[0.12]{(-0.15,-0.13)}{paleyellow}
+      \atomcube[0.12]{(0.15,-0.13)}{paleyellow}
+      \atomcube[0.12]{(0.45,-0.13)}{paleyellow}
+      \atomcube[0.12]{(-0.45,0)}{paleyellow}
+      \atomcube[0.12]{(-0.15,0)}{paleyellow}
+      \atomcube[0.12]{(0.15,0)}{paleyellow}
+      \atomcube[0.12]{(0.45,0)}{paleyellow}
+      \atomcube[0.12]{(-0.45,0.13)}{paleyellow}
+      \atomcube[0.12]{(-0.15,0.13)}{paleyellow}
+      \atomcube[0.12]{(0.15,0.13)}{paleyellow}
+      \atomcube[0.12]{(0.45,0.13)}{paleyellow}
+  \end{scope}
+  \node[sfpcol, align=left, anchor=west] at (1.35,0.95)
+    {Basal stacking-fault\\pyramid, $S_n$ (SFP)};
+
+  %================= (b) prismatic <a> interstitial loop (green, 3-D slab) ===
+  \begin{scope}[shift={(0.55,-3.0)}]
+    % front face corners
+    \coordinate (g1) at (-0.55,-1.25);
+    \coordinate (g2) at ( 0.55,-1.05);
+    \coordinate (g3) at ( 0.62, 1.15);
+    \coordinate (g4) at (-0.48, 0.95);
+    % extruded back corners
+    \coordinate (g2b) at ($(g2)+(\dxx,\dyy)$);
+    \coordinate (g3b) at ($(g3)+(\dxx,\dyy)$);
+    \coordinate (g4b) at ($(g4)+(\dxx,\dyy)$);
+    % side faces (thickness)
+    \fill[intside] (g2)--(g2b)--(g3b)--(g3)--cycle;   % right face
+    \fill[intside] (g4)--(g4b)--(g3b)--(g3)--cycle;   % top face
+    \draw[intside] (g2)--(g2b)--(g3b)--(g3)--cycle;
+    \draw[intside] (g4)--(g4b)--(g3b)--(g3)--cycle;
+    % front face
+    \filldraw[intplate] (g1)--(g2)--(g3)--(g4)--cycle;
+    % sphere atoms (interstitials)
+    \foreach \y in {-0.9,-0.45,0.0,0.45,0.9}
+      \foreach \x in {-0.28,0.05,0.38}
+        \shade[ball color=green!55!black] ($(\x,\y)+(0.03*\y,0)$) circle (4.2pt);
+    \draw[green!45!black, line width=1.1pt, ->] (-0.05,-0.05)--(0.45,-0.05);
+  \end{scope}
+  \node[intcol, align=left, anchor=west] at (2.35,-2.0)
+    {Prismatic $\langle a\rangle$\\interstitial loop, $I_n^{a}$};
+  \node[intcol, anchor=west] at (2.35,-2.95)
+    {$b=\tfrac{1}{3}\langle 11\bar{2}0\rangle$};
+
+  %================= (c) prismatic <a> vacancy loop (blue, 3-D slab) =========
+  \begin{scope}[shift={(-0.95,-3.4)}]
+    \coordinate (v1) at (-0.42,-1.05);
+    \coordinate (v2) at ( 0.40,-0.9);
+    \coordinate (v3) at ( 0.45, 0.95);
+    \coordinate (v4) at (-0.37, 0.8);
+    \coordinate (v2b) at ($(v2)+(\dxx,\dyy)$);
+    \coordinate (v3b) at ($(v3)+(\dxx,\dyy)$);
+    \coordinate (v4b) at ($(v4)+(\dxx,\dyy)$);
+    \fill[vacside] (v2)--(v2b)--(v3b)--(v3)--cycle;
+    \fill[vacside] (v4)--(v4b)--(v3b)--(v3)--cycle;
+    \draw[vacside] (v2)--(v2b)--(v3b)--(v3)--cycle;
+    \draw[vacside] (v4)--(v4b)--(v3b)--(v3)--cycle;
+    \filldraw[vacplate] (v1)--(v2)--(v3)--(v4)--cycle;
+    \foreach \y in {-0.7,-0.3,0.1,0.5}
+      \foreach \x in {-0.18,0.18}
+        \atomcube[0.12]{(\x,\y)}{paleyellow}
+    \draw[blue!70!black, line width=1.1pt, ->] (-0.05,0.0)--(0.30,-0.30);
+  \end{scope}
+  \node[vaccol, align=right, anchor=east] at (-2.35,-3.0)
+    {Prismatic $\langle a\rangle$\\vacancy loop, $V_n^{a}$};
+  \node[vaccol, anchor=east] at (-2.35,-3.9)
+    {$b=\tfrac{1}{3}\langle 11\bar{2}0\rangle$};
+
+  %================= (d) basal <c> vacancy loop (red, extruded 3-D) ==========
+  \begin{scope}[shift={(0.0,-5.05)}]
+    % top hexagonal footprint
+    \coordinate (c0) at (-1.05,0);
+    \coordinate (c1) at (-0.6,0.30);
+    \coordinate (c2) at ( 0.6,0.30);
+    \coordinate (c3) at ( 1.05,0);
+    \coordinate (c4) at ( 0.6,-0.30);
+    \coordinate (c5) at (-0.6,-0.30);
+    \def\ch{0.28} % extrusion height (downwards)
+    % bottom footprint (shifted down)
+    \coordinate (d0) at ($(c0)+(0,-\ch)$);
+    \coordinate (d3) at ($(c3)+(0,-\ch)$);
+    \coordinate (d4) at ($(c4)+(0,-\ch)$);
+    \coordinate (d5) at ($(c5)+(0,-\ch)$);
+    % side faces (front-visible)
+    \fill[cside] (c0)--(c5)--(d5)--(d0)--cycle;
+    \fill[cside] (c5)--(c4)--(d4)--(d5)--cycle;
+    \fill[cside] (c4)--(c3)--(d3)--(d4)--cycle;
+    \draw[cside] (c0)--(c5)--(d5)--(d0)--cycle;
+    \draw[cside] (c5)--(c4)--(d4)--(d5)--cycle;
+    \draw[cside] (c4)--(c3)--(d3)--(d4)--cycle;
+    % top face with vacancy circles
+    \filldraw[cplate] (c0)--(c1)--(c2)--(c3)--(c4)--(c5)--cycle;
+    \foreach \x in {-0.7,-0.35,0,0.35,0.7}
+      \atomcube[0.11]{(\x,0.08)}{paleyellow}
+    \foreach \x in {-0.5,-0.15,0.2,0.55}
+      \atomcube[0.11]{(\x,-0.12)}{paleyellow}
+    \draw[red!70!black, line width=1.1pt, ->] (0.0,0.05)--(0.0,1.0);
+  \end{scope}
+  % (7) shifted further right to avoid overlap with figure lines
+  \node[ccol, align=left, anchor=west] at (2.15,-5.05)
+    {Basal $\langle c\rangle$\\vacancy loop, $V_n^{c}$};
+  \node[ccol, anchor=west] at (2.15,-5.75)
+    {$b=[0001]$};
+
+  %================= legend ==============================================
+  \begin{scope}[shift={(1.55,-7.35)}]
+    \draw[black, thick] (0,0.18)--(0.55,0.18);
+    \node[anchor=west, font=\tiny] at (0.62,0.18) {solid outline $=$ interstitial};
+    \draw[black, dash pattern=on 0.5pt off 1.6pt, line width=0.9pt] (0,-0.2)--(0.55,-0.2);
+    \node[anchor=west, font=\tiny] at (0.62,-0.2) {dotted outline $=$ vacancy};
+    \draw[black, thin] (-0.18,-0.45) rectangle (4.35,0.45);
+  \end{scope}
+
+  \node[font=\bfseries\small] at (0,1.85) {Four loop classes in hcp Zr};
+
+  \end{tikzpicture}
+\caption{Schematic of the reduced loop and cluster classes tracked for
+irradiated hcp Zr: a basal stacking-fault pyramid $S_n$ (orange, dotted),
+a prismatic $\langle a\rangle$ interstitial loop $I_n^{a}$ (solid green
+platelet), a prismatic $\langle a\rangle$ vacancy loop $V_n^{a}$ (blue
+dotted platelet), and a basal $\langle c\rangle$ vacancy loop $V_n^{c}$
+(red dotted platelet). The SFP is a three-dimensional pyramidal vacancy
+aggregate seated on the top basal plane that acts as the metastable
+precursor to the basal $\langle c\rangle$ loops. Hidden/interior edges of
+the hexagonal prism are shown dashed. Solid outlines denote
+interstitial-type defects; dotted outlines denote vacancy-type defects.}
+\label{fig:zr_three_loops}
+\end{figure}
+
+The present formulation is designed to address each of these gaps in a
+single, modular framework whose components can be selected, replaced,
+or specialized depending on the alloy of interest and the target
+irradiation environment. The principal objectives are:
+
+\begin{enumerate}
+\item to develop a \emph{general, transparent} CD formulation in
+      which every reaction rate, every binding energy, and every
+      closure approximation is traceable to its physical origin and
+ its calibration data, and in which the formulation can be
+      specialized to a particular Zr alloy (here Zircaloy-4 and pure
+      $\alpha$-Zr as the principal examples) without modifying the
+      algorithmic core;
+\item to provide a \emph{multi-population loop treatment}
+      (Sections~\ref{sec:master_equations} and
+      \ref{sec:size_bin_moments}) in which prismatic interstitial and
+      vacancy $\langle a\rangle$-loops, basal stacking-fault pyramids,
+      and basal $\langle c\rangle$-component vacancy loops are tracked
+      as separate species with distinct Burgers vectors, habit planes,
+      and capture-bias factors, coupled through the SFP-to-$\langle c\rangle$
+      unfaulting transfer, so that their joint nucleation and growth
+      produce anisotropic dimensional change consistent with the
+      DAD/EID convention of \cite{Holt1988};
+\item to incorporate \emph{anisotropic point-defect transport}
+      explicitly through separate basal and prismatic SIA and
+      vacancy diffusivities (Section~\ref{sec:diffusion}) calibrated
+      against DFT and atomistic data
+      \citep{Christensen2015,PatraTrinkle2019};
+\item to implement two complementary \emph{closures of the
+      cluster-size distribution} via a logarithmic-bin-moment
+ method—a piecewise-constant (zeroth-order) closure and a
+      Galerkin shape-function closure—with explicit accuracy and
+      mass-conservation analysis, so the user can trade system size
+      against fidelity in a controlled manner;
+\item to ground the framework in a \emph{rigorous numerical
+      strategy} that exploits the bordered-banded Jacobian
+      structure through a Sherman--Morrison--Woodbury preconditioner,
+      with mass-conservation laws used as live diagnostics during
+      time integration; and
+\item to deliver the formulation in an open-source code,
+      \textsc{RadCluster}, that ships with a complete Zircaloy-4 and
+      pure-Zr parameter set, verification against analytical limits,
+      and demonstration applications to LWR cladding and CANDU
+      pressure-tube irradiation conditions.
+\end{enumerate}
+
+ The present framework
+targets bulk Zr-alloy property prediction over component lifetimes,
+prioritizes auditable approximations, and conservation diagnostics.  The reviews of
+\cite{OnimusBechade2012} and \cite{Adamson2019} provide a useful
+recent map of the methodological and experimental landscape into
+which the present formulation inserts itself, and the experimental
+anchors of \cite{Onimus2004,Yi2013,Doriot2015,Carpenter1988} provide
+the data against which the model is calibrated. The modularity of the formulation is best illustrated by three
+representative use cases.
+
+\textbf{(a) LWR fuel cladding (Zircaloy-4 or M5).} The
+dual-loop-family is
+enabled with anisotropic SIA diffusion of Section~\ref{sec:diffusion}
+active.  Cascade defect spectra of Section~\ref{sec:production} are
+loaded with thermal-fission-spectrum power-law exponents
+$(s_{i},s_{v})$ and clustering fractions
+$(f_{i}^{\mathrm{cl}},f_{v}^{\mathrm{cl}})$.  The Galerkin
+shape-function bin closure of is used
+at large $\langle a\rangle$-loop sizes to track loop coarsening and
+the eventual saturation of the loop population while preserving mass
+conservation \citep{OnimusBechade2012,Doriot2015}.
+
+\textbf{(b) CANDU pressure tube (Zr--2.5\,Nb).} The same network is
+run with $\langle c\rangle$-loop nucleation enabled to capture the dose-threshold appearance of basal vacancy
+loops and the resulting transition from steady to breakaway
+irradiation growth \citep{Holt1988,HoltCausey1993}.  The applied
+hoop and axial stresses are coupled through the SIPA and
+climb--glide creep contributions of Section~\ref{sec:reaction_rates}.
+
+\textbf{(c) Pure $\alpha$-Zr model alloy (validation).}  Solute
+trapping is disabled; only the elementary species and the two loop
+families remain.  The framework is validated against in-situ
+ion-irradiation TEM \citep{Yi2013} and post-mortem
+neutron-irradiation data \citep{Carpenter1988} where the dose,
+temperature, and pre-irradiation microstructure are all well
+controlled. In each case, the algorithmic core is unchanged; only the parameter
+tables, the closures, and the active reduction options are
+re-selected.
+
+The remainder of the paper is organized as follows.
+Section~\ref{sec:production} develops the cascade-spectrum model for
+defect production, including survival efficiencies, clustering
+fractions, and power-law exponents for thermal- and fast-spectrum
+neutron irradiation, with the recommended Zircaloy-4 parameter table.
+Section~\ref{sec:energetics} compiles defect energetics
+(formation, migration, and binding energies) for the elementary
+species and small clusters, with explicit DFT and MD provenance and
+recommended values for $\alpha$-Zr.
+Section~\ref{sec:diffusion} treats defect diffusion on the hcp
+lattice with explicit basal and prism-plane components, including
+solute-trapped SIA cluster transport, vacancy and vacancy-cluster
+diffusion, and the special case of fast 1-D glide of small SIA
+clusters along $\langle 11\bar{2}0\rangle$.
+Section~\ref{sec:dissociation} derives cluster-dissociation kinetics
+for $\langle a\rangle$- and $\langle c\rangle$-loops, with
+binding-energy models grounded in atomistic simulation data.
+Section~\ref{sec:reaction_rates} consolidates these inputs into the
+unified reaction-rate-constant framework with the transition
+frequency $\omega = D/a^{2}$, treating 3D and 1D
+diffusion-limited reactions on equal footing and providing
+precomputed constants for the Zircaloy-4 application.
+Section~\ref{sec:master_equations} assembles the full master
+equations for the SIA-cluster, $\langle a\rangle$-loop, and
+$\langle c\rangle$-loop populations, states the bias-factor and
+sink-strength formulation, derives the mass-conservation laws
+(Frenkel-pair moments), and documents the irradiation-growth
+identity and ODE-system structure used by the solver.
+Section~\ref{sec:size_bin_moments} introduces the
+logarithmic-bin-moment state-space reduction with both
+piecewise-constant and Galerkin closures and analyzes accuracy,
+conservation, and reduced system size.
+ Demonstration simulation results for
+Zircaloy-4 are given in Section~\ref{sec:simulations}.
+The appendices provide rigorous proofs of the conservation laws
+(Appendix~\ref{app:conservation}), the numerical-method
+specification including the Sherman--Morrison-Woodbury
+preconditioner and stiffness strategy
+(Appendix~\ref{app:numerics}), and documentation of the
+\textsc{RadCluster} code and its comparison with related tools
+(Appendix~\ref{app:RadCluster}).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%===================================================================
+%===================================================================
+%===================================================================
+\section{\textsc{RadCluster} Modeling of Zr and its Alloys}
+\label{sec:equations}
+%===================================================================
+The microstructural model used in this work is built with
+\textsc{RadCluster}, a spatially averaged, mean-field rate-theory code
+for the quantitative prediction of irradiation-induced microstructure
+evolution in chemically and structurally complex alloys. This section
+specialises the code to $\alpha$-zirconium and Zircaloy-4 under neutron
+irradiation. It is organised exactly as the companion treatment of
+ferritic--martensitic steel: \S\ref{sec:model_equations} fixes the
+size- and character-resolved state space and the rate kernels that act
+on it; \S\ref{sec:rag} assembles the \emph{reaction admissibility graph}
+(\textsc{RAG}) that enumerates every physically allowed reaction edge
+and reads off the coupled master equations from a graph walk; and
+\S\ref{sec:uq} describes the uncertainty-quantification workflow used to
+calibrate and screen the kernel parameters.
+
+%-------------------------------------------------------------------
+\subsection{Model Equations and Parameters}
+\label{sec:model_equations}
+%-------------------------------------------------------------------
+All concentrations are atomic fractions (at/at) and all rate constants
+carry units of s$^{-1}$. Point-defect transport in hcp Zr is strongly
+anisotropic; the basal- and prism-plane mobilities, together with the
+solute-trapping corrections for the alloying and impurity species
+(Sn, Fe, Cr, Nb, O), are folded into the \emph{effective reaction
+frequencies}
+\begin{equation}\label{eq:omega_eff}
+    \omega_\alpha^{\mathrm{eff}}
+    = \frac{\nu_\alpha\,\exp(-E_m^\alpha/k_BT)}
+           {1 + \sum_s z_s\,c_s\,\exp(E_b^{\alpha\text{-}s}/k_BT)},
+    \qquad \alpha\in\{i,v\},
+\end{equation}
+which replace the bare hop frequencies $\omega_\alpha$ in every kernel
+below (Table~\ref{tab:diff_params}; \S\ref{sec:diffusion}).
+
+\paragraph{Cluster populations.}
+The post-irradiation microstructure of $\alpha$-Zr is described by
+\emph{four} size-resolved cluster families, each carrying a distinct
+Burgers vector, habit plane, and point-defect polarity
+(Fig.~\ref{fig:zr_loop_classes}; \citealp{Carpenter1988,Northwood1977,%
+OnimusBechade2012,Yi2013,Doriot2015}), together with the two free
+monomers:
+\begin{enumerate}\itemsep2pt
+  \item \textbf{Prismatic interstitial $\ba$-loops}, $I_n^{\mathrm{Ia}}$,
+        with $\bnm=\tfrac13\langle 11\bar20\rangle$ on $\{10\bar10\}$
+        planes. They are the dominant loop family at all reactor doses,
+        nucleating from cascade SIA clusters and growing by absorbing
+        free interstitials.
+  \item \textbf{Prismatic vacancy $\ba$-loops}, $V_n^{\mathrm{Va}}$,
+        with the same Burgers vector and habit plane but \emph{vacancy}
+        polarity (a removed rather than inserted atomic plane). This
+        minority population coexists with the interstitial $\ba$-loops
+        and grows by absorbing free vacancies.
+  \item \textbf{Basal stacking-fault pyramids (SFP)}, $S_n$, three-%
+        dimensional pyramidal vacancy aggregates bounded by basal
+        $\tfrac16\langle20\bar23\rangle$ and prismatic facets. They form
+        directly from collapsed cascade vacancy debris on the basal
+        plane and act as the metastable precursor to the planar
+        $\bc$-loops \citep{Carpenter1988,Northwood1977,Doriot2015}.
+  \item \textbf{Basal vacancy $\bc$-loops}, $V_n^{\mathrm{Vc}}$, with
+        $\bnm=[0001]$ on $\{0001\}$ planes. They nucleate above a
+        temperature- and dose-rate-dependent threshold---in part by
+        \emph{unfaulting} of supercritical SFPs---and drive breakaway
+        irradiation growth at high fluence
+        \citep{Holt1988,HoltCausey1993,Yi2013}.
+\end{enumerate}
+The size index $n$ counts point defects in a cluster ($n$ SIAs for
+$I_n^{\mathrm{Ia}}$; $n$ vacancies for $V_n^{\mathrm{Va}}$, $S_n$, and
+$V_n^{\mathrm{Vc}}$). The free monomers are tracked as $c^I\equiv
+c_1^{\mathrm{Ia}}$ (mono-SIA) and $c^V$ (monovacancy). No helium or
+3-D void populations are carried: Zr alloys generate a negligible
+$(n,\alpha)$ helium yield \citep{Northwood1977,OnimusBechade2012}, and
+multi-vacancy debris in $\alpha$-Zr collapses onto basal ($S_n$, $V_n^{\mathrm{Vc}}$)
+or prismatic ($V_n^{\mathrm{Va}}$) habits rather than forming compact voids.
+
+\paragraph{Mobility limits.}
+Following the steel treatment, mobile clusters are bounded by the size
+limits of Table~\ref{tab:rate_params}: interstitial $\ba$ clusters are
+mobile (3-D or 1-D glide) for $1\le n\le i_{\mathrm{mobile}}$, and
+larger $I_n^{\mathrm{Ia}}$ are sessile loops acting only as biased
+sinks; vacancy clusters are 3-D mobile for $1\le n\le v_{\mathrm{mobile}}$,
+while larger $V_n^{\mathrm{Va}}$, $S_n$, and all $V_n^{\mathrm{Vc}}$ are
+sessile and evolve only by single-monomer exchange and the SFP$\to$Vc
+unfaulting transfer.
+
+\paragraph{Bias factors and loop diameters.}
+The elastic field of a sink preferentially attracts interstitials; the
+capture efficiencies $Z_\alpha^{X}$ ($X\in\{\mathrm{Ia,Va,Vc}\}$,
+$\alpha\in\{i,v\}$) and the dislocation/grain-boundary/precipitate
+sink strengths $Z_\alpha^{d,gb,p}$ are listed in
+Table~\ref{tab:rate_params}. A size-$n$ planar loop has diameter
+\begin{equation}\label{eq:loop_diameter}
+    d_n^{X} = \left(\frac{4\,n\,\Omega}{\pi\,b_X}\right)^{1/2},
+    \qquad b_{\mathrm{Ia}}=b_{\mathrm{Va}}=a_0,\quad b_{\mathrm{Vc}}=c_0,
+\end{equation}
+with $\Omega$ the atomic volume; the pyramidal SFP of $n$ vacancies has
+an equivalent basal footprint $d_n^{S}=(4n\Omega/\pi c_0)^{1/2}$. Loop
+binding energies $E_b^{\alpha,X}(n)$ entering the emission kernels are
+taken from \S\ref{sec:loop_binding}.
+
+%-------------------------------------------------------------------
+\subsection{Reaction Admissibility Graph (\textsc{RAG})}
+\label{sec:rag}
+%-------------------------------------------------------------------
+The coupled kinetics are generated from a directed multigraph---the
+reaction admissibility graph (\textsc{RAG})---whose vertices are the
+admissible cluster states and whose edges are the elementary reactions
+permitted by the polarity, habit-plane, and mobility constraints of
+\S\ref{sec:model_equations}. The master equations are then obtained by
+a deterministic \emph{graph walk}: at each vertex the time derivative
+is the signed sum of the rate kernels of all incoming (gain) and
+outgoing (loss) edges incident on that vertex.
+
+\paragraph{Admissible vertex set.}
+Vertices are partitioned by point-defect polarity about a datum that
+separates interstitial from vacancy character,
+\begin{align}
+    \mathcal{V}^{+} &= \{\,c^{I}\,\}\cup\{\,I_n^{\mathrm{Ia}}:2\le n\le N_{\mathrm{Ia}}\,\},
+    \label{eq:zr_vset_plus}\\[2pt]
+    \mathcal{V}^{-} &= \{\,c^{V}\,\}\cup\{\,V_n^{\mathrm{Va}},\,S_n,\,V_n^{\mathrm{Vc}}:2\le n\le N_{X}\,\},
+    \label{eq:zr_vset_minus}
+\end{align}
+so that interstitial $\ba$-loops lie on the positive-polarity branch and
+the three vacancy families (prismatic $\ba$-loops, SFPs, basal
+$\bc$-loops) on the negative-polarity branch.
+
+\paragraph{Admissible edges (process classes).}
+Every directed edge belongs to one of the process classes catalogued in
+Table~\ref{tab:rag_processes}. Cross-polarity edges (P1, P3 annihilation)
+connect $\mathcal{V}^{+}$ to $\mathcal{V}^{-}$; same-polarity edges
+(P2 capture, P3 coalescence, P5 emission) act within a branch; sink and
+source edges (P4, P6) connect the graph to the external reservoirs; and
+the Zr-specific transfer edge (P7) carries supercritical SFPs onto the
+$\bc$-loop ladder; and the network-evolution edges (P8, P9) incorporate supercritical $\ba$- and $\bc$-loops into the dislocation network as it climbs and sweeps past them. The explicit rate-kernel expressions for every class
+are derived in \S\ref{sec:reaction_rates} and collected in
+Table~\ref{tab:rate_summary}.
+
+\begin{table}[htbp]
+\centering
+\caption{Admissible process classes (edge types) of the irradiated-Zr
+\textsc{RAG}. Each elementary reaction maps to one abstract edge class
+and one rate kernel; the explicit kernel expressions are given in
+\S\ref{sec:reaction_rates} and Table~\ref{tab:rate_summary}.}
+\label{tab:rag_processes}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Process} & \textbf{Abstract edge class} & \textbf{Rate kernel} \\
+\midrule
+P1: $V$--SIA recombination & cross-polarity (annihilation) & $\mathcal{K}_{iv}$ \\
+P2: monomer capture by loop/SFP & growth\,/\,shrinkage & $\mathcal{K}_{\alpha,n}^{X}$ \\
+P3: cluster--cluster coalescence & same-/cross-polarity & $\mathcal{K}_{n,n'}^{ii},\,\mathcal{K}_{n,n'}^{vv,X},\,\mathcal{K}_{n,m}^{vi}$ \\
+P4: absorption at fixed sink & sink edge & $\mathcal{D}_\alpha^{d},\mathcal{D}_\alpha^{gb},\mathcal{D}_\alpha^{p}$ \\
+P5: thermal monomer emission & dissociation & $\varepsilon_\alpha^{X}(n)$ \\
+P6: cascade defect production & source edge & $G_n^{X}$ \\
+P7: SFP $\to\ \bc$ unfaulting & inter-population transfer & $\Gamma_{\mathrm{unf}}(n)$ \\
+P8: $\ba$-loop absorbed by network & network-evolution edge & $\Lambda_n^{\mathrm{net}}$ \\
+P9: $\bc$-loop absorbed by network & network-evolution edge & $\Lambda_n^{\mathrm{net}}$ \\
+P8: monomer absorbed by prismatic network & growing-sink edge & $\mathcal{D}_i^{\mathrm{pr}},\mathcal{D}_v^{\mathrm{pr}}$ \\
+P9: monomer absorbed by basal network & growing-sink edge & $\mathcal{D}_i^{\mathrm{ba}},\mathcal{D}_v^{\mathrm{ba}}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Mobile clusters are bounded by the limits of Table~\ref{tab:rate_params}:
+$\ba$ SIA clusters are mobile for $1\le n\le i_{\mathrm{mobile}}$ and
+sessile (fixed-sink) beyond; vacancy clusters are 3-D mobile for
+$1\le m\le v_{\mathrm{mobile}}$, while SFPs and $\bc$-loops are sessile
+at every size and grow or shrink only by single-monomer exchange.
+
+\paragraph{Rate kernels.}
+The kernels labelling the edges of Table~\ref{tab:rag_processes} are, for
+mono-defect recombination (P1),
+\begin{equation}\label{eq:P1}
+    \mathcal{K}_{iv}
+    = 8\pi\,\xi_{\mathrm{rec}}\,(\omega_i^{\mathrm{eff}}+\omega_v^{\mathrm{eff}})
+    \approx 12.4\,\omega_i^{\mathrm{eff}},
+\end{equation}
+since $\omega_i^{\mathrm{eff}}\gg\omega_v^{\mathrm{eff}}$ at reactor
+temperatures. Monomer capture by a size-$n$ cluster (P2) takes the
+Smoluchowski form
+\begin{align}
+    \mathcal{K}_{i,n}^{\mathrm{Ia}}&=A_{\mathrm{loop}}^{a}\,n^{1/2}\,Z_i^{\mathrm{Ia}}\,\omega_i^{\mathrm{eff}},
+        &&\text{SIA}\to I_n^{\mathrm{Ia}}, \label{eq:K_Ia_i}\\[2pt]
+    \mathcal{K}_{v,n}^{\mathrm{Ia}}&=A_{\mathrm{loop}}^{a}\,n^{1/2}\,Z_v^{\mathrm{Ia}}\,\omega_v^{\mathrm{eff}},
+        &&\text{V}\to I_n^{\mathrm{Ia}}, \label{eq:K_Ia_v}\\[2pt]
+    \mathcal{K}_{v,n}^{\mathrm{Va}}&=A_{\mathrm{loop}}^{a}\,n^{1/2}\,Z_v^{\mathrm{Va}}\,\omega_v^{\mathrm{eff}},
+        &&\text{V}\to V_n^{\mathrm{Va}}, \label{eq:K_Va_v}\\[2pt]
+    \mathcal{K}_{i,n}^{\mathrm{Va}}&=A_{\mathrm{loop}}^{a}\,n^{1/2}\,Z_i^{\mathrm{Va}}\,\omega_i^{\mathrm{eff}},
+        &&\text{SIA}\to V_n^{\mathrm{Va}}, \label{eq:K_Va_i}\\[2pt]
+    \mathcal{K}_{v,n}^{S}&=A_{\mathrm{sfp}}\,n^{1/3}\,Z_v^{S}\,\omega_v^{\mathrm{eff}},
+        &&\text{V}\to S_n, \label{eq:K_S_v}\\[2pt]
+    \mathcal{K}_{i,n}^{S}&=A_{\mathrm{sfp}}\,n^{1/3}\,Z_i^{S}\,\omega_i^{\mathrm{eff}},
+        &&\text{SIA}\to S_n, \label{eq:K_S_i}\\[2pt]
+    \mathcal{K}_{v,n}^{\mathrm{Vc}}&=A_{\mathrm{loop}}^{c}\,n^{1/2}\,Z_v^{\mathrm{Vc}}\,\omega_v^{\mathrm{eff}},
+        &&\text{V}\to V_n^{\mathrm{Vc}}, \label{eq:K_Vc_v}\\[2pt]
+    \mathcal{K}_{i,n}^{\mathrm{Vc}}&=A_{\mathrm{loop}}^{c}\,n^{1/2}\,Z_i^{\mathrm{Vc}}\,\omega_i^{\mathrm{eff}},
+        &&\text{SIA}\to V_n^{\mathrm{Vc}}, \label{eq:K_Vc_i}
+\end{align}
+where the prefactors $A_{\mathrm{loop}}^{a,c}$ (planar loops) and
+$A_{\mathrm{sfp}}$ (the $n^{1/3}$ three-dimensional pyramid) follow from
+the capture geometry of each habit (Table~\ref{tab:rate_params}). A
+captured SIA grows $I_n^{\mathrm{Ia}}$ and shrinks the vacancy families,
+and vice versa for a captured vacancy. Cluster--cluster coalescence
+(P3) among mobile species retains the $i$--$i$, $v$--$v$ (separately on
+the prismatic and basal channels), and cross-polarity $v$--$i$
+annihilation kernels
+\begin{align}
+    \mathcal{K}_{n,n'}^{ii}&=8\pi(\xi_n+\xi_{n'})(\omega_n^{\mathrm{eff}}+\omega_{n'}^{\mathrm{eff}}),
+        &&1\le n'\le n\le i_{\mathrm{mobile}}, \label{eq:K_ii}\\[2pt]
+    \mathcal{K}_{n,m}^{vi}&=8\pi(\xi_n+\xi_m)(\omega_n^{\mathrm{eff}}+\omega_m^{\mathrm{eff}}),
+        &&n\le v_{\mathrm{mobile}},\ m\le i_{\mathrm{mobile}}, \label{eq:K_vi}
+\end{align}
+with $\mathcal{K}_{n,n'}^{vv,a}$ and $\mathcal{K}_{n,n'}^{vv,c}$ of the
+same form as Eq.~\eqref{eq:K_ii}; cross-habit vacancy coalescence
+requires a Burgers-vector reorientation and is suppressed. Absorption at
+fixed sinks (P4) is first order,
+\begin{equation}\label{eq:D_total}
+    \mathcal{D}_\alpha=\mathcal{D}_\alpha^{d}+\mathcal{D}_\alpha^{gb}+\mathcal{D}_\alpha^{p},
+    \quad
+    \mathcal{D}_\alpha^{d}=Z_\alpha^{d}\rho_d a^2\omega_\alpha^{\mathrm{eff}},
+    \;\;
+    \mathcal{D}_\alpha^{gb}=\frac{4\pi^2}{d_g^2}a^2\omega_\alpha^{\mathrm{eff}},
+    \;\;
+    \mathcal{D}_\alpha^{p}=\frac{8\pi r_p}{a}c_p^{N}\omega_\alpha^{\mathrm{eff}}.
+\end{equation}
+Thermal emission (P5) follows by detailed balance with capture,
+\begin{align}
+    \varepsilon_i^{\mathrm{Ia}}(n)&=A_{\mathrm{loop}}^{a}(n{-}1)^{1/2}Z_i^{\mathrm{Ia}}\omega_i^{\mathrm{eff}}\,e^{-E_b^{i,\mathrm{Ia}}(n)/k_BT},
+        \label{eq:emit_Ia}\\[2pt]
+    \varepsilon_v^{\mathrm{Va}}(n)&=A_{\mathrm{loop}}^{a}(n{-}1)^{1/2}Z_v^{\mathrm{Va}}\omega_v^{\mathrm{eff}}\,e^{-E_b^{v,\mathrm{Va}}(n)/k_BT},
+        \label{eq:emit_Va}\\[2pt]
+    \varepsilon_v^{S}(n)&=A_{\mathrm{sfp}}(n{-}1)^{1/3}Z_v^{S}\omega_v^{\mathrm{eff}}\,e^{-E_b^{v,S}(n)/k_BT},
+        \label{eq:emit_S}\\[2pt]
+    \varepsilon_v^{\mathrm{Vc}}(n)&=A_{\mathrm{loop}}^{c}(n{-}1)^{1/2}Z_v^{\mathrm{Vc}}\omega_v^{\mathrm{eff}}\,e^{-E_b^{v,\mathrm{Vc}}(n)/k_BT}.
+        \label{eq:emit_Vc}
+\end{align}
+Finally, the Zr-specific transfer edge (P7) carries a supercritical SFP
+onto the basal $\bc$-loop ladder by unfaulting,
+\begin{equation}\label{eq:gamma_unf}
+    \Gamma_{\mathrm{unf}}(n)=\nu_0\,\Theta(n-n_{\mathrm{unf}})\,
+        \exp\!\left(-\frac{E_{\mathrm{unf}}}{k_BT}\right),
+\end{equation}
+active only above the unfaulting size $n_{\mathrm{unf}}$, with $\Theta$
+the Heaviside step.
+
+%-------------------------------------------------------------------
+% Dislocation network evolution (network incorporation of loops)
+%-------------------------------------------------------------------
+\paragraph{Dislocation network evolution.}
+The grown-in and irradiation-built dislocation network is more than the
+static point-defect sink of class P4. As prismatic $\ba$-loops and faulted
+basal $\bc$-loops coarsen, the largest of them expand until their elastic
+strain fields overlap, or they physically intersect, a network line and
+are swept into it. This introduces two additional admissible edges, which
+we designate P8 ($\ba$-loop absorbed by network) and P9 ($\bc$-loop
+absorbed by network). Because the absorbed loops are precisely the large,
+sessile members of each ladder, the incorporation rate cannot be tied to
+the loop's own (vanishing) mobility; the relevant kinetics are instead set
+by the network sweeping or climbing past a stationary loop. Writing
+$\rho_{\mathrm{net}}$ for the line density of the network, the per-loop
+incorporation rate is
+\begin{equation}
+  \Lambda_n^{\mathrm{net}} =
+  \rho_{\mathrm{net}}\,v_{\mathrm{net}}\,w_c\,P_{\ell d}(n),
+  \qquad
+  P_{\ell d}(n) = \min\!\Big(1,\ R_{\mathrm{int}}(n)/s_d(n)\Big),
+  \label{eq:zr_Lambda_net}
+\end{equation}
+where $v_{\mathrm{net}}$ is the effective network climb/glide velocity,
+$w_c \sim \mathcal{O}(b)$ a capture width, and $P_{\ell d}(n)$ a geometric
+ledge-detection probability that switches on once a loop's elastic
+interaction range $R_{\mathrm{int}}(n)$ reaches the mean loop--network
+spacing $s_d(n) \simeq \rho_{\mathrm{net}}^{-1/2} - d_n^{(c)}/2$.
+Equation~\eqref{eq:zr_Lambda_net} carries no factor of the loop
+diffusivity, so the channel remains active for the sessile $\ba$- and
+$\bc$-loops that dominate incorporation. The climb velocity is itself
+irradiation-driven and reuses the biased point-defect fluxes already
+formed for the fixed-sink terms,
+\begin{equation}
+  v_{\mathrm{net}} = \frac{b}{\rho_{\mathrm{net}}}
+  \big(Z_i^{\mathrm{net}}\,\omega_i^{\mathrm{eff}}\,c^{I}
+      - Z_v^{\mathrm{net}}\,\omega_v^{\mathrm{eff}}\,c^{V}\big),
+  \label{eq:zr_vnet}
+\end{equation}
+so no new transport physics is introduced. The loop populations lose
+members to the network at
+$\dot c_n|_{\mathrm{net}} = -\Lambda_n^{\mathrm{c}}c_n$ ($\mathrm{c}=\mathrm{pr}$ or $\mathrm{ba}$), applied to the
+prismatic $I_n^{\mathrm{Ia}}$, $V_n^{\mathrm{Va}}$ families (which join $\rho_{\mathrm{pr}}$ via $\Lambda_n^{\mathrm{pr}}$) and the basal $V_n^{\mathrm{Vc}}$ family (which joins $\rho_{\mathrm{ba}}$ via $\Lambda_n^{\mathrm{ba}}$)
+above an incorporation-onset size $n \ge n_{\mathrm{inc}}$; loops below
+$n_{\mathrm{inc}}$ are too small to register on the network and are
+excluded. Each absorbed loop donates its $n$ defects to the network and
+adds approximately one loop circumference of line, so line-length and
+defect-content conservation give
+\begin{align}
+  \dot\rho_{\mathrm{pr}} &=
+  \sum_{n\ge n_{\mathrm{inc}}} \pi\,d_n^{(a)}\,\Theta(n-n_{\mathrm{inc}})\Lambda_n^{\mathrm{pr}}\big(c_n^{\mathrm{Ia}}+c_n^{\mathrm{Va}}\big)
+  \;-\; \mathcal{K}_{\mathrm{rec}}^{\mathrm{pr}}\,\rho_{\mathrm{pr}}^{2},
+  \label{eq:zr_rho_pr}\\[4pt]
+  \dot\rho_{\mathrm{ba}} &=
+  \sum_{n\ge n_{\mathrm{inc}}} \pi\,d_n^{(c)}\,\Theta(n-n_{\mathrm{inc}})\Lambda_n^{\mathrm{ba}}c_n^{\mathrm{Vc}}
+  \;-\; \mathcal{K}_{\mathrm{rec}}^{\mathrm{ba}}\,\rho_{\mathrm{ba}}^{2},
+  \label{eq:zr_rho_ba}
+\end{align}
+with $\rho_{\mathrm{net}}=\rho_{\mathrm{pr}}+\rho_{\mathrm{ba}}$ the total network density. The two components are distinct growing sinks: prismatic line absorbs both species with efficiencies $Z_{i,v}^{\mathrm{pr}}$ and basal line with $Z_{i,v}^{\mathrm{ba}}$, entering the monomer balances through $\mathcal D_{i,v}^{\mathrm{pr}}$ and $\mathcal D_{i,v}^{\mathrm{ba}}$ of Eqs.~\eqref{eq:Dnet_i}--\eqref{eq:Dnet_v}, and the clusters through $\Lambda_n^{\mathrm{pr}}$ and $\Lambda_n^{\mathrm{ba}}$. Each diffusivity-weighted capture coefficient scales with its own line density, $\mathcal D_{i}^{\mathrm{pr}}=Z_i^{\mathrm{pr}}D_i\,\rho_{\mathrm{pr}}$ etc., so the basal and prismatic networks build up and bias point-defect flow independently.
+the recovery sink $\mathcal{K}_{\mathrm{rec}}\rho_{\mathrm{net}}^{2}$ being
+mandatory: with a gain term alone $\rho_{\mathrm{net}}$ would grow without
+bound and the model would merely relocate the non-saturation problem from
+the loops to the network. $\mathcal{K}_{\mathrm{rec}}$ fixes the
+steady-state network density and is the principal network calibration
+parameter. The defect content carried off by absorbed loops is routed into
+the same cumulative fixed-sink ledger used by the Frenkel-pair diagnostic,
+so the swelling identity is conserved edge by edge.
+
+Making $\rho_{\mathrm{net}}$ a fully implicit state variable would render
+the P4 sink diagonal state-dependent and break the bordered-banded
+Jacobian structure exploited by the Woodbury preconditioner of
+\S\ref{sec:woodbury}. Because $\rho_{\mathrm{net}}$ evolves on the dose
+timescale---orders of magnitude slower than the point-defect relaxation
+that sets solver stiffness---it is held piecewise constant within each
+adaptive integration segment and refreshed between segments by operator
+splitting: the stiff cluster system is advanced with $\rho_{\mathrm{net}}$
+frozen while the gain integral of Eqs.~\eqref{eq:zr_rho_pr}--\eqref{eq:zr_rho_ba} is accumulated
+by quadrature, $\rho_{\mathrm{net}}$ is then advanced explicitly (gain
+minus recovery), and the rate tables are rebuilt so that the network sink
+and the new P8/P9 edges pick up the updated density for the next segment.
+Within a segment the loss term $\Lambda_n^{\mathrm{net}}c_n$ is a diagonal,
+state-dependent loss on the loop ladders---structurally identical to the
+existing mobile fixed-sink term and therefore already inside the band---so
+it adds no new Jacobian coupling. The network channel finally combines with
+the fixed sinks of Eq.~\eqref{eq:D_total} by the standard additive
+sink-strength rule, the total loss diagonal being the sum of the P4 rate
+and $\Lambda_n^{\mathrm{net}}$.
+
+\paragraph{Basal and prismatic network components.}
+For irradiation growth the network cannot be treated as a single isotropic sink, because the prismatic ($\langle a\rangle$) and basal ($\langle c\rangle$) populations differ in habit plane, Burgers vector, and capture bias. We therefore split the network line density into two co-evolving, growing-sink components,
+\begin{equation}
+  \rho_{\mathrm{net}} = \rho_{\mathrm{pr}} + \rho_{\mathrm{ba}},
+  \label{eq:rho_split}
+\end{equation}
+where $\rho_{\mathrm{pr}}$ is fed by prismatic $\langle a\rangle$ edge dislocations and the incorporation of $\mathrm{Ia}$ and $\mathrm{Va}$ loops beyond the onset size $n_{\mathrm{inc}}$, and $\rho_{\mathrm{ba}}$ is fed by the basal $\langle c\rangle$-component network and the incorporation of unfaulted $\mathrm{Vc}$ loops and stacking-fault pyramids. Each component absorbs both species with its own capture efficiency, giving the monomer fixed-sink rates of \eqref{eq:Dnet_i}--\eqref{eq:Dnet_v} (processes P8 and P9 in Table~\ref{tab:rag_processes}). Because $Z_i^{\mathrm{pr}}\neq Z_v^{\mathrm{pr}}$ and $Z_i^{\mathrm{ba}}\neq Z_v^{\mathrm{ba}}$, each component is a net biased sink: the prismatic network preferentially absorbs interstitials and the basal network preferentially absorbs vacancies, so the two channels store unequal interstitial and vacancy content and contribute to growth in the same way as the $\langle a\rangle$- and $\langle c\rangle$-loop ladders. The absorbed content of each component is accumulated and enters the conservation analysis of Appendix~\ref{sec:conservation}.
+
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  >=latex, font=\footnotesize, node distance=8mm,
+  pop/.style={draw, rounded corners=2pt, minimum width=14mm,
+         minimum height=8mm, align=center, fill=MySteelBlue!12},
+  vpop/.style={pop, fill=CrimsonRed!12},
+  spop/.style={pop, fill=TealDark!15},
+  cpop/.style={pop, fill=PurpleDark!12},
+  sink/.style={draw, fill=black!6, minimum height=6mm, align=center},
+  src/.style={draw, fill=MyForestGreen!15, rounded corners=2pt,
+        minimum height=6mm, align=center},
+  rung/.style={draw, circle, inner sep=1.4pt, fill=white},
+  gw/.style={->, thick, MyNavyBlue},
+  gwx/.style={->, thick, CrimsonRed!75!black},
+  emit/.style={->, dashed, MyBurntOrange},
+  recomb/.style={<->, thick, CrimsonRed},
+  coal/.style={->, thick, MyBurntOrange},
+  trans/.style={->, very thick, TealDark},
+  fxsink/.style={->, thick, black!55},
+  ladder/.style={dashed, ->, MyNavyBlue!60},
+  srcedge/.style={->, thick, MyForestGreen!70!black}]
+
+  % datum line
+  \draw[ultra thick, black] (-1.0,0) -- (13.8,0);
+  \node[anchor=east, black!55] at (10.4,0.4) {\scriptsize linear sinks (datum)};
+  % polarity captions
+  \node[anchor=west, font=\itshape, PurpleDark!80] at (-1.0,6.8) {positive polarity (SIA)};
+  \node[anchor=west, font=\itshape, PurpleDark!80] at (-1.0,-5.6) {negative polarity (vacancy)};
+
+  % positive polarity: interstitial a-loop ladder (top)
+  \node[pop] (cI) at (1.2,2.3) {$c^{I}$};
+  \node[pop] (Ia) at (4.6,2.3) {$I_n^{\mathrm{Ia}}$\\\scriptsize prismatic $\ba$ SIA};
+  \node[rung] (Ia1) at (4.6,3.15) {};
+  \node[rung] (Ia2) at (4.6,3.75) {};
+  \draw[ladder] (Ia.north) -- (Ia1);
+  \draw[ladder] (Ia1) -- (Ia2);
+  \node[above=0pt of Ia2] {\scriptsize $\vdots$};
+
+  % negative polarity: vacancy families (bottom)
+  \node[vpop] (cV) at (1.2,-2.3) {$c^{V}$};
+  \node[vpop] (Va) at (4.6,-1.2) {$V_n^{\mathrm{Va}}$\\\scriptsize prismatic $\ba$ vac.};
+  \node[spop] (Sn) at (8.4,-1.2) {$S_n$\\\scriptsize basal SFP};
+  \node[cpop] (Vc) at (8.4,-3.4) {$V_n^{\mathrm{Vc}}$\\\scriptsize basal $\bc$ vac.};
+  \node[rung] (Va1) at (4.6,-2.05) {};
+  \node[rung] (Va2) at (4.6,-2.65) {};
+  \draw[ladder] (Va.south) -- (Va1);
+  \draw[ladder] (Va1) -- (Va2);
+  \node[below=0pt of Va2] {\scriptsize $\vdots$};
+  \node[rung] (Vc1) at (8.4,-4.25) {};
+  \node[rung] (Vc2) at (8.4,-4.85) {}; %sync
+  \draw[ladder] (Vc.south) -- (Vc1);
+  \draw[ladder] (Vc1) -- (Vc2);
+  \node[below=0pt of Vc2] {\scriptsize $\vdots$};
+
+  % source / sinks
+  \node[src] (G) at (4.6,5.9) {cascade source $G_n$ (P6)};
+  \node[sink] (D) at (11.2,0.0) {sinks};
+  \node[sink] (NET) at (13.0,0.0) {network};
+
+  % P6 cascade source edges (top-down)
+  \draw[srcedge] (G.south) to[bend right=12] node[pos=0.55,right,xshift=0.5mm]{\scriptsize $G^{\mathrm{Ia}}_n$} (Ia.north);
+  \draw[srcedge] (G.west) to[bend right=18] node[pos=0.5,above,yshift=0.5mm]{\scriptsize $G^{\mathrm{Ia}}_n$ (P6)} (cI.north);
+  \draw[srcedge] (G.south) to[bend right=30] node[pos=0.55,left,xshift=-0.5mm,yshift=3mm]{\scriptsize $G^{\mathrm{Va}}_n$} (Va.north);
+  \draw[srcedge] (G.east) to[bend left=24] node[pos=0.85,above]{\scriptsize $G^{S}_n$} (Sn.north);
+
+  % P2 monomer capture / growth-shrink
+  \draw[gw] (cI) -- node[above]{\scriptsize $\mathcal{K}^{\mathrm{Ia}}_{i,n}$ (P2)} (Ia);
+  \draw[gw] (cV) -- node[midway,xshift=2mm,yshift=-1mm]{\scriptsize $\mathcal{K}^{\mathrm{Va}}_{v,n}$~(P2)} (Va);
+  \draw[gw] (cV.east) to[bend right=22] node[pos=0.72,below,yshift=-0.5mm]{\scriptsize $\mathcal{K}^{S}_{v,n}$~(P2)} (Sn.south);
+  \draw[gw] (cV.south) to[bend right=34] node[pos=0.75,below]{\scriptsize $\mathcal{K}^{\mathrm{Vc}}_{v,n}$~(P2)} (Vc.west);
+
+  % P2 cross-capture: SIA absorbed by vacancy loops (shrink)
+  \draw[gwx] (cI.east) to[bend left=8] node[above,pos=0.7]{\scriptsize $\mathcal{K}^{\mathrm{Va}}_{i,n}$} (Va.north);
+
+  % P5 thermal emission (dashed, reverse)
+  \draw[emit] (Ia.north west) to[bend right=12] node[pos=0.5,above,yshift=1mm]{\scriptsize $\varepsilon^{\mathrm{Ia}}_i$~(P5)} (cI.north east);
+  \draw[emit] (Va.west) to[bend left=18] node[left,pos=0.55]{\scriptsize $\varepsilon^{\mathrm{Va}}_v$} (cV.north);
+  \draw[emit] (Sn.south) to[bend left=26] node[pos=0.35,below,yshift=-1mm]{\scriptsize $\varepsilon^{S}_v$} (cV.east);
+  \draw[emit] (Vc.south) to[bend left=22] node[below,pos=0.85]{\scriptsize $\varepsilon^{\mathrm{Vc}}_v$} (cV.south);
+
+  % P1 recombination across datum
+  \draw[recomb] (cI) -- node[pos=0.5,left,xshift=-3.5mm,yshift=4mm]{\scriptsize $\mathcal{K}_{iv}$~(P1)} (cV);
+
+  % P3 like-polarity coalescence + cross-polarity annihilation
+  \draw[coal] (Ia2) to[out=120,in=60,looseness=6] node[above]{\scriptsize $\mathcal{K}^{ii}_{n,n'}$ (P3)} (Ia1);
+  \draw[coal] (Va2) to[out=-120,in=-60,looseness=6] node[below]{\scriptsize $\mathcal{K}^{\mathrm{vv,a}}_{n,n'}$ (P3)} (Va1);
+  \draw[coal] (Ia.south) to[bend left=8] node[right,pos=0.45]{\scriptsize $\mathcal{K}^{vi}_{n,m}$ (P3)} (Va.north);
+
+  % P7 SFP -> Vc unfaulting transfer
+  \draw[trans] (Sn) -- node[right]{\scriptsize $\Gamma_{\mathrm{unf}}(n)$ (P7)} (Vc);
+
+  % P4 fixed-sink edges
+  \draw[fxsink] (Ia.east) to[bend left=6] node[above,pos=0.5]{\scriptsize $\mathcal{D}^{\mathrm{Ia}}_n$ (P4)} (D.north);
+  \draw[fxsink] (cI.north) to[bend left=20] node[above,pos=0.5]{\scriptsize $\mathcal{D}_i$} (D.north);
+  \draw[fxsink] (cV.south) to[bend right=20] node[below,pos=0.5]{\scriptsize $\mathcal{D}_v$} (D.south);
+  \draw[fxsink] (Sn.east) to[bend left=6] (D.south);
+  % P8/P9 network-evolution edges: supercritical loops absorbed by network
+  \draw[trans] (Ia.east) to[bend left=22] node[above,pos=0.5]{\scriptsize $\Lambda_n^{\mathrm{net}}$ (P8)} (NET.north);
+  \draw[trans] (Va.east) to[bend left=10] node[below,pos=0.7]{\scriptsize $\Lambda_n^{\mathrm{net}}$ (P8)} (NET.south west);
+  \draw[trans] (Vc.east) to[bend right=22] node[below,pos=0.5]{\scriptsize $\Lambda_n^{\mathrm{net}}$ (P9)} (NET.south);
+\end{tikzpicture}
+\caption{Reaction admissibility graph (\textsc{RAG}) for irradiated
+zirconium. Vertices are the four cluster families---interstitial $\ba$
+loops $I_n^{\mathrm{Ia}}$ (positive polarity, top), prismatic vacancy
+$\ba$ loops $V_n^{\mathrm{Va}}$, basal stacking-fault pyramids $S_n$, and
+basal vacancy $\bc$ loops $V_n^{\mathrm{Vc}}$ (negative polarity,
+bottom)---plus the free monomers $c^{I},c^{V}$. Directed edges are the
+admissible processes of Table~\ref{tab:rag_processes}: monomer capture
+and growth/shrinkage (P2, solid), thermal emission (P5, dashed),
+$V$--SIA and loop annihilation (P1, P3), the cascade source (P6) and
+fixed sinks (P4), and the Zr-specific SFP$\to\bc$ unfaulting transfer
+(P7). The master equations of \S\ref{sec:rag} are read off vertex by
+vertex as the signed sum of incident edge kernels.}
+\label{fig:rag_zr}
+\end{figure}
+
+\paragraph{Master equations.}
+Walking the graph of Fig.~\ref{fig:rag_zr} vertex by vertex---summing
+the kernels of all incoming and outgoing edges---yields the coupled
+cluster-dynamics system. For the \emph{interstitial $\ba$-loops}
+($n\ge2$),
+\begin{align}
+\frac{dc_n^{\mathrm{Ia}}}{dt}
+&= G_n^{\mathrm{Ia}}
+ + \mathcal{K}_{i,n-1}^{\mathrm{Ia}}c^{I}c_{n-1}^{\mathrm{Ia}}
+ - \mathcal{K}_{i,n}^{\mathrm{Ia}}c^{I}c_n^{\mathrm{Ia}}
+ + \mathcal{K}_{v,n+1}^{\mathrm{Ia}}c^{V}c_{n+1}^{\mathrm{Ia}}
+ - \mathcal{K}_{v,n}^{\mathrm{Ia}}c^{V}c_n^{\mathrm{Ia}}
+ \nonumber\\
+&\quad
+ + \varepsilon_i^{\mathrm{Ia}}(n{+}1)c_{n+1}^{\mathrm{Ia}}
+ - \varepsilon_i^{\mathrm{Ia}}(n)c_n^{\mathrm{Ia}}
+ - \mathcal{D}_n^{\mathrm{Ia}}c_n^{\mathrm{Ia}}
+ \nonumber\\
+&\quad
+ + \tfrac12\!\!\sum_{n'=1}^{\min(n-1,i_{\mathrm{mobile}})}\!\!
+     \mathcal{K}_{n',n-n'}^{ii}c_{n'}^{\mathrm{Ia}}c_{n-n'}^{\mathrm{Ia}}
+ - c_n^{\mathrm{Ia}}\!\!\sum_{n'=1}^{i_{\mathrm{mobile}}}\!\!
+     \mathcal{K}_{n,n'}^{ii}c_{n'}^{\mathrm{Ia}}
+ \nonumber\\
+&\quad
+ - \Theta(n-n_{\mathrm{inc}})\,\Lambda_n^{\mathrm{pr}}c_n^{\mathrm{Ia}}.
+\label{eq:ME_Ia}
+\end{align}
+For the \emph{prismatic vacancy $\ba$-loops} ($n\ge2$),
+\begin{align}
+\frac{dc_n^{\mathrm{Va}}}{dt}
+&= G_n^{\mathrm{Va}}
+ + \mathcal{K}_{v,n-1}^{\mathrm{Va}}c^{V}c_{n-1}^{\mathrm{Va}}
+ - \mathcal{K}_{v,n}^{\mathrm{Va}}c^{V}c_n^{\mathrm{Va}}
+ + \mathcal{K}_{i,n+1}^{\mathrm{Va}}c^{I}c_{n+1}^{\mathrm{Va}}
+ - \mathcal{K}_{i,n}^{\mathrm{Va}}c^{I}c_n^{\mathrm{Va}}
+ \nonumber\\
+&\quad
+ + \varepsilon_v^{\mathrm{Va}}(n{+}1)c_{n+1}^{\mathrm{Va}}
+ - \varepsilon_v^{\mathrm{Va}}(n)c_n^{\mathrm{Va}}
+ - \mathcal{D}_n^{\mathrm{Va}}c_n^{\mathrm{Va}}
+ \nonumber\\
+&\quad
+ + \tfrac12\!\!\sum_{n'=1}^{\min(n-1,v_{\mathrm{mobile}})}\!\!
+     \mathcal{K}_{n',n-n'}^{vv,a}c_{n'}^{\mathrm{Va}}c_{n-n'}^{\mathrm{Va}}
+ - c_n^{\mathrm{Va}}\!\!\sum_{n'=1}^{v_{\mathrm{mobile}}}\!\!
+     \mathcal{K}_{n,n'}^{vv,a}c_{n'}^{\mathrm{Va}}
+ \nonumber\\
+&\quad
+ - \Theta(n-n_{\mathrm{inc}})\,\Lambda_n^{\mathrm{pr}}c_n^{\mathrm{Va}}.
+\label{eq:ME_Va}
+\end{align}
+For the \emph{basal stacking-fault pyramids} ($n\ge2$), which capture
+and emit single defects, exchange with the mobile vacancy clusters, and
+lose supercritical members to the $\bc$ ladder by unfaulting,
+\begin{align}
+\frac{dc_n^{S}}{dt}
+&= G_n^{S}
+ + \mathcal{K}_{v,n-1}^{S}c^{V}c_{n-1}^{S}
+ - \mathcal{K}_{v,n}^{S}c^{V}c_n^{S}
+ + \mathcal{K}_{i,n+1}^{S}c^{I}c_{n+1}^{S}
+ - \mathcal{K}_{i,n}^{S}c^{I}c_n^{S}
+ \nonumber\\
+&\quad
+ + \varepsilon_v^{S}(n{+}1)c_{n+1}^{S}
+ - \varepsilon_v^{S}(n)c_n^{S}
+ - \Gamma_{\mathrm{unf}}(n)\,c_n^{S}.
+\label{eq:ME_S}
+\end{align}
+For the \emph{basal vacancy $\bc$-loops} ($n\ge2$), which receive the
+unfaulted SFP flux as a source,
+\begin{align}
+\frac{dc_n^{\mathrm{Vc}}}{dt}
+&= G_n^{\mathrm{Vc}}
+ + \Gamma_{\mathrm{unf}}(n)\,c_n^{S}
+ + \mathcal{K}_{v,n-1}^{\mathrm{Vc}}c^{V}c_{n-1}^{\mathrm{Vc}}
+ - \mathcal{K}_{v,n}^{\mathrm{Vc}}c^{V}c_n^{\mathrm{Vc}}
+ \nonumber\\
+&\quad
+ + \mathcal{K}_{i,n+1}^{\mathrm{Vc}}c^{I}c_{n+1}^{\mathrm{Vc}}
+ - \mathcal{K}_{i,n}^{\mathrm{Vc}}c^{I}c_n^{\mathrm{Vc}}
+ + \varepsilon_v^{\mathrm{Vc}}(n{+}1)c_{n+1}^{\mathrm{Vc}}
+ - \varepsilon_v^{\mathrm{Vc}}(n)c_n^{\mathrm{Vc}}
+ \nonumber\\
+&\quad
+ - \Theta(n-n_{\mathrm{inc}})\,\Lambda_n^{\mathrm{ba}}c_n^{\mathrm{Vc}}.
+\label{eq:ME_Vc}
+\end{align}
+The two free monomers close the system. They are the $n=1$ special case of the cluster ladders: Eq.~\eqref{eq:ME_I} is the $n=1$ member of the interstitial $\ba$-loop family~\eqref{eq:ME_Ia}, while Eq.~\eqref{eq:ME_V} is the $n=1$ member common to the vacancy $\ba$-loop, stacking-fault-pyramid, and $\bc$-loop families~\eqref{eq:ME_Va}--\eqref{eq:ME_Vc}. Because a free point defect cannot coagulate, shrink by absorbing its own antidefect into a smaller bound cluster, or carry the in-cascade/RAG channel, the cluster-only terms switch off at $n=1$ and the monomer balances retain only the source, mutual recombination, net absorption onto all clusters, total emission returned from them, and the fixed-sink loss:
+\begin{align}
+\frac{dc^{I}}{dt}
+&= G_1^{I}
+ - \mathcal{K}_{iv}c^{I}c^{V}
+ - c^{I}\!\sum_{X}\sum_{n}\mathcal{K}_{i,n}^{X}c_n^{X}
+ + \sum_{n\ge2}\varepsilon_i^{\mathrm{Ia}}(n)c_n^{\mathrm{Ia}}
+ - (\mathcal{D}_i^{\mathrm{pr}}+\mathcal{D}_i^{\mathrm{ba}}) c^{I},
+\label{eq:ME_I}\\[4pt]
+\frac{dc^{V}}{dt}
+&= G_1^{V}
+ - \mathcal{K}_{iv}c^{I}c^{V}
+ - c^{V}\!\sum_{X}\sum_{n}\mathcal{K}_{v,n}^{X}c_n^{X}
+ \nonumber\\
+&\quad
+ + \sum_{n\ge2}\!\left[\varepsilon_v^{\mathrm{Va}}(n)c_n^{\mathrm{Va}}
+   + \varepsilon_v^{S}(n)c_n^{S}
+   + \varepsilon_v^{\mathrm{Vc}}(n)c_n^{\mathrm{Vc}}\right]
+ - (\mathcal{D}_v^{\mathrm{pr}}+\mathcal{D}_v^{\mathrm{ba}}) c^{V},
+\label{eq:ME_V}
+\end{align}
+where in Eqs.~\eqref{eq:ME_I}--\eqref{eq:ME_V} the inner sums run over
+the loop/SFP families $X\in\{\mathrm{Ia},\mathrm{Va},S,\mathrm{Vc}\}$.
+
+The free-monomer source rates $G_1^{I}\equiv P_1^{(i)}$ and $G_1^{V}\equiv P_1^{(v)}$ are the survival-corrected mono-defect production rates of Appendix~\ref{sec:production}, Eq.~\eqref{eq:P1i}. Because the interstitial and vacancy cascade spectra differ ($\epsilon_m^{(i)}\neq\epsilon_n^{(v)}$, with the vacancy side biased toward $\langle c\rangle$-forming clusters that collapse onto the basal plane), more interstitial than vacancy atoms are locked into clusters at birth, so the two free-monomer sources are \emph{unequal},
+\begin{equation}
+  \beta_{\mathrm{p}}\;\equiv\;G_1^{V}-G_1^{I}\;=\;G\!\left(\sum_{m\ge2}m\,\epsilon_m^{(i)}-\sum_{n\ge2}n\,\epsilon_n^{(v)}\right)\;\neq\;0,
+  \label{eq:prod_bias}
+\end{equation}
+the \emph{production bias} $\beta_{\mathrm{p}}$, which seeds the net interstitial flux to sinks that drives irradiation growth.
+
+The fixed-sink loss of the free monomers is carried by the grown-in and irradiation-built dislocation network, which is resolved into a \emph{prismatic} component (predominantly $\langle a\rangle$ edge dislocations and absorbed $\langle a\rangle$-loops on $\{10\bar10\}$ habit planes) and a \emph{basal} component (predominantly $\langle c\rangle$-component network and absorbed $\langle c\rangle$-loops on $\{0001\}$ planes). Each component is a growing sink with its own capture efficiency, so the monomer fixed-sink rates split as
+\begin{align}
+  \mathcal{D}_i^{\mathrm{pr}} &= Z_i^{\mathrm{pr}}D_i\,\rho_{\mathrm{pr}},\qquad \mathcal{D}_i^{\mathrm{ba}} = Z_i^{\mathrm{ba}}D_i\,\rho_{\mathrm{ba}},
+  \label{eq:Dnet_i}\\
+  \mathcal{D}_v^{\mathrm{pr}} &= Z_v^{\mathrm{pr}}D_v\,\rho_{\mathrm{pr}},\qquad \mathcal{D}_v^{\mathrm{ba}} = Z_v^{\mathrm{ba}}D_v\,\rho_{\mathrm{ba}},
+  \label{eq:Dnet_v}
+\end{align}
+where $\rho_{\mathrm{pr}}$ and $\rho_{\mathrm{ba}}$ are the prismatic and basal network line densities ($\rho_{\mathrm{net}}=\rho_{\mathrm{pr}}+\rho_{\mathrm{ba}}$) and $Z_{i,v}^{\mathrm{pr,ba}}$ the corresponding capture efficiencies. The defect content absorbed by each component accumulates in the network and is tracked for the conservation analysis of Appendix~\ref{sec:conservation}.
+The cascade sources partition the in-cascade spectrum
+$\epsilon_n^{(i)},\epsilon_n^{(v)}$ of \S\ref{sec:production} among the
+families,
+\begin{equation}\label{eq:source_terms}
+    G_n^{\mathrm{Ia}}=\epsilon_n^{(i)}G,\quad
+    G_1^{V}=G\Big(1-\!\sum_{n\ge2}n\,\epsilon_n^{(v)}\Big),\quad
+    G_n^{S}=\epsilon_n^{(v)}G\;\;(n\ge n_{\mathrm{coll}}),\quad
+    G_n^{\mathrm{Va}}=\epsilon_n^{(v)}G\;\;(2\le n<n_{\mathrm{coll}}),
+\end{equation}
+so that small cascade vacancy clusters feed the prismatic $\ba$ family
+while clusters above the collapse threshold $n_{\mathrm{coll}}$ seed the
+basal SFPs, which subsequently unfault into $\bc$-loops via P7.
+
+\paragraph{Frenkel-pair conservation and the running ledger.}
+The \textsc{RAG} is constructed so that point-defect number is a
+\emph{structural} invariant of the graph rather than an emergent property
+of the calibrated kernels: every admissible edge is examined for its net
+contribution to the interstitial and vacancy moments before it is added to
+the master equations. Defining the total SIA and vacancy contents
+\begin{equation}\label{eq:FP_moments}
+  S_I=c^{I}+\sum_{n\ge2}n\,c_n^{\mathrm{Ia}},\qquad
+  S_V=c^{V}+\sum_{n\ge2}n\,\bigl(c_n^{\mathrm{Va}}+c_n^{S}+c_n^{\mathrm{Vc}}\bigr),
+\end{equation}
+the edge classes of Table~\ref{tab:rag_processes} fall into three accounting groups.
+
+\emph{(i) Internally conserving edges.} Monomer capture and emission
+($\mathrm{P}_2$, $\mathrm{P}_5$) move a single defect between a free monomer
+and an adjacent ladder rung, so the gain at size $n$ is cancelled exactly by
+the loss at $n\!\mp\!1$ and the matching monomer term; same-polarity
+coalescence ($\mathrm{P}_3$) maps $n+n'\!\to\!n{+}n'$ with no change in
+$\sum_n n\,c_n$; the SFP$\to\bc$ unfaulting transfer ($\mathrm{P}_7$) and the
+network-incorporation edges ($\mathrm{P}_8$, $\mathrm{P}_9$) relabel a cluster's
+habit or host without creating or destroying vacancies. Each of these edges
+therefore contributes an equal and opposite gain/loss pair to
+Eqs.~\eqref{eq:FP_moments} and drops out of $dS_I/dt$ and $dS_V/dt$ identically.
+
+\emph{(ii) Cross-polarity edges.} Recombination ($\mathrm{P}_1$) and the
+vacancy--SIA annihilation channels of $\mathrm{P}_3$ remove one interstitial
+and one vacancy per event, decrementing $S_I$ and $S_V$ by the same amount and
+thus preserving the Frenkel-pair difference $S_I-S_V$ exactly.
+
+\emph{(iii) Source and sink edges.} Only the cascade source ($\mathrm{P}_6$)
+and the fixed sinks ($\mathrm{P}_4$, together with the network and grain-boundary
+losses routed through it) couple the graph to the external reservoirs. The
+graph structure therefore enforces the exact balance laws
+\begin{equation}
+\label{eq:mass_FP}
+\boxed{\;\frac{dS_I}{dt}=G-\Phi_I,\qquad
+        \frac{dS_V}{dt}=G-\Phi_V\;}
+\end{equation}
+where $G$ is the survival-corrected production rate of
+\S\ref{sec:production} and $\Phi_\alpha$ is the cumulative loss of species
+$\alpha$ to recombination and to all fixed sinks. Subtracting the two
+relations gives the stronger statement $d(S_I-S_V)/dt=\Phi_V-\Phi_I$: because
+the cascade injects interstitials and vacancies in equal number, any net
+imbalance can only be the difference in their sink-mediated escape, which is
+precisely the polarity-biased partitioning of point defects between the
+prismatic $\ba$ ladder (interstitial-biased) and the basal $(S_n,\bc)$ ladders
+(vacancy-biased). This antisymmetry is the graph-level origin of the
+anisotropic growth strain quantified in \S\ref{sec:swelling}.
+
+\emph{A live Frenkel-pair ledger.} Equation~\eqref{eq:mass_FP} is not merely a
+formal identity but the primary correctness check on the integrator. The
+cumulative losses $\Phi_I$, $\Phi_V$ are carried as additional state variables
+advanced by the same time-stepper as the cluster concentrations, so that every
+defect leaving the explicit cluster inventory through a $\mathrm{P}_1$ or
+$\mathrm{P}_4$ edge is deposited in the ledger on the same step. The
+dimensionless residual
+\begin{equation}\label{eq:FP_residual}
+  \delta_{\mathrm{FP}}(t)=\frac{\bigl|\,[S_I(t)-S_I(0)]-[S_V(t)-S_V(0)]
+        -[\Phi_V(t)-\Phi_I(t)]\,\bigr|}{Gt+S_I(0)+S_V(0)}
+\end{equation}
+is evaluated at every accepted step and must remain at the level of the
+integrator's relative tolerance; a drift in $\delta_{\mathrm{FP}}$ above that
+floor signals a miscounted edge---most often a coalescence, unfaulting, or
+network-incorporation term that has failed to conserve $\sum_n n\,c_n$---and
+aborts the run. The same ledger furnishes the closure used to verify the
+input mapping and rate-table rebuilds of \S\ref{sec:input_mapping}, so that the
+anisotropic swelling identity is conserved edge by edge and step by step.
+
+
+
+
+%-------------------------------------------------------------------
+\subsection{Uncertainty Quantification}
+\label{sec:uq}
+%-------------------------------------------------------------------
+The parameters that enter the \textsc{RadCluster} rate equations for
+zirconium---the anisotropic migration and binding energies, the loop and
+cavity capture efficiencies and bias factors
+$Z^{\alpha}_{\mathrm{Ia}},Z^{\alpha}_{\mathrm{Va}},
+Z^{\alpha}_{\mathrm{Vc}},Z^{\alpha}_{d}$, the solute-trapping coefficients
+of the Zircaloy additions, the coalescence kernels, and above all the
+basal collapse threshold $n_{\mathrm{coll}}$---are known only to within
+physically motivated bounds. The experimental targets against which they
+are calibrated---$\ba$- and $\bc$-loop number densities, mean loop
+diameters, and the full size distributions at selected doses and
+temperatures \citep{Holt1988,HoltCausey1993,Doriot2015}---carry their own
+measurement uncertainty. Quantifying how these two sources of uncertainty
+propagate to the predicted microstructure is an intrinsic part of using
+the model predictively rather than an optional post-processing step.
+
+A range of established methodologies addresses this problem. The canonical
+framework for confronting an expensive mechanistic simulator with noisy
+data is the Bayesian calibration of computer models, in which a physically
+informed prior over the uncertain parameters is updated into a posterior
+through a likelihood that accounts for both measurement noise and model
+discrepancy. Because each \textsc{RadCluster} solve over a full irradiation
+history is costly, the posterior is not explored on the solver directly;
+instead a statistical surrogate---most commonly a Gaussian-process
+emulator---is trained on a designed set of runs and substituted for the
+forward model. The informativeness of the loop and cavity data is assessed
+through variance-based global sensitivity analysis, whose Sobol' indices
+reveal which parameters and parameter combinations actually control the
+observables and which are ``sloppy'' and can be demoted.
+
+\paragraph{Workflow}
+Rather than applying these techniques as an undifferentiated toolbox, we
+adopt a single reasoned pipeline whose guiding principle is that
+\emph{physical inference must never be contaminated by numerical
+approximation}: every run is carried out at verified integrator tolerances
+and Frenkel-pair conservation residual $\delta_{\mathrm{FP}}$
+(Eq.~\eqref{eq:FP_residual}) held at the solver floor, so that numerical
+error cannot masquerade as physics. Uncertainty quantification is then a
+four-stage sequence, each stage feeding the next.
+
+(i)~\emph{Design and screening.} A set of uncertain parameters
+$\boldsymbol{\theta}\in\mathbb{R}^{p}$ ($p\approx10$--$12$), each given a
+physically bounded prior $p_i(\theta_i)$, is sampled by a space-filling
+Sobol design and screened with global sensitivity analysis, so that sloppy
+or regime-inactive parameters are demoted before they can absorb spurious
+degrees of freedom. For irradiated zirconium the screen consistently
+retains a small controlling set---the basal collapse threshold
+$n_{\mathrm{coll}}$, the $\bc$-loop bias, and the basal-plane vacancy
+mobility---that dominates the predicted onset of $\bc$-loop nucleation and
+breakaway growth.
+
+(ii)~\emph{Emulation.} The retained parameters are mapped to the
+observables $\mathbf{y}_{\mathrm{sim}}=\mathcal{M}(\boldsymbol{\theta},T,d)$
+by a \emph{multi-fidelity} Gaussian-process surrogate
+$\widehat{\mathcal{M}}$ that reports its own predictive variance. A large,
+space-filling ensemble of \emph{low-fidelity} runs---coarse bin-moment
+resolution truncated at low dose---cheaply charts the response surface and
+the early, identifiable observables (incipient $\ba$-loop number density),
+while a sparse set of \emph{high-fidelity} runs---full size resolution
+integrated to reactor-relevant dose, capturing the basal SFP collapse and
+the breakaway $\bc$-loop growth that drives anisotropic strain---anchors
+the absolute level. The two levels are fused in an auto-regressive
+multi-fidelity emulator,
+\begin{equation}\label{eq:mf_gp}
+  \widehat{\mathcal{M}}_{\mathrm{HF}}(\boldsymbol{\theta})
+  =\rho\,\widehat{\mathcal{M}}_{\mathrm{LF}}(\boldsymbol{\theta})
+  +\delta(\boldsymbol{\theta}),
+\end{equation}
+so that the inexpensive runs ensure parameter-space coverage while the few
+expensive runs correct the dose-extrapolation bias.
+
+(iii)~\emph{Calibration.} The posterior
+\begin{equation}\label{eq:posterior}
+  p(\boldsymbol{\theta}\mid\mathbf{y}_{\mathrm{exp}})\;\propto\;
+  p(\mathbf{y}_{\mathrm{exp}}\mid\boldsymbol{\theta})\,p(\boldsymbol{\theta})
+\end{equation}
+is obtained on the surrogate, with a log-space likelihood for the loop and
+cavity densities and a Wasserstein term for the size distributions,
+\begin{equation}\label{eq:loss_uq}
+  -\log p(\mathbf{y}_{\mathrm{exp}}\mid\boldsymbol{\theta})=
+  \sum_{j} w_j\bigl[\log y_{j,\mathrm{sim}}(\boldsymbol{\theta})
+        -\log y_{j,\mathrm{exp}}\bigr]^2
+  + w_{\mathrm{dist}}\,W_1\!\bigl(p_{\mathrm{sim}}(d),p_{\mathrm{exp}}(d)\bigr),
+\end{equation}
+from which credible intervals on every predicted quantity follow.
+
+(iv)~\emph{Active refinement.} New \textsc{RadCluster} runs are requested
+only where they most reduce posterior uncertainty per unit of predicted CPU
+cost, closing the loop back to stage~(ii). The end product is not a single
+``best fit'' but the calibrated posterior
+$p(\boldsymbol{\theta}\mid\mathbf{y}_{\mathrm{exp}})$ together with its
+propagated predictive uncertainty on $\ba$- and $\bc$-loop densities, mean
+diameters, and distributions. This workflow, summarised in
+Fig.~\ref{fig:uq_workflow}, both furnishes the calibrated parameter set of
+Table~\ref{tab:rate_params} and attaches a quantified confidence band to
+the comparisons with experiment presented in \S\ref{sec:equations}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  >=latex, font=\footnotesize, node distance=6mm,
+  stage/.style={draw, rounded corners=2pt, fill=MySteelBlue!12,
+                minimum width=24mm, minimum height=8mm, align=center},
+  data/.style={draw, fill=MyForestGreen!14, rounded corners=2pt,
+               minimum width=24mm, minimum height=8mm, align=center},
+  flow/.style={->, thick, MyNavyBlue}]
+  \node[stage] (prior) {Physical priors\\ on parameters};
+  \node[stage, right=10mm of prior] (doe) {Space-filling\\ design};
+  \node[stage, right=10mm of doe]   (gp)  {GP surrogate\\ of \textsc{RadCluster}};
+  \node[data,  below=8mm of doe]    (exp) {Loop/cavity\\ measurements};
+  \node[stage, right=10mm of gp]    (post){Bayesian\\ posterior};
+  \node[stage, below=8mm of post]   (sens){Sobol'\\ screening};
+  \draw[flow] (prior) -- (doe);
+  \draw[flow] (doe) -- (gp);
+  \draw[flow] (gp) -- (post);
+  \draw[flow] (exp) -- (gp);
+  \draw[flow] (post) -- (sens);
+  \draw[flow] (sens.west) to[bend left=20] (prior.south);
+\end{tikzpicture}
+\caption{Uncertainty-quantification workflow for \textsc{RadCluster}
+applied to zirconium. Physical priors and a space-filling design train a
+Gaussian-process surrogate, which is confronted with the loop and cavity
+measurements to form a Bayesian posterior; a Sobol' sensitivity screen
+identifies the controlling parameters (notably the basal collapse
+threshold $n_{\mathrm{coll}}$) and feeds back to refine the priors.}
+\label{fig:uq_workflow}
+\end{figure}
+
+\paragraph{From calibrated model to digital twin}
+Once the posterior of Eq.~\eqref{eq:posterior} is available,
+\textsc{RadCluster} ceases to be a one-shot forward model and becomes a
+\emph{digital twin} of the evolving irradiated microstructure: a living,
+uncertainty-aware representation whose state $\mathbf{x}(d,T)$---the SIA,
+prismatic and basal vacancy, and SFP cluster populations together with
+their derived $\ba$- and $\bc$-loop descriptors---is kept consistent with
+the experimental record as it accumulates. The twin is defined not by a
+single tuned parameter set but by the calibrated distribution
+$p(\boldsymbol{\theta}\mid\mathbf{y}_{\mathrm{exp}})$ and the predictive
+uncertainty it induces. As measurements arrive at successive doses,
+$\mathbf{z}_k=H(\mathbf{x}_k)+\boldsymbol{\epsilon}_k$, the same Bayesian
+machinery is run sequentially---naturally as an ensemble Kalman or smoother
+update---so that the twin assimilates the loop and cavity record across the
+full irradiation history and continuously reports both its best estimate of
+the zirconium microstructure and the dose and temperature conditions at
+which new experiments would most sharpen the prediction.
+
+\section{Results and Comparison with Experiments}
+
+
+\section{Conclusions}

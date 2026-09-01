@@ -1,0 +1,317 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amssymb, graphicx, tikz}
+\usepackage[margin=0.75in]{geometry}
+\usepackage[authoryear]{natbib}
+\bibliographystyle{plainnat}  % apalike, plainnat, abbrvnat, etc.
+\usepackage{booktabs}
+\usepackage{subfig}
+\usepackage{longtable}
+\usepackage{siunitx}
+\usepackage{nicefrac}
+\usepackage{tablefootnote}
+\usepackage{multirow}
+% \setlength{\parindent}{15pt}
+\usepackage[pagebackref]{hyperref}
+\hypersetup{
+   % pagebackref =true,
+    colorlinks,%
+    citecolor=blue,% 
+    filecolor=black,%
+    linkcolor=magenta,% 
+    urlcolor=black,%
+    pdfauthor=author
+}
+
+\title{Zirconium Literature}
+% \author{Matthew Maron}
+\begin{document}
+\maketitle
+
+\section{Zirconium Parameters from atomistics}
+A full list of properties of vacancies, interstitials and di-interstitials are shown in Table.~\ref{tab:DefectParameters}, sourced from atomistic simulations (DFT, MD, etc.). The migration and formation energies of these defects have been widely investigated using empirical and first-principles methods. Notably, vacancy formation energies in $\alpha$-Zr range from 1.49 eV to 2.45 eV, with migration energies varying depending on the orientation within the hcp lattice. Self-interstitials tend to adopt basal crowdion (BC) or basal split (BS) configurations, with formation energies around 3.0 - 4.0 eV. Typically interstitials and mobile interstitial clusters are known to diffuse anisotropically, with higher mobility in the basal plane ($E_m^{11,22}$) than along the basal pole ($E_m^{33}$). The definition of relaxation volume and formation volume are sometimes unclear in literature, here we will adopt the following convention. The formation volume is given as:
+\begin{equation}
+    \Delta \Omega_f = \Delta \Omega_r \pm \Omega_0
+\end{equation}
+where,
+\begin{equation}
+    \Delta \Omega_r = \Omega(\text{defect}) - \Omega(\text{bulk})
+\end{equation}
+
+Here, $\Delta \Omega_r$ is the relaxation volume, and $\Omega(\text{defect})$ and $\Omega(\text{bulk})$ are the volumes of the supercell with a defect and the perfect bulk supercell, respectively, both relaxed to zero stress. The $+$ and $-$ signs denote vacancy and interstitial defects, respectively. The defect relaxation volume is the change in volume due to relaxation of the crystal lattice around the defect site, or the direct volume change in the system upon introducing the defect in a constant pressure calculation. By contrast, the formation volume also accounts for the reference volume (or the choice of reservoir) associated with the origin or placement of the species comprising the defect, $\Omega_0$ \cite{goyal2019conundrum}.
+
+Displacement cascades are a primary source of damage in zirconium under fast neutron irradiation. These cascades involve primary knock-on atoms (PKAs) transferring energy, leading to defect clusters and microstructural evolution \cite{bacon1999computer, gao2001temperature, zhou2018molecular}. Molecular dynamics (MD) simulations reveal that the number of Frenkel pairs decreases with increasing temperature due to the extended lifetime of the thermal spike, allowing more interstitial-vacancy recombination \cite{gao2001temperature}. Additionally, defect clustering increases with PKA energy, with SIAs forming sessile clusters that influence radiation-induced hardening \cite{bacon2003md, zhou2018molecular}. Recent studies emphasize that high-energy PKAs (e.g., 80 keV) lead to significant SIA and vacancy clustering, with temperature-dependent effects \cite{zhou2018molecular}. In general a large number of interstitial defects cluster after an irradiation cascade, such that 40-80 \% of them are in clusters of size 2 or larger. The lower end is from lower energy particle irradiation meanwhile the upper end from higher energy particles. Furthermore, typically $< 5$ \% of total defects survive after a cascade event due to recombination of defects.  
+
+\begin{table*}[t]
+    \caption{Parametes for vacancy, interstitial, and di-interstitial defects in zirconium and its alloys, based on various sources.}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{llllllll}
+    \hline \hline
+    $E_f$ [eV] & $E_m^{33}$ [eV] & $E_m^{11,22}$ [eV] & $\Delta \Omega_r$ [-]& $E_b$ [eV]& Add. Info & Reference \\
+    \hline 
+    Vacancies \\
+    \hline
+        1.5 & 0.9 & 0.86 & / & / & c/a=1.593 & \cite{mikhin1994anisotropic} \\
+        1.49 & 0.92 & 0.86 & / & / & c/a=1.633 & \cite{mikhin1994anisotropic} \\
+        1.786 & / & / & -0.26 & / & / & \cite{ackland1995defect}  \\
+        1.59 & / & / & / & / & / & \cite{wooding1998molecular} \\
+        / & / & / & -0.43 & / & / & \cite{le1999unrelaxed} \\
+        1.7 & 0.67 & 0.72 & -0.2 & / & / & \cite{hu2001analytic} \\
+        2.09 & 1.14 & 0.89 & / & / & / & \cite{kim2006modified}  \\
+        2.45 & 1.24 & / & / & / & T=1200K & \cite{mendelev2007development}  \\
+        1.75 & 0.92 & 0.89 & / & /& / & \cite{dai2009long}\\
+        / & / & / & -0.4 & / & / & \cite{varvenne2014vacancy} \\
+        1.7 & 0.96 & 0.86 & / & / & / & \cite{ouyang2018interatomic} \\
+    \hline
+    Interstitials \\
+    \hline
+        3.46(BO), 3.49(BS) & 0.2 & 0.03 & / & / & c/a =1.593 & \cite{mikhin1994anisotropic} \\
+        3.67(BO), 3.70(BS) & 0.04 & 0.04 & / & / & c/a =1.633 & \cite{mikhin1994anisotropic} \\
+        3.75(BC), 3.76(BC) & / & / & 1.33(BS), 1.35(BC) & / & / &  \cite{ackland1995defect} \\
+        3.51(BS), 3.52(BC) & / & / & 1.69(BC), 1.6(BS) & / & / & \cite{hu2001analytic} \\
+        3.85(BS), 4.06(BO) & / & / & / & / & / &  \cite{de2002mobility} \\
+        4.04(BO), 4.08(O) & / & / & / & / & / & \cite{kim2006modified} \\
+        3.0 & 0.13 & 0.13 & / & / & T=1200K &  \cite{mendelev2007development} \\
+        3.21(BS) & / & / & / & / & / & \cite{dai2009long} \\
+        2.78(BO), 2.84(BS) & / & / & / & / & / & \cite{peng2012stability} \\
+        / & / & / & 1.2 & / & / & \cite{verite2013self} \\
+        3.04(O), 3.08(BC) & / & / & / & / & / & \cite{ouyang2018interatomic} \\
+    \hline
+    Di-Interstitials \\
+    \hline
+        / & 0.2 & 0.03 & / & / & c/a =1.593 & \cite{mikhin1994anisotropic} \\
+        / & 0.04 & 0.04 & / & / & c/a =1.633 & \cite{mikhin1994anisotropic}\\
+        5.91 & / & / & / & 1.78 & / & \cite{de2002mobility} \\    
+   \hline \hline
+    \end{tabular}}
+    \label{tab:DefectParameters} \\
+\end{table*} 
+
+
+\begin{figure}[t]
+  \centering
+  % \subfloat[]{
+    \includegraphics[trim={0cm 0cm 0cm 0cm},clip, width=\linewidth]{figures/InterstitialConfigurations.png}
+    \label{fig:InterstitialConfigs}
+    % }
+\caption{ Traditional single interstitial configurations in hcp zirconium. From \cite{peng2012stability}}
+\end{figure}
+
+%
+%
+%
+%
+%
+
+
+\section{Irradiation Induced Microstructure (Experimental Observations)}
+
+Dislocation loops are key microstructural features in irradiated zirconium and its alloys. Various studies have focused on the formation, growth, and nature of these loops under neutron and ion irradiation conditions. These loops play a crucial role in determining irradiation-induced mechanical property changes and dimensional stability. The primary types of dislocation loops in zirconium are $\langle a \rangle$ loops and $\langle c \rangle$ loops. $\langle a \rangle$ loops typically form at low irradiation doses and exist as either interstitial or vacancy loops. These loops have a Burgers vector of $\mathbf{b = \frac{1}{3} \langle 11\bar{2}0 \rangle}$ and generally lie on prismatic planes. The morphology of $\langle a \rangle$ loops varies based on the viewing direction, appearing elliptical or circular due to crystal anisotropy. Under 0.5 dpa irradiation, the average size of $\langle a \rangle$ loops is approximately 10.4 nm, whereas at 1.5 dpa, their size decreases to 7.8 nm due to loop interactions \cite{liu2021transmission}. In general if $\langle a\rangle$ type dislocation loops grow, the growth rate is found to be quite small. 
+
+In contrast, $\langle c \rangle$ loops are typically vacancy in nature and form at higher irradiation doses, generally above several dpa. These loops have a Burgers vector of $\mathbf{b = \frac{1}{2} [0001]}$ and lie within the basal plane. The presence of $\langle c \rangle$ loops is often correlated with accelerated irradiation growth, particularly in pure zirconium, known as ``breakaway growth" \cite{griffiths1988review}. Compared to $\langle a \rangle$ loops, $\langle c \rangle$ loops are significantly larger, often exceeding 50 nm in diameter \cite{long2024electron}. A summary of some of the microstructural features are shwon in Table.~\ref{tab:loop_characteristics} and the sizes of interstitial $\langle a\rangle$ and vacancy $\langle c\rangle$ dislocation loops at various dpa, and under different types of irradiation are shown in Table~\ref{tab:loopdata}. A third type of dislocation, known as the $\langle c+a \rangle$ loop, may form under specific conditions, such as electron irradiation. These have a Burgers vector of $b = \langle c+a \rangle$ and are often found between layers of predominantly vacancy-type loops \cite{griffiths1988review}.
+
+The transition from small defect clusters to visible dislocation loops occurs at approximately 0.5 dpa \cite{li2024abnormal}. At 0.2 dpa, $\langle a \rangle$ loops reach saturation, serving as sinks for point defects \cite{liu2021transmission}. Denuded zones, regions devoid of certain dislocation loops, have been observed near grain boundaries and are associated with irradiation-induced defect interactions and preferential absorption of defects \cite{long2024electron}. Some irradiation conditions lead to the formation of non-standard loop structures, such as triangle-shaped vacancy platelets (TVPs), which have been proposed as precursors to $\langle c \rangle$ loops \cite{liu2020two}. Loop clustering in bands and rafts has also been observed in neutron-irradiated zirconium \cite{griffiths1988review}.
+
+\begin{table}[h]
+    \centering
+    \caption{Dislocation Loop Characteristics in Irradiated Zirconium}
+    \begin{tabular}{lcccc}
+        \toprule
+        Loop Type & Size Range (nm) & DPA Range & Nature & Burgers Vector \\
+        \midrule
+        $\langle a \rangle$ loops & 7.8 – 10.4 & 0.5 – 1.5 & Interstitial \& Vacancy & $\frac{1}{3} \langle 11\bar{2}0 \rangle$ \\
+        $\langle c \rangle$ loops & 50 – 100+ & Several dpa & Vacancy & $\frac{1}{2} [0001]$ \\
+        $\langle c+a \rangle$ loops & Varies & Electron irradiation & Mixed & $\langle c+a \rangle$ \\
+        TVPs & 2 – 11 & Low dpa & Vacancy & / \\
+        Denuded zones & Width ~290 nm & High dpa & Defect-free areas & / \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:loop_characteristics}
+\end{table}
+
+
+
+\subsection*{Early Studies on Irradiated Zirconium}
+Jostsons et al. \cite{jostsons1977nature} provided an early examination of dislocation loops in neutron-irradiated zirconium, concluding that $\langle a\rangle$ loops were the predominant damage structure with no clear evidence of $\langle c\rangle$ component loops. This contrasted with theoretical predictions of irradiation growth mechanisms that required $\langle c\rangle$ loops to form. Gilbert et al. \cite{gilbert1979damage} extended this investigation to various zirconium alloys irradiated at temperatures ranging from 573 to 923 K. They found that dislocation loops increased in size and decreased in density with increasing temperature, and that void formation was minimal. Their work reinforced zirconium's resistance to void swelling compared to other nuclear materials. Northwood \cite{northwood1977irradiation} provided a critical review of TEM studies on irradiation damage, emphasizing the importance of irradiation temperature and alloying elements in determining defect behavior. The study also confirmed that interstitial $\langle a\rangle$ loops were dominant at lower temperatures, while vacancy $\langle a\rangle$ were dominant at higher irradiation temperatures ($>700$K). Northwood et al. \cite{northwood1977irradiation} also conducted an international "round-robin" experiment to standardize TEM observations of neutron-irradiated zirconium alloys. Their findings reaffirmed the predominance of $\langle a\rangle$ loops and raised concerns over experimental inconsistencies in detecting $\langle c\rangle$ loops.
+
+Holt \cite{holt1983c} provided some of the first experimental evidence of $\langle c\rangle$ component dislocations in neutron-irradiated Zircaloy-2 at 690 K, marking a significant shift in the understanding of irradiation-induced defect structures. A subsequent study by Holt and Gilbert \cite{holt1986c} confirmed that $\langle c\rangle$ dislocations appeared in annealed Zircaloy-4 irradiated at 570 K, coinciding with the onset of accelerated irradiation growth, or ``breakaway growth". This finding strongly suggested a link between $\langle c\rangle$ dislocations and breakaway growth phenomena, postulated by Buckley and Holt, and by other theoretical predictions. Griffiths \cite{griffiths1988review} further reviewed the microstructural evolution under irradiation, highlighting the complex interactions of vacancies, interstitials, and dislocation loops. He found that cavities formed preferentially at high irradiation temperatures and that interstitial solutes significantly influenced loop evolution.
+
+\subsection*{Self-Ion Irradiation and Defect Clustering}
+Tournadre et al. \cite{tournadre2012experimental} studied $\langle c \rangle$ loop nucleation in recrystallized Zircaloy-4 under ion irradiation, demonstrating that loop formation required a threshold dose. Their work compared microstructures obtained from ion irradiation with those from neutron irradiation, finding key differences in loop growth kinetics. Yao et al. \cite{yao2017irradiation} investigated defect clustering in Zircaloy-2 and found that alloying elements, particularly Sn, influenced dislocation loop formation. Their results showed that Sn increased $\langle a \rangle$ loop nucleation while suppressing defect recombination, leading to higher defect densities. Yu et al. \cite{yu2017accumulation} examined $\langle a \rangle$ loop accumulation in the Zr Excel alloy under heavy ion irradiation, concluding that loop growth mechanisms differed significantly between ion and neutron irradiation. They suggested that ion irradiation alone might not fully replicate neutron-induced loop structures.
+
+\subsection*{Recent Studies on Irradiated Zirconium}
+Liu et al. \cite{liu2020two} discovered two-dimensional vacancy platelets as precursors for $\langle c \rangle$ dislocation loops, providing a mechanistic explanation for their formation and supporting the idea of an incubation period prior to $\langle c \rangle$ loop nucleation. Liu et al. \cite{liu2021transmission} also characterized dislocation loops in irradiated zirconium using TEM, highlighting the role of anisotropic point defect diffusion in controlling loop evolution. Their study also described the ellipticity of dislocation loops, showing that vacancy-type $\langle a \rangle$ loops tend to be more elongated along the basal pole compared to their interstitial $\langle a \rangle$ counterparts, suggesting differences in defect clustering dynamics and sink interactions. Li et al. \cite{li2024abnormal} demonstrated abnormal dislocation loop growth due to repulsive interactions between loops and dislocations, shedding light on previously unexplained variations in irradiation-induced defect structures. Long et al. \cite{long2024electron} used electron microscopy to analyze proton irradiation-induced growth in zirconium, confirming that proton irradiation could reproduce neutron-like defect structures, reinforcing its viability as a surrogate for neutron irradiation studies. They also observed spatial variations in loop growth, with grain boundary regions exhibiting significantly different loop densities compared to intragranular regions, indicating that grain boundary interactions play a key role in loop nucleation and evolution.
+
+
+\begin{table*}[t]
+    \caption{Mean size and density for interstitial $\langle a \rangle$ and vacnacy $\langle c \rangle$ dislocation loops in Zr and Zr-alloys irradiated at different temperatures \tablefootnote{The size of dislocation loops at low fluence, is known to be strongly dependent on temperature \cite{adamson_irradiation_2019}, and experiments have shown loop density decreases, but mean size increases, with increasing irradiation temperature \cite{hellio1988influence, gaume2017microstructure, gilbert1979damage}.} and particle fluence/dpa. }
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{llllllll}
+    \hline \hline
+    Alloy & Irradiation Particle & Equivalent dpa & Temperature & Loop density & Mean size & Reference \\
+    \hline 
+    Interstitial $\langle a\rangle$ loops \\
+    \hline
+      Zr-2 & neutron & 0.52 dpa & 523 K & $3.4 \times 10^{22} \si{\mathcal{L}/m^3}$ & 8.5 nm & \cite{northwood1979characterization} \\
+      Zr-2 & neutron & 15, 25 dpa & $573$ K & $1,~1.5 \times 10^{22} \si{\mathcal{L}/m^3}$ & 5 nm & \cite{harte2017effect} \\ 
+      Zr & neutron &  $<$ 0.1 dpa \footnote{Converted using 5 dpa =$3x10^{25} \si{n/m^3}$} & 573 K & $1.6 \times 12^{21} \si{\mathcal{L}/m^3}$ & 9 nm & \cite{jostsons1977nature} \\
+      Zr & neutron &  0.8 dpa & 573 K & $5.0 \times 10^{21} \si{\mathcal{L}/m^3}$ & 21 nm & \cite{gilbert1979damage} \\
+      Zr-2 & neutron & 4.8, 12 ,23 dpa & 600 K & $4.3,~4.9,~5.1 \times 10^{22} \si{\mathcal{L}/m^3}$ & 10, 10.5, 10.7 nm & \cite{kobylyansky2008irradiation} \\
+      NSF & neutron & 23 dpa & 600 K & $8.8 \times 10^{22} \si{\mathcal{L}/m^3}$ & 6.6 nm & \cite{kobylyansky2008irradiation} \\
+      E635 & neutron & 23 dpa & 600 K & $7.4 \times 10^{22} \si{\mathcal{L}/m^3}$ & 7.3 nm & \cite{kobylyansky2008irradiation} \\
+      E635 & neutron & 23 dpa & 600 K & $7.4 \times 10^{22} \si{\mathcal{L}/m^3}$ & 7.3 nm & \cite{kobylyansky2011radiation} \\
+      E635 & neutron & 23 dpa & 600 K & $4 \times 10^{22} \si{\mathcal{L}/m^3}$ & 10 nm & \cite{kobylyansky2011radiation} \\
+      Zr-2 & neutron  & 1.67 dpa & 615 K & $1.9 \times 10^{22} \si{\mathcal{L}/m^3}$ & 8.7 nm & \cite{northwood1979characterization} \\
+      Zr & neutron & $<$ 0.1 dpa $^3$ & 623 K & $8.0 \times 10^{20} \si{\mathcal{L}/m^3}$ & $<$10 nm & \cite{jostsons1977nature} \\
+      Zr & neutron & $<$ 0.1 dpa $^3$ & 623 K & $2.7 \times 10^{21} \si{\mathcal{L}/m^3}$ & 23 nm & \cite{jostsons1977nature} \\
+      Zr-2 & neutron &  1.67 dpa & 673 K & $9.5 \times 10^{21} \si{\mathcal{L}/m^3}$ & 20.1 nm & \cite{northwood1979characterization} \\
+      Zr & $e^-$ & 0.7 dpa & 673 K & $2.3 \times 10^{22} \si{\mathcal{L}/m^3}$ & 6.9 nm & \cite{hellio1988influence} \\
+      Zr & $e^-$ & 0.7 dpa & 723 K & $1.6 \times 10^{22} \si{\mathcal{L}/m^3}$ & 10.5 nm & \cite{hellio1988influence} \\
+    \hline
+    Vacancy $\langle c\rangle$ loops \\
+    \hline
+      Zr-2 & neutron & 15, 25 dpa & $573$ K & $4,~8 \times 10^{20} \si{\mathcal{L}/m^3}$ & 100 nm & \cite{harte2017effect} \\
+      Zr-4 & Zr Ion &  4.1, 5.5, 7 dpa & 573 K & $2.9,~6.7,~9.1 \times 10^{20} \si{\mathcal{L}/m^3}$ & 24, 27, 36 nm & \cite{tournadre2012experimental} \\
+      Zr-4 & neutron &  14, 35 dpa & 583 K & $1.2,~1.17 \times 10^{21} \si{\mathcal{L}/m^3}$ & $>150$ nm & \cite{tournadre2012experimental} \\
+      Zr-4 & proton & 11.5 dpa & 623 K & $1 \times 10^{21} \si{\mathcal{L}/m^3}$ & $123$ nm & \cite{tournadre2012experimental} \\
+   \hline \hline
+    \end{tabular}}
+    \label{tab:loopdata} \\
+\raggedright
+\footnotesize{$^2$ The size and density of dislocation loops during irradiation is highly dependent on temperature
+\cite{adamson_irradiation_2019}, and experiments have shown loop density decreases, but mean size increases, with increasing irradiation temperature
+\cite{hellio1988influence, gaume2017microstructure, gilbert1979damage}.}
+\footnotesize{$^3$ Conversion to dpa: $1~\si{dpa} = 0.6\times10^{25}~\si{n/m^2}$ \cite{carpenter1981irradiation,adamson_irradiation_2019}.}
+\end{table*} 
+
+
+\newpage
+\subsection{Diffusion Coefficients}
+
+See Tables \ref{tab:Dv}, \ref{tab:Di}, \& \ref{tab:D2i}.
+
+\begin{table*}[t!]
+    \caption{Vacancy diffusion coefficients from available literature.}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{ccccccccc}
+    \hline \hline
+   \multirow{2}{*}{Method} & \multicolumn{3}{c}{$D_0$ (m$^2$/s)} &  & \multicolumn{3}{c}{$E_m$ (eV)} & \multirow{2}{*}{Reference} \\ \cline{2-4} \cline{6-8} 
+   & $D_0^{total}$ & $D_0^{basal}$  &  $D_0^{c}$  &  & $E_m^{total}$  & $E_m^{basal}$ &    $E_m^{c}$   &                           \\ \hline
+   Experiments & \multicolumn{3}{c}{$2.1\times 10^{-11}$}  &  & \multicolumn{3}{c}{1.17 (activation energy)} & \citep{dyment1968self} \\
+   Experiments & \multicolumn{3}{c}{$1.84\times 10^{-2}$}  &  & \multicolumn{3}{c}{3.31 (activation energy)} & \citep{hood1988point} \\
+    -- & \multicolumn{3}{c}{$1.1/6\times10^{-13}$}  &  & \multicolumn{3}{c}{3.48/1.3 (activation energy)} & \citep{perez2003diffusion} \\
+   Estimated from \citep{horvath1984anomalous} & \multicolumn{3}{c}{$4.9638\times 10^{-10}$}  &  & \multicolumn{3}{c}{0.9} & \citep{christien2009cluster} \\
+   MD (Ackland1995) & $22\times 10^{-7}$ & -- & -- &  & 0.93 & 0.91 & 0.96 & \citep{osetsky2002anisotropy} \\
+   MD (PM1998) & -- & -- & $7.19\times 10^{-9}$ &  & -- & 0.51 & 0.53 & \citep{ruiz2005self} \\
+    MD (BMD19) & $1.8\times 10^{-6}$ & $1.6\times 10^{-6}$ & $2.2\times 10^{-6}$  &  & 0.61 & 0.59 & 0.67 & \citep{march2022defect} \\
+     \hline \hline
+    \end{tabular}
+    }
+    \label{tab:Dv}
+\end{table*}
+
+\begin{table*}[t!]
+    \caption{Interstitial diffusion coefficients from available literature.}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{ccccccccc}
+    \hline \hline
+   \multirow{2}{*}{Method} & \multicolumn{3}{c}{$D_0$ (m$^2$/s)} &  & \multicolumn{3}{c}{$E_m$ (eV)} & \multirow{2}{*}{Reference} \\ \cline{2-4} \cline{6-8} 
+   & $D_0^{total}$ & $D_0^{basal}$  &  $D_0^{c}$  &  & $E_m^{total}$  & $E_m^{basal}$ &    $E_m^{c}$   &                           \\ \hline
+   MD (BMD19) & $2.8 \times 10^{-7}$ & $2.4 \times 10^{-7}$ & $6.8 \times 10^{-7}$ & & 0.19 & 0.17 & 0.30 & \cite{march2022defect} \\
+   MD (M07 \#3) & $7.3 \times 10^{-8}$ & $8.6 \times 10^{-8}$ & $4.6 \times 10^{-8}$ & & 0.062 & 0.061 & 0.067 & \cite{march2022defect} \\
+   AIMD  & — & $1.9 \times 10^{-7}$ & $1.63 \times 10^{-7}$ & & — & 0.24 & 0.28 & \cite{sakael2025using} \\
+     \hline \hline
+    \end{tabular}
+    }
+    \label{tab:Di}
+\end{table*}
+
+\begin{table*}[t!]
+    \caption{Di-Interstitial diffusion coefficients from available literature.}
+    \centering
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{ccccccccc}
+    \hline \hline
+   \multirow{2}{*}{Method} & \multicolumn{3}{c}{$D_0$ (m$^2$/s)} &  & \multicolumn{3}{c}{$E_m$ (eV)} & \multirow{2}{*}{Reference} \\ \cline{2-4} \cline{6-8} 
+   & $D_0^{total}$ & $D_0^{basal}$  &  $D_0^{c}$  &  & $E_m^{total}$  & $E_m^{basal}$ &    $E_m^{c}$   &                           \\ \hline
+  MD (BMD19) & $2.4 \times 10^{-7}$ & $3.2 \times 10^{-7}$ & $2.6 \times 10^{-8}$ & & 0.24 & 0.23 & 0.54 & \cite{march2022defect} \\
+   MD (M07 \#3) & $1.0 \times 10^{-7}$ & $1.7 \times 10^{-7}$ & $2.1 \times 10^{-8}$ & & 0.11 & 0.13 & 0.076 & \cite{march2022defect} \\
+    AIMD  & — & $1.67 \times 10^{-7}$ & $7.96 \times 10^{-8}$ & & — & 0.24 & 0.47 & \cite{sakael2025using} \\
+     \hline \hline
+    \end{tabular}
+    }
+    \label{tab:D2i}
+\end{table*}
+
+\newpage
+\bibliography{Biblio/Climb.bib}
+\end{document}
+
+
+
+
+\begin{table}[t]
+    \centering
+    \caption{Vacancy properties from various references.}
+    \begin{tabular}{cccccccccc}
+        \toprule
+        $E_f^v$ & $E_m^{v,33}$ & $E_m^{v,11,22}$ & $\Delta \Omega_r^v$ & Add. Info & Reference \\
+        \midrule
+        1.5 & 0.9 & 0.86 & / & c/a=1.593 & \cite{mikhin1994anisotropic} \\
+        1.49 & 0.92 & 0.86 & / & c/a=1.633 & \cite{mikhin1994anisotropic} \\
+        1.786 & / & / & 0.74 & / & \cite{ackland1995defect}  \\
+        1.59 & / & / & / & / & \cite{wooding1998molecular} \\
+        / & / & / & -0.43 & / & \cite{le1999unrelaxed} \\
+        1.7 & 0.67 & 0.72 & 0.8 & / & \cite{hu2001analytic} \\
+        2.09 & 1.14 & 0.89 & / & / & \cite{kim2006modified}  \\
+        2.45 & 1.24 & / & / & T=1200K & \cite{mendelev2007development}  \\
+        1.75 & 0.92 & 0.89 & / & / & \cite{dai2009long}\\
+        / & / & / & -0.4 & / & \cite{varvenne2014vacancy} \\
+        1.7 & 0.96 & 0.86 & / & / & \cite{ouyang2018interatomic} \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:vacancy}
+\end{table}
+
+% Table for Single Self-Interstitial Atom (SIA)
+\begin{table}[h]
+    \centering
+    \caption{Single self-interstitial atom properties from various references.}
+    \begin{tabular}{cccccccccc}
+        \toprule
+        $E_f^i$ & $E_m^{i,33}$ & $E_m^{i,11,22}$ & $\Delta \Omega_r^i$ & Add. Info & Reference \\
+        \midrule
+        3.46(BO), 3.49(BS) & 0.2 & 0.03 & / & c/a =1.593 & \cite{mikhin1994anisotropic} \\
+        3.67(BO), 3.70(BS) & 0.04 & 0.04 & / & c/a =1.633 & \cite{mikhin1994anisotropic} \\
+        3.75(BC), 3.76(BC) & / & / & 0.33(BS), 0.35(BC) & / &  \cite{ackland1995defect} \\
+        3.51(BS), 3.52(BC) & / & / & 0.60(BS), 0.61(BC) & / &  \cite{hu2001analytic} \\
+        3.85(BS), 4.06(BO) & / & / & / & / & \cite{de2002mobility} \\
+        4.04(BO), 4.08(O) & / & / & / & / & \cite{kim2006modified} \\
+        3.0 & 0.13 & 0.13 & / & T=1200K & \cite{mendelev2007development} \\
+        3.21(BS) & / & / & / & / & \cite{dai2009long} \\
+        2.78(BO), 2.84(BS) & / & / & / & / & \cite{peng2012stability} \\
+        / & / & / & 1.2 & / & \cite{verite2013self} \\
+        3.04(O), 3.08(BC) & / & / & / & / & \cite{ouyang2018interatomic} \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:sia}
+\end{table}
+
+% Table for SIA 2 (Di-Interstitial)
+\begin{table}[h]
+    \centering
+    \caption{Di-interstitial (SIA 2) properties from various references.}
+    \begin{tabular}{cccccccccc}
+        \toprule
+        $E_f^{2i}$ & $E_m^{2i,33}$ & $E_m^{2i,11,22}$ & $E_b^{2i}$ & Addl. Info & Reference \\
+        \midrule
+        / & 0.2 & 0.03 & / & c/a =1.593 & \cite{mikhin1994anisotropic} \\
+        / & 0.04 & 0.04 & / & c/a =1.633 & \cite{mikhin1994anisotropic}\\
+        5.91 & / & / & 1.78 & / & \cite{de2002mobility} \\
+        \bottomrule
+    \end{tabular}
+    \label{tab:sia2}
+\end{table}
