@@ -266,9 +266,9 @@ def fig_spectrum(run, verbose=True):
                        verbose=verbose)
     used = sorted({k[1] for k in data})
     a = SS.render(run, d, data, fams, used, FIGDIR / "size_spectrum_dose.png")
-    b = SS.render_regions(run, used, fams,
-                          FIGDIR / "size_spectrum_regions.png",
-                          verbose=False)
+    b, _deltas = SS.render_regions(run, used, fams,
+                                   FIGDIR / "size_spectrum_regions.png",
+                                   verbose=False)
     return [a, b]
 
 

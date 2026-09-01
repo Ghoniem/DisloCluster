@@ -264,7 +264,6 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
         ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(LABEL[slug], fontsize=11)
         ax.grid(alpha=0.3, which="both")
-        ax.legend(fontsize=8, loc="best", framealpha=0.92)
 
     # the cross-family panel, at the last dose
     ax = axes.ravel()[len(slugs)]
@@ -289,11 +288,30 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
     ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
     ax.set_title(f"all families at {doses[-1]:g} dpa", fontsize=11)
     ax.grid(alpha=0.3, which="both")
-    ax.legend(fontsize=8, loc="best", framealpha=0.92)
 
     for ax in axes.ravel()[n_p:]:
         ax.axis("off")
     fig.tight_layout()
+
+    # LEGENDS OUTSIDE THE AXES. Placed inside at `loc="best"` they sat on the
+    # curves rather than beside them: every panel rises steeply from the left,
+    # so the upper-left corner matplotlib scores as emptiest is exactly where
+    # the leading edge is, and the box covered the first snapshot's near-delta
+    # peak in three panels of four. There is no free corner to move them to --
+    # a distribution fills its panel by construction -- so they go below the
+    # figure, where `bbox_inches="tight"` picks them up. Two legends and not
+    # one: the final panel keys families where the others key doses, and
+    # merging them would imply a colour means both.
+    h_d, l_d = axes.ravel()[0].get_legend_handles_labels()
+    h_f, l_f = ax.get_legend_handles_labels()
+    if h_d:
+        fig.legend(h_d, l_d, loc="upper center", bbox_to_anchor=(0.5, 0.004),
+                   ncol=len(l_d), frameon=False, fontsize=9,
+                   title="panels 1-3: one curve per dose")
+    if h_f:
+        fig.legend(h_f, l_f, loc="upper center", bbox_to_anchor=(0.5, -0.055),
+                   ncol=len(l_f), frameon=False, fontsize=9,
+                   title="final panel: one curve per family")
     out_file = Path(out_file)
     out_file.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_file, dpi=dpi, bbox_inches="tight")
@@ -323,6 +341,7 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
              "shell": ("#00838f", ":", 2.2)}
     fig, axes = plt.subplots(1, len(slugs), figsize=(4.3 * len(slugs), 3.6),
                              squeeze=False)
+    deltas = {}
     for j, slug in enumerate(slugs):
         ax = axes[0, j]
         pk, curves = 0.0, []
@@ -337,7 +356,8 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
             pk = max(pk, float(yv.max()))
             col, ls, lw = style[region]
             ax.plot(d[d >= 1.0], yv[d >= 1.0], color=col, ls=ls, lw=lw,
-                    label=f"{region} ($\\Delta$ med {st['delta_med']:.3f})")
+                    label=region)
+            deltas.setdefault(slug, {})[region] = float(st["delta_med"])
         ax.set_yscale("log")
         vis = d >= 1.0
         pk = max((float(yv[vis].max()) for yv in curves if yv[vis].size), default=0.0)
@@ -354,14 +374,29 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
             ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(f"{LABEL[slug]} at {dose:g} dpa", fontsize=11)
         ax.grid(alpha=0.3, which="both")
-        ax.legend(fontsize=7.5, loc="best", framealpha=0.92)
     fig.tight_layout()
+
+    # ONE SHARED LEGEND, BELOW. The three curves mean the same thing in every
+    # panel, so three boxes were redundant as well as obstructive -- each sat
+    # over the peak of the panel it was in. The per-panel dispersions the
+    # labels used to carry cannot go into a shared key, because they differ by
+    # panel; they are returned instead, for the caption to report.
+    h, l = axes[0, 0].get_legend_handles_labels()
+    if h:
+        fig.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, 0.004),
+                   ncol=len(l), frameon=False, fontsize=9)
     out_file = Path(out_file)
     out_file.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_file, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
     print(f"  wrote {out_file}")
-    return out_file
+    # The dispersions the legend labels used to carry, for the caption. Printed
+    # as well as returned: the caption is written by hand and this is the only
+    # place these numbers exist.
+    for slug, per in deltas.items():
+        print(f"  Delta med  {slug:4s} "
+              + "  ".join(f"{r} {v:.3f}" for r, v in per.items()))
+    return out_file, deltas
 
 
 def main(argv=None):
