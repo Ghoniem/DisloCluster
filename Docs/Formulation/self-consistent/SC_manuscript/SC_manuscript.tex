@@ -29,7 +29,13 @@
 
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx}
+% Floats must not drift past the appendix that owns them: the two
+% conversion figures belong in Appendix C, not at the head of D.
+\usepackage{placeins}
 \usepackage{booktabs}
+% [H] for the process-class table, which must stay with the text that
+% introduces it rather than floating a page away from it.
+\usepackage{float}
 \usepackage{multirow}
 \usepackage{tabularx}
 \usepackage{xltabular}
@@ -45,7 +51,10 @@
 % which patches hyperref's own macros in turn -- reversed, the \cref links lose
 % their names. colorlinks prints colored text rather than the default colored
 % boxes, which is what a journal PDF wants.
-\usepackage{hyperref}
+% plainpages=false / pdfpagelabels: the page counter restarts at the
+% Introduction, so without these hyperref builds two anchors called
+% page.1 and warns six times.
+\usepackage[plainpages=false,pdfpagelabels]{hyperref}
 \hypersetup{
   colorlinks = true,
   citecolor  = blue,        % [7] and the rest of the citation labels
@@ -83,6 +92,11 @@
 \newcommand{\dpa}{\mathrm{dpa}}
 \newcommand{\spvec}[1]{\bm{\mathsf{#1}}}   % species-space vector
 \newcommand{\spmat}[1]{\bm{\mathsf{#1}}}   % species-space matrix
+% The absorption/sink matrix, calligraphic so that it cannot be read as one
+% of the diffusion arrays: \spmat D_{ten} (the tensors) or \spmat D_d (their
+% orientational averages). Bold is kept, because it is still a species-space
+% array. For a plain calligraphic D, drop the \bm here and nowhere else.
+\newcommand{\Dabs}{\bm{\mathcal{D}}}      % absorption / sink matrix
 \newcommand{\Dten}{\bm{D}}
 \newcommand{\bvec}{\bm{b}}
 \newcommand{\nvec}{\bm{n}}
@@ -102,6 +116,7 @@
 \DeclareSIUnit{\dpaunit}{dpa}
 
 \begin{document}
+\pagenumbering{roman}
 
 \begin{frontmatter}
 
@@ -139,6 +154,9 @@
 \setcounter{tocdepth}{2}
 \tableofcontents
 \clearpage
+% Arabic numbering starts at the Introduction; everything before it --
+% title, abstract and contents -- is numbered in roman.
+\pagenumbering{arabic}
 
 \input{sections/introduction}
 \input{sections/defect_classes}

@@ -22,7 +22,7 @@ $\varepsilon=\tau_M/\tau_Q\ll1$, the singular limit $\varepsilon\to0$ replaces
 the first by the algebraic constraint
 $\mathcal R_M(\spvec c^{\star}_M;\spvec Q)=\bm 0$. The spatial code implements
 that limit exactly: its mobile solver carries no time derivative, so
-\cref{eq:block-mobile} is the steady problem itself, not a transient taken to
+\cref{eq:master-c} is the steady problem itself, not a transient taken to
 large times.
 
 The two blocks are advanced by a Lie--Trotter split. Over one dose interval,
@@ -94,7 +94,7 @@ tightly coupled problem is now the fast solve, $362\,468$ unknowns and
 $4\,\mathrm{m}\,12\,\mathrm{s}$ on 24 cores against
 $1\,\mathrm{m}\,12\,\mathrm{s}$ for an entire slow sweep over all $90\,617$
 points, and what the split buys is frequency: with no time derivative in
-\cref{eq:block-mobile} it is solved eight times over the march rather than every
+\cref{eq:master-c} it is solved eight times over the march rather than every
 timestep. At five Newton iterations per solve, hence $\sim50\,$s per linear
 solve, the counterfactual is $100\times24\div5\approx480$ factorizations, or
 $6.7\,$h for the mobile block \emph{alone}, against the $29\,$min the slow side

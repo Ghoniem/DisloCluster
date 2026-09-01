@@ -264,7 +264,7 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
         ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(LABEL[slug], fontsize=11)
         ax.grid(alpha=0.3, which="both")
-        ax.legend(fontsize=8, loc="upper left")
+        ax.legend(fontsize=8, loc="best", framealpha=0.92)
 
     # the cross-family panel, at the last dose
     ax = axes.ravel()[len(slugs)]
@@ -289,7 +289,7 @@ def render(run, d, data, slugs, doses, out_file, region="domain", dpi=200):
     ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
     ax.set_title(f"all families at {doses[-1]:g} dpa", fontsize=11)
     ax.grid(alpha=0.3, which="both")
-    ax.legend(fontsize=8, loc="upper left")
+    ax.legend(fontsize=8, loc="best", framealpha=0.92)
 
     for ax in axes.ravel()[n_p:]:
         ax.axis("off")
@@ -354,7 +354,7 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
             ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
         ax.set_title(f"{LABEL[slug]} at {dose:g} dpa", fontsize=11)
         ax.grid(alpha=0.3, which="both")
-        ax.legend(fontsize=7.5, loc="upper left")
+        ax.legend(fontsize=7.5, loc="best", framealpha=0.92)
     fig.tight_layout()
     out_file = Path(out_file)
     out_file.parent.mkdir(parents=True, exist_ok=True)

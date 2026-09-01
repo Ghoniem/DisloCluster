@@ -1,6 +1,6 @@
 \section{Cluster Dynamics Formulation}\label{sec:formulation}
 
-\subsection{From the master equation to the reduced system}
+\subsection{Master equation and the reduced system}
 \label{sec:master}
 
 The general cluster-dynamics master equation for a population indexed by a
@@ -133,14 +133,18 @@ Writing $\spvec c_M=[c^v,c^i,c^{2i},c^{3i}]^{T}$ in per-atom units,
   \spvec 0 = -\nabla\!\cdot\!\spvec J
     + \spvec P_M
     + \tfrac12\,(\spmat I\otimes\spvec c_M^{T})\,\spmat R_2\,\spvec c_M
-    + (\spmat E-\spmat D)\,\spvec c_M
+    + (\spmat E-\Dabs)\,\spvec c_M
     + \spvec S_{vL},
   \label{eq:master-c}
 \end{equation}
 where upright sans-serif bold denotes arrays in \emph{species space} and
 bold italic ordinary Cartesian vectors and tensors, so that the entries
 $\bm J^{x}=-\bm D^{x}\nabla c^{x}$ of the stacked flux $\spvec J$ are themselves
-Cartesian vectors and $\nabla\cdot$ acts on each.
+Cartesian vectors and $\nabla\cdot$ acts on each. One species-space array is
+set in bold calligraphic rather than bold sans: the absorption matrix $\Dabs$,
+which would otherwise be a third object named $D$ alongside the diffusion
+tensors $\spmat D_{\mathrm{ten}}$ and their orientational averages
+$\spmat D_d$.
 
 The terms are, in order: the cascade production
 $\spvec P_M=G\varepsilon\spvec f$, with $G$ the displacement rate, $\varepsilon$
@@ -160,13 +164,13 @@ with the recombination-volume factor $\beta_r$ carried on the
 interstitial--vacancy channel and the combinatorial factors retained on the
 like-species channels; the thermal emission matrix $\spmat E$, whose entries are
 $\alpha^{m,n}=\beta^{m,n}\exp(-E^{b}_{m,n}/k_BT)$; the linear absorption matrix
-$\spmat D$; and $\spvec S_{vL}$, the vacancies returned to the pool by
+$\Dabs$; and $\spvec S_{vL}$, the vacancies returned to the pool by
 peripheral emission from vacancy loops (\cref{app:emission}).
 
 The absorption matrix is where the immobile population acts back on the mobile
 one, and it is written so that no defect can be counted twice:
 \begin{equation}
-  \spmat D = \mathrm{diag}\{\spvec\omega\odot\spvec C_s\}
+  \Dabs = \mathrm{diag}\{\spvec\omega\odot\spvec C_s\}
              + \spmat D_d\,\spmat K_{\mathcal L},
   \qquad
   \spmat D_d=\mathrm{diag}\{\overline D^{v},\overline D^{i},
@@ -198,7 +202,9 @@ concentration is a bookkeeping convention inherited from the $0$-D model, not a
 second physical quantity. The loop term below is built the same way, which is
 what allows the two to be added.
 
-The second term carries the loops through the diagonal sink-strength block
+The second term carries the loops through the diagonal sink-strength block,
+in which $Z_{sk,m}$ is the capture efficiency of family $(s,k)$ for species $m$,
+built in \cref{sec:coexistence} from the diffusion tensors themselves,
 \begin{equation}
   \spmat K_{\mathcal L}=\mathrm{diag}\{\spvec k^{2}\},
   \qquad
@@ -228,8 +234,340 @@ boundary condition, and the depleted layer in front of it becomes an output
 rather than a parameter. Faces declared periodic instead carry periodic
 conditions on all four species.
 
-\subsection{Anisotropic transport and the single anisotropy parameter}
-\label{sec:transport}
+That block is assembled in Galerkin weak form, discretized on the second-order
+tetrahedral mesh and solved by Newton iteration; \cref{app:fem} sets the
+algorithm out in full. Three of its features are worth carrying into the
+reading of any output. The absorption matrix $\Dabs$ of \cref{eq:KM} is
+evaluated at every quadrature point from the immobile state held fixed there,
+not interpolated from nodal values, which is what makes the immobile field
+enter as a coefficient rather than as an unknown. What is solved for is an
+increment, so the Dirichlet data enter once, through the initial guess, and
+never again. And the mobile field is represented by superposition,
+$\spvec c_M=\spvec c_M^{\mathrm{FEM}}+\spvec c_M^{\mathrm{DD}}$, with
+$\spvec c_M^{\mathrm{DD}}$ the analytic field of any discrete segments present;
+only the corrective part $\spvec c_M^{\mathrm{FEM}}$ is solved for, and the
+discrete field enters through the Dirichlet data, which are reduced to
+$\spvec c_M^{\mathrm{eq}}-\spvec c_M^{\mathrm{DD}}$. It is that last point that
+makes the mobile block of an output file the corrective part and not the
+concentration, whenever discrete loops are present.
+
+\subsection{The immobile block}
+\label{sec:immobile}
+
+The block has five channels, and they are given in turn. All nine families
+obey one growth law, in which the stored
+content changes under the net biased flux of the correct sign:
+\begin{equation}
+  \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
+  = \Pi^k_{sL}\;\eta_s\!\!\sum_{m\in\{v,i,2i,3i\}}\!\!
+    |m|\;\overline D^{m}\,Z_{sk,m}\,c^{m}\,\varsigma_s(m),
+  \label{eq:growth}
+\end{equation}
+with $Z_{sk,m}$ the capture efficiency of \cref{eq:Zsk} and
+$\varsigma_s(m)=\varsigma^{s}\varsigma^{m}$ the polarity product of
+\cref{sec:master}: $+1$ when the polarity of species $m$ matches the character
+$s$, so that absorbing it grows the family, and $-1$ otherwise, so that
+absorbing it shrinks the family. The geometric prefactor is
+\begin{equation}
+  \Pi^k_{sL}=\frac{\lambda_k}{\ell}\,\xi_k
+             \sqrt{n^k_{sL}c^k_{sL}},
+  \qquad
+  \ell\equiv\frac{z_c\Omega}{2\pi a^{2}},
+  \label{eq:loopprefactor}
+\end{equation}
+in which $\lambda_k$ is the family's own radius scale of \cref{eq:radius},
+$\ell$ a length built from the capture number and the atomic volume, and
+$\xi_k$ the one fitted sink scale per habit (\cref{tab:fitted}). And because $\rho^k_{sL}=2\pi\lambda_k\sqrt{n^k_{sL}c^k_{sL}}$ by
+\cref{eq:radius},
+\begin{equation}
+  \Pi^k_{sL}=\xi_k\,\frac{\rho^k_{sL}}{2\pi\ell}
+  \qquad\text{identically, for every }(s,k)\in\mathcal F_L .
+  \label{eq:Pi-identity}
+\end{equation}
+\emph{The prefactor in the growth law is the family's own sink density divided
+by $2\pi\ell$.} That identity is what makes \cref{eq:growth} and \cref{eq:KL}
+two readings of one quantity, and it is what carries the growth law onto the
+pyramid unchanged: a family needs no geometry beyond the capture cross-section
+it presents, and the pyramid supplies that cross-section as
+$\Pi^{c_0}_{vL}=\xi_{c_0}\alpha_{\mathrm{sfp}}
+R^{c_0}_{vL}n^{c_0}_{vL}/2\ell$.
+
+Nucleation is the second channel. Cascade production deposits directly into the immobile
+families at a rate $G_k=G\,\epsilon_k$ per family, each new cluster carrying
+$m^{\mathrm{nuc}}_k$ defects, so that
+$\dot n^k_{sL}|_{\mathrm{nuc}}=J^k_{sL}=G_k/m^{\mathrm{nuc}}_k$ and
+$\dot c^k_{sL}|_{\mathrm{nuc}}=G_k$. The partition $\epsilon_k$ and the
+nucleation sizes are calibrated quantities.
+
+Alongside that cascade route the interstitial prismatic families carry a
+homogeneous one, from the three mobile--mobile reactions that put a cluster past
+the cut-off of \cref{eq:mobile-classes}:
+\begin{equation}
+  \left.J^{a_k}_{iL}\right|_{\mathrm{hom}}
+    =w_{a_k}\bigl(R_{i,3i}+\tfrac12R_{2i,2i}+R_{2i,3i}\bigr),
+  \qquad
+  \left.\dot c^{a_k}_{iL}\right|_{\mathrm{hom}}
+    =w_{a_k}\bigl(4R_{i,3i}+2R_{2i,2i}+5R_{2i,3i}\bigr),
+  \label{eq:homnuc}
+\end{equation}
+with $w_{a_k}$ the share of the three prismatic variants, $\sum_kw_{a_k}=1$.
+Neither set of weights is free. Each content weight is the defect content that
+same reaction removes from $\spvec c_M$ --- $1+3$ for $i\!+\!3i$, $2$ for every
+di-interstitial lost to $2i\!+\!2i$, and $2+3$ for $2i\!+\!3i$ --- so what is
+deposited is exactly what is withdrawn, and the three clustering entries of
+\cref{eq:d-R2cluster} are the audit of it. Each number weight is one loop per
+\emph{event}, which is where the $\tfrac12$ comes from: $R_{i,3i}$ and
+$R_{2i,3i}$ are unlike-pair rates and count events already, while $R_{2i,2i}$,
+like $R_{i,i}$ in \cref{eq:d-R2vi}, is a di-interstitial \emph{loss} rate and
+two are lost per event. Content over number is then $4$, $4$ and $5$ defects on
+the three channels --- the clusters $i\!+\!3i$, $2i\!+\!2i$ and $2i\!+\!3i$
+actually make.
+
+The third channel removes loops rather than feeding them. Loops are lost by
+overlap with other loops and with
+the network. With $N=n/\Omega$, $R=\lambda\sqrt{c/n}$, and the radii capped at
+the relevant spacing ($R_{LL}=\min(R,(\Omega/n)^{1/3})$,
+$R_{LN}=\min(R,\rho_N^{-1/2})$), the Avrami overlap probabilities and rate
+scales are
+\begin{align}
+  \varphi_{LL}&=1-\exp\!\left(-\kappa_{LL}\tfrac43\pi R_{LL}^{3}N\right), &
+  \varphi_{LN}&=1-\exp\!\left(-\kappa_{LN}\pi R_{LN}^{2}\rho_N\right),
+  \nonumber\\
+  \nu_{LL}&=c_{LL}\,v_{\mathrm{abs}}\,N^{1/3}, &
+  \nu_{LN}&=c_{LN}\,v_{\mathrm{abs}}\,\sqrt{\rho_N},
+  \label{eq:avrami}
+\end{align}
+giving the number and content losses
+\begin{equation}
+  \Delta N_{LN}=\nu_{LN}\varphi_{LN}n,
+  \quad
+  \Delta N=\nu_{LL}\varphi_{LL}n+\Delta N_{LN},
+  \quad
+  \Delta C=\nu_{LN}\varphi_{LN}c,
+  \quad
+  \Delta Q=\Delta_k\bigl(\bar m^{2}\Delta N-2\bar m\,\Delta C\bigr).
+  \label{eq:coal}
+\end{equation}
+Here $\Delta Q$ is the second-moment counterpart of $\Delta N$ and
+$\Delta C$ --- the $q$ that leaves with the loops these two channels remove ---
+and $\Delta_k\equiv q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}$ is the shape factor defined
+with the closure at \cref{eq:lognormal}, which is $\ge1$ for any non-negative
+size distribution and equals $e^{s_k^{2}}$ for the log-normal used there. The
+bracket is the shape-preserving combination: a channel carrying no size
+distribution of its own removes $\bar m^{2}\Delta N-2\bar m\,\Delta C$ of the
+second moment, which is the statement that it leaves the shape of the family
+untouched and moves only its mean and its number. The like-loop channel merges
+two loops into a larger one and therefore \emph{conserves content}, removing
+density only; the loop--network channel
+removes both, and the removed content is booked as network sink absorption so
+the point-defect balance stays closed. The second moment moves in opposite
+directions on the two, which is why $\Delta Q$ carries one sign and not two:
+substituting $\Delta C=\bar m\,\Delta N_{LN}$ collapses it to
+$\Delta Q=\Delta_k\bar m^{2}(\Delta N_{LL}-\Delta N_{LN})$, a gain from the
+merge and a loss from the removal. Both halves are derived in
+\cref{app:derivation}, the second exactly and the first up to the one closure
+this model needs for coalescence. The rate scale is set by the
+\emph{absorbed}-flux climb speed $v_{\mathrm{abs}}$ rather than the net growth
+velocity, so coarsening persists at saturation. The capping is what makes
+\cref{eq:avrami} saturate rather than diverge as the number density collapses,
+and $\varphi_{LL}\to1$ is the model's own statement that its mean-field
+treatment of coalescence has expired --- the detector used in
+\cref{sec:coarsening}.
+
+The fourth channel runs the other way. Vacancy loops exchange vacancies across their own
+perimeter at a rate set by a size-dependent binding energy computed from the
+anisotropic loop self-energy (\cref{app:emission}), one expression serving both
+characters, so that the same mechanism shrinks a vacancy loop and grows an
+interstitial one and the classical climb threshold emerges rather than being
+imposed. This channel replaces the two fitted annealing lifetimes of the
+mean-field model. It returns vacancies to the mobile pool through $\spvec S_{vL}$
+in \cref{eq:master-c}.
+
+Emission removes content and never a loop, so on its own it leaves coalescence
+as the only sink on vacancy loop \emph{number}; the disappearance channel
+supplies the missing one. It is the physical content of the lifetime the
+emission channel deleted, written as a size condition rather than as a fitted
+rate: loops that have shrunk below a minimum stable size $m_{\mathrm{van}}$
+dissolve at $\nu_{\mathrm{van}}$, and the fraction that qualifies is read off
+the same log-normal. Writing
+\[
+  \Phi^{(j)}_k(m_\theta)
+  =\tfrac12\operatorname{erfc}\!\left(
+     \frac{\ln m_\theta-\mu_k-j\,s_k^{2}}{s_k\sqrt2}\right)
+\]
+for the fraction of the family's $j$-th moment carried by loops \emph{larger}
+than $m_\theta$ --- the same gate \cref{eq:Phij} uses at a grain boundary, with
+$(\mu_k,s_k)$ the log-normal parameters of \cref{eq:lognormal} --- and taking it
+in the opposite sense,
+\begin{equation}
+  \Xi^k_0=\bigl[1-\Phi^{(0)}_k(m_{\mathrm{van}})\bigr]n^k_{sL},
+  \quad
+  \Xi^k_1=\bigl[1-\Phi^{(1)}_k(m_{\mathrm{van}})\bigr]c^k_{sL},
+  \quad
+  \Xi^k_2=\bigl[1-\Phi^{(2)}_k(m_{\mathrm{van}})\bigr]q^k_{sL},
+  \label{eq:vanish}
+\end{equation}
+the defects returning to the mobile pool as a dissolving loop's must. Because
+$\Phi^{(2)}>\Phi^{(1)}>\Phi^{(0)}$ the complements reverse that ordering, so
+what \cref{eq:vanish} removes is \emph{smaller} than the family mean: the
+density falls while the surviving mean size rises. That is the one trade
+coalescence cannot make --- it removes the largest loops and shortens the
+survivors' lives --- and it is why the two channels are not interchangeable.
+
+The fifth channel exists only on the basal branch. Its three states are
+linked by two one-way
+activated transfers,
+\begin{equation}
+  c_0 \;\xrightarrow{\;\nu_{\mathrm{col}}\;}\; c_f
+      \;\xrightarrow{\;\nu_{\mathrm{uf}}\;}\; c_p ,
+  \label{eq:basal-chain}
+\end{equation}
+both size-gated, and both conserving vacancies exactly: the content leaving one
+state enters the next, and only the \emph{number} changes, because the states
+store different vacancy content per unit area
+(\cref{tab:cd-families})~\citep{liu2020two,varvenne2014vacancy,marchrico2025}.
+The chain is basal and has no prismatic counterpart: \emph{ab initio}-parameterized
+formation energies place the prismatic vacancy \aloop{} loop \emph{below} both
+the compact cavity and the faulted basal loop, so the planar prismatic loop is
+already the ground-state geometry rather than something a compact cluster must
+convert into~\citep{varvenne2014vacancy}. None of the basal-chain rates
+is calibrated; the formulation gives their Arrhenius form and no measurement in
+this work supplies the barriers, so the chain is switched off in the calculation
+of \cref{sec:results} and its consequences are discussed in
+\cref{sec:conclusions}.
+
+The immobile block is what \cref{eq:master} becomes after the second reduction
+of \cref{sec:master} and three successive approximations, and naming them is
+the quickest way to say what the equations below are. Restricting
+\cref{eq:master} to indices that do not diffuse deletes the transport term
+outright, which is what leaves the block pointwise; within one family the
+surviving pairwise terms move a loop along the size axis $m$ and do nothing
+else, so the family's size density $f_k(m,t)$ obeys a birth--death equation on
+the integer $m$. Treating $m$ as continuous and truncating the Kramers--Moyal
+expansion at second order turns that into a Fokker--Planck equation, the first
+approximation, and it is second order in the jump size measured against the
+width of the distribution rather than in the jump size itself. Multiplying by
+$m^{j}$ and integrating gives an \emph{exact} hierarchy in the moments;
+retaining only $j=0,1,2$, the three fields of \cref{eq:moments-def}, is the
+second. That hierarchy does not close, because a perimeter-limited rate carries
+$\sqrt m$ and so calls for half-integer moments, and supplying them from the
+log-normal \cref{eq:lognormal} is the third --- the only place the closure
+reaches the rest of the model, as the factor $\Delta_k^{-1/8}$ carried on
+$\Pi^k_{sL}$.
+
+The channels that are not size jumps are not appended to that result; they are
+the remaining terms of \cref{eq:master}, and the same operation
+$\int m^{j}(\cdot)\,\mathrm dm$ produces them. Which terms those are is fixed by
+the partition of the index set and not by a modelling choice: the pairwise
+kernel $\mathcal K$ with one mobile partner is what becomes the ladder, and
+what is left over is the coagulation $\mathcal C$, whose partners are both
+immobile and which therefore moves no loop along $m$; the transfer $\theta$,
+which moves a cluster between families at fixed content; and the three removals
+$\mathcal D$. Each of the last four is first order in its own moments or
+quadratic in them, and its $j$-th moment integral is elementary. The coagulation
+gives $-\tfrac12\iint\mathcal C f f$ at $j=0$, \emph{exactly zero} at $j=1$
+because a merge conserves content, and $+\iint mm'\,\mathcal C f f$ at $j=2$;
+so the statement that coalescence \emph{raises} the second moment, which
+\cref{sec:moments} needs and which is the sign most easily inverted, is a
+property of \cref{eq:master} and not a rule imposed on the result. A removal
+with an $n$-independent rate gives $-\nu\{n,c,q\}$ and a size-gated one the same
+thing weighted by the gated fraction of each moment. \Cref{app:derivation}
+carries every step out, and \cref{tab:d-terms} is the accounting that no term of
+\cref{eq:master} is used twice or dropped.
+
+The result is 27 fields, pointwise, with no spatial coupling. For each family
+$(s,k)\in\mathcal F$ at each node independently,
+\begin{align}
+  \dot n^k_{sL} &= J^k_{sL} - \Delta N - \Phi^k_{\min} \pm \Gamma^{n}_{\theta}
+                   - \nu_{gb}\,\Theta^{k}_{0} - \nu_{\mathrm{van}}\,\Xi^{k}_{0},
+  \label{eq:block-n}\\
+  \dot c^k_{sL} &= \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
+                   + G_k - \Delta C - m_{\min}\Phi^k_{\min} \pm \Gamma^{c}_{\theta}
+                   - \nu_{gb}\,\Theta^{k}_{1} - \nu_{\mathrm{van}}\,\Xi^{k}_{1},
+  \label{eq:block-c}\\
+  \dot q^k_{sL} &= \left.\dot q^k_{sL}\right|_{\mathrm{FP}}
+                   + J^k_{sL}(m^{\mathrm{nuc}}_k)^{2} + \Delta Q
+                   - m^{2}_{\min}\Phi^k_{\min}
+                   \pm \Gamma^{q}_{\theta} - \nu_{gb}\,\Theta^{k}_{2}
+                   - \nu_{\mathrm{van}}\,\Xi^{k}_{2},
+  \label{eq:block-q}
+\end{align}
+whose terms are collected in \cref{tab:block-terms}. Two features of the set
+are worth reading off it directly. Each channel appears in all three equations
+with the weights $1$, $m$ and $m^{2}$ evaluated at the size where it acts ---
+$m^{\mathrm{nuc}}_k$ for nucleation, $m_{\min}$ for the floor current --- which
+is what makes the triple $(n,c,q)$ the moments of one distribution rather than
+three independent fields; and the only term that is not a rate times a moment is
+the growth flux, which is where the mobile block enters.
+
+\begin{table}[htbp]
+\caption{The terms of \cref{eq:block-n,eq:block-c,eq:block-q}, in the order they
+appear. Every one is derived in \cref{app:derivation} as a moment of a term of
+\cref{eq:master}. The first four come from the Fokker--Planck equation in $m$
+and its moment hierarchy; the last four are moments of the terms that are not
+steps along $m$ --- the coagulation, the transfer and the three removals.}
+\label{tab:block-terms}
+\centering\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}
+                              >{\raggedright\arraybackslash}p{0.13\textwidth}X@{}}
+\toprule
+Term & Given by & What it is \\
+\midrule
+$J^k_{sL}$, $G_k$, $J^k_{sL}(m^{\mathrm{nuc}}_k)^{2}$
+  & \cref{eq:homnuc} & Nucleation, one source deposited at a single size
+  $m^{\mathrm{nuc}}_k$: cascade production $G_k/m^{\mathrm{nuc}}_k$ per family
+  and, for the interstitial prismatic families, the homogeneous clustering
+  route. $G_k=J^k_{sL}m^{\mathrm{nuc}}_k$ is the same current weighted by $m$,
+  which is why it needs no separate symbol in \cref{eq:block-q}. \\
+\addlinespace
+$\left.\dot c\right|_{\mathrm{growth}}$
+  & \cref{eq:growth} & The net biased absorption flux, $\Pi^k_{sL}$ times the
+  signed sum over the four mobile species. This is the only place the mobile
+  block enters, and the only term that is not a rate times a moment. \\
+\addlinespace
+$\left.\dot q\right|_{\mathrm{FP}}$
+  & \cref{eq:q-FP} & The same flux resolved to second order: a drift that
+  carries the mean and a spreading term that broadens the family even when the
+  mean is stationary. \\
+\addlinespace
+$\Phi^k_{\min}$
+  & \cref{eq:d-floorcurrent} & The Fokker--Planck flux out through the lower
+  bound $m_{\min}$, booked at exactly $m_{\min}$ defects per loop, hence the
+  weights $1$, $m_{\min}$, $m_{\min}^{2}$. It is identically zero for a
+  monodisperse family. \\
+\addlinespace
+$\Delta N$, $\Delta C$, $\Delta Q$
+  & \cref{eq:coal} & Coalescence, both partners immobile. Loop--loop merging
+  removes number at fixed content and \emph{raises} the second moment;
+  loop--network removes number and content and lowers it. \\
+\addlinespace
+$\Gamma^{n}_{\theta},\Gamma^{c}_{\theta},\Gamma^{q}_{\theta}$
+  & \cref{eq:basal-chain} & The basal-chain transfers, negative for the donor
+  state and positive for the receiver, conserving vacancies exactly. Zero for
+  every prismatic family. \\
+\addlinespace
+$\nu_{gb}\Theta^{k}_{j}$
+  & \cref{eq:gbloop} & Size-gated absorption at a grain boundary: the fraction
+  of each moment carried by loops large enough to touch the nearest face. The
+  defects leave the crystal. \\
+\addlinespace
+$\nu_{\mathrm{van}}\Xi^{k}_{j}$
+  & \cref{eq:vanish} & Dissolution of loops below the minimum stable size, the
+  same gate in the opposite sense. The defects return to the mobile pool. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Together with the evolving network density $\rho_N$ and the atom-balance
+accumulators of \cref{sec:results-conservation}, this is a system of ordinary
+differential equations at each node --- $3\times9+1$ fields plus accumulators ---
+in which no neighbor's state appears. The mobile species are the only
+thing that couples one node to another, and freezing them, as
+\cref{sec:split} does, removes the spatial coupling by construction rather
+than by approximation.
+
+\subsection{Conditions for loop growth}
+\label{sec:coexistence}\label{sec:transport}\label{sec:efficiencies}
 
 Each mobile species carries a diffusion tensor
 $D^{x}_{ij}=D^{x}_{0ij}\exp(-E^{xm}_{ij}/k_BT)$, diagonal in the crystal frame
@@ -255,9 +593,7 @@ formulation self-consistent: \cref{eq:pm,eq:Emsplit} are a change of variable in
 which $p^{m}$ is the only anisotropy the model has, and \cref{sec:efficiencies}
 uses that same $p^{m}$ and no other parameter.
 
-\subsection{Capture efficiencies}
-\label{sec:efficiencies}
-
+That anisotropy is what the capture efficiencies are built from.
 Every capture efficiency is a product of factors, one per degeneracy to be
 broken:
 \begin{equation}
@@ -301,9 +637,8 @@ single change of $p^{v}$ therefore pushes the basal and prismatic families in
 shrinkage, or the reverse. Any statement about the effect of anisotropy that
 does not distinguish the two habits is incomplete.
 
-\subsection{Conditions for the growth of every variant}
-\label{sec:coexistence}
-
+With the efficiencies in hand, the question of which families can grow at
+once becomes a question about one number.
 Whether a family grows reduces to a single number, and that is the difficulty
 this subsection resolves. Each compares one flux ratio against a threshold of
 its own, so under identical local conditions an interstitial and a vacancy loop
@@ -488,7 +823,7 @@ Thermal-drift capture, $\chi>1$ & character &
 \end{tabularx}
 \end{table}
 
-Three requirements follow, and together they are the content of
+Two requirements follow, and together they are the content of
 \cref{sec:classes,sec:formulation}. The immobile families must be
 crystallographic: a scalar aligned/non-aligned split says \emph{how much} of a
 population a stress favors but not \emph{which} prismatic system, and means
@@ -497,21 +832,6 @@ stress on each habit computed, and carrying both characters on each variant
 makes \cref{eq:chi} representable. Splitting the basal population into
 faulted and perfect states is forced separately, by the different vacancy
 content per unit area the two store (\cref{tab:cd-families}).
-
-The capture efficiencies must come from the transport tensors --- sense~(a) of
-\cref{sec:intro} --- and \cref{eq:window} is why that matters rather than merely
-being tidy: the window's width depends on the transport anisotropy
-\emph{alone}, so a model diffusing with one anisotropy while biasing its sinks
-with an independent $(\delta_i,\delta_v)$ can report a window its own transport
-does not support. The pair stays recoverable as the exact map
-\begin{equation}
-  \delta_m=\frac{A_a(p^{m})-A_c(p^{m})}{A_a(p^{m})+A_c(p^{m})}
-          =\frac{1-(p^{m})^{3}}{1+3(p^{m})^{3}},
-  \label{eq:deltamap}
-\end{equation}
-giving $\delta_i\approx0.07$--$0.09$ and $\delta_v\approx0$ above;
-$Z^{0}_{I}/Z^{0}_{V}$ is absent from it and must be carried separately, which is
-why \cref{eq:Zsk} is the more faithful input.
 
 And the mobile field must be spatially resolved, Resolution~1 being unavailable
 to a $0$-D model: it needs $x(\xv,t)$, hence \cref{eq:master-c} with real
@@ -533,190 +853,6 @@ the dislocation bias $Z^{0}_{I}/Z^{0}_{V}>1$, and only one should carry the
 interstitial--vacancy asymmetry. The calibration of \cref{sec:calibration} fits
 $\chi=1$, so $Z^{0}$ carries it alone --- which is to say the present parameter
 set exercises Resolution~1 and not Resolution~2.
-
-\subsection{The immobile block}
-\label{sec:immobile}
-
-The block has five channels, and they are given in turn. All nine families
-obey one growth law, in which the stored
-content changes under the net biased flux of the correct sign:
-\begin{equation}
-  \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
-  = \Pi^k_{sL}\;\eta_s\!\!\sum_{m\in\{v,i,2i,3i\}}\!\!
-    |m|\;\overline D^{m}\,Z_{sk,m}\,c^{m}\,\varsigma_s(m),
-  \label{eq:growth}
-\end{equation}
-with $\varsigma_s(m)=\varsigma^{s}\varsigma^{m}$ the polarity product of
-\cref{sec:master}: $+1$ when the polarity of species $m$ matches the character
-$s$, so that absorbing it grows the family, and $-1$ otherwise, so that
-absorbing it shrinks the family. The geometric prefactor is
-\begin{equation}
-  \Pi^k_{sL}=\frac{\lambda_k}{\ell}\,\xi_k
-             \sqrt{n^k_{sL}c^k_{sL}},
-  \qquad
-  \ell\equiv\frac{z_c\Omega}{2\pi a^{2}},
-  \label{eq:loopprefactor}
-\end{equation}
-in which $\lambda_k$ is the family's own radius scale of \cref{eq:radius},
-$\ell$ a length built from the capture number and the atomic volume, and
-$\xi_k$ the one fitted sink scale per habit (\cref{tab:fitted}). And because $\rho^k_{sL}=2\pi\lambda_k\sqrt{n^k_{sL}c^k_{sL}}$ by
-\cref{eq:radius},
-\begin{equation}
-  \Pi^k_{sL}=\xi_k\,\frac{\rho^k_{sL}}{2\pi\ell}
-  \qquad\text{identically, for every }(s,k)\in\mathcal F_L .
-  \label{eq:Pi-identity}
-\end{equation}
-\emph{The prefactor in the growth law is the family's own sink density divided
-by $2\pi\ell$.} That identity is what makes \cref{eq:growth} and \cref{eq:KL}
-two readings of one quantity, and it is what carries the growth law onto the
-pyramid unchanged: a family needs no geometry beyond the capture cross-section
-it presents, and the pyramid supplies that cross-section as
-$\Pi^{c_0}_{vL}=\xi_{c_0}\alpha_{\mathrm{sfp}}
-R^{c_0}_{vL}n^{c_0}_{vL}/2\ell$.
-
-Nucleation is the second channel. Cascade production deposits directly into the immobile
-families at a rate $G_k=G\,\epsilon_k$ per family, each new cluster carrying
-$m^{\mathrm{nuc}}_k$ defects, so that
-$\dot n^k_{sL}|_{\mathrm{nuc}}=J^k_{sL}=G_k/m^{\mathrm{nuc}}_k$ and
-$\dot c^k_{sL}|_{\mathrm{nuc}}=G_k$. The partition $\epsilon_k$ and the
-nucleation sizes are calibrated quantities.
-
-Alongside that cascade route the interstitial prismatic families carry a
-homogeneous one, from the three mobile--mobile reactions that put a cluster past
-the cut-off of \cref{eq:mobile-classes}:
-\begin{equation}
-  \left.J^{a_k}_{iL}\right|_{\mathrm{hom}}
-    =w_{a_k}\bigl(R_{i,3i}+\tfrac12R_{2i,2i}+R_{2i,3i}\bigr),
-  \qquad
-  \left.\dot c^{a_k}_{iL}\right|_{\mathrm{hom}}
-    =w_{a_k}\bigl(4R_{i,3i}+2R_{2i,2i}+5R_{2i,3i}\bigr),
-  \label{eq:homnuc}
-\end{equation}
-with $w_{a_k}$ the share of the three prismatic variants, $\sum_kw_{a_k}=1$.
-Neither set of weights is free. Each content weight is the defect content that
-same reaction removes from $\spvec c_M$ --- $1+3$ for $i\!+\!3i$, $2$ for every
-di-interstitial lost to $2i\!+\!2i$, and $2+3$ for $2i\!+\!3i$ --- so what is
-deposited is exactly what is withdrawn, and the three clustering entries of
-\cref{eq:d-R2cluster} are the audit of it. Each number weight is one loop per
-\emph{event}, which is where the $\tfrac12$ comes from: $R_{i,3i}$ and
-$R_{2i,3i}$ are unlike-pair rates and count events already, while $R_{2i,2i}$,
-like $R_{i,i}$ in \cref{eq:d-R2vi}, is a di-interstitial \emph{loss} rate and
-two are lost per event. Content over number is then $4$, $4$ and $5$ defects on
-the three channels --- the clusters $i\!+\!3i$, $2i\!+\!2i$ and $2i\!+\!3i$
-actually make.
-
-The third channel removes loops rather than feeding them. Loops are lost by
-overlap with other loops and with
-the network. With $N=n/\Omega$, $R=\lambda\sqrt{c/n}$, and the radii capped at
-the relevant spacing ($R_{LL}=\min(R,(\Omega/n)^{1/3})$,
-$R_{LN}=\min(R,\rho_N^{-1/2})$), the Avrami overlap probabilities and rate
-scales are
-\begin{align}
-  \varphi_{LL}&=1-\exp\!\left(-\kappa_{LL}\tfrac43\pi R_{LL}^{3}N\right), &
-  \varphi_{LN}&=1-\exp\!\left(-\kappa_{LN}\pi R_{LN}^{2}\rho_N\right),
-  \nonumber\\
-  \nu_{LL}&=c_{LL}\,v_{\mathrm{abs}}\,N^{1/3}, &
-  \nu_{LN}&=c_{LN}\,v_{\mathrm{abs}}\,\sqrt{\rho_N},
-  \label{eq:avrami}
-\end{align}
-giving the number and content losses
-\begin{equation}
-  \Delta N_{LN}=\nu_{LN}\varphi_{LN}n,
-  \quad
-  \Delta N=\nu_{LL}\varphi_{LL}n+\Delta N_{LN},
-  \quad
-  \Delta C=\nu_{LN}\varphi_{LN}c,
-  \quad
-  \Delta Q=\Delta_k\bigl(\bar m^{2}\Delta N-2\bar m\,\Delta C\bigr).
-  \label{eq:coal}
-\end{equation}
-Here $\Delta Q$ is the second-moment counterpart of $\Delta N$ and
-$\Delta C$ --- the $q$ that leaves with the loops these two channels remove ---
-and $\Delta_k\equiv q^k_{sL}n^k_{sL}/(c^k_{sL})^{2}$ is the shape factor defined
-with the closure at \cref{eq:lognormal}, which is $\ge1$ for any non-negative
-size distribution and equals $e^{s_k^{2}}$ for the log-normal used there. The
-bracket is the shape-preserving combination: a channel carrying no size
-distribution of its own removes $\bar m^{2}\Delta N-2\bar m\,\Delta C$ of the
-second moment, which is the statement that it leaves the shape of the family
-untouched and moves only its mean and its number. The like-loop channel merges
-two loops into a larger one and therefore \emph{conserves content}, removing
-density only; the loop--network channel
-removes both, and the removed content is booked as network sink absorption so
-the point-defect balance stays closed. The second moment moves in opposite
-directions on the two, which is why $\Delta Q$ carries one sign and not two:
-substituting $\Delta C=\bar m\,\Delta N_{LN}$ collapses it to
-$\Delta Q=\Delta_k\bar m^{2}(\Delta N_{LL}-\Delta N_{LN})$, a gain from the
-merge and a loss from the removal. Both halves are derived in
-\cref{app:derivation}, the second exactly and the first up to the one closure
-this model needs for coalescence. The rate scale is set by the
-\emph{absorbed}-flux climb speed $v_{\mathrm{abs}}$ rather than the net growth
-velocity, so coarsening persists at saturation. The capping is what makes
-\cref{eq:avrami} saturate rather than diverge as the number density collapses,
-and $\varphi_{LL}\to1$ is the model's own statement that its mean-field
-treatment of coalescence has expired --- the detector used in
-\cref{sec:coarsening}.
-
-The fourth channel runs the other way. Vacancy loops exchange vacancies across their own
-perimeter at a rate set by a size-dependent binding energy computed from the
-anisotropic loop self-energy (\cref{app:emission}), one expression serving both
-characters, so that the same mechanism shrinks a vacancy loop and grows an
-interstitial one and the classical climb threshold emerges rather than being
-imposed. This channel replaces the two fitted annealing lifetimes of the
-mean-field model. It returns vacancies to the mobile pool through $\spvec S_{vL}$
-in \cref{eq:master-c}.
-
-Emission removes content and never a loop, so on its own it leaves coalescence
-as the only sink on vacancy loop \emph{number}; the disappearance channel
-supplies the missing one. It is the physical content of the lifetime the
-emission channel deleted, written as a size condition rather than as a fitted
-rate: loops that have shrunk below a minimum stable size $m_{\mathrm{van}}$
-dissolve at $\nu_{\mathrm{van}}$, and the fraction that qualifies is read off
-the same log-normal. Writing
-\[
-  \Phi^{(j)}_k(m_\theta)
-  =\tfrac12\operatorname{erfc}\!\left(
-     \frac{\ln m_\theta-\mu_k-j\,s_k^{2}}{s_k\sqrt2}\right)
-\]
-for the fraction of the family's $j$-th moment carried by loops \emph{larger}
-than $m_\theta$ --- the same gate \cref{eq:Phij} uses at a grain boundary, with
-$(\mu_k,s_k)$ the log-normal parameters of \cref{eq:lognormal} --- and taking it
-in the opposite sense,
-\begin{equation}
-  \Xi^k_0=\bigl[1-\Phi^{(0)}_k(m_{\mathrm{van}})\bigr]n^k_{sL},
-  \quad
-  \Xi^k_1=\bigl[1-\Phi^{(1)}_k(m_{\mathrm{van}})\bigr]c^k_{sL},
-  \quad
-  \Xi^k_2=\bigl[1-\Phi^{(2)}_k(m_{\mathrm{van}})\bigr]q^k_{sL},
-  \label{eq:vanish}
-\end{equation}
-the defects returning to the mobile pool as a dissolving loop's must. Because
-$\Phi^{(2)}>\Phi^{(1)}>\Phi^{(0)}$ the complements reverse that ordering, so
-what \cref{eq:vanish} removes is \emph{smaller} than the family mean: the
-density falls while the surviving mean size rises. That is the one trade
-coalescence cannot make --- it removes the largest loops and shortens the
-survivors' lives --- and it is why the two channels are not interchangeable.
-
-The fifth channel exists only on the basal branch. Its three states are
-linked by two one-way
-activated transfers,
-\begin{equation}
-  c_0 \;\xrightarrow{\;\nu_{\mathrm{col}}\;}\; c_f
-      \;\xrightarrow{\;\nu_{\mathrm{uf}}\;}\; c_p ,
-  \label{eq:basal-chain}
-\end{equation}
-both size-gated, and both conserving vacancies exactly: the content leaving one
-state enters the next, and only the \emph{number} changes, because the states
-store different vacancy content per unit area
-(\cref{tab:cd-families})~\citep{liu2020two,varvenne2014vacancy,marchrico2025}.
-The chain is basal and has no prismatic counterpart: \emph{ab initio}-parameterized
-formation energies place the prismatic vacancy \aloop{} loop \emph{below} both
-the compact cavity and the faulted basal loop, so the planar prismatic loop is
-already the ground-state geometry rather than something a compact cluster must
-convert into~\citep{varvenne2014vacancy}. None of the basal-chain rates
-is calibrated; the formulation gives their Arrhenius form and no measurement in
-this work supplies the barriers, so the chain is switched off in the calculation
-of \cref{sec:results} and its consequences are discussed in
-\cref{sec:conclusions}.
 
 \subsection{The size distribution and its closure}
 \label{sec:moments}
@@ -787,184 +923,63 @@ of \cref{sec:conversion} as the distribution loop sizes are drawn from.
 \subsection{Summary of the equations}
 \label{sec:summary-equations}
 
-The system integrated is two blocks with different structure, and the difference
-between them is the whole of the numerical method.
+Both blocks having now been assembled, this subsection is a reference rather
+than a development: it states what is integrated, in one place, so that the
+structure of the whole system can be read without following the derivation
+again.
 
-Mobile block --- four fields, spatially coupled, no time derivative.
-\begin{equation}
-  \spvec 0 = \nabla\!\cdot\!\bigl(\spmat D_{\mathrm{ten}}\nabla\spvec c_M\bigr)
-    + \spvec P_M
-    + \tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M
-    + (\spmat E-\spmat D)\spvec c_M + \spvec S_{vL},
-  \qquad
-  \spvec c_M\big|_{\partial\Omega_D}=\spvec c_M^{\mathrm{eq}},
-  \label{eq:block-mobile}
-\end{equation}
-$4\times N_{\mathrm{node}}$ unknowns, nonlinear and algebraic, coupled across
-the mesh by the divergence term alone.
-
-What the code assembles is the Galerkin weak form of that statement, and it is
-worth writing down because the discrete problem differs from
-\cref{eq:block-mobile} in three respects that matter for reading the output.
-Multiplying by a test function $\spvec w$ from the same finite-element space,
-integrating over the crystal and moving one derivative onto $\spvec w$ gives:
-find $\spvec c_M\in V_h$ with $\spvec c_M=\spvec c_M^{\mathrm{eq}}$ on
-$\partial\Omega_D$ such that, for every $\spvec w\in V_h$ vanishing there,
-\[
-  \int_\Omega \Omega_{at}\,\nabla\spvec w:\bigl(\spmat D_{\mathrm{ten}}
-      \nabla\spvec c_M\bigr)\,dV
-  =\int_\Omega \spvec w\cdot\Bigl[\spvec P_M
-    +\tfrac12(\spmat I\otimes\spvec c_M^{T})\spmat R_2\spvec c_M
-    +(\spmat E-\spmat D)\spvec c_M+\spvec S_{vL}\Bigr]dV ,
-\]
-the surface term having dropped because $\spvec w$ vanishes on the Dirichlet
-boundary and no flux is imposed anywhere else. The factor $\Omega_{at}$ is the
-atomic volume, present because the fields are atom fractions and the flux is
-per unit volume.
-
-The three respects are these. The form is nonlinear through the recombination
-term, so it is solved by Newton iteration: each pass assembles the residual
-above and a tangent in which the quadratic term contributes
-$\spmat R_2\spvec c_M$ and the linear terms contribute themselves, and solves
-for an increment rather than for $\spvec c_M$. The absorption matrix
-$\spmat D$ of \cref{eq:KM} is evaluated at every quadrature point from the
-immobile state held fixed there, not interpolated from nodal values, which is
-what makes the immobile field enter as a coefficient rather than as an unknown.
-And the mobile field is represented by superposition, $\spvec c_M=\spvec
-c_M^{\mathrm{FEM}}+\spvec c_M^{\mathrm{DD}}$, with $\spvec c_M^{\mathrm{DD}}$
-the analytic field of any discrete segments present; only the corrective part
-$\spvec c_M^{\mathrm{FEM}}$ is solved for, and the discrete field enters through
-the Dirichlet data, which are reduced to
-$\spvec c_M^{\mathrm{eq}}-\spvec c_M^{\mathrm{DD}}$. It is that last point that
-makes the mobile block of an output file the corrective part and not the
-concentration, whenever discrete loops are present.
-
-The immobile block is what \cref{eq:master} becomes after the second reduction
-of \cref{sec:master} and three successive approximations, and naming them is
-the quickest way to say what the equations below are. Restricting
-\cref{eq:master} to indices that do not diffuse deletes the transport term
-outright, which is what leaves the block pointwise; within one family the
-surviving pairwise terms move a loop along the size axis $m$ and do nothing
-else, so the family's size density $f_k(m,t)$ obeys a birth--death equation on
-the integer $m$. Treating $m$ as continuous and truncating the Kramers--Moyal
-expansion at second order turns that into a Fokker--Planck equation, the first
-approximation, and it is second order in the jump size measured against the
-width of the distribution rather than in the jump size itself. Multiplying by
-$m^{j}$ and integrating gives an \emph{exact} hierarchy in the moments;
-retaining only $j=0,1,2$, the three fields of \cref{eq:moments-def}, is the
-second. That hierarchy does not close, because a perimeter-limited rate carries
-$\sqrt m$ and so calls for half-integer moments, and supplying them from the
-log-normal \cref{eq:lognormal} is the third --- the only place the closure
-reaches the rest of the model, as the factor $\Delta_k^{-1/8}$ carried on
-$\Pi^k_{sL}$.
-
-The channels that are not size jumps are not appended to that result; they are
-the remaining terms of \cref{eq:master}, and the same operation
-$\int m^{j}(\cdot)\,\mathrm dm$ produces them. Which terms those are is fixed by
-the partition of the index set and not by a modelling choice: the pairwise
-kernel $\mathcal K$ with one mobile partner is what becomes the ladder, and
-what is left over is the coagulation $\mathcal C$, whose partners are both
-immobile and which therefore moves no loop along $m$; the transfer $\theta$,
-which moves a cluster between families at fixed content; and the three removals
-$\mathcal D$. Each of the last four is first order in its own moments or
-quadratic in them, and its $j$-th moment integral is elementary. The coagulation
-gives $-\tfrac12\iint\mathcal C f f$ at $j=0$, \emph{exactly zero} at $j=1$
-because a merge conserves content, and $+\iint mm'\,\mathcal C f f$ at $j=2$;
-so the statement that coalescence \emph{raises} the second moment, which
-\cref{sec:moments} needs and which is the sign most easily inverted, is a
-property of \cref{eq:master} and not a rule imposed on the result. A removal
-with an $n$-independent rate gives $-\nu\{n,c,q\}$ and a size-gated one the same
-thing weighted by the gated fraction of each moment. \Cref{app:derivation}
-carries every step out, and \cref{tab:d-terms} is the accounting that no term of
-\cref{eq:master} is used twice or dropped.
-
-The result is 27 fields, pointwise, with no spatial coupling. For each family
-$(s,k)\in\mathcal F$ at each node independently,
-\begin{align}
-  \dot n^k_{sL} &= J^k_{sL} - \Delta N - \Phi^k_{\min} \pm \Gamma^{n}_{\theta}
-                   - \nu_{gb}\,\Theta^{k}_{0} - \nu_{\mathrm{van}}\,\Xi^{k}_{0},
-  \label{eq:block-n}\\
-  \dot c^k_{sL} &= \left.\dot c^k_{sL}\right|_{\mathrm{growth}}
-                   + G_k - \Delta C - m_{\min}\Phi^k_{\min} \pm \Gamma^{c}_{\theta}
-                   - \nu_{gb}\,\Theta^{k}_{1} - \nu_{\mathrm{van}}\,\Xi^{k}_{1},
-  \label{eq:block-c}\\
-  \dot q^k_{sL} &= \left.\dot q^k_{sL}\right|_{\mathrm{FP}}
-                   + J^k_{sL}(m^{\mathrm{nuc}}_k)^{2} + \Delta Q
-                   - m^{2}_{\min}\Phi^k_{\min}
-                   \pm \Gamma^{q}_{\theta} - \nu_{gb}\,\Theta^{k}_{2}
-                   - \nu_{\mathrm{van}}\,\Xi^{k}_{2},
-  \label{eq:block-q}
-\end{align}
-whose terms are collected in \cref{tab:block-terms}. Two features of the set
-are worth reading off it directly. Each channel appears in all three equations
-with the weights $1$, $m$ and $m^{2}$ evaluated at the size where it acts ---
-$m^{\mathrm{nuc}}_k$ for nucleation, $m_{\min}$ for the floor current --- which
-is what makes the triple $(n,c,q)$ the moments of one distribution rather than
-three independent fields; and the only term that is not a rate times a moment is
-the growth flux, which is where the mobile block enters.
-
-\begin{table}[htbp]
-\caption{The terms of \cref{eq:block-n,eq:block-c,eq:block-q}, in the order they
-appear. Every one is derived in \cref{app:derivation} as a moment of a term of
-\cref{eq:master}. The first four come from the Fokker--Planck equation in $m$
-and its moment hierarchy; the last four are moments of the terms that are not
-steps along $m$ --- the coagulation, the transfer and the three removals.}
-\label{tab:block-terms}
+\begin{table}[H]
+\caption{The two blocks of the integrated system. The difference in structure
+between them is the whole of the numerical method: the mobile block is one
+global nonlinear problem with no time derivative, and the immobile block is a
+set of independent ordinary differential equations, one per node.}
+\label{tab:blocks}
 \centering\small
-\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.15\textwidth}
-                              >{\raggedright\arraybackslash}p{0.13\textwidth}X@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{0.20\textwidth}
+                              >{\raggedright\arraybackslash}p{0.21\textwidth}X@{}}
 \toprule
-Term & Given by & What it is \\
+& Mobile block & Immobile block & \\
 \midrule
-$J^k_{sL}$, $G_k$, $J^k_{sL}(m^{\mathrm{nuc}}_k)^{2}$
-  & \cref{eq:homnuc} & Nucleation, one source deposited at a single size
-  $m^{\mathrm{nuc}}_k$: cascade production $G_k/m^{\mathrm{nuc}}_k$ per family
-  and, for the interstitial prismatic families, the homogeneous clustering
-  route. $G_k=J^k_{sL}m^{\mathrm{nuc}}_k$ is the same current weighted by $m$,
-  which is why it needs no separate symbol in \cref{eq:block-q}. \\
+Fields & $\spvec c_M=[c^v,c^i,c^{2i},c^{3i}]^{T}$
+       & $(n^k_{sL},c^k_{sL},q^k_{sL})$ for each of the nine families
+       & $4$ and $27$ per node \\
 \addlinespace
-$\left.\dot c\right|_{\mathrm{growth}}$
-  & \cref{eq:growth} & The net biased absorption flux, $\Pi^k_{sL}$ times the
-  signed sum over the four mobile species. This is the only place the mobile
-  block enters, and the only term that is not a rate times a moment. \\
+Given by & \cref{eq:master-c}, closed by \cref{eq:bc}
+         & \cref{eq:block-n,eq:block-c,eq:block-q}, terms in
+           \cref{tab:block-terms}
+         & \\
 \addlinespace
-$\left.\dot q\right|_{\mathrm{FP}}$
-  & \cref{eq:q-FP} & The same flux resolved to second order: a drift that
-  carries the mean and a spreading term that broadens the family even when the
-  mean is stationary. \\
+Structure & steady: no time derivative at all
+          & transient: first order in dose
+          & \\
 \addlinespace
-$\Phi^k_{\min}$
-  & \cref{eq:d-floorcurrent} & The Fokker--Planck flux out through the lower
-  bound $m_{\min}$, booked at exactly $m_{\min}$ defects per loop, hence the
-  weights $1$, $m_{\min}$, $m_{\min}^{2}$. It is identically zero for a
-  monodisperse family. \\
+Coupling & every node to its neighbors, through
+           $\nabla\!\cdot\!\spvec J$ alone
+         & none; no neighbor's state appears
+         & \\
 \addlinespace
-$\Delta N$, $\Delta C$, $\Delta Q$
-  & \cref{eq:coal} & Coalescence, both partners immobile. Loop--loop merging
-  removes number at fixed content and \emph{raises} the second moment;
-  loop--network removes number and content and lowers it. \\
+Character & nonlinear, algebraic; solved by Newton on the finite-element space
+           (\cref{app:fem})
+          & stiff, pointwise; integrated independently at each node
+          & \\
 \addlinespace
-$\Gamma^{n}_{\theta},\Gamma^{c}_{\theta},\Gamma^{q}_{\theta}$
-  & \cref{eq:basal-chain} & The basal-chain transfers, negative for the donor
-  state and positive for the receiver, conserving vacancies exactly. Zero for
-  every prismatic family. \\
-\addlinespace
-$\nu_{gb}\Theta^{k}_{j}$
-  & \cref{eq:gbloop} & Size-gated absorption at a grain boundary: the fraction
-  of each moment carried by loops large enough to touch the nearest face. The
-  defects leave the crystal. \\
-\addlinespace
-$\nu_{\mathrm{van}}\Xi^{k}_{j}$
-  & \cref{eq:vanish} & Dissolution of loops below the minimum stable size, the
-  same gate in the opposite sense. The defects return to the mobile pool. \\
+Each enters the other through & $\Dabs$, \cref{eq:KM}, evaluated from the
+          immobile state held fixed
+         & the growth flux, \cref{eq:growth}, the only term that is not a rate
+           times a moment
+         & \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Together with the evolving network density $\rho_N$ and the atom-balance
-accumulators of \cref{sec:results-conservation}, this is a system of ordinary
-differential equations at each node --- $3\times9+1$ fields plus accumulators ---
-in which no neighbor's state appears. The mobile species are the only
-thing that couples one node to another, and freezing them, as
-\cref{sec:split} does, removes the spatial coupling by construction rather
-than by approximation.
+Two things follow from that contrast and are used throughout what remains. The
+mobile species are the only quantity that couples one node to another, so
+freezing them removes the spatial coupling by construction rather than by
+approximation --- which is what \cref{sec:split} exploits, and why the immobile
+side of a march is a large number of small independent problems instead of one
+large coupled one. And the two blocks meet in exactly two places, the absorption
+matrix $\Dabs$ and the growth flux, which are built from one set of capture
+efficiencies $Z_{sk,m}$ and debit the mobile species by precisely what the loop
+content gains. That single set of efficiencies, used on both sides of the
+exchange, is the operational content of the word \emph{self-consistent} as this
+work uses it.

@@ -78,94 +78,25 @@ vector and no line, hence no discrete representation at all; folding its content
 into $c_f$ would report basal vacancies as dislocation content the solver was
 then free to move.
 
-The conversion proceeds in four steps. The fields are known at unevenly spaced
-nodes, so each must first be given the volume it stands for, which a restricted
-Voronoi tessellation supplies --- restricted in that sample points outside the
-crystal are rejected rather than charged to the nearest boundary node. On a hexagonal prism the bounding box is $4/3$ of the crystal, so
-using it would over-count by a third and scatter loops through six empty wedges.
-
-The tessellation is never built explicitly. $V_j$ is estimated by Monte Carlo:
-points are drawn uniformly in the bounding box of the node cloud, those failing
-the half-space test $\bm{N}\xv\le\bm{b}$ of the convex hull are discarded, and each
-survivor is assigned to its nearest node by a $k$-d tree search, so that
-$V_j=(M_j/M)\,V_\Omega$ with $M_j$ the count at node $j$ and $M$ the number of
-accepted samples. The estimator is unbiased and converges as $M^{-1/2}$; the
-production runs use $M=4\times10^{6}$, which on the $9.1\times10^{4}$ nodes here
-is some 44 samples per node on average and a few percent on a typical cell.
-Nearest-node assignment is what makes the cells a genuine Voronoi partition,
-and the only condition the construction has to meet is that they tile the
-crystal exactly --- which they do by construction, every accepted sample being
-charged to exactly one node, so that $\sum_j V_j=V_\Omega$ identically and no
-volume is created or lost however coarse the sampling is. Sampling error moves
-volume \emph{between} neighbouring cells; it cannot change their sum.
-
-Two properties of the partition are worth stating because they are easy to
-assume wrongly. First, the cells are \emph{not} the finite elements. The
-tessellation is built on the cluster-dynamics nodes, which are the trial-function
-nodes of the concentration field and include the mid-edge nodes of every
-second-order element; the elements are tetrahedra, the Voronoi cells are convex
-polyhedra around points, and neither is a refinement of the other. What the two
-share is only the point set. Nodal volumes are not read from the mesh because
-the output the conversion consumes carries node positions and no connectivity,
-and a Voronoi volume is the natural quantity to reconstruct from positions
-alone. Second, a node can legitimately receive zero volume --- on the runs here
-about $12\%$ do, being nodes whose neighbours crowd them out at a refinement
-boundary. That is the correct answer rather than a failure: a node with no
-surrounding volume contributes nothing to a volume average, and it is given
-weight zero.
-
-The expected number of loops of family $(s,k)$ at node $j$ is then
-\begin{equation}
-  \lambda^k_{sj}=\frac{n^k_{sL}(\xv_j)}{\Omega}\,V_j,
-  \qquad
-  \Lambda^k_s=\sum_j\lambda^k_{sj},
-  \qquad
-  N_{\mathrm{draw}}=\operatorname{round}\bigl(\Lambda^k_s\bigr).
-  \label{eq:counts}
-\end{equation}
-Both factors are needed: sampling on $n^k_{sL}$ alone would over-populate a
-refined region in exact proportion to how well it was resolved. Rounding rather
-than drawing a Poisson total is deliberate --- $\operatorname{Var}=\Lambda$
-there, and a dose sweep whose count fluctuates by $\sqrt\Lambda$ between
-snapshots is dominated by counting noise.
-
-Almost no cell expects a whole loop, and the construction does not require one.
-At 10\,dpa the basal family converts to some $7\times10^{2}$ loops spread over
-$9\times10^{4}$ nodes, so the typical $\lambda^k_{sj}$ is of order $10^{-2}$ and
-every cell is empty in expectation. That is why the draw is taken once for the
-family and not once per node: the rounded total $N_{\mathrm{draw}}$ fixes how
-many loops exist, and the nodes are then sampled with replacement from the
-multinomial with probabilities $\lambda^k_{sj}/\Lambda^k_s$, so a cell with
-$\lambda^k_{sj}=10^{-2}$ simply wins a loop one time in a hundred rather than
-contributing a hundredth of one. The continuum density is recovered in the mean
-over that draw, exactly, and the alternative --- rounding node by node --- would
-not recover it at all: it would return zero everywhere and convert nothing,
-which is the failure mode this ordering exists to avoid. What a small
-$\lambda^k_{sj}$ does cost is spatial resolution of the population, since a
-family whose total is a few hundred loops cannot resolve structure finer than
-the spacing those few hundred points can express, and it is one reason
-\cref{sec:results} reads the conversion as a check on the mean field rather than
-as a prediction of where individual loops lie.
-
-Each loop's size is drawn from its home node's log-normal
-\cref{eq:lognormal} rather than set to the node mean, two moments having left
-nothing to draw from and every loop at a node identical. The sample is rescaled
-so that $\sum_\ell m_\ell$ matches the continuum content exactly, which is
-requirement~1, leaving a residual at machine precision. Geometry closes the
-construction: a loop becomes a polygon on its habit plane of an area matching
-$\pi R^{2}$ rather than of that circumradius --- an inscribed hexagon has only
-$82.7\%$ of the disc, and it is the stored content that must match ---
-elliptical with an axis ratio set by the anisotropy, and centered by rejection
-sampling inside the crystal.
-
-What the domain refuses must be predicted rather than discovered. A
-discrete-dislocation solver silently declines a loop whose nodes leave the
-grain, so the conversion predicts that and keeps the refused share in the
-continuum --- counted in defects, not loops, since on one measured transfer one
-refusal in six was $83\%$ by count and $98\%$ by stored defects. On the geometry
-of \cref{sec:results} the basal population is effectively infeasible to transfer
-above $\sim0.1\,$dpa, a \cloop{} loop of mean radius $25\,$nm overhanging any
-face it lies within $25\,$nm of.
+The conversion proceeds in four steps --- a nodal volume for every node, the
+number of loops each is owed, their sizes and shapes, and what the domain
+refuses to hold --- and \cref{app:conversion} sets them out in full, with the
+tessellation and the algorithm drawn in \cref{fig:voronoi,fig:conversion}. Two
+of its consequences belong here, because they bear on how the transferred
+population may be read. The first is a limit on resolution rather than on
+accuracy: the continuum density is recovered exactly in the mean over the draw,
+but a family whose total is a few hundred loops cannot express structure finer
+than the spacing those few hundred points support, which is why
+\cref{sec:results} reads the conversion as a check on the mean field rather
+than as a prediction of where individual loops lie. The second is a hard
+feasibility bound. A discrete-dislocation solver silently declines a loop whose
+nodes leave the grain, so the conversion predicts that refusal and keeps the
+refused share in the continuum, counted in defects rather than in loops --- on
+one measured transfer, one refusal in six was $83\%$ by count and $98\%$ by
+stored defects. On the geometry of \cref{sec:results} that makes the basal
+population effectively infeasible to transfer above ${\sim}0.1\,$dpa, a
+\cloop{} loop of mean radius $25\,$nm overhanging any face it lies within
+$25\,$nm of.
 
 The grain boundary requires two treatments, the objects differing in kind. For
 the mobile species it is a Dirichlet condition: \cref{eq:bc} pins the

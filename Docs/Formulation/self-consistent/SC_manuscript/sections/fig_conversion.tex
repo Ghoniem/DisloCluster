@@ -1,0 +1,78 @@
+% The conversion algorithm as a block diagram. One box per step, the key
+% methods named inside it, and on the right the invariant each step is what
+% protects -- the three requirements the transfer ledger checks afterwards.
+\begin{figure}[!ht]
+\centering
+\begin{tikzpicture}[
+  font=\footnotesize, >=Latex, node distance=3mm,
+  blk/.style={draw, rounded corners=3pt, align=left, text width=63mm,
+               inner sep=2mm},
+  s1/.style={blk, fill=blue!8,   draw=blue!55},
+  s2/.style={blk, fill=orange!9, draw=orange!65},
+  s3/.style={blk, fill=teal!9,   draw=teal!60},
+  s4/.style={blk, fill=violet!9, draw=violet!55},
+  inv/.style={draw, rounded corners=2pt, align=left, text width=25mm,
+              inner sep=1.5mm, fill=black!4, draw=black!35,
+              font=\scriptsize},
+  hdr/.style={font=\footnotesize\bfseries},
+  ar/.style={->, thick, black!60},
+  tie/.style={->, black!35, dashed, shorten >=1pt},
+]
+
+\node[s1] (v) {%
+  \textbf{1\quad Nodal volumes}\\[2pt]
+  restricted Voronoi on the CD node cloud\\
+  Monte Carlo in the bounding box, half-space test $\bm N\xv\le\bm b$\\
+  nearest node by $k$-d tree, $V_j=(M_j/M)V_\Omega$};
+
+\node[s2, below=of v] (n) {%
+  \textbf{2\quad How many loops}\\[2pt]
+  $\lambda^k_{sj}=n^k_{sL}(\xv_j)V_j/\Omega$, summed to $\Lambda^k_s$\\
+  $N_{\mathrm{draw}}=\operatorname{round}(\Lambda^k_s)$, not a Poisson total\\
+  nodes drawn multinomially, once per family};
+
+\node[s3, below=of n] (g) {%
+  \textbf{3\quad Size and shape}\\[2pt]
+  $m_\ell$ drawn from the home node's log-normal\\
+  rescaled so $\sum_\ell m_\ell$ matches the content exactly\\
+  equal-\emph{area} polygon on the habit plane, elliptical\\
+  center by rejection sampling inside the crystal};
+
+\node[s4, below=of g] (f) {%
+  \textbf{4\quad What the domain refuses}\\[2pt]
+  predict the solver's refusal of loops leaving the grain\\
+  keep the refused share in the continuum\\
+  count the refusal in defects, never in loops};
+
+\draw[ar] (v) -- (n);
+\draw[ar] (n) -- (g);
+\draw[ar] (g) -- (f);
+
+\node[inv, right=4mm of v] (i0) {%
+  $\sum_j V_j=V_\Omega$\\ identically, however coarse the sampling};
+\node[inv, right=4mm of n] (i1) {%
+  \textbf{(I)} loop number,\\ exact to the integer draw};
+\node[inv, right=4mm of g] (i2) {%
+  \textbf{(II)} stored defects,\\ exact to $10^{-16}$};
+\node[inv, right=4mm of f] (i3) {%
+  \textbf{(III)} sink strength,\\ continuous to ${\sim}2\%$};
+
+\draw[tie] (v) -- (i0);
+\draw[tie] (n) -- (i1);
+\draw[tie] (g) -- (i2);
+\draw[tie] (f) -- (i3);
+
+\node[anchor=north west, font=\scriptsize, text width=95mm, black!70]
+  at ($(f.south west)+(0,-3mm)$)
+  {The right-hand column is what each step exists to protect: the three
+   requirements of \cref{sec:transfer}, checked on the transfer ledger
+   afterwards rather than assumed here.};
+\end{tikzpicture}
+\caption{The continuum-to-discrete conversion, step by step, with the methods
+each step uses and the invariant it protects. The order is not arbitrary: the
+volumes must precede the counts, because sampling on the density alone would
+over-populate a refined region in exact proportion to how well it was resolved;
+and the count must precede the sizes, because it is the rounded family total,
+not a per-node rounding, that recovers the continuum density in the mean.}
+\label{fig:conversion}
+\end{figure}

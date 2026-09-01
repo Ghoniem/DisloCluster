@@ -253,17 +253,14 @@ and the two are one process class read in the two senses: the first takes the
 loops above a threshold and sends their defects out of the crystal, the second
 takes those below one and returns them to the mobile pool.
 
-\begin{table}[htbp]
-\caption{Admissible process classes of the irradiated-Zr reaction admissibility
-graph. Each elementary reaction maps to one abstract edge class and one rate
-kernel; the explicit kernels appear in \cref{sec:formulation} at the equation
-indicated, and each is one named term of \cref{eq:master}. P14 has no
-counterpart in the mean-field treatment and is introduced in
-\cref{sec:gb-loops}; P15 is its complement, gated on the other side of the
-distribution.}
+\begin{table}[!ht]
+\caption{Admissible process classes of the reaction admissibility graph. Each
+elementary reaction maps to one edge class and one rate kernel, given at the
+equation indicated, and each is one named term of \cref{eq:master}.}
 \label{tab:rag-processes}
-\centering\small
-\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{0.32\textwidth}Xl@{}}
+\centering\scriptsize
+\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{0.92}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{0.30\textwidth}Xl@{}}
 \toprule
 & Process & Kernel & Given in \\
 \midrule
@@ -294,5 +291,6 @@ P15 & dissolution of loops below the minimum stable size &
 \bottomrule
 \end{tabularx}
 \end{table}
+\FloatBarrier
 
 \input{sections/fig_rag}

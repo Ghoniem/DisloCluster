@@ -1,59 +1,49 @@
 \begin{abstract}
 We present a self-consistent, spatially resolved cluster-dynamics model for the
-irradiated microstructure of $\alpha$-zirconium, together with the construction
-by which its continuum fields are converted into a discrete dislocation
-population and the two-time-scale method by which the equations are integrated. The
-model is self-consistent in two distinct senses. First, the bias factors of
-\emph{all} variants follow from anisotropic diffusion theory: every capture
-efficiency appearing in a loop growth law, and every sink strength those loops
-impose on the mobile species, is generated from the \emph{same} diffusion
-tensors that transport those species, through a single anisotropy parameter per
-species, rather than from an independent set of phenomenological bias factors.
-Second, the transfer between the continuum fields and the discrete loop
-population preserves what defines that population --- stored defects exactly,
-loop number to the integer draw, the dispersion of the size distribution to the
-truncation of the sampling --- so a calculation may be run as continuum, as
-discrete, or as a hybrid, with the choice made on grounds of dose and
-computational cost rather than of physics.
-The immobile population is resolved into nine crystallographic families --- the
-three prismatic $\langle a\rangle$ variants of both interstitial and vacancy
-character, and a three-state basal vacancy chain --- and each carries the first
-three moments of its size distribution, closed by a log-normal ansatz. The mobile
-species obey a steady reaction--diffusion problem with Dirichlet conditions at
-grain boundaries; the immobile families obey pointwise ordinary differential
-equations in which no neighbor's state appears. A Lie--Trotter operator split
-exploits that structure: freezing the mobile field removes the spatial coupling
-by construction, so that $2.1\times10^{8}$ stiff equations are integrated as
-$73\,518$ independent $36$-dimensional systems rather than one coupled system of
-$3.3\times10^{6}$, a reduction of $1.0\times10^{10}$ in the cost of a single
-factorization. Grain boundaries are treated as sinks for both populations, by
-different mechanisms: a Dirichlet condition for the mobile species, and for the
-loops a size-gated removal of the fraction of each family's own size
-distribution large enough to intersect the boundary. Applied to a
-\SI{500}{\nano\meter} hexagonal single crystal at \SI{573}{\kelvin} to
-\SI{40}{\dpaunit}, the model resolves mobile boundary layers of
-$8$--$46$\,\si{\nano\meter} that order themselves by species mobility and narrow
-by a factor of two as the sink density grows; closes both atom balances on
-production, with the boundary absorbing $96\%$ of interstitial production as
-mobile species and a further $27\%$ of vacancy production as loops; and
-predicts a loop-denuded zone $\sim5$\,\si{\nano\meter} wide across which the mean
-loop diameter recovers from $6.8$ to $144$\,\si{\nano\meter}. The parameters are calibrated against 78
-transmission-electron-microscope measurements of loop density and diameter as a
-maximum \emph{a posteriori} estimate under stated priors. Because every bias
-follows from the diffusion tensors, the anisotropy cannot absorb a shortfall by
-refitting a bias, and it is therefore fixed from transport rather than from loop
-counts: $p^{v}=1.02$ and $p^{i}=0.70$ are inputs, implying an interstitial
-migration anisotropy of \SI{0.106}{\electronvolt} at \SI{573}{\kelvin} that is
-open to atomistic test. On that fixed anisotropy the calibration reproduces the
-basal loop diameter without it being adjusted --- \SI{100.7}{\nano\meter}
-against \SI{95}{\nano\meter} measured --- together with the prismatic density to
-$0.88\times$ and its diameter to $1.21\times$, the prismatic set being 71 and 44
-measurements across twelve temperatures and four decades of dose. What the
-calibration does not reach is the basal density, which remains $2.1\times$ the
-measurement, and a prismatic temperature trend that runs a factor of six low
-near \SI{600}{\kelvin}; with the anisotropy fixed, what rests on its bound is
-the basal capture prefactor, which locates the shortfall in absorption rather
-than in transport.
+irradiated microstructure of $\alpha$-zirconium, with the construction that
+converts its continuum fields into discrete dislocations and the two-time-scale
+method that integrates them. The model is self-consistent in two senses. First,
+the bias factors of \emph{all} variants follow from anisotropic diffusion
+theory: every capture efficiency in a loop growth law, and every sink strength
+those loops impose on the mobile species, comes from the \emph{same} diffusion
+tensors that transport them, through one anisotropy parameter per species
+rather than from independently fitted bias factors. Second, the transfer
+between the continuum fields and the discrete population preserves what defines
+that population --- stored defects exactly, loop number to the integer draw, the
+dispersion of the size distribution to the truncation of the sampling --- so one
+calculation may run as continuum, discrete or hybrid.
+The immobile population is resolved into nine crystallographic families ---
+three prismatic $\langle a\rangle$ variants of both characters and a three-state
+basal vacancy chain --- each carrying the first three moments of its size
+distribution, closed by a log-normal ansatz. The mobile species obey a steady
+reaction--diffusion problem with Dirichlet conditions at grain boundaries, the
+immobile families pointwise ordinary differential equations; freezing the mobile
+field removes the spatial coupling by construction, so that $2.1\times10^{8}$
+stiff equations become $73\,518$ independent $36$-dimensional systems and the
+cost of one factorization falls by $10^{10}$. Grain boundaries are sinks for
+both populations by different mechanisms: a Dirichlet condition for the mobile
+species, and for the loops a size-gated removal of the fraction large enough to
+reach the boundary. Applied to a \SI{500}{\nano\meter} hexagonal single crystal
+at \SI{573}{\kelvin} to \SI{40}{\dpaunit}, it resolves mobile boundary
+layers of $8$--$46$\,\si{\nano\meter} ordered by species mobility and narrowing
+twofold as the sink density grows; closes both atom balances on production, the
+boundary absorbing $96\%$ of interstitial production as mobile species and
+$27\%$ of vacancy production as loops; and predicts a loop-denuded zone
+$\sim5$\,\si{\nano\meter} wide across which the mean loop diameter recovers from
+$6.8$ to $144$\,\si{\nano\meter}. The parameters are calibrated against 78
+transmission-electron-microscope measurements as a maximum \emph{a posteriori}
+estimate under stated priors. Because every bias follows from the diffusion
+tensors, the anisotropy cannot absorb a shortfall by refitting a bias; it is
+fixed from transport, not from loop counts, with $p^{v}=1.02$ and $p^{i}=0.70$
+as inputs, implying an interstitial migration anisotropy of
+\SI{0.106}{\electronvolt} at \SI{573}{\kelvin}, open to atomistic test. On that
+fixed anisotropy the calibration reproduces the basal loop diameter without
+adjusting it --- \SI{100.7}{\nano\meter} against \SI{95}{\nano\meter} measured
+--- with the prismatic density to $0.88\times$ and its diameter to
+$1.21\times$. What it does not reach is the basal density, which remains
+$2.1\times$ the measurement, and a prismatic temperature trend a factor of six
+low near \SI{600}{\kelvin}; with the anisotropy fixed, the shortfall rests on
+the basal capture prefactor, hence in absorption rather than transport.
 \end{abstract}
 
 \begin{keyword}
