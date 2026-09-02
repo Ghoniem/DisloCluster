@@ -418,8 +418,9 @@ python -m dislocluster_code.staging.anisotropy --p-m 1.0 0.91372 0.91372 0.91372
 >
 > **`SOLVER['loop_model'] = 1` removes that gap** — the slow step then carries
 > `⟨c⟩ + 3×⟨a⟩` with Woo efficiencies built from the same `p_m`, so the
-> criterion applies to the coupled march too. It is **off by default**, because
-> the 28-parameter set was fitted against the legacy formulation. See the next
+> criterion applies to the coupled march too. It is **now the default** (it was
+> off by default until 2026-09-02, because the 28-parameter set was fitted
+> against the legacy formulation — that fit is stale for it). See the next
 > section.
 
  Both growth conditions
@@ -480,12 +481,13 @@ rather than folded in.
 The slow step's *integrator* is chosen by route (Option A IMEX / Option B CVODE).
 Its **model** is chosen by `SOLVER['loop_model']`, and the two are orthogonal.
 
-| | `0` — legacy (**the default**) | `1` — self-consistent |
+| | `0` — legacy | `1` — self-consistent (**now the default**) |
 |---|---|---|
 | families | `iL, aiL, vL, avL` (aligned/non-aligned) | `c, a1, a2, a3` — MoDELib's CD block |
 | capture | phenomenological `Z_i_a = 1+delta_i`, one `Z` for all interstitial species | Woo, from the same `p_m` as the tensor, **one `Z` per species** |
 | bridge | a lumping + a split, both lossy | an **identity** (only `1/Ω`), round trip exact |
 | status | **the fitted model**, bit-identical to the pre-change binary | consistent with the fast solve, **not calibrated** |
+| default | until 2026-09-02 | **from 2026-09-02** — it is the self-consistent manuscript's formulation. THE 28-PARAMETER FIT IS AGAINST MODE 0 AND IS STALE FOR IT |
 
 Equations:
 

@@ -152,17 +152,21 @@ SOLVER = {
     #   0  legacy      four families split aligned/non-aligned, with the
     #                  phenomenological Z_i_a / Z_v_c fitted from delta_DAD and
     #                  one lumped interstitial flux. This is what the 28
-    #                  calibrated parameters were fitted against, so it is the
-    #                  default and the C++ reproduces it BIT-FOR-BIT.
+    #                  calibrated parameters were fitted against, and the C++
+    #                  reproduces it BIT-FOR-BIT. It was the default until the
+    #                  self-consistent formulation became it.
     #   1  self-consistent
     #                  one basal <c> and three prismatic <a> variants, matching
     #                  the 3-D family structure exactly, with Woo capture
     #                  efficiencies built from the same p_m that sets the
     #                  diffusion tensor. Every mobile species then carries its
     #                  own efficiency instead of sharing one.
-    # Keep 0 for anything being fitted; use 1 for a run that must be consistent
-    # with the anisotropic fast solve.
-    "loop_model":   0,
+    # NOW THE DEFAULT is 1: it is the formulation of the self-consistent
+    # manuscript (Eqs. 43-45), and the one whose removal channels are
+    # size-resolved. Set 0 to reproduce a run made before this change, or for
+    # anything being fitted against the legacy 28-parameter set -- THAT FIT WAS
+    # MADE AGAINST MODE 0 AND IS STALE HERE.
+    "loop_model":   1,
 
     # ---- the implementation plan's model switches, steps 1-5 ---------------
     # Each defaults to the value that reproduces the formulation before its
@@ -496,7 +500,7 @@ class Solver:
     lmm: str
     linsol: str
     analytic_jac: bool
-    loop_model: int = 0
+    loop_model: int = 1
     n_fam: int = 4
     chi: float = 1.0
     emission_model: int = 0
