@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -334,8 +335,25 @@ class MobileQSSASolver:
             cmd = (["wsl.exe", "-e", paths.windows_to_wsl(self.ddomp),
                     paths.windows_to_wsl(self.sim_dir)] if self.use_wsl
                    else [str(self.ddomp), str(self.sim_dir)])
+        # DDomp inherited the machine's default thread count, which on a
+        # 2x20-core Xeon is 80 -- MEASURED as the WORST setting at every size:
+        # 22.1 s against 17.0 s at 40 on the 200 nm case, and 510.8 s against
+        # 476.0 s at 20 on the 1000 nm one. The mobile solve barely scales at
+        # all (1.68x from 1 to 40 threads at 200 nm, 7% spread at 1000 nm),
+        # because half of it is serial sparse-matrix construction and Eigen's
+        # sparse mat-vec is not threaded; oversubscribing 80 threads onto the
+        # 40 logical processors one Windows processor group exposes only makes
+        # it worse. DISLOCLUSTER_DDOMP_THREADS overrides.
+        env = dict(os.environ)
+        env.setdefault("OMP_NUM_THREADS",
+                       os.environ.get("DISLOCLUSTER_DDOMP_THREADS", "20"))
+        if self.use_wsl:
+            # WSL does not inherit the Windows environment; ask it to pass this
+            # one through explicitly.
+            env["WSLENV"] = ((env.get("WSLENV", "") + ":") if env.get("WSLENV")
+                             else "") + "OMP_NUM_THREADS"
         proc = subprocess.run(cmd, capture_output=True, text=True,
-                              errors="replace", cwd=cwd)
+                              errors="replace", cwd=cwd, env=env)
         if proc.returncode != 0:
             raise QSSASolveError(
                 f"DDomp exited {proc.returncode}\n"
