@@ -1,5 +1,10 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
+% Latin Modern: scalable Type1 throughout. Without it, microtype's font
+% expansion aborts the SECOND pdflatex pass on a stock MiKTeX with "auto
+% expansion is only possible with scalable fonts". The FIRST pass succeeds, so
+% a one-shot build hides the failure and a two-pass tool hits it every time.
+\usepackage{lmodern}
 \usepackage{booktabs,amsmath,microtype,siunitx}
 \usepackage[table]{xcolor}
 \usepackage[colorlinks,linkcolor=blue!50!black,urlcolor=blue!50!black]{hyperref}

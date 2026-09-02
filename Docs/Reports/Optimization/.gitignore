@@ -1,0 +1,8 @@
+# pdflatex by-products; the .tex and the .pdf are the artifacts worth tracking
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
