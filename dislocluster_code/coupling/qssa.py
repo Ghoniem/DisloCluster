@@ -66,6 +66,16 @@ from dislocluster_code.staging.inputs import (  # noqa: E402,F401
     set_dd_scalar, get_dd_scalar, FAST_STEP_SETTINGS, elastic_is_trivial)
 
 
+class _Result:
+    """Just enough of subprocess.CompletedProcess for the checks below."""
+    __slots__ = ("returncode", "stdout", "stderr")
+
+    def __init__(self, returncode, stdout, stderr):
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
 class MobileQSSASolver:
     """Run MoDELib3's steady mobile solve on demand, for a given immobile field.
 
@@ -136,6 +146,15 @@ class MobileQSSASolver:
         self.n_loops = mfield.EvlFile(self._seed).n_loops
 
         self._configure()
+        # Resident DDomp: build the mesh, trial functions and the diffusion
+        # operator's Cholesky ONCE instead of once per fast solve. 53% of an
+        # invocation at 189 533 nodes is that repeated setup, the
+        # factorization alone being 44%. Bit-identical by construction --
+        # each cycle re-reads the CD fields and nothing else. Set
+        # DISLOCLUSTER_DDOMP_SERVER=0 to go back to one process per solve.
+        self.server = os.environ.get('DISLOCLUSTER_DDOMP_SERVER', '1') != '0'
+        self._proc = None
+        self._server_started = 0
         self.n_calls = 0
         self.wall_s = 0.0
         self.last_superposed = None
@@ -327,6 +346,78 @@ class MobileQSSASolver:
             print(f"      QSSA solve {dt:6.1f} s   {rng}")
         return C_M
 
+    # ── resident DDomp ("server mode") ───────────────────────────────────────
+    #: Sentinel DDomp prints after each solve cycle. Must match DDomp.cpp.
+    _DONE = "@@DDOMP_DONE@@"
+
+    def _server_cycle(self, cmd, cwd, env):
+        """One solve in a RESIDENT DDomp, starting it on first use.
+
+        WHY. DDomp is a one-shot batch program the march calls 64 times per
+        40 dpa run, and every invocation rebuilds state identical across all of
+        them. Profiled at 189 533 CD nodes, of a 398.5 s invocation: the
+        Cholesky factorization of the diffusion operator 175.6 s (44.1%),
+        process startup 22.8 s, mesh 12.0 s, trial functions 2.1 s -- 53%
+        repeated. The Cholesky alone exceeds the entire iterative solve and
+        scales as N^1.86 against its N^1.33, so the waste grows with domain
+        size. Keeping the process alive amortises all of it, and does so
+        WITHOUT touching the numerics: `initializeConfiguration` re-reads only
+        the CD fields and `initializeSolver` is guarded by `solverInitialized`,
+        so every cycle solves the same problem it would have solved alone.
+
+        stdout and stderr are merged deliberately. Two pipes would need two
+        readers to stay drained, and a full stderr pipe deadlocks a process
+        that is mid-solve with no one reading it.
+        """
+        if self._proc is None or self._proc.poll() is not None:
+            self._proc = subprocess.Popen(
+                list(cmd) + ["--server"], cwd=cwd, env=env,
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, errors="replace",
+                bufsize=1)
+            self._server_started += 1
+            return self._read_until_done(first=True)
+        self._proc.stdin.write("SOLVE\n")
+        self._proc.stdin.flush()
+        return self._read_until_done()
+
+    def _read_until_done(self, first=False):
+        out = []
+        while True:
+            line = self._proc.stdout.readline()
+            if not line:                      # EOF: the child died mid-solve
+                rc = self._proc.poll()
+                tail = "".join(out[-40:])
+                self._proc = None
+                raise QSSASolveError(
+                    f"resident DDomp exited{'' if rc is None else f' ({rc})'} "
+                    f"without finishing a solve.\noutput tail:\n{tail}")
+            if line.startswith(self._DONE):
+                return "".join(out)
+            out.append(line)
+
+    def close(self):
+        """Stop the resident solver, if one is running. Safe to call twice."""
+        proc, self._proc = self._proc, None
+        if proc is None or proc.poll() is not None:
+            return
+        try:
+            proc.stdin.write("QUIT\n")
+            proc.stdin.flush()
+            proc.wait(timeout=30)
+        except Exception:
+            proc.kill()
+            try:
+                proc.wait(timeout=10)
+            except Exception:
+                pass
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
     def _run_ddomp(self):
         cmd, cwd = paths.ddomp_cmd(self.sim_dir, exe=self.ddomp)
         if self.use_wsl != paths.use_wsl():
@@ -352,8 +443,11 @@ class MobileQSSASolver:
             # one through explicitly.
             env["WSLENV"] = ((env.get("WSLENV", "") + ":") if env.get("WSLENV")
                              else "") + "OMP_NUM_THREADS"
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              errors="replace", cwd=cwd, env=env)
+        if self.server:
+            proc = _Result(0, self._server_cycle(cmd, cwd, env), "")
+        else:
+            proc = subprocess.run(cmd, capture_output=True, text=True,
+                                  errors="replace", cwd=cwd, env=env)
         if proc.returncode != 0:
             raise QSSASolveError(
                 f"DDomp exited {proc.returncode}\n"

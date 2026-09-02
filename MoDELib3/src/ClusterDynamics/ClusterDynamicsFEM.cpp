@@ -824,9 +824,23 @@ template struct InvDscaling<3>;
             allComps[k]=true;
         }
         
+        // Timed for the same reason as the mobile stages: this runs ONCE per
+        // DDomp invocation, is invisible to those timers, and the coupled march
+        // invokes DDomp once per fast solve -- 64 times on a 40 dpa run -- on a
+        // diffusion operator that is identical every time. Profiling put the
+        // gap it sits in at 3.8 s of a 17.3 s invocation at 200 nm.
+        using _clk0 = std::chrono::steady_clock;
+        const auto _t_bc0(_clk0::now());
         mobileClusters.addDirichletCondition(nodeListInternalExternal,Fix(),allComps); // apply to the four components of c
         mobileClustersIncrement.addDirichletCondition(nodeListInternalExternal,Fix(),allComps); // apply to the four components of c
+        const auto _t_bc1(_clk0::now());
         mSolver.compute(mBWF); // call this after assigning the BCs
+        const auto _t_f1(_clk0::now());
+        std::cout<<"\n    initializeSolver [s]: dirichletBCs "
+                 <<std::chrono::duration<double>(_t_bc1-_t_bc0).count()
+                 <<", mSolver.compute (Cholesky of the diffusion operator) "
+                 <<std::chrono::duration<double>(_t_f1-_t_bc1).count()
+                 <<std::endl;
         solverInitialized=true;
     }
 
@@ -860,6 +874,18 @@ template struct InvDscaling<3>;
     void ClusterDynamicsFEM<dim>::initializeConfiguration(const DDconfigIO<dim>& configIO,const std::ofstream& f_file,const std::ofstream& F_labels)
     {
         writeNodePositions();
+
+        /*! The Newton increment is state, and it is zeroed in the CONSTRUCTOR
+         *  only. That is enough while one process performs one solve, but
+         *  DDomp's server mode reuses the object across solves, and the first
+         *  Newton assembly of a cycle reads `mobileClustersIncrement` -- see
+         *  bWF_R1c / bWF_RIc in solveMobileClusters. Left over from the
+         *  previous cycle it perturbed the answer by 2.3e-9 against a fresh
+         *  process: small, deterministic, and exactly the kind of carried
+         *  state that makes a resident solver untrustworthy. Zeroing it here
+         *  is a no-op for a one-shot run, where it is already zero.
+         */
+        mobileClustersIncrement.setConstant(Eigen::Matrix<double,mSize,1>::Zero());
 
         if(size_t(configIO.cdMatrix().size())==mobileClusters.gSize()+immobileClusters.gSize())
         {
