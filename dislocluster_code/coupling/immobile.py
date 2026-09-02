@@ -184,6 +184,102 @@ def _dict_to_cli(d):
     return [f"--{k}={v}" for k, v in d.items()]
 
 
+class ImmobileCases:
+    """Batch cases held as a shared base plus the per-point y0 block.
+
+    WHY THIS IS NOT A LIST. Every case is the same ~87-token material base with
+    its 19 y0 slots overwritten, so materialising each one costs ~87 string
+    formats, and `_batch_lines` then parsed all of them back into dicts and
+    diffed them to rediscover the split it was handed. Measured at 189 533
+    nodes: 5.4 s building the cases and 13.4 s in `_batch_lines`, 47% of the
+    whole slow step, to produce and immediately discard the ~78% of tokens that
+    never vary.
+
+    This object keeps the base and the y0 array and formats ONLY what varies.
+    Indexing still yields the full `--key=value` list, so any other consumer and
+    the single-case path behave exactly as before; the batch writer takes
+    `base_line()`/`delta_lines()` and never materialises anything.
+
+    KEY ORDER IS THE PROTOCOL. `collect_solver_args` already emits y0_0..y0_18,
+    so a case dict overwrites them IN PLACE rather than appending -- the order
+    is the base's, not base-then-y0. Getting that wrong writes a valid file
+    whose tokens sit in a different order, which is why the order is
+    reconstructed here explicitly and asserted byte-identical in the tests.
+
+    Slicing returns another ImmobileCases over the subset, which is what the
+    shard writer needs; the constant/varying split is recomputed per subset,
+    exactly as the diffing version computed it per shard.
+    """
+
+    __slots__ = ("base", "Y", "keys", "comp")
+
+    def __init__(self, base, Y):
+        self.base = base
+        self.Y = Y
+        ncomp = int(Y.shape[1])
+        keys = list(base)
+        for k in range(ncomp):
+            if f"y0_{k}" not in base:
+                keys.append(f"y0_{k}")
+        self.keys = keys
+        comp = []
+        for k in keys:
+            if k.startswith("y0_") and k[3:].isdigit() and int(k[3:]) < ncomp:
+                comp.append(int(k[3:]))
+            else:
+                comp.append(-1)             # a plain base token
+        self.comp = comp
+
+    def __len__(self):
+        return int(self.Y.shape[0])
+
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            return ImmobileCases(self.base, self.Y[i])
+        row = self.Y[i]
+        return [f"--{k}=" + (self.base[k] if c < 0 else repr(float(row[c])))
+                for k, c in zip(self.keys, self.comp)]
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    # ── the batch protocol, without the round trip ───────────────────────────
+    def _const_mask(self):
+        """Per-key: True where the token is the same text in every case."""
+        Y = self.Y
+        same = (Y == Y[0]).all(axis=0) if Y.shape[0] > 1 else None
+        return [True if c < 0 else bool(same[c]) for c in self.comp]
+
+    def base_line(self):
+        if self.Y.shape[0] < 2:
+            return None
+        row0 = self.Y[0]
+        toks = [f"{k}=" + (self.base[k] if c < 0 else repr(float(row0[c])))
+                for k, c, keep in zip(self.keys, self.comp, self._const_mask())
+                if keep]
+        return "@BASE " + " ".join(toks) if toks else None
+
+    def delta_lines(self):
+        if self.Y.shape[0] < 2:
+            return None
+        mask = self._const_mask()
+        vary = [(k, c) for k, c, keep in zip(self.keys, self.comp, mask) if not keep]
+        if not vary:
+            # Every case identical: the delta would be empty and the solver
+            # skips blank lines, so restate the first token -- the same guard
+            # the diffing writer carried, and for the same reason.
+            k0, c0 = self.keys[0], self.comp[0]
+            v0 = self.base[k0] if c0 < 0 else repr(float(self.Y[0][c0]))
+            return [f"{k0}={v0}"] * len(self)
+        pre = [f"{k}=" for k, _ in vary]
+        cols = [c for _, c in vary]
+        out = []
+        for row in self.Y[:, cols]:
+            out.append(" ".join([p + repr(float(v)) for p, v in zip(pre, row)]))
+        return out
+
+
 def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     """Build per-quadrature-point batch cases for the frozen-mobile immobile march.
 
@@ -249,22 +345,15 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     base.pop("reduced", None)
     base["analytic_jac"] = "1"
 
-    cases = []
-    for y0 in y0_list:
-        y0 = np.asarray(y0, dtype=float)
-        # The +N_GBACC widths carry the grain-boundary ledger; see state_width.
-        if y0.shape[0] not in (N_EQ, N_EQ + N_GBACC, 29, 29 + N_GBACC,
-                               N_EQ_EXT, N_EQ_EXT + N_GBACC):
-            raise ValueError(f"each y0 must have length {N_EQ} or {N_EQ_EXT}, "
-                             f"got {y0.shape[0]}")
-        d = dict(base)
-        # Emit every component the caller supplied. The solver requires
-        # y0_0..y0_18 and treats y0_19..y0_26 as optional-defaulting-to-zero, so
-        # a 19-wide state produces exactly the command line it always did.
-        for k in range(y0.shape[0]):
-            d[f"y0_{k}"] = repr(float(y0[k]))
-        cases.append(_dict_to_cli(d))
-    return cases
+    Y = np.asarray(y0_list, dtype=float)
+    if Y.ndim == 1:
+        Y = Y[None, :]
+    # The +N_GBACC widths carry the grain-boundary ledger; see state_width.
+    if Y.shape[1] not in (N_EQ, N_EQ + N_GBACC, 29, 29 + N_GBACC,
+                          N_EQ_EXT, N_EQ_EXT + N_GBACC):
+        raise ValueError(f"each y0 must have length {N_EQ} or {N_EQ_EXT}, "
+                         f"got {Y.shape[1]}")
+    return ImmobileCases(base, Y)
 
 
 # Components that determine a point's trajectory over one substep: the four

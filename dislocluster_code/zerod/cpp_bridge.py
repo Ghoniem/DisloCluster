@@ -693,6 +693,20 @@ def _batch_lines(cases_cli):
     Returns the list of lines to write. With a single case, or when nothing is
     shared, this degrades gracefully to the original full-line format.
     """
+    # FAST PATH: an ImmobileCases already knows the split -- it built the cases
+    # from one shared base plus a y0 block -- so it can emit the base and the
+    # deltas directly. The generic path below has to materialise every case as
+    # ~150 formatted tokens, parse them all back into dicts, and diff them to
+    # rediscover exactly that. Measured at 189 533 nodes, the round trip was
+    # 13.64 s of a 40.2 s slow step; skipping it produces the SAME bytes.
+    base_line = getattr(cases_cli, 'base_line', None)
+    if base_line is not None:
+        bl = base_line()
+        if bl is not None:
+            return [bl] + cases_cli.delta_lines()
+        # fewer than two cases: fall through to the generic path
+        cases_cli = [cases_cli[i] for i in range(len(cases_cli))]
+
     toks = [[a[2:] if a.startswith('--') else a for a in cli] for cli in cases_cli]
     dicts = []
     for t in toks:
