@@ -727,6 +727,39 @@ def _batch_lines(cases_cli):
     return lines
 
 
+#: Threads per solver process when the batch is sharded. MEASURED, not guessed:
+#: a single solver.exe saturates at ~8 OpenMP threads and DEGRADES beyond it --
+#: on a 2x20-core Xeon, 20 000 cases run at 1544 cases/s serial, 4541 at 8
+#: threads, and 1130 at 80, i.e. SLOWER THAN SERIAL. The same 80 threads
+#: arranged as 20 processes x 4 gives 20 438 cases/s, 13.2x serial and 4.5x the
+#: best single process. The limit is a per-process shared resource (processes
+#: scale, threads do not); it is NOT false sharing on the output arrays and NOT
+#: the SUNDIALS error handler -- both were built and measured with no effect.
+_SHARD_THREADS = 4
+#: Below this many cases the process-spawn cost is not worth splitting.
+_SHARD_MIN_CASES = 2000
+#: Cap on concurrent solver processes.
+_SHARD_MAX = 20
+
+
+def _shard_plan(n):
+    """(n_shards, threads_each) for a batch of `n` cases.
+
+    Overridable with DISLOCLUSTER_SOLVER_SHARDS / DISLOCLUSTER_SOLVER_THREADS;
+    set SHARDS=1 to restore the single-process behaviour exactly.
+    """
+    env_s = os.environ.get("DISLOCLUSTER_SOLVER_SHARDS")
+    env_t = os.environ.get("DISLOCLUSTER_SOLVER_THREADS")
+    threads = int(env_t) if env_t else _SHARD_THREADS
+    if env_s:
+        return max(1, int(env_s)), max(1, threads)
+    if n < _SHARD_MIN_CASES:
+        return 1, max(1, threads)
+    cpu = os.cpu_count() or 4
+    shards = max(1, min(_SHARD_MAX, cpu // max(1, threads), n // _SHARD_MIN_CASES))
+    return shards, max(1, threads)
+
+
 def run_cpp_solver_batch(cases_cli, base_dir=None):
     """Solve many independent cases in ONE solver subprocess (OpenMP-parallel).
 
@@ -778,47 +811,73 @@ def run_cpp_solver_batch(cases_cli, base_dir=None):
     # that is the 19 y0 values and the time window, roughly 22 tokens per case
     # instead of ~150. The solver accepts both formats, so an older case file
     # still parses.
-    lines = _batch_lines(cases_cli)
+    # ── Shard across processes ────────────────────────────────────
+    # One process cannot use this machine: OpenMP inside solver.exe saturates at
+    # ~8 threads and DEGRADES past it, while the SAME total thread count split
+    # across processes scales 4.5x further (see _shard_plan). The cases are
+    # independent, so splitting them is exact -- each shard is a self-contained
+    # batch file with its own @BASE line, and results scatter back by original
+    # index.
+    n_shards, n_threads = _shard_plan(n)
+    bounds = [(i * n + n_shards - 1) // n_shards for i in range(n_shards + 1)]
+    spans = [(a, b) for a, b in zip(bounds[:-1], bounds[1:]) if b > a]
 
-    tf = tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False,
-                                     encoding='ascii')
+    env = dict(os.environ)
+    env['OMP_NUM_THREADS'] = str(n_threads)
+
+    tmp_names, procs = [], []
     try:
-        tf.write('\n'.join(lines))
-        tf.close()
+        for a, b in spans:
+            tf = tempfile.NamedTemporaryFile('w', suffix='.txt', delete=False,
+                                             encoding='ascii')
+            tf.write('\n'.join(_batch_lines(cases_cli[a:b])))
+            tf.close()
+            tmp_names.append(tf.name)
+            procs.append(subprocess.Popen(
+                [str(exe_path), f'--batch_file={tf.name}'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env=env,
+                **_solver_popen_kwargs(),
+            ))
 
-        proc = subprocess.Popen(
-            [str(exe_path), f'--batch_file={tf.name}'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            **_solver_popen_kwargs(),
-        )
         try:
-            stdout, stderr = proc.communicate()
+            outs = [pr.communicate() for pr in procs]
         except KeyboardInterrupt:
             # Re-raise, never return [None] * n. A caller that treats a None
             # entry as "this point failed, keep its previous state" -- which is
             # exactly what run_coupled does -- would otherwise take the whole
             # batch as a no-op, advance the dose coordinate by one substep with
             # zero physics applied, and carry on. Ctrl-C has to STOP the march,
-            # not silently corrupt it.
-            print("\n⚠ Interrupted — stopping C++ batch solver...")
-            proc.terminate()
-            try:
-                proc.communicate(timeout=5)
-            except (subprocess.TimeoutExpired, KeyboardInterrupt):
-                proc.kill()
-                proc.communicate()
+            # not silently corrupt it. EVERY shard must be stopped, not only the
+            # one being waited on.
+            print('\n⚠ Interrupted — stopping C++ batch solver...')
+            for pr in procs:
+                pr.terminate()
+            for pr in procs:
+                try:
+                    pr.communicate(timeout=5)
+                except (subprocess.TimeoutExpired, KeyboardInterrupt):
+                    pr.kill()
+                    pr.communicate()
             raise
 
-        if proc.returncode != 0:
-            print(f"❌ C++ batch solver failed (exit code {proc.returncode}):")
-            print(stderr)
-            return [None] * n
-
-        return _parse_batch_stdout(stdout, n)
+        # A failed shard costs only its own cases: they come back None and the
+        # caller's per-point fallback handles them, exactly as a failed case in
+        # a single-process batch always did.
+        results = [None] * n
+        for (a, b), pr, (stdout, stderr) in zip(spans, procs, outs):
+            if pr.returncode != 0:
+                print(f"❌ C++ batch solver shard [{a}:{b}] failed "
+                      f"(exit code {pr.returncode}):")
+                print(stderr)
+                continue
+            results[a:b] = _parse_batch_stdout(stdout, b - a)
+        return results
     finally:
-        try:
-            os.unlink(tf.name)
-        except OSError:
-            pass
+        for name in tmp_names:
+            try:
+                os.unlink(name)
+            except OSError:
+                pass
