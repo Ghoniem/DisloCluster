@@ -116,8 +116,11 @@ def state_width(loop_model=0, n_fam=4, moments=0, gb_absorption=0):
     # The grain-boundary ledger is two more accumulators at the very end. They
     # are diagnostics -- nothing reads them back into a rate -- so a state that
     # stops short of them is a run without the channel, which is every run made
-    # before it. The SOLVER prints only what the configuration carries (see
-    # `n_out_state` in solver.cpp), so the two widths cannot disagree.
+    # before it. THE SOLVER DOES NOT PRINT THIS WIDTH: `n_out_state` in
+    # solver.cpp keys only off gb_absorption, so its rows are always the full
+    # N_EQ_EXT (+ledger) however narrow the model is. `run_immobile_step` trims
+    # each endpoint back to the width it was handed; do not assume the two
+    # agree at any other call site.
     gb = N_GBACC if gb_absorption else 0
     if not loop_model:
         return N_EQ + gb
@@ -428,13 +431,27 @@ def run_immobile_step(base_cli, y0_list, t_begin, t_end, base_dir=None,
                 dict(attempt=attempt + 1, n_retried=len(stuck),
                      n_recovered=n_ok, cases=list(stuck)))
 
+    # THE SOLVER'S ROW WIDTH IS NOT THE MODEL'S WIDTH. `n_out_state` in
+    # solver.cpp keys only off gb_absorption, so the binary always emits the
+    # full N_EQ_EXT slots however few families the configuration integrates --
+    # the trailing ones being identically zero for a narrower model. Trim each
+    # endpoint back to the width the caller submitted, i.e. `state_width` for
+    # this model. Left untrimmed, a legacy (19-wide) march had Y silently
+    # rebound to 38 columns on its first substep and then died stacking the
+    # 19-wide seed against a 38-wide snapshot -- at the END of the first dose
+    # interval, so every legacy run paid a full interval before failing.
+    w_in = int(np.asarray(y0_list[0], dtype=float).shape[0]) if n_in else None
+
     endpoints = []
     for r in raw:
         if r is None:
             endpoints.append(None)
         else:
-            _t, y = r                # y shape (N_EQ, n_pts)
-            endpoints.append(np.asarray(y[:, -1], dtype=float))   # endpoint state
+            _t, y = r                # y shape (n_out_state(P), n_pts)
+            e = np.asarray(y[:, -1], dtype=float)   # endpoint state
+            if w_in is not None and e.shape[0] > w_in:
+                e = e[:w_in]
+            endpoints.append(e)
         # cf. cpp_bridge._parse_batch_stdout: r = (t, y) per case
 
     if reps is None:
