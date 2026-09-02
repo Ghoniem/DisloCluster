@@ -2,11 +2,11 @@
 # Build MoDELib (DDomp, microstructureGenerator and, when pybind11 is present,
 # pyMoDELib) — the 3-D half of DisloCluster.
 #
-#     bash <DisloCluster>/Docs/Formulation/build_modelib.sh [MODELIB_ROOT]
+#     bash <DisloCluster>/Docs/Formulation/build_notes/build_modelib.sh [MODELIB_ROOT]
 #
 # Runs on Linux (native or WSL/Ubuntu) and on macOS (Intel or Apple silicon).
 # With no argument the MoDELib checkout is located relative to this script
-# (../../MoDELib3 = DisloCluster/MoDELib3), so the build works wherever the
+# (the .dislocluster_root marker above it), so the build works wherever the
 # repository is cloned; dislocluster_code.build passes the path explicitly.
 #
 # Everything platform-specific is confined to install_dependencies() below.
@@ -17,9 +17,20 @@
 # a build for the platform it was last run on.
 set -euo pipefail
 
-# <script>/../..  ==  Docs/Formulation -> Docs -> DisloCluster
+# Walk up to the .dislocluster_root marker, the way dislocluster_code/paths.py
+# does, rather than counting ".." levels -- this script has already moved once
+# (Docs/Formulation -> Docs/Formulation/build_notes) and a hard-coded depth
+# silently resolved the root to Docs/, so the default MoDELib checkout was
+# looked for at Docs/MoDELib3 and Eigen would have unpacked into Docs/Libraries.
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_REPO_ROOT="$(cd "$_SCRIPT_DIR/../.." && pwd)"
+_REPO_ROOT="$_SCRIPT_DIR"
+while [ ! -e "$_REPO_ROOT/.dislocluster_root" ] && [ "$_REPO_ROOT" != "/" ]; do
+    _REPO_ROOT="$(dirname "$_REPO_ROOT")"
+done
+if [ ! -e "$_REPO_ROOT/.dislocluster_root" ]; then
+    echo "could not find .dislocluster_root above $_SCRIPT_DIR" >&2
+    exit 1
+fi
 REPO="${1:-$_REPO_ROOT/MoDELib3}"
 BUILD="${MODELIB_BUILD:-$REPO/build}"
 
