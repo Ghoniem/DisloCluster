@@ -522,7 +522,15 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
     for (int i = 1; i < P.n_points; ++i) {
         flag = CVode(cvode_mem, t_eval[i], y, &t_current, CV_NORMAL);
         if (flag < 0) { status = 140; break; }
-        if (reduced) {
+        // `use_quad`, NOT `reduced`: the quadrature module is only ever
+        // initialised when acc_mode == ACC_QUADRATURE, so a reduced solve in
+        // any other accumulator mode -- acc_mode 2 is what the coupling march
+        // uses -- called CVodeGetQuad on a module that was never activated.
+        // SUNDIALS answered with one error line per case: 20 000 of
+        // "[CVodeGetQuadDky] Quadrature integration not activated." per batch,
+        // enough to bury a real solver error. Harmless to the result (yQ is
+        // only read under use_quad) and, measured, not a cost either.
+        if (use_quad) {
             sunrealtype tq;
             CVodeGetQuad(cvode_mem, &tq, yQ);
         }
