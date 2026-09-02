@@ -8,7 +8,8 @@
         backgroundcolor=\color{gray!8},columns=fullflexible}
 
 \title{Parallel optimization of the DisloCluster coupled march\\
-       \large Measured bottlenecks, three fixes, and what they were worth}
+       \large Measured bottlenecks, four fixes, two falsified hypotheses,
+       and one claim retracted}
 \author{DisloCluster development note}
 \date{2 September 2026}
 
@@ -19,20 +20,22 @@
 The coupled march spends its time in two solvers: a \emph{slow} step
 integrating independent stiff ODEs at every mesh node (ZrMicro, OpenMP batch)
 and a \emph{fast} step solving a steady reaction--diffusion FE problem
-(MoDELib3 \texttt{DDomp}). Neither was using the machine. Profiling showed the
-slow step saturating at $2.94\times$ on a 40-core host --- and running
-\emph{slower than serial} at its configured thread count --- and the fast step
-scaling only $1.68\times$, with half its cost in serial sparse-matrix
-construction mislabelled as preconditioning. Three changes follow from the
-measurements: sharding the slow batch across processes, caching the sparsity
-pattern across Newton iterations, and correcting the thread count. All are
-verified \textbf{bit-identical} against the unoptimized code. End to end on a
-\SI{200}{\nano\meter} hexagonal march to \SI{1}{dpa} the wall time falls from
-\SI{130.4}{\second} to \SI{122.4}{\second}; on the slow step alone the gain is
-$1.79\times$, and the \SI{1000}{\nano\meter} \SI{40}{dpa} march is projected to
-fall from the measured \SI{15.4}{\hour} to roughly \SI{11}{\hour}. The largest
-remaining cost is identified but not yet addressed, and it is not the linear
-algebra.
+(MoDELib3 \texttt{DDomp}). Neither was using the machine, and in both cases the
+reason was not the one the phase labels suggested. The slow step saturated at
+$2.94\times$ on a 40-core host and ran \emph{slower than serial} at its
+configured thread count; the fast step scaled only $1.68\times$, with its
+largest phase mislabelled ``precond'' when it is in fact serial sparse-matrix
+construction. Four changes follow from the measurements --- sharding the slow
+batch across processes, removing a token round trip that consumed 47\,\% of the
+slow step, caching the FE sparsity pattern across Newton iterations, and
+correcting the fast step's thread count. Every one is verified
+\textbf{bit-identical} against the unoptimized code. End to end on a
+\SI{200}{\nano\meter} hexagonal march to \SI{1}{dpa} the wall time falls
+\SI{130.4}{\second} $\rightarrow$ \SI{107.2}{\second}; the slow step alone
+improves $2.71\times$ beyond sharding, and sharding was itself $1.79\times$.
+One earlier claim in this note --- that FE assembly was serial --- was wrong and
+is retracted in \S\ref{sec:retract}. The largest remaining cost is identified,
+and it is not linear algebra.
 \end{abstract}
 
 \section{The machine, and why it matters}
@@ -41,8 +44,7 @@ cores, 80 logical threads}, Windows 10, with the 3-D solver running under WSL2.
 
 One property of this host shapes every result below. Windows partitions 80
 logical processors into \emph{two processor groups} of 40, and a process is
-confined to one group unless it explicitly calls the group-affinity API. This is
-observable directly:
+confined to one group unless it explicitly calls the group-affinity API:
 
 \begin{lstlisting}
 System.Environment.ProcessorCount  ->  40      (not 80)
@@ -54,8 +56,8 @@ threads oversubscribes 40 logical processors two-to-one.
 
 \section{The slow step}
 
-\subsection{Measurement}
-The slow step is embarrassingly parallel by construction: freezing the mobile
+\subsection{Thread scaling: measured}
+The slow step is embarrassingly parallel by construction --- freezing the mobile
 species removes the only spatial coupling, leaving $N$ independent
 19-dimensional systems with no neighbour state. Yet threads stopped paying
 almost immediately. Fixed work of 20\,000 cases, three passes each, machine
@@ -82,9 +84,9 @@ processes & threads & total & cases/s & speedup\\
 \end{tabular}
 \end{center}
 
-Two readings matter. At its configured 80 threads the batch ran \emph{slower
-than one thread}. And the same 80 threads arranged as 20 processes of 4 are
-$18\times$ apart --- so the work parallelizes, just not inside one process.
+At its configured 80 threads the batch ran \emph{slower than one thread}, and
+the same 80 threads arranged as 20 processes of 4 are $18\times$ apart. The work
+parallelizes; it just does not parallelize inside one process.
 
 \subsection{Two hypotheses, both falsified}
 Before changing anything, the two obvious mechanisms were built and measured.
@@ -105,35 +107,34 @@ SUNDIALS error-handler lock
 \end{tabular}
 \end{center}
 
+A third candidate --- the volume of progress text written to the driver's pipe
+--- was also dismissed by measurement: \SI{0.69}{\mega\byte} per invocation at
+\SI{200}{\nano\meter}, milliseconds.
+
 The surviving inference comes from the data itself: \emph{processes scale and
 threads do not}, which implicates a resource private to a process and shared by
 its threads. Every case constructs a \texttt{std::ostringstream} and assigns a
-\texttt{std::string} against one per-process heap, which fits the evidence, but
-this is \textbf{not demonstrated} and is offered as a hypothesis only.
+\texttt{std::string} against one per-process heap, which fits, but this is
+\textbf{not demonstrated} and is offered as a hypothesis only.
 
-\subsection{The fix: sharding}
+\subsection{Fix 1: sharding}
 \emph{Batching} merges work to amortize per-call overhead; \emph{sharding}
 splits it to escape a per-worker ceiling. The code already batched --- all
 roughly 190\,000 cases into one process, precisely to amortize the
 Windows-dominant process-spawn and DLL-load cost --- and that argument is
-correct, but it does not say when to stop. \texttt{run\_cpp\_solver\_batch} now
-splits the batch across concurrent processes, each one a self-contained batch
-file with its own \texttt{@BASE} header, with results scattered back by original
-index.
+correct, but it does not say when to stop.
+\texttt{run\_cpp\_solver\_batch} now splits the batch across concurrent
+processes, each a self-contained batch file with its own \texttt{@BASE} header,
+results scattered back by original index. Each shard is still a batch, so the
+two ideas compose, and \texttt{\_SHARD\_MIN\_CASES} is where they balance:
+below 2\,000 cases the work stays in one process, because splitting would
+re-pay the overhead batching exists to avoid.
 
-Each shard is still a batch, so the two ideas compose, and
-\texttt{\_SHARD\_MIN\_CASES} is where they balance: below 2\,000 cases the work
-stays in a single process, because splitting would re-pay the very overhead
-batching exists to avoid.
+Three invariants are load-bearing: independence of the cases (guaranteed by the
+frozen mobile field), reassembly by original index, and interrupt and failure
+handling covering \emph{every} shard rather than the one being waited on.
 
-Three invariants are required for correctness, and all three are load-bearing:
-independence of the cases (guaranteed by the frozen mobile field), reassembly by
-original index, and interrupt and failure handling that covers \emph{every}
-shard rather than the one being waited on.
-
-\paragraph{Result.} End to end through \texttt{run\_immobile\_step} at
-189\,533 nodes (157\,204 integrations after deduplication):
-
+\paragraph{Result} at 189\,533 nodes (157\,204 integrations after dedup):
 \begin{center}
 \begin{tabular}{lrrl}
 \toprule
@@ -147,16 +148,58 @@ auto shards, $20\times4$ & \textbf{\SI{29.2}{\second}} & $1.54\times10^{-4}$ & \
 \end{tabular}
 \end{center}
 
-That is $1.79\times$ against the \emph{best} single-process configuration, and
-bit-identical. The remainder of the $4.5\times$ seen in the solver binary alone
-is now Python marshalling --- building 189\,533 command lines, deduplication and
-stdout parsing --- which becomes the binding constraint on this side and is a
-batch-protocol problem rather than an OpenMP one.
+$1.79\times$ against the \emph{best} single-process configuration, bit-identical.
+
+\subsection{Fix 2: the token round trip}
+\label{sec:marshal}
+With the solver ceiling removed, profiling the slow step showed the bottleneck
+had moved out of C++ entirely --- 47\,\% of it was Python string handling:
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+phase & before & \% & after & \\
+\midrule
+dedup & \SI{0.61}{\second} & 1.5 & \SI{0.72}{\second} &\\
+\texttt{build\_immobile\_cases} & \SI{5.31}{\second} & 13.2 & \textbf{\SI{0.00}{\second}} &\\
+\texttt{\_batch\_lines} & \SI{13.64}{\second} & 33.9 & \textbf{\SI{2.53}{\second}} &\\
+solver + parse & \SI{20.68}{\second} & 51.4 & \SI{11.46}{\second} &\\
+\midrule
+\rowcolor{green!12}
+TOTAL & \SI{39.94}{\second} & & \textbf{\SI{14.72}{\second}} & $\mathbf{2.71\times}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Every case is the same $\sim$87-token material base with its 19 \texttt{y0}
+slots overwritten. \texttt{build\_immobile\_cases} materialized all 87 per case;
+\texttt{\_batch\_lines} then parsed all of them back into dictionaries and
+diffed them across 157\,204 cases to rediscover which keys were shared --- the
+split \texttt{build\_immobile\_cases} had known all along --- before emitting
+the $\sim$19 that varied. Roughly 78\,\% of the formatted tokens existed only to
+be discarded.
+
+\texttt{build\_immobile\_cases} now returns an \texttt{ImmobileCases} holding
+the base and the \texttt{y0} array and formatting only what varies; the batch
+writer takes \texttt{base\_line()}/\texttt{delta\_lines()} directly. Indexing
+still yields the full \texttt{--key=value} list, so every other consumer and the
+single-case path are unchanged, and slicing returns an \texttt{ImmobileCases} so
+the shard writer keeps working. Note the ``solver + parse'' row also halves,
+because that path calls \texttt{\_batch\_lines} once per shard.
+
+\paragraph{Key order is the protocol.} \texttt{collect\_solver\_args}
+\emph{already} emits \texttt{y0\_0..y0\_18}, so a case dictionary overwrites
+them \textbf{in place} and the token order is the base's, not base-then-\texttt{y0}.
+A first attempt guarded against that case and fell back to the old path --- which
+is to say it silently did nothing, and profiled identically to before. The order
+is now reconstructed explicitly, and byte-identity is asserted at
+$n = 1, 2, 500, 5000$, on an all-identical batch (exercising the empty-delta
+guard) and on a sliced shard.
 
 \section{The fast step}
 
-\subsection{Measurement}
-\texttt{DDomp} reports its own stage timers. The phase split is stable across a
+\subsection{Phase split and thread scaling}
+\texttt{DDomp} reports its own stage timers. The split is stable across a
 ninefold change in problem size, which is what justifies optimizing against it:
 
 \begin{center}
@@ -173,7 +216,8 @@ krylov & 28.5\,\% & 23.4\,\%\\
 \end{tabular}
 \end{center}
 
-Thread scaling is poor at both sizes, and \emph{worst at the default}:
+Whole-solver thread scaling is poor at both sizes and \emph{worst at the
+default}:
 
 \begin{center}
 \begin{tabular}{lrrrrrrr}
@@ -186,51 +230,77 @@ threads & 1 & 4 & 8 & 16 & 20 & 40 & 80\\
 \end{tabular}
 \end{center}
 
-Only $1.68\times$ from 1 to 40 threads at \SI{200}{\nano\meter}, and a mere
-7\,\% spread at \SI{1000}{\nano\meter}. Convergence was identical at every
-setting (9 Newton iterations, same residual), so this is pure overhead.
+$1.68\times$ from 1 to 40 threads at \SI{200}{\nano\meter}, and a 7\,\% spread
+at \SI{1000}{\nano\meter}. Convergence was identical at every setting (9 Newton
+iterations, same residual), so this is pure overhead.
 
-\subsection{The label is wrong, and that is the finding}
+\subsection{Per-phase scaling, and a retraction}
+\label{sec:retract}
+Resolving the scaling \emph{by phase} is what settles where the serial time
+actually is (\SI{200}{\nano\meter}, with the pattern cache of
+\S\ref{sec:pattern} in place):
+
+\begin{center}
+\begin{tabular}{lrrrr}
+\toprule
+threads & assembly & ``precond'' & krylov & total\\
+\midrule
+1 & 6.03 & 3.48 & 6.97 & 16.52\\
+4 & 4.14 & 3.45 & 3.67 & 11.30\\
+20 & 3.72 & 3.83 & 2.63 & 10.23\\
+\midrule
+scaling & $1.62\times$ & \cellcolor{red!15}$\mathbf{0.91\times}$ & $2.65\times$ & $1.61\times$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Retraction.} An earlier revision of this note asserted that FE
+assembly was serial and listed ``parallelize assembly'' as the second priority.
+\textbf{That is wrong.} \texttt{BilinearWeakForm::globalTriplets} is already
+parallelized, over explicit contiguous chunks concatenated in chunk order
+specifically so the triplet sequence --- and hence the summed matrix --- stays
+bit-identical to the serial one. It scales $1.62\times$ on 20 threads, which is
+poor, but poor is not absent, and the recommendation to parallelize it was
+advice to do something already done.
+
+The phase that genuinely does not scale is \textbf{``precond''}, flat and
+slightly negative at $0.91\times$, for the reason in \S\ref{sec:pattern}.
+Krylov, expected to be the serial bottleneck, is in fact the \emph{best}-scaling
+phase at $2.65\times$.
+
+\subsection{Fix 3: cache the sparsity pattern}
+\label{sec:pattern}
 The dominant phase is \emph{not} preconditioning. The reaction solver is
 constructed with \texttt{use\_directSolver = false}, so its preconditioner is
 Eigen's diagonal one, which is $O(n)$ and free. The timer instead brackets
-\texttt{computeFromTriplets}, whose real content is sparse-matrix construction:
-\texttt{A.setFromTriplets} over the full 84\,208-dof matrix, a pass over its
-nonzeros to strike out the Dirichlet rows and columns, and then
-\texttt{A1.setFromTriplets}. Two sort-and-accumulate passes per Newton
+\texttt{computeFromTriplets}, whose real content is sparse-matrix
+\emph{construction}: \texttt{A.setFromTriplets} over the full 84\,208-dof
+matrix, a pass over its nonzeros to strike out the Dirichlet rows and columns,
+then \texttt{A1.setFromTriplets}. Two sort-and-accumulate passes per Newton
 iteration, four to nine iterations per solve, and \texttt{setFromTriplets} is
 serial in Eigen.
 
-That is why threads do not help: roughly half the solve is serial matrix
-building and another quarter is serial sparse mat-vec.
-
-\subsection{The fix: cache the sparsity pattern}
-Across the Newton loop the \emph{pattern} of $A$ and $A_1$ is invariant --- same
-mesh, same weak forms, same element loops --- and only the values change. The
-surrounding class already exploits exactly this reasoning for the Dirichlet
-selection matrix $T$ and its index map; the argument extends to the matrices
-themselves.
-
-On the first call the pattern is built as before and two mappings recorded,
+Across the Newton loop that pattern is \emph{invariant} --- same mesh, same weak
+forms, same element loops --- and only the values move. The surrounding class
+already exploits exactly this reasoning for the Dirichlet selection matrix $T$
+and its index map; the argument extends to the matrices themselves. The first
+call now also records
 \[
   \texttt{aSlot}[k]:\ \text{triplet } k \longmapsto \text{slot in } A,
   \qquad
   \texttt{a1FromA}[j]:\ \text{slot } j \text{ of } A \longmapsto \text{slot in } A_1,
 \]
-by binary search inside each compressed row, costing $O(\mathrm{nnz}\log
-\mathrm{nnz})$ \emph{once}. Every later call zeroes the value arrays and
-accumulates in place, skipping both sorts and every allocation. Values are
-accumulated in triplet order --- the order \texttt{setFromTriplets} itself sums
-duplicates in --- so the refilled matrix is bit-identical, and the cache is
-invalidated whenever the triplet count or either dimension moves, making a
-changed pattern a correctness non-event.
-
-\paragraph{Result} (\SI{200}{\nano\meter}, per fast solve):
+by binary search inside each compressed row, $O(\mathrm{nnz}\log\mathrm{nnz})$
+\emph{once}; every later call zeroes the value arrays and accumulates in place,
+skipping both sorts and every allocation. Values go in triplet order --- the
+order \texttt{setFromTriplets} itself sums duplicates in --- so the refilled
+matrix is bit-identical, and the cache is invalidated whenever the triplet count
+or either dimension moves.
 
 \begin{center}
 \begin{tabular}{lrrr}
 \toprule
- & baseline & pattern cache & gain\\
+\SI{200}{\nano\meter}, per fast solve & baseline & pattern cache & gain\\
 \midrule
 ``precond'' & \SI{4.758}{\second} & \textbf{\SI{2.885}{\second}} & $1.65\times$\\
 solve total & \SI{10.378}{\second} & \textbf{\SI{8.095}{\second}} & $1.28\times$\\
@@ -241,42 +311,46 @@ solve total & \SI{10.378}{\second} & \textbf{\SI{8.095}{\second}} & $1.28\times$
 Convergence is unchanged to every printed digit --- 4 iterations,
 $c_{\mathrm{Error}} = 8.785110566792336\times10^{-7}$ before and after. The
 residual cost is inherent: the first Newton iteration still builds the pattern,
-so one full construction per solve remains.
+so one full construction per solve remains, and that is why the phase still does
+not scale.
 
-\subsection{The fix: stop oversubscribing}
+\subsection{Fix 4: stop oversubscribing}
 \texttt{qssa.py} launched \texttt{DDomp} through \texttt{wsl.exe} with no
 environment at all, so it inherited 80 threads --- the worst setting measured at
 both sizes. It now sets \texttt{OMP\_NUM\_THREADS=20}, overridable through
-\texttt{DISLOCLUSTER\_DDOMP\_THREADS}, and passes it through to WSL via
-\texttt{WSLENV}, which WSL does not otherwise inherit.
+\texttt{DISLOCLUSTER\_DDOMP\_THREADS}, and forwards it via \texttt{WSLENV},
+which WSL does not otherwise inherit.
 
 \section{End-to-end result}
 A \SI{200}{\nano\meter} hexagonal march to \SI{1}{dpa} (doses $0.01$, $0.1$,
-$1.0$; 5 substeps per interval; \texttt{fem\_every} $=5$), run twice against two
-\texttt{DDomp} builds differing only in the pattern cache:
+$1.0$; 5 substeps per interval; \texttt{fem\_every} $=5$), run three times ---
+baseline \texttt{DDomp} with the original Python, the pattern-cached
+\texttt{DDomp}, and both plus the marshalling fix:
 
 \begin{center}
 \begin{tabular}{lrrr}
 \toprule
- & baseline & optimized & gain\\
+ & fast solve (mean of 3) & slow step (sum) & march wall\\
 \midrule
-fast solve, mean of 3 & \SI{22.9}{\second} & \SI{20.7}{\second} & $1.11\times$\\
+sharding only & \SI{22.9}{\second} & \SI{51}{\second} & \SI{130.4}{\second}\\
+$+$ pattern cache & \SI{20.7}{\second} & \SI{47}{\second} & \SI{122.4}{\second}\\
 \rowcolor{green!12}
-march wall & \SI{130.4}{\second} & \textbf{\SI{122.4}{\second}} & $1.07\times$\\
+$+$ marshalling & \SI{18.1}{\second} & \textbf{\SI{28}{\second}} & \textbf{\SI{107.2}{\second}}\\
+\midrule
+gain & $1.27\times$ & $\mathbf{1.82\times}$ & $\mathbf{1.22\times}$\\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\texttt{march\_state.npz} is \textbf{bit-identical} between the two runs: max
-absolute difference $0.000\times10^{0}$, max relative difference
-$0.000\times10^{0}$, over $4\times21\,052\times19$ values.
+\texttt{march\_state.npz} is \textbf{bit-identical} across all three: max
+absolute difference $0.000\times10^{0}$, over $4\times21\,052\times19$ values.
 
-The end-to-end gain is smaller than the phase gains, for two reasons worth
-stating plainly. At \SI{200}{\nano\meter} the mobile solve is only about 60\,\%
-of a \texttt{DDomp} invocation, and the slow step of \emph{both} runs was
-already sharded. The honest summary is therefore per component: slow step
-$1.79\times$, fast-step linear algebra $1.28\times$, fast-step wall
-$1.11\times$.
+The end-to-end factor is smaller than the component factors, and it is worth
+saying why rather than quoting the best number. At \SI{200}{\nano\meter} the
+mobile solve is only $\sim$60\,\% of a \texttt{DDomp} invocation, and the case
+is small enough that the slow step is not dominant. The per-component summary is
+the honest one: slow step $2.71\times$ (on top of sharding's $1.79\times$),
+fast-step linear algebra $1.28\times$, fast-step wall $1.27\times$.
 
 \section{The largest remaining cost is not the linear algebra}
 At \SI{1000}{\nano\meter} the stage timers total \SI{237}{\second} against a
@@ -286,32 +360,44 @@ entirely} --- mesh reading, trial-function construction, FE data structures and
 faster than the solve it accompanies.
 
 The coupled march invokes \texttt{DDomp} 64 times per \SI{40}{dpa} run and
-rebuilds all of that from scratch every time: on the order of \SI{4}{\hour} of
-pure re-initialization inside a \SI{15.4}{\hour} run, plausibly larger than
-assembly, preconditioner and Krylov combined. It requires no numerical work at
-all --- only keeping the solver resident across fast solves, or caching the
-assembled structures --- and it is the recommended next target.
+rebuilds all of it from scratch every time: on the order of \SI{4}{\hour} of
+pure re-initialization inside a \SI{15.4}{\hour} run. It needs no numerical work
+--- only keeping the solver resident across fast solves, or caching the
+assembled structures --- and it would additionally let the sparsity-pattern
+cache of \S\ref{sec:pattern} amortize across all 64 solves instead of being
+rebuilt inside each one.
 
-A precise breakdown of that \SI{239}{\second} is still outstanding. The
-diagnostic run was truncated by 129\,569 lines of mesh-progress output, which is
-itself a candidate cost, since that text is written to a pipe the driver reads.
+\paragraph{Caveat.} \SI{239}{\second} is a \emph{residual} (wall minus timers),
+not a breakdown. The diagnostic run that would apportion it was truncated by
+129\,569 lines of mesh-progress output. Before budgeting four hours of saving,
+that needs one clean run with the progress output silenced.
 
 \section{Priorities}
 \begin{enumerate}
-  \item \textbf{Eliminate repeated setup} --- around 50\,\% of fast-step wall at
-        \SI{1000}{\nano\meter}. Largest, and not an OpenMP problem.
-  \item \textbf{Parallelize assembly} --- 25\,\% of the solve, element loops with
-        no cross-element dependency, currently serial. Per-thread triplet
-        buffers concatenated in element order preserve the summation order and
-        so preserve bit-identity.
-  \item \textbf{Krylov} --- 23--29\,\%, and the hardest. Eigen's sparse mat-vec
-        is not threaded, so this needs either a stronger preconditioner to cut
-        the iteration count or a threaded solver. Note the direct branch has
-        already been tried and fails: \texttt{compute()} itself does not succeed
-        on the 96k-dof problem.
-  \item \textbf{Slow-step marshalling} --- now the binding constraint on that
-        side. A binary or shared-memory batch protocol rather than text.
+  \item \textbf{Eliminate repeated setup} --- $\sim$50\,\% of fast-step wall at
+        \SI{1000}{\nano\meter}, and not an OpenMP problem. Largest by a wide
+        margin. Measure the breakdown first.
+  \item \textbf{Assembly efficiency} --- already parallel, but only
+        $1.62\times$ on 20 threads. The question is why (chunk imbalance,
+        memory bandwidth, or per-element cost variance), not whether to
+        parallelize it.
+  \item \textbf{The first Newton iteration's matrix build} --- what remains of
+        ``precond''. Subsumed by item 1 if the solver becomes resident.
+  \item \textbf{\texttt{dedup\_rtol}} --- set to $10^{-8}$ against an integrator
+        \texttt{rtol} of $10^{-6}$; dedup measures $\times1.21$. Loosening it
+        cuts slow work proportionally with error bounded by a tolerance already
+        accepted. Untested, and the cheapest thing on this list.
+  \item \textbf{Node count} --- the largest single cost driver: the fast solve
+        scales as $N^{1.32}$, the slow step linearly, and the boundary layer is
+        125\,k of the \SI{1000}{\nano\meter} mesh's 130\,k tets. A modelling
+        decision, not an optimization, but it moves runtime more than any code
+        change here.
 \end{enumerate}
+
+\noindent
+One knob is deliberately excluded: \texttt{fem\_every}. Splitting error is first
+order in the fast-solve spacing, so time saved there comes straight out of the
+physics.
 
 \section*{Reproducing}
 \begin{lstlisting}
@@ -328,7 +414,9 @@ DISLOCLUSTER_DDOMP_THREADS=20   # overrides the launcher default
 limit is Windows-specific, the shard plan is sized from
 \texttt{os.cpu\_count()}, and the fast-step thread optimum already shifted
 between the two problem sizes measured (40 at \SI{200}{\nano\meter}, 20 at
-\SI{1000}{\nano\meter}). Re-measure before sizing a campaign on different
-hardware.
+\SI{1000}{\nano\meter}). Single-run stage timings vary by up to $\sim$25\,\% on
+this host, so the per-phase table of \S\ref{sec:retract} supports its
+qualitative conclusion --- which phase scales --- but not its third digit.
+Re-measure before sizing a campaign on different hardware.
 
 \end{document}
