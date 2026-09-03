@@ -14,7 +14,8 @@
 
 \title{Parallel optimization of the DisloCluster coupled march\\
        \large Five fixes, three falsified hypotheses, two retractions,
-       and a $1.92\times$ that is bit-identical}
+       a bit-identical $1.92\times$ at \SI{200}{\nano\meter},
+       and $3.1\times$ on the production case}
 \author{DisloCluster development note}
 \date{2 September 2026}
 
@@ -35,7 +36,14 @@ making \texttt{DDomp} resident so it stops factorizing the same matrix 64 times
 code. On a \SI{200}{\nano\meter} hexagonal march to \SI{1}{dpa} the wall time
 falls \SI{161.7}{\second} $\rightarrow$ \SI{84.1}{\second}, a factor
 $\mathbf{1.92}$, with the slow step $2.39\times$ and a steady-state fast solve
-$2.32\times$. Two claims made in earlier revisions of this note were wrong and
+$2.32\times$. On the production case --- a
+\SI{1000}{\nano\meter}$\times$\SI{1600}{\nano\meter} hexagonal prism,
+189\,533 CD nodes, 16 doses to \SI{40}{dpa} --- the gain is larger, because the
+costs removed are the ones that grow fastest with $N$: matched intervals run
+\SI{3439}{\second} $\rightarrow$ \SI{1067}{\second}, a factor
+$\mathbf{3.22}$, and the march itself \SI{15.36}{\hour} $\rightarrow$
+\SI{4.89}{\hour}, a factor $\mathbf{3.14}$ (\S\ref{sec:prod}).
+Two claims made in earlier revisions of this note were wrong and
 are retracted in \S\ref{sec:retract} and \S\ref{sec:retract2}; both were
 corrected by profiling rather than by argument, which is the main methodological
 point of the document.
@@ -299,7 +307,7 @@ and two things were not:
 Both were found only because the acceptance test is bit-identity rather than
 agreement. The first two attempts looked correct and were not.
 
-\section{End-to-end result}
+\section{End-to-end result: the \SI{200}{\nano\meter} verification case}
 A \SI{200}{\nano\meter} hexagonal march to \SI{1}{dpa} (doses $0.01$, $0.1$,
 $1.0$; 5 substeps per interval; \texttt{fem\_every} $=5$), measured against the
 \emph{true} pre-optimization code --- no sharding, 80 threads, pre-optimization
@@ -325,6 +333,93 @@ absolute difference $0.000\times10^{0}$ over $4\times21\,052\times19$ values.
 An earlier baseline in this note quoted $1.22\times$; that baseline already
 contained sharding and the thread fix and so understated the total. The figure
 above is against code with every optimization removed.
+
+\section{The production case: \SI{1000}{\nano\meter}}
+\label{sec:prod}
+The \SI{200}{\nano\meter} case is the \emph{verification} measurement --- small
+enough to run twice and diff the state array. It is not the case the
+optimization was for, and it understates the gain, because three of the five
+fixes remove costs that grow \emph{faster} than the solve itself
+($N^{1.86}$ for the Cholesky against $N^{1.33}$ for the mobile solve).
+
+The production case is a \SI{1000}{\nano\meter}$\times$\SI{1600}{\nano\meter}
+hexagonal prism, \textbf{189\,533 CD nodes}, 16 doses from
+$10^{-4}$ to \SI{40}{dpa}, 20 substeps per interval,
+\texttt{fem\_every}\,$=5$ (320 substeps, 64 fast solves). It has been run
+twice to completion: once before this work, and once after.
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+mean over the 15 matched intervals & before & after & speedup\\
+\midrule
+fast step (4 solves) & \SI{2040.8}{\second} & \SI{798.1}{\second} & $2.56\times$\\
+\quad --- per fast solve & \SI{510.2}{\second} & \textbf{\SI{199.5}{\second}} & $\mathbf{2.56\times}$\\
+slow step (20 substeps) & \SI{1397.9}{\second} & \SI{268.8}{\second} & $5.20\times$\\
+\rowcolor{green!12}
+\textbf{interval wall} & \SI{3438.6}{\second} & \textbf{\SI{1066.8}{\second}} & $\mathbf{3.22\times}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+Every matched interval does the same work: 4 fast solves, 20 substeps,
+dedup $\times1.21$ on both runs, no failed nodes and no retries on either. The
+first interval differs (3 fast solves) and is excluded from the mean; taken on
+its own it gives \SI{2989.4}{\second} $\rightarrow$ \SI{925.2}{\second},
+$3.23\times$, the same figure.
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+whole march, 16 intervals & before & after & speedup\\
+\midrule
+\rowcolor{green!12}
+march wall, as reported & \SI{15.36}{\hour} & \textbf{\SI{4.89}{\hour}} & $\mathbf{3.14\times}$\\
+sum of interval times & \SI{15.16}{\hour} & \SI{4.70}{\hour} & $3.22\times$\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\paragraph{Both rows, because they differ and the difference is real.} The
+march wall exceeds the sum of its intervals by \SI{0.19}{\hour} after and
+\SI{0.20}{\hour} before --- snapshot writes, checkpointing and the state array
+--- which is per-snapshot work the optimization does not touch and which
+therefore dilutes the ratio slightly, $3.22\times$ to $3.14\times$. The
+\SI{3.14}{} is the number a user experiences and is the one quoted in the
+abstract.
+
+\paragraph{Written first as a projection, and it held.} An earlier revision of
+this section was written with 11 of 16 intervals complete and projected the
+remainder at the matched-interval mean, giving \SI{4.71}{\hour}. The completed
+run measures \SI{4.70}{\hour}. Interval time is flat to $\pm1\,\%$ across all
+15 matched intervals, which is what made the extrapolation safe; it is recorded
+here because the projection is no longer load-bearing and the agreement is
+worth more than the estimate was.
+
+\paragraph{Why the production gain exceeds the verification gain
+($3.21\times$ against $1.92\times$).} It is the same five fixes, and the
+difference is $N$. The per-solve fast cost falls \SI{509.9}{\second}
+$\rightarrow$ \SI{200.2}{\second}, and the profiling table of
+\S\ref{sec:retract2} accounts for it directly: \SI{212.5}{\second} of every
+pre-optimization invocation was rebuild --- Cholesky, startup, mesh, trial
+functions --- which the resident solver now pays \emph{once for the whole
+march} instead of 64 times. At \SI{200}{\nano\meter} that same rebuild is
+\SI{5.9}{\second} of \SI{14.9}{\second}. The removed term is the one growing
+as $N^{1.86}$, so the speedup itself grows with domain size, and the case that
+needed it most benefits most.
+
+\paragraph{One confound, stated.} The two \SI{1000}{\nano\meter} runs also
+differ in \texttt{SOLVER['loop\_model']} --- 0 before, 1 after, following the
+change of default --- so they are not a controlled A/B of the optimization
+alone. The confound is confined to the \textbf{slow} step, whose right-hand
+side differs between the two formulations at the same state width (19); its
+$5.19\times$ therefore carries some unknown model component. The fast step
+solves the same FE problem on the same mesh with the same node count and the
+same 4 solves per interval, and its $2.55\times$ is consistent to
+\SI{10}{\percent} with the \emph{independently profiled} rebuild cost above.
+The controlled measurement is the \SI{200}{\nano\meter} one, which is
+bit-identical; this section is a production result, and it is quoted as one.
 
 \section{What remains}
 \begin{enumerate}
@@ -364,9 +459,10 @@ DISLOCLUSTER_DDOMP_SERVER=0      # one DDomp process per solve (pre-Fix-5)
 Windows-specific, the shard plan is sized from \texttt{os.cpu\_count()}, and the
 fast-step thread optimum shifted between the two problem sizes measured. Single
 stage timings vary by up to $\sim$25\,\% here, so the per-phase tables support
-which phase dominates, not their third digit. The end-to-end
-\SI{200}{\nano\meter} figure is a direct measurement; the corresponding
-\SI{1000}{\nano\meter} figure is not yet, and the fast step's share is larger
-there (77\,\% against $\sim$45\,\%), so the totals will differ.
+which phase dominates, not their third digit. The \SI{200}{\nano\meter} figure
+is a controlled, bit-identical measurement; the \SI{1000}{\nano\meter} figure
+is a production comparison carrying the \texttt{loop\_model} confound noted in
+\S\ref{sec:prod}. Both runs are complete; nothing in that section is
+extrapolated.
 
 \end{document}
