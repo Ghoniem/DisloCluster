@@ -35,28 +35,54 @@ from dislocluster_code.post import movies as movies_mod
 from dislocluster_code.post.fields import plot_field_panels
 from dislocluster_code.post.report import write_mesh_figure
 
-#: The march the manuscript reports. Refitted parameter set, grain-boundary
-#: loop absorption on, 500 nm hexagonal single crystal, 0 -> 40 dpa on the
-#: 13-point grid 1e-4 .. 40, six substeps per interval and TWO fast solves per
-#: interval (the earlier 10 dpa leg had one). 40 dpa rather than 10 so that the
-#: <c> measurements, which reach 35 dpa, are inside the simulated range instead
-#: of being compared against an extrapolation.
-RUN = "20260831_072855_d4fbc06_sec7_calibrated_40dpa"
+#: The march the manuscript reports: a 1000 x 1600 nm hexagonal single crystal,
+#: 189 533 CD nodes, grain-boundary loop absorption on, 0 -> 40 dpa on the
+#: 16-point grid 1e-4 .. 40, ten substeps per interval and two fast solves per
+#: interval. 40 dpa rather than 10 so that the <c> measurements, which reach
+#: 35 dpa, are inside the simulated range instead of being compared against an
+#: extrapolation.
+#:
+#: THIS RUN DOES NOT CARRY THE REFITTED PARAMETER SET. The 500 nm march this
+#: section previously reported was produced by `run_500nm_hex_refit`, which
+#: applies a 0-D refit in three places at once -- workbook overrides, solver
+#: `model_params`, and the bias (`dadAnisotropy`, `dadZ0`) in the material
+#: file. Neither that refit directory nor the runs below survive on this
+#: machine, so the parameter set could not be reapplied: this march carries the
+#: material file as it stands (p_v = 1.02, p_i = 0.7) and `model_params = {}`,
+#: which leaves the small-end leak (`nu_vanish`, `m_vanish`) and the floor
+#: `m_min` at their C++ defaults. Every fitted-set claim in section 7 has to be
+#: recomputed against this run rather than carried over -- in particular the
+#: co-growth thresholds, the (p_v)^6 mobility argument, and the comparison
+#: against experiment.
+RUN = "20260904_084828_ae75118_sc_hex1000_40dpa_9fam_tuned2"
+
+#: Superseded, and kept only so the provenance of the previous figures is
+#: legible: the 500 nm refitted march and the 0-D refit behind it. Neither is
+#: present on this machine.
+RUN_500NM_REFIT = "20260831_072855_d4fbc06_sec7_calibrated_40dpa"
 
 #: The 0-D refit whose parameter set that march carries.
 REFIT = "20260830_180216_d4fbc06_calibration_final"
 
 #: The same case WITHOUT the loop absorption channel -- the twin that makes the
 #: denuded zone a measurement rather than a picture.
-TWIN = "20260831_091311_d4fbc06_sec7_noGBloop_40dpa"
+TWIN = "20260903_005130_ae75118_sc_hex1000_40dpa_9fam_noGB"
 
 MANUSCRIPT = (paths.REPO_ROOT / "Docs" / "Formulation" / "self-consistent"
               / "SC_manuscript")
 FIGDIR = MANUSCRIPT / "figures"
 
-#: Early and late. 1e-4 dpa is inside the nucleation transient and 40 dpa is the
-#: end of the march, so the pair brackets every field the paper discusses.
-DOSES = (1e-4, 40.0)
+#: Three doses, not two. The earlier pair (1e-4, 40) bracketed the march but
+#: showed only its endpoints, and the endpoints are the two least informative
+#: states: at 1e-4 dpa every family is still a fresh cascade nucleus, and by
+#: 40 dpa the fields have been stationary for a decade of dose. The interesting
+#: structure -- the boundary layer narrowing as k^2 rises, the distributions
+#: broadening away from monodisperse -- happens between them, so the middle
+#: column is where a reader actually sees the evolution.
+DOSES = (1e-4, 1.0, 40.0)
+#: 1e-4 rather than 1e-2 for the first column: the section brackets the march by
+#: its own first dose, and the middle column at 1 dpa is what shows the
+#: evolution between the endpoints.
 
 
 def _run_dir(name):
@@ -176,10 +202,32 @@ COPIES = [
 ]
 
 
+def _run_dir_opt(name):
+    """`_run_dir` that returns None instead of exiting when the run is gone.
+
+    `copies` must not be all-or-nothing. The calibration figures come from a
+    0-D refit directory that is NOT on every machine -- it was not carried
+    across with the manuscript -- and `_run_dir` raises `SystemExit`, so a
+    missing refit used to abort the whole figure build before any of the
+    march's own figures were copied. A figure that cannot be refreshed should
+    be reported and left alone, since the copy in `figures/` is still there.
+    """
+    for root in paths.OUTPUT_DIRS:
+        p = Path(root) / name
+        if p.exists():
+            return p
+    return None
+
+
 def copies(verbose=True):
-    out = []
+    out, missing_runs = [], set()
     for src_run, rel, dest in COPIES:
-        src = _run_dir(src_run) / rel
+        base = _run_dir_opt(src_run)
+        if base is None:
+            missing_runs.add(src_run)
+            print(f"  MISSING RUN {src_run} -- keeping the existing {dest}")
+            continue
+        src = base / rel
         if not src.exists():
             print(f"  MISSING {src}")
             continue
@@ -187,6 +235,10 @@ def copies(verbose=True):
         out.append(FIGDIR / dest)
     if verbose:
         print(f"  copied {len(out)} of {len(COPIES)} artifact figures")
+    if missing_runs:
+        print("  NOTE: figures from %d absent run(s) were left as they stand; "
+              "they do NOT come from the march this build reports."
+              % len(missing_runs))
     return out
 
 

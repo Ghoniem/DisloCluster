@@ -118,9 +118,11 @@ def measure(run_dir, n_samples=1_000_000, verbose=True):
         Y = np.stack([mfield.to_legacy_layout(Y[d], lm)
                       for d in range(len(doses))])
 
-    # The run's OWN model, not the workbook's: `sigma_n` stands at 1.0e8 Pa in
-    # the workbook, so a zero-stress run rebuilt with `build_sim()` alone gets
-    # f_a = 0.4015 where the march itself ran at exactly 1/3.
+    # The run's OWN model, not the workbook's. `sigma_n` stood at 1.0e8 Pa in
+    # the workbook until 2026-09-04, so a zero-stress run rebuilt with
+    # `build_sim()` alone got f_a = 0.4015 where the march ran at exactly 1/3.
+    # The workbook is zero now, but this still matters for a LOADED case and for
+    # every run made before that date.
     sim = sim_for_run(run_dir, verbose=False)
     G = float(sim.input_data.material_params["G"])
     omega = float(mfield.cluster_atomic_volume(paths.MODELIB_MATERIAL))

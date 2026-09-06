@@ -345,6 +345,24 @@ def build_immobile_cases(base_cli, y0_list, t_begin, t_end):
     base.pop("reduced", None)
     base["analytic_jac"] = "1"
 
+    # ── THE STEP BUDGET IS THE MARCH'S FAILURE DETECTOR ──────────────────────
+    # A healthy point integrates a substep in ~0.016 s. A point in the stiff
+    # corner takes MINUTES to burn the solver's 500 000-step default before it
+    # finally reports CV_TOO_MUCH_WORK, and with a few hundred such points the
+    # substep never finishes -- measured twice on the nine-family basal chain,
+    # 5h47m and 3.0 h against a normal 57 s.
+    #
+    # The retry loop below already handles a point that FAILS: it re-runs it at
+    # rtol x 1e-2, and rtol = 1e-8 integrates these points in 0.083 s. It cannot
+    # do anything for a point that merely grinds. Capping the budget converts
+    # the hang into a failure, which is what the retry needs to see.
+    #
+    # 20 000 is ~an order of magnitude above what a healthy point uses and an
+    # order below the default, so it fails the pathological case in ~1 s while
+    # leaving every ordinary one untouched. A caller that has already named a
+    # value keeps it.
+    base.setdefault("max_steps", "20000")
+
     Y = np.asarray(y0_list, dtype=float)
     if Y.ndim == 1:
         Y = Y[None, :]

@@ -64,9 +64,14 @@ MATERIAL = {
                                              # calibration.REFERENCE_OVERRIDES
     # Derive the 0-D `sigma_n` / `sigma_h` from BOUNDARY instead of reading them
     # from the workbook. ON by default, because the workbook and BOUNDARY had
-    # disagreed: `Material_Environment!sigma_n` stands at 1.0e8 Pa, so every
-    # run was at 100 MPa in the 0-D loop alignment and at 0 MPa in the 3-D
-    # elastic solve. Set False to reproduce a run made before this existed.
+    # disagreed: `Material_Environment!sigma_n` stood at 1.0e8 Pa, so every run
+    # was at 100 MPa in the 0-D loop alignment and at 0 MPa in the 3-D elastic
+    # solve. THE WORKBOOK NOW CARRIES ZERO (2026-09-04), which closes the same
+    # gap on the CALIBRATION path -- `fit_cloops` builds through
+    # `calibration.build_sim` with no boundary and so could not be reached from
+    # here. This stays on regardless: a deliberately loaded case still needs the
+    # 0-D and the elastic solve to see the same load. Set False to reproduce a
+    # run made before this existed.
     "stress_from_boundary": True,
 }
 
@@ -273,7 +278,8 @@ class Material:
         absent, which moves N_a by five orders of magnitude.
 
         THE APPLIED LOAD COMES FROM `boundary`, NOT FROM THE WORKBOOK.
-        `Material_Environment!sigma_n` stands at 1.0e8 Pa, and the 0-D used it
+        `Material_Environment!sigma_n` stood at 1.0e8 Pa (it is zero from
+        2026-09-04), and the 0-D used it
         for the aligned/non-aligned loop split and the stress-dependent vacancy
         emission while `BOUNDARY` -- which drives the 3-D elastic solve -- was
         zero. Every run in the 500 nm series was therefore at 100 MPa in the
@@ -830,8 +836,9 @@ def sim_for_run(run_dir, verbose=False):
     Post-processing that needs the 0-D right-hand side -- `post.volume_average`
     for the conservation channels, `post.boundary_flux` for the surface flux --
     used to call `calibration.build_sim()` with no arguments, which takes the
-    applied load from the WORKBOOK. `Material_Environment!sigma_n` stands at
-    1.0e8 Pa, so a run staged with `stress_from_boundary` and a zero `BOUNDARY`
+    applied load from the WORKBOOK. `Material_Environment!sigma_n` stood at
+    1.0e8 Pa (zero from 2026-09-04), so a run staged with
+    `stress_from_boundary` and a zero `BOUNDARY`
     was post-processed at 100 MPa: `f_a` came out 0.4015 in the diagnostic
     against the 1/3 the march itself ran with, and `f_a` sets the aligned /
     non-aligned split whose two families have different capture efficiencies.

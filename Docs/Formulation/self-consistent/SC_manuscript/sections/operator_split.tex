@@ -79,10 +79,10 @@ the distinction is worth ten orders of magnitude:
 \toprule
 one implicit factorization & flops \\
 \midrule
-split, $72\,928\times36^{3}$ & $3.4\times10^{9}$ \\
-coupled, $(90\,617\times31)^{3}$ & $2.2\times10^{19}$ \\
+split, $159\,271\times36^{3}$ & $7.4\times10^{9}$ \\
+coupled, $(189\,533\times31)^{3}$ & $2.0\times10^{20}$ \\
 \midrule
-ratio & $6.5\times10^{9}$ \\
+ratio & $2.7\times10^{10}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -90,14 +90,15 @@ ratio & $6.5\times10^{9}$ \\
 Stiffness localizes the same way: each point's system genuinely is stiff, of
 order $100$ internal steps per substep, which is why BDF, but its cost scales
 with the dimension of the coupled block, not with how many blocks there are. The coupling did not vanish, then; it moved to where it is affordable. The
-tightly coupled problem is now the fast solve, $362\,468$ unknowns and
-$4\,\mathrm{m}\,12\,\mathrm{s}$ on 24 cores against
-$1\,\mathrm{m}\,12\,\mathrm{s}$ for an entire slow sweep over all $90\,617$
+tightly coupled problem is now the fast solve, $758\,132$ unknowns and
+$3\,\mathrm{m}\,00\,\mathrm{s}$ on 40 cores against
+$52.7\,\mathrm{s}$ for an entire slow sweep over all $189\,533$
 points, and what the split buys is frequency: with no time derivative in
-\cref{eq:master-c} it is solved eight times over the march rather than every
-timestep. At five Newton iterations per solve, hence $\sim50\,$s per linear
-solve, the counterfactual is $100\times24\div5\approx480$ factorizations, or
-$6.7\,$h for the mobile block \emph{alone}, against the $29\,$min the slow side
+\cref{eq:master-c} it is solved 31 times over the march rather than every
+timestep. Taking the five Newton iterations per solve measured on the smaller
+case, hence $\sim36\,$s per linear solve, the counterfactual is
+$100\times160\div5\approx3\,200$ factorizations, or $32\,$h for the mobile
+block \emph{alone}, against the $2\,\mathrm{h}\,21\,\mathrm{m}$ the slow side
 actually took --- and it is linear in node count, as the structure predicts.
 
 The bill arrives as splitting error. Freezing $\spvec c^{\star}_M$ over a
@@ -117,17 +118,19 @@ $\max_q\Delta\langle k^{2}\rangle/\langle k^{2}\rangle$; Strang splitting,
 $O(\Delta\gamma^{2})$ for one extra fast solve; and an in-step Picard iteration
 between S3 and S4, which removes the error entirely.
 
-\Cref{tab:cost} reports the measured cost on 24 cores, and two readings matter.
-The fast and slow sides cost nearly the same, $52\%$ against $45\%$, the balance
-the cadence $n_{\mathrm{fem}}=n_{\mathrm{sub}}=3$ was chosen to produce, so
-raising it buys accuracy at nearly linear cost in the fast side alone. And one
-point-integration costs $994\,\mu\mathrm s$ for $36$ stiff equations over a dose
-interval, which is what makes a million of them per substep an hour rather than
-a week.
+\Cref{tab:cost} reports the measured cost on 40 cores, and two readings matter.
+The slow side now dominates, $57\%$ against $38\%$, because this march re-solves
+the mobile field only twice per dose interval
+($n_{\mathrm{sub}}=10$, $n_{\mathrm{fem}}=5$) where the smaller case re-solved
+it every third substep; raising the cadence buys accuracy at nearly linear cost
+in the fast side alone, and there is room to do so here. And one
+point-integration costs $331\,\mu\mathrm s$ for $36$ stiff equations over a dose
+interval, which is what makes twenty-five million of them over the march four
+hours rather than a month.
 
 \begin{table}[htbp]
-\caption{Measured cost of the 500\,nm hexagonal single-crystal march of
-\cref{sec:results}, on 24 cores. The state carried is 40 wide --- 4 mobile,
+\caption{Measured cost of the 1000\,nm hexagonal single-crystal march of
+\cref{sec:results}, on 40 cores. The state carried is 40 wide --- 4 mobile,
 27 immobile, 6 conservation accumulators, the network density, and the two
 grain-boundary accumulators of \cref{sec:gb-loops} --- of which 36 are
 integrated, the four mobile values being held fixed over each substep.}
@@ -137,27 +140,53 @@ integrated, the four mobile values being held fixed over each substep.}
 \toprule
 Quantity & Value \\
 \midrule
-CD nodes & 90\,617 \\
-mobile field, 4 species & 362\,468 dof \\
-immobile field, 9 families $\times$ 3 moments & 2\,446\,659 dof \\
-elastic displacement & 271\,851 dof \\
+CD nodes & 189\,533 \\
+mobile field, 4 species & 758\,132 dof \\
+immobile field, 9 families $\times$ 3 moments & 5\,117\,391 dof \\
+elastic displacement & 568\,599 dof \\
 \midrule
 state carried per point & 40 \\
 integrated per point (= Newton block) & 36 \\
-substeps & 24 \\
-points integrated per substep, after deduplication & 72\,928 of 90\,617 \\
-deduplication factor & $\times1.24$ \\
-point-integrations over the march & 1\,750\,272 \\
-scalar ODEs integrated over the march & $7.8\times10^{7}$ \\
+substeps & 160 \\
+points integrated per substep, after deduplication & 159\,271 of 189\,533 \\
+deduplication factor & $\times1.19$ \\
+point-integrations over the march & 25\,483\,360 \\
+scalar ODEs integrated over the march & $9.2\times10^{8}$ \\
 \midrule
-fast solves ($8\times$ finite-element Newton) & 33\,m\,42\,s \quad(52\%) \\
-slow substeps ($24\times$ batch CVODE) & 29\,m\,00\,s \quad(45\%) \\
-checkpoint writes (32) & 18.2\,s \quad(0.5\%) \\
-\textbf{march total} & \textbf{1\,h\,04\,m\,37\,s} \\
+fast solves ($31\times$ finite-element Newton) & 1\,h\,32\,m\,52\,s \quad(37.8\%) \\
+slow substeps ($160\times$ batch CVODE) & 2\,h\,20\,m\,38\,s \quad(57.3\%) \\
+snapshot and checkpoint writes & 11\,m\,54\,s \quad(4.8\%) \\
+\textbf{march total} & \textbf{4\,h\,05\,m\,24\,s} \\
 \midrule
-one fast solve & 4\,m\,12\,s \\
-one slow substep & 1\,m\,12\,s \\
-one point-integration & 994\,$\mu$s \\
+one fast solve & 3\,m\,00\,s \\
+one slow substep & 52.7\,s \\
+one point-integration & 331\,$\mu$s \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{The costs above are measured after an optimization pass, and none of
+it is an approximation.} A march of these sixteen intervals on this domain and
+mesh ran $3.14\times$ slower before it --- \SI{15.36}{\hour} against
+\SI{4.89}{\hour} --- and the acceptance test throughout was bit-identity of the
+saved march state, not agreement to a tolerance. Five changes account for it.
+The slow batch is \emph{sharded} across processes rather than threaded inside
+one, which matters because the threading did not scale at all: at fixed work,
+eighty threads in a single process ran slower than one thread, while the same
+eighty arranged as twenty processes of four ran $13.2\times$ faster than serial.
+The per-case solver input is no longer materialized token by token, which had
+consumed $47\%$ of the slow step in string handling for input that is the same
+$\sim$87-token base with the state slots overwritten. The finite-element
+sparsity pattern is recorded once and reused across Newton iterations, since
+only the values move between them. The fast step's thread count is set
+explicitly, Windows otherwise confining a process to one of its two
+forty-processor groups. And the finite-element program is held \emph{resident}
+across the march, so that the Cholesky factorization of the diffusion operator
+--- \SI{176}{\second} of every \SI{399}{\second} invocation at this size, and
+growing as $N^{1.86}$ against the solve's own $N^{1.33}$ --- is performed once
+rather than at each fast solve. That last change is the one that grows with the
+problem: it takes a single fast solve from \SI{510}{\second} to
+\SI{200}{\second} here, while on a \SI{200}{\nano\meter} case the same rebuild
+is under half a minute and the gain correspondingly smaller. The method is
+documented separately~\citep{dislocluster_opt}; nothing in it changes an
+equation, a tolerance or a discretization.

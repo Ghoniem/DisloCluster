@@ -294,9 +294,11 @@ def main(argv=None):
                    else "volume_average_interior"))
 
     # The run's OWN model. `build_sim()` with no arguments takes the applied
-    # load from the workbook, where `sigma_n` is 1.0e8 Pa -- so the conservation
-    # channels for a zero-stress run were formed at f_a = 0.4015 while the march
-    # integrated 1/3, and the two loop families differ in capture efficiency.
+    # load from the workbook, where `sigma_n` was 1.0e8 Pa until 2026-09-04 --
+    # so the conservation channels for a zero-stress run were formed at
+    # f_a = 0.4015 while the march integrated 1/3, and the two loop families
+    # differ in capture efficiency. Still the right call for a loaded case, and
+    # for reading back any run made before the workbook was zeroed.
     sim = sim_for_run(run_dir)
     doses, Y_avg, w, nodes = averaged_trajectory(
         run_dir, args.samples, region=args.region)

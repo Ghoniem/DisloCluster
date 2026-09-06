@@ -157,7 +157,8 @@ def build_cli(run_dir, loop_model, variant_weights=(1 / 3, 1 / 3, 1 / 3)):
     """The slow step's CLI, built through the same path the march uses.
 
     `config.sim_for_run` rather than `calibration.build_sim()`: the latter takes
-    the applied load from the workbook, where `sigma_n` stands at 100 MPa, and
+    the applied load from the workbook, where `sigma_n` stood at 100 MPa
+    until 2026-09-04, and
     that sets `f_a` -- so a zero-stress run post-processed the other way is a
     different model. Measured: f_a = 0.4015 against the 1/3 the march ran with.
     """

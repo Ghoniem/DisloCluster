@@ -504,11 +504,56 @@ y[4..11]       = [n_c, n_a1, n_a2, n_a3, c_c, c_a1, c_a2, c_a3]
 identical to `ClusterDynamicsParameters::loopDADbias` and to `ImmobileSinks`'s
 `Sk`. `l_k = √(Ω/πb_k)` is the family's **own** radius scale, so ⟨c⟩ is sized
 with `b_c` and ⟨a⟩ with `b_a` — the legacy model sizes both with `l_c`.
-`Dbar_m = (det D_m)^(1/3)`, which equals the legacy `omega_m` because
-`anisotropy.py` splits the migration energies at fixed `D_eff`: **no mobility is
-redefined, only its directional weighting.** `p_m`, `Z0_m` and `loopSinkScale`
-are read from `Zr3d_ghoniem.txt`, not the workbook — the one file both sides
-share, and the file `anisotropy.py` writes.
+`Dbar_m` is the **workbook** `omega_m` (`rate_equations_core.h:302`,
+`Dbar = {omega_v, omega_i, omega_2i, omega_2i}`). `p_m`, `Z0_m` and
+`loopSinkScale` are read from `Zr3d_ghoniem.txt`, not the workbook — the one
+file both sides share, and the file `anisotropy.py` writes.
+
+> **A CORRECTED CLAIM, AND THE BUG IT HID.** An earlier revision of this file
+> said `Dbar_m = (det D_m)^(1/3)` "equals the legacy `omega_m` because
+> `anisotropy.py` splits the migration energies at fixed `D_eff`". The premise
+> is true and the conclusion does not follow: the fixed-`D_eff` split
+> guarantees the **split** preserves `E_eff`, and says nothing about `E_eff`
+> itself matching the workbook. Nothing ever propagated the fitted `E_m` into
+> the material file, and on 2026-09-05 they disagreed:
+>
+> | species | workbook `E_m` | material `E_eff` | `D_material/D_workbook` |
+> |---|---:|---:|---:|
+> | v | 1.200000 | 1.200000 | 1.0 |
+> | i | **0.897000** | **0.759101** | **16.3** |
+> | 2i, 3i | **1.362920** | **0.759101** | **2.05e5** |
+>
+> So the mobile field was produced with one interstitial mobility and weighted
+> with another, and the flux ratio `x = Φ_V/Φ_I` that decides which families
+> grow came out **16.3× too high** — 13.7 measured by a fast solve against
+> 0.84 once corrected, where the co-growth window at `p_m = (1.02, 0.7)` is
+> `0.472 < x < 0.951`. The operating point sat **outside** it, on the side
+> where interstitial ⟨a⟩ loops SHRINK. Three signatures in the 1000 nm
+> nine-family march, all explained by that one number: ⟨a⟩ interstitial loops
+> pinned at `m̄` = 49 against `n_iL_nuc` = 53.79 (every loop a fresh nucleus),
+> the ⟨a⟩ **vacancy** variants — opposite sign — grown to 68.9 nm, and
+> `d_c` = 189 nm, 2.0× measured.
+>
+> **The check that finds this is the 0-D**, which uses the workbook omegas for
+> the fields *and* the weights and so is internally consistent: at 1 dpa its
+> `C_v` matches the march interior to 12% while `C_i` is off by 16.6× and
+> `C_2i` by 55.6×. Every other shared constant — Ω, `a`, `c`, and `D0`
+> (5.21645e-07 = the workbook's own `a²·ν`) — agrees to 1.000000, so the
+> migration energies were the whole of it.
+>
+> **The monomer row is corrected; the 2i/3i rows are deliberately NOT.**
+> Correcting them too was measured to raise `c_2i`/`c_3i` to 4.42e-08 /
+> 9.79e-08 against the 0-D's 2.93e-10 / 1.91e-10 — 150–500× **above** the 0-D
+> the 3-D is supposed to reduce to in the well-mixed limit. That is
+> unexplained, and the clusters feed homogeneous nucleation. It costs nothing
+> to leave: they carry 0.000 of the interstitial arrival and `x` moves 0.8426
+> → 0.8403.
+>
+> `anisotropy.py` **cannot** catch any of this — preserving `E_eff` is its
+> design — so a fitted `E_m` must be written into the material file by hand.
+> Note also that its `mf.write_text(...)` rewrites every line ending, which
+> changes the file's content hash and so re-stages every case on each
+> `--apply`, defeating the idempotence its own comment claims.
 
 **The legacy path was bit-identical** (`sha256 8bcc7780…`, 25-point integration),
 and that is why the legacy `ydot` assembly in `rate_equations_core.h` is kept

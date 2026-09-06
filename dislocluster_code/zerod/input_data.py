@@ -473,7 +473,68 @@ class InputData:
         self.derived['f_na']=1-self.derived['f_a']
         print(f"Derived f: {self.derived['f']}, f_a: {self.derived['f_a']}, f_na: {self.derived['f_na']}")
        # Generation rates
-        self.derived['G_v'] = self.material_params['G']*(1 - self.physical_props['epsilon_vL'])
+        # ── The CRYSTALLOGRAPHIC vacancy-loop cascade split ─────────────────
+        # `epsilon_vL` is ONE efficiency, divided between two loop populations
+        # by `f_a` -- and `f_a = (1+2f)/3` is the ALIGNED HABIT fraction, a
+        # Boltzmann factor on the resolved normal stress (above). That is an
+        # orientation split under load, and under `loop_model >= 1` it was
+        # doing duty as the BASAL <c> versus PRISMATIC <a> division of the
+        # cascade yield, which is crystallography and not orientation: an
+        # applied stress was deciding how many basal versus prismatic vacancy
+        # loops a cascade makes.
+        #
+        # `epsilon_vL_c` and `epsilon_vL_a` are that division, named for what
+        # they are. Absent, they fall back to the old f_a split, so their sum is
+        # `epsilon_vL` exactly and every derived quantity below -- G_v included
+        # -- is what it was, to the bit.
+        # THE FALLBACK IS AN ASSIGNMENT, NOT A RECOMPUTATION. Writing
+        # `G*(eps_vL*(1-f_a))` where the line below writes `(G*eps_vL)*(1-f_a)`
+        # is the same number in algebra and a different one in the last bit, and
+        # that difference propagates to the emitted command line, so a case that
+        # set nothing would stop matching its own checkpoint. `_split_given`
+        # records whether anyone actually asked for the split.
+        # LOOK IN BOTH SHEETS. `calibration.apply_overrides` routes an
+        # override to the sheet that already defines it and drops a key the
+        # workbook does not carry into `model_params` -- so these two, being
+        # new, arrive there and not in `physical_props`. Reading only
+        # `physical_props`, as this did, made the whole split inert on the
+        # production path while working in the fitting harness (which writes
+        # `physical_props` directly): the march emitted no `G_vL_c` and
+        # silently integrated the old f_a split.
+        eps_vL = self.physical_props['epsilon_vL']
+        f_a = self.derived['f_a']
+
+        def _split_key(name):
+            v = self.physical_props.get(name)
+            return self.model_params.get(name) if v is None else v
+
+        eps_c = _split_key('epsilon_vL_c')
+        eps_a = _split_key('epsilon_vL_a')
+        # Tracked SEPARATELY, so that giving one leaves the other exactly the
+        # legacy number rather than an algebraically-equal recomputation of it.
+        self._eps_c_given = eps_c is not None
+        self._eps_a_given = eps_a is not None
+        self._split_given = self._eps_c_given or self._eps_a_given
+        if eps_c is None:
+            eps_c = eps_vL * (1 - f_a)
+        if eps_a is None:
+            eps_a = eps_vL * f_a
+        # RESOLVED VALUES GO IN `derived`, NOT BACK INTO `physical_props`.
+        # Writing them back makes the next derivation pass see them as
+        # user-supplied, so `_split_given` latches True and the fallback stops
+        # being a fallback -- which is exactly how a case that set nothing
+        # started emitting the new keys.
+        self.derived['epsilon_vL_c'] = eps_c
+        self.derived['epsilon_vL_a'] = eps_a
+
+        # The vacancy budget closes on what actually LEFT the free pool, which
+        # is the two channels' sum. At the fallback that is `epsilon_vL` and
+        # this line is unchanged; when the basal share is routed to the stacking
+        # -fault pyramid instead, the vacancies it does not take stay free --
+        # which is the difference between routing a channel and deleting one.
+        self.derived['G_v'] = (
+            self.material_params['G']*(1 - eps_c - eps_a) if self._split_given
+            else self.material_params['G']*(1 - eps_vL))
 
         # Monomer SIA production. epsilon_2i / epsilon_3i are ATOM fractions of
         # SIAs born directly as di-/tri-interstitial clusters (Li & Ghoniem 2020,
@@ -500,9 +561,20 @@ class InputData:
 
         self.derived['G_aiL'] = self.material_params['G'] * eps_iL * self.derived['f_a']
 
+        # The LEGACY pair keeps its legacy meaning -- non-aligned and aligned --
+        # and its legacy formula, so `loop_model = 0` is untouched whatever the
+        # new keys say. Nothing is overloaded.
         self.derived['G_vL'] = self.material_params['G'] * self.physical_props['epsilon_vL'] * (1-self.derived['f_a'])
 
         self.derived['G_avL'] = self.material_params['G'] * self.physical_props['epsilon_vL'] * self.derived['f_a']
+
+        # The crystallographic pair, which is what `loop_model >= 1` integrates.
+        self.derived['G_vL_c'] = (self.material_params['G'] * eps_c
+                                  if self._eps_c_given
+                                  else self.derived['G_vL'])
+        self.derived['G_vL_a'] = (self.material_params['G'] * eps_a
+                                  if self._eps_a_given
+                                  else self.derived['G_avL'])
         
         # Network dislocation density: log-linear function of temperature
         # (high at low T, annealed out at high T). Computed from two anchors,

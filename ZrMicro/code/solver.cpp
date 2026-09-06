@@ -182,6 +182,7 @@ struct Workspace {
 
     // Signature of what is currently built.
     N_Vector        atolv     = nullptr;   // mode 2: per-component atol
+    N_Vector        cons      = nullptr;   // nonneg: y >= 0 constraints
     int  neq = -1, linsol = -1, lmm = -1, max_order = -1, acc_mode = -1;
     bool reduced = false, ajac = false, built = false;
 
@@ -192,6 +193,7 @@ static void ws_teardown_solver(Workspace& ws) {
     if (ws.cvode_mem) { CVodeFree(&ws.cvode_mem); ws.cvode_mem = nullptr; }
     if (ws.LS) { SUNLinSolFree(ws.LS); ws.LS = nullptr; }
     if (ws.A)  { SUNMatDestroy(ws.A);  ws.A  = nullptr; }
+    if (ws.cons)  { N_VDestroy(ws.cons);  ws.cons  = nullptr; }
     if (ws.atolv) { N_VDestroy(ws.atolv); ws.atolv = nullptr; }
     if (ws.yQ) { N_VDestroy(ws.yQ);    ws.yQ = nullptr; }
     if (ws.y)  { N_VDestroy(ws.y);     ws.y  = nullptr; }
@@ -228,6 +230,16 @@ static int ws_ensure(Workspace& ws, const Parameters& P,
         ws.atolv = N_VNew_Serial(neq, ws.sunctx);
         if (!ws.atolv) return 103;
     }
+    if (P.nonneg) {
+        // 1.0 is SUNDIALS' "y >= 0" -- it admits zero, which every one of these
+        // components legitimately reaches. 2.0 ("y > 0") would reject the floor
+        // itself and is wrong here. Every solved component is a concentration,
+        // a cumulative accumulator or a dislocation density, so none of them
+        // has a physical negative branch.
+        ws.cons = N_VNew_Serial(neq, ws.sunctx);
+        if (!ws.cons) return 103;
+        N_VConst(SUN_RCONST(1.0), ws.cons);
+    }
 
     if (P.linsol == 1) {
         int mu = P.mu < neq - 1 ? P.mu : neq - 1;
@@ -262,6 +274,11 @@ static int ws_ensure(Workspace& ws, const Parameters& P,
         return 133;
     if (P.max_order > 0 &&
         CVodeSetMaxOrd(ws.cvode_mem, P.max_order) != CV_SUCCESS) return 131;
+    // Set on the WORKSPACE, not per case: the constraint vector is a property
+    // of the equation set, not of the point, and the workspace is reused across
+    // every case in a batch.
+    if (P.nonneg &&
+        CVodeSetConstraints(ws.cvode_mem, ws.cons) != CV_SUCCESS) return 131;
 
     ws.neq = neq; ws.reduced = reduced; ws.ajac = ajac;
     ws.acc_mode = P.acc_mode;
@@ -489,7 +506,27 @@ static int integrate_one(const Parameters& P, std::ostream& out, Workspace& ws) 
                                     ? ACC_ATOL_RELAXED : P.atol;
         if (CVodeSVtolerances(cvode_mem, P.rtol, ws.atolv) != CV_SUCCESS) return 131;
     } else if (CVodeSStolerances(cvode_mem, P.rtol, P.atol) != CV_SUCCESS) return 131;
-    if (CVodeSetMaxNumSteps(cvode_mem, 500000) != CV_SUCCESS) return 131;
+    // THE STEP BUDGET IS A FAILURE DETECTOR, NOT JUST A SAFETY NET, and on the
+    // coupling march it wants to be far smaller than this default.
+    //
+    // A healthy point integrates a substep in ~0.016 s. A point that has fallen
+    // into the stiff corner where the basal chain's transfer gate, the
+    // grain-boundary gate and the loop populations meet takes MINUTES to
+    // exhaust 500 000 steps before it finally reports CV_TOO_MUCH_WORK. With
+    // ~700 such points in a 189 533-node field that is a substep that never
+    // ends -- measured, twice: 5h47m and then 3.0 h for one substep, against a
+    // normal 57 s.
+    //
+    // The march already knows what to do with a point that FAILS:
+    // `immobile.run_immobile_step` re-runs it with rtol x 1e-2, and rtol = 1e-8
+    // integrates these points in 0.083 s (measured on the ten worst). What it
+    // cannot do is rescue a point that merely grinds. Lowering the budget
+    // converts a hang into a failure, which is the one thing the retry path
+    // needs to see.
+    //
+    // Absent, the value is 500000 exactly as before, so every existing command
+    // line is bit-identical.
+    if (CVodeSetMaxNumSteps(cvode_mem, P.max_steps) != CV_SUCCESS) return 131;
 
     // Emit one output row in the unchanged 19-column contract, reassembling the
     // full state from the reduced block, the frozen mobile values and the

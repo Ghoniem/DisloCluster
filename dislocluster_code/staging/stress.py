@@ -6,9 +6,10 @@ The applied stress had TWO independent sources of truth and they disagreed.
 
 ``BOUNDARY['applied_stress_MPa']`` goes into ``ElasticDeformation.txt`` and
 drives the 3-D elastic solve. The 0-D slow step instead read ``sigma_n`` from
-the workbook's ``Material_Environment`` sheet, where it has stood at
-``1.0e8 Pa`` -- **100 MPa** -- and it used that for the aligned/non-aligned loop
-split and for the stress-dependent vacancy emission. Nothing reconciled them, so
+the workbook's ``Material_Environment`` sheet, where it stood at
+``1.0e8 Pa`` -- **100 MPa** -- until it was zeroed on 2026-09-04, and it used
+that for the aligned/non-aligned loop split and for the stress-dependent vacancy
+emission. Nothing reconciled them, so
 every run in the 500 nm series was simultaneously
 
     at 100 MPa   in the 0-D loop alignment (f_a = 0.4015) and emission, and

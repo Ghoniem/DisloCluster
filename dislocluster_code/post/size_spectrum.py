@@ -81,6 +81,28 @@ def _lambda_nm(slug):
     return float(np.sqrt(om / (np.pi * bedge * b ** 3)) * b * 1e9)
 
 
+def _size_map(slug):
+    """(ln-prefactor, exponent) carrying ln m to ln(diameter in nm).
+
+    A LOOP is planar, d = 2 lambda sqrt(m), so the exponent is 1/2. The PYRAMID
+    is COMPACT: `parameters.h` gives it R = (m Omega/sqrt8)^(1/3), Eq. (Rsfp),
+    so D = 2R has exponent 1/3 and a different prefactor entirely -- there is no
+    lambda and no Burgers vector in it.
+
+    Sizing it as a loop, which this module used to do, is wrong twice over,
+    because `_lambda_nm` also falls through to the PRISMATIC BEDGE for any slug
+    that is not basal: a pyramid of 400 vacancies came out 6.1 nm across where
+    it is 3.0. The mapping is a power law either way, so a log-normal in m stays
+    log-normal in D -- only the exponent changes, and at 1/2 the expressions
+    below are exactly what they were.
+    """
+    if slug == "pyr":
+        om = float(mfield.read_material_scalar(paths.MODELIB_MATERIAL,
+                                               "atomicVolume_SI"))
+        return np.log(2.0 * (om / np.sqrt(8.0)) ** (1.0 / 3.0) * 1e9), 1.0 / 3.0
+    return np.log(2.0 * _lambda_nm(slug)), 0.5
+
+
 def load(run):
     z = np.load(Path(run) / "march_state.npz")
     return (np.asarray(z["doses"], float), z["Y"],
@@ -128,9 +150,9 @@ def spectrum(Y_dose, nodes, vol, slug, d_grid, mask=None, floor=1e-19,
     s2 = np.log(delta)
     # log-normal in m: mean = exp(mu + s2/2); in d = 2 lambda sqrt(m) the
     # parameters halve, exactly.
-    lam = _lambda_nm(slug)
-    mu_d = np.log(2.0 * lam) + 0.5 * (np.log(mbar) - 0.5 * s2)
-    s_d = 0.5 * np.sqrt(s2)
+    ln_pref, expo = _size_map(slug)
+    mu_d = ln_pref + expo * (np.log(mbar) - 0.5 * s2)
+    s_d = expo * np.sqrt(s2)
 
     om = float(mfield.read_material_scalar(paths.MODELIB_MATERIAL,
                                            "atomicVolume_SI"))
@@ -149,7 +171,10 @@ def spectrum(Y_dose, nodes, vol, slug, d_grid, mask=None, floor=1e-19,
     return dN_dlnd, dict(
         count=tot, nodes=int(ok.sum()), volume_m3=V,
         density=tot / V if V > 0 else np.nan,
-        d_mean=float(2 * lam * np.sqrt((c.sum() / n.sum()))),
+        # THE SAME MAPPING AS THE SPECTRUM, not a second copy of the loop
+        # formula: at exponent 1/2 this is exactly 2 lambda sqrt(c/n) as before,
+        # and for the compact pyramid it is 2 (mbar Omega/sqrt8)^(1/3).
+        d_mean=float(np.exp(ln_pref + expo * np.log(c.sum() / n.sum()))),
         delta_med=float(np.median(raw)), delta_max=float(raw.max()),
         n_delta_gt3=int(hi.sum()),
         # what share of the POPULATION those wide nodes carry: the number that
@@ -399,6 +424,162 @@ def render_regions(run, doses, slugs, out_file, dose=None, dpi=200,
     return out_file, deltas
 
 
+#: The nine carried families, in the order the state lays them out.
+ALL_FAMILIES = ("c", "a1", "a2", "a3", "a1v", "a2v", "a3v", "cp", "pyr")
+
+#: Doses for the per-family sweep. Wider than DEFAULT_DOSES because these
+#: figures exist to show the WHOLE evolution of one family rather than to
+#: compare families at a few points, so the nucleation transient and the
+#: saturated end both have to be on the same axes.
+PER_FAMILY_DOSES = (1e-4, 1e-2, 1.0, 10.0, 40.0)
+
+
+def render_family(d, data, slug, doses, out_file, region="domain", dpi=200):
+    """ONE family, one curve per dose -- the per-panel style of `render`.
+
+    Same construction as the multi-panel figure and deliberately so: linear in
+    diameter with dN/dd on a log ordinate, because that is the form a measured
+    TEM size distribution takes and plotting a log density against a linear
+    axis would misstate the area under every peak. Three decades of ordinate
+    below the visible peak, and nothing below D_MIN = 1 nm, for the reasons
+    `render` gives -- at the first snapshot a family is monodisperse to three
+    decimals and its tails reach 1e-270, which on an unbounded axis flattens
+    every curve in the figure into a horizontal line.
+
+    A family with no population at any dose still gets a figure, annotated.
+    `c_p` and the pyramid are fed only by the basal chain, so with that switch
+    off they are legitimately empty -- and an absent file would read as a
+    failure of this script rather than as a statement about the model.
+    """
+    DECADES, D_MIN = 3.0, 1.0
+    vis = d >= D_MIN
+    fig, ax = plt.subplots(figsize=(6.4, 4.4))
+    cmap = plt.get_cmap("viridis")
+    cols = [cmap(t) for t in np.linspace(0.06, 0.86, len(doses))]
+
+    peak, hi, drawn = 0.0, D_MIN, 0
+    for cdx, dose in enumerate(doses):
+        entry = data.get((slug, dose))
+        if entry is None:
+            continue
+        y, st = entry
+        if st["count"] <= 0:
+            continue
+        yv = y / max(st["volume_m3"], 1e-300) / d          # dN/dd
+        v = yv[vis]
+        if v.size == 0 or v.max() <= 0:
+            continue
+        ax.plot(d[vis], v, color=cols[cdx], lw=1.9, label=f"{dose:g} dpa")
+        peak = max(peak, float(v.max()))
+        drawn += 1
+    if peak > 0:
+        for cdx, dose in enumerate(doses):
+            entry = data.get((slug, dose))
+            if entry is None or entry[1]["count"] <= 0:
+                continue
+            v = (entry[0] / max(entry[1]["volume_m3"], 1e-300) / d)[vis]
+            above = np.flatnonzero(v >= peak * 10 ** (-DECADES))
+            if above.size:
+                hi = max(hi, float(d[vis][above[-1]]))
+        ax.set_ylim(peak * 10 ** (-DECADES), peak * 3)
+        ax.set_xlim(0.0, 1.08 * hi)
+    ax.set_yscale("log")
+    ax.set_xlabel("loop diameter $d$ [nm]")
+    ax.set_ylabel(r"$\mathrm{d}N/\mathrm{d}d$  [m$^{-3}$nm$^{-1}$]")
+    ax.set_title(f"{LABEL[slug]}   ({region})", fontsize=12)
+    ax.grid(alpha=0.3, which="both")
+    if drawn:
+        ax.legend(frameon=False, fontsize=9, loc="upper left",
+                  bbox_to_anchor=(1.02, 1.0), title="dose")
+    else:
+        ax.text(0.5, 0.5, "no population at any dose",
+                transform=ax.transAxes, ha="center", va="center",
+                fontsize=11, color="0.35")
+        ax.set_xlim(0.0, 100.0)
+        ax.set_ylim(1e-3, 1e3)
+    fig.tight_layout()
+    out_file = Path(out_file)
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_file, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    return out_file, drawn
+
+
+def write_per_family(run, doses=PER_FAMILY_DOSES, out_dir=None,
+                     region="domain", families=ALL_FAMILIES, verbose=True):
+    """`<run>/size_distributions/`: one size-distribution figure per family.
+
+    Requested doses are SNAPPED to the march's own snapshots and deduplicated,
+    so a run that stops at 10 dpa does not silently plot its 10 dpa state twice
+    under two labels. What is actually used is reported and written into the
+    directory's own README.
+    """
+    run = Path(run)
+    out_dir = Path(out_dir) if out_dir else (run / "size_distributions")
+    all_doses = np.asarray(load(run)[0], float)
+
+    used, skipped = [], []
+    for want in doses:
+        i = int(np.argmin(np.abs(all_doses - float(want))))
+        got = float(all_doses[i])
+        # A snapshot more than 25% away in log-dose is not the dose asked for.
+        if want > 0 and got > 0 and abs(np.log10(got / want)) > 0.12:
+            skipped.append((float(want), got))
+            continue
+        if got not in used:
+            used.append(got)
+    used.sort()
+    if verbose:
+        print(f"  size_distributions: {len(families)} families at "
+              + ", ".join(f"{u:g}" for u in used) + " dpa")
+        for want, got in skipped:
+            print(f"    requested {want:g} dpa: nearest snapshot is {got:g}, "
+                  f"too far -- omitted")
+    if not used:
+        print("  size_distributions: no usable snapshot, nothing written")
+        return []
+
+    # A WIDER GRID THAN THE MULTI-PANEL FIGURE'S. `build` defaults to 400 nm,
+    # which the basal family outgrows: at a mean of ~155 nm its distribution is
+    # still well above the three-decade window at the grid edge, so the curve
+    # ended where the array ended rather than where the population did, and the
+    # axis limit -- taken from the largest visible diameter -- inherited that.
+    # 2000 nm is past the crystal's own dimension, so nothing physical is cut.
+    d, data = build(run, doses=used, slugs=families, region=region,
+                    n_d=420, d_lim=(0.3, 2000.0), verbose=False)
+    written, lines = [], []
+    for slug in families:
+        f, drawn = render_family(d, data, slug, used,
+                                 out_dir / f"size_dist_{slug}.png",
+                                 region=region)
+        written.append(f)
+        tot = sum(data[(slug, u)][1]["count"] for u in used
+                  if (slug, u) in data)
+        lines.append(f"| `{slug}` | {LABEL[slug]} | {drawn} of {len(used)} | "
+                     f"{tot:.3e} |")
+        if verbose:
+            print(f"    {slug:<4} {drawn} of {len(used)} doses populated "
+                  f"-> {f.name}")
+
+    readme = out_dir / "README.md"
+    readme.write_text(
+        "# Loop size distributions\n\n"
+        f"Reconstructed from the three carried moments per family, over the "
+        f"**{region}**, at {', '.join(f'{u:g}' for u in used)} dpa. One figure "
+        "per family; `dN/dd` against a linear diameter axis, which is the form "
+        "a measured TEM size distribution takes.\n\n"
+        "The per-node closure is log-normal in the defect count; what is "
+        "plotted is the VOLUME-WEIGHTED MIXTURE of those per-node "
+        "distributions over the crystal, which is not itself log-normal and "
+        "is what a micrograph of a whole specimen samples.\n\n"
+        "| family | symbol | doses populated | total loops |\n"
+        "|---|---|---|---:|\n" + "\n".join(lines) + "\n",
+        encoding="utf-8")
+    if verbose:
+        print(f"  wrote {out_dir}")
+    return written
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -411,11 +592,20 @@ def main(argv=None):
     ap.add_argument("--regions", action="store_true",
                     help="instead of the dose sweep, compare the whole "
                          "crystal with its interior and its boundary shell")
+    ap.add_argument("--per-family", action="store_true",
+                    help="write <run>/size_distributions/: one figure per "
+                         "family, one curve per dose, over all nine families")
     ap.add_argument("--delta-cap", type=float, default=None,
                     help="diagnostic: clip the per-node dispersion, to see "
                          "by difference what the widest nodes contribute")
     a = ap.parse_args(argv)
     run = Path(a.run_dir)
+    if a.per_family:
+        doses = a.doses if argv and "--doses" in argv else PER_FAMILY_DOSES
+        write_per_family(run, doses=doses, out_dir=a.out, region=a.region,
+                         families=(a.families if argv and "--families" in argv
+                                   else ALL_FAMILIES))
+        return
     if a.regions:
         out = a.out or (run / "size_spectrum" / "spectrum_regions.png")
         render_regions(run, sorted(a.doses), a.families, out)

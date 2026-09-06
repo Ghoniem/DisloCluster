@@ -205,6 +205,33 @@ def report(run, result=None, n_doses=6, verbose=True):
         print(f"rendering {run.out_dir} ...")
     march_report.main(argv)
 
+    # `size_distributions/`: one reconstructed size distribution per family,
+    # every dose on one axes. Guarded, and for the same reason `march_report`
+    # guards `boundary_flux`: a figure must never cost a report the march
+    # earned. It needs the second moment, so a run without `moments` has no
+    # distribution to reconstruct and is skipped rather than failed.
+    if getattr(run.cfg.solver, "moments", 0):
+        from dislocluster_code.post import size_spectrum
+        try:
+            size_spectrum.write_per_family(run.out_dir, verbose=verbose)
+        except Exception as exc:            # noqa: BLE001 - diagnostic only
+            print(f"  size_distributions FAILED ({exc.__class__.__name__}: "
+                  f"{exc}); the rest of the report is unaffected")
+    elif verbose:
+        print("  size_distributions skipped: the run carries no second moment")
+
+    # Per-family density and size against experiment. Needs the self-consistent
+    # layout: under `loop_model = 0` the four legacy slots are what
+    # `post.visualization` already draws, and there are no variants to resolve.
+    if getattr(run.cfg.solver, "loop_model", 0):
+        from dislocluster_code.post import family_comparison
+        try:
+            family_comparison.render(run.out_dir, region="interior",
+                                     verbose=verbose)
+        except Exception as exc:        # noqa: BLE001 - diagnostic only
+            print(f"  family_comparison FAILED ({exc.__class__.__name__}: "
+                  f"{exc}); the rest of the report is unaffected")
+
     if run.cfg.output.discrete_loops:
         from dislocluster_code.post import discrete_loops, loop_movie, tem_slices
         discrete_loops.main([str(run.out_dir)])

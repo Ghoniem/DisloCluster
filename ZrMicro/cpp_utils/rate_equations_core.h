@@ -426,6 +426,30 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // bit-identical to step 4.
             if (!P.moments || m_theta <= 0.0) return T(1.0);
             if (ad_val(f_num[k]) <= C_floor) return T(1.0);
+            // ── REGULARIZED BRANCH (gate_s2_floor > 0) ─────────────────────
+            // s2 = ln(Delta) -> 0 as a family's distribution narrows toward a
+            // delta, and the erfc then approaches a STEP in m_bar. CVODE
+            // cannot integrate a step: it chops until it hits max_steps, which
+            // is what a stalled substep looks like. Measured on the 1000 nm
+            // nine-family march at 1 dpa: 3417 nodes (1.80%) had a family with
+            // Delta < 1.01 AND its mean sitting within 3s of the GB threshold,
+            // 2071 of them inside ONE shard of sixteen -- and that shard ran
+            // 42 min against 7 s for each of the other fifteen.
+            //
+            // Adding a floor to the log-variance widens the transition to
+            // +-sqrt(s2_floor) in ln m and makes the gate smooth and
+            // differentiable in BOTH m_bar and Delta, so the analytic Jacobian
+            // carries it. DEFAULT 0 keeps the expression and the Heaviside
+            // branch below exactly as they were, bit-for-bit.
+            if (P.gate_s2_floor > 0.0) {
+                T s2r = ad_log(f_delta[k]);
+                if (ad_val(s2r) < 0.0) s2r = T(0.0);   // Delta < 1 is unphysical
+                s2r = s2r + T(P.gate_s2_floor);
+                T sdr = ad_sqrt(s2r);
+                T mur = ad_log(f_mbar[k]) - 0.5 * s2r;
+                return 0.5 * ad_erfc((ad_log(T(m_theta)) - mur - j * s2r)
+                                     / (sdr * 1.4142135623730951));
+            }
             if (ad_val(f_delta[k]) <= 1.0)
                 // No spread at all: the distribution IS a delta, and the gate
                 // is the Heaviside that erfc tends to as s -> 0. Not 1 -- that
@@ -613,7 +637,12 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
         // stated regression. Note it recovers the PHYSICS; `n_fam` is what
         // recovers the bits, because a family sitting at the concentration
         // floor still feeds floor-level terms into coalescence and rho_N.
-        const double G_vL_basal = (nf > 4) ? P.G_vL : (P.G_vL + P.G_avL);
+        // AT nf <= 4 THERE IS NOWHERE ELSE FOR IT TO GO: the prismatic vacancy
+        // variants do not exist, so the whole vacancy-loop cascade yield is
+        // basal. Above that the two are separate crystallographic channels,
+        // G_vL_c and G_vL_a, which default to the legacy pair -- so this line
+        // is what it always was whenever the new keys are absent.
+        const double G_vL_basal = (nf > 4) ? P.G_vL_c : (P.G_vL_c + P.G_vL_a);
         T nuc_a_num  = nuc_clust + T(G_iL_tot / P.n_iL_nuc);
         T nuc_a_cont = nuc_content + T(G_iL_tot);
         f_nucn[0] = T(G_vL_basal / P.n_vL_nuc);
@@ -628,8 +657,8 @@ void rhs_core(const T* y, T* ydot, const Parameters& P) {
             // The VACANCY weights, not the interstitial ones: under load the
             // two characters must move in opposite directions.
             const double w = (v < 3) ? P.variant_frac_v[v] : 0.0;
-            f_nucn[k] = T(w * P.G_avL / P.n_vL_nuc);
-            f_nucc[k] = T(w * P.G_avL);
+            f_nucn[k] = T(w * P.G_vL_a / P.n_vL_nuc);
+            f_nucc[k] = T(w * P.G_vL_a);
         }
 
         // Thermal annealing acts on the vacancy families -- all of them, now

@@ -336,6 +336,28 @@ struct Parameters {
     int    moments;
     double m_min;        // [-] the size floor the dissolution current sits at
 
+    // CVODE's internal step budget per output interval. 500000 is what was
+    // hard-coded before it became a parameter; the march lowers it so a point
+    // in the stiff corner fails fast enough for the retry path to tighten its
+    // tolerances rather than grinding for minutes.
+    long   max_steps;
+
+    // Enforce y >= 0 through CVodeSetConstraints.
+    //
+    // WHY IT IS NEEDED. At a node ON the boundary, x_gb = 0, so the
+    // grain-boundary gate's threshold m_gb = (x_gb/l_k)^2 is zero, Phi^(0) = 1,
+    // and the WHOLE family is removed at rate nu_gb -- which is deliberate
+    // ("every loop touches"). Nothing stops the state from undershooting
+    // through zero on the way, and once it does, the RHS floors the value back
+    // to C_floor while the error control still sees a negative component. The
+    // two disagree about what the state is and CVODE burns its steps chasing
+    // the difference. Measured at 0.1 dpa on the nine-family basal chain: the
+    // slowest 15% of nodes are exactly the x_gb = 0 nodes, with n_cf at the
+    // 1e-20 floor and n_cp at -1.5e-19, costing 0.958 s against 0.017 s.
+    //
+    // 0 (the default) reproduces every existing command line bit-for-bit.
+    int    nonneg;
+
     int    basal_chain;
     double eps_sfp;      // cascade yield into the pyramid, as a rate [1/s]
     double n_sfp_nuc;    // vacancies per cascade-nucleated pyramid
@@ -449,6 +471,10 @@ struct Parameters {
     int    coal_gated;
 
     // Per mobile species (v, i, 2i, 3i). Used only when loop_model >= 1.
+    // Floor added to the gate's log-variance s2 = ln(Delta). 0 disables it and
+    // every rate is bit-identical; > 0 widens the transfer gates from a near-
+    // step to +-sqrt(s2_floor) in ln m. See gate_ln in rate_equations_core.h.
+    double gate_s2_floor;
     double dad_p[4];    // p_m = (D_c/D_a)^(1/6), from the migration energies
     double dad_Z0[4];   // Z0_m, the isotropic-limit capture efficiency
     // Per family. loop_sink_scale replaces the legacy Q, which scaled the <c>
@@ -483,6 +509,22 @@ struct Parameters {
     double G_aiL;  // cascade interstitial a-loop atom rate (aligned)
     double G_vL;   // vacancy loop generation rate
     double G_avL;  // aligned vacancy loop generation rate
+    // ── The CRYSTALLOGRAPHIC vacancy-loop cascade split, loop_model >= 1 ────
+    // G_vL / G_avL are the NON-ALIGNED / ALIGNED pair of the legacy model, and
+    // that is a habit-plane ORIENTATION split under load, set by
+    // f_a = (1+2f)/3 with f a Boltzmann factor on the resolved normal stress.
+    // The self-consistent model needs a different thing entirely: how the
+    // cascade's surviving vacancies divide between the BASAL <c> family and the
+    // PRISMATIC <a> variants. Reading G_vL/G_avL as that division -- which is
+    // what this code used to do -- lets an applied stress decide how many basal
+    // versus prismatic vacancy loops a cascade makes, which is not physics.
+    //
+    // These two are that division, and they are separate names so that nothing
+    // is overloaded: the legacy path keeps G_vL/G_avL with their legacy meaning.
+    // Absent, they fall back to the legacy pair, so every existing command line
+    // reproduces bit-for-bit.
+    double G_vL_c; // cascade vacancy ATOM rate into the basal <c> family
+    double G_vL_a; // cascade vacancy ATOM rate into the prismatic <a> variants
 
     // ── Loop fractions (InputData.derived) ──────────────────────────────────
     double f_a;   // aligned fraction
@@ -728,6 +770,7 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
         // Defaults are the isotropic limit: p_m = 1 makes both Woo rows equal
         // Z0_m, so a self-consistent run with no tensor anisotropy supplied is
         // unbiased rather than accidentally biased.
+        P.gate_s2_floor = optional_param(p, "gate_s2_floor", 0.0);
         const char* pk[4]  = {"dad_p_v",  "dad_p_i",  "dad_p_2i",  "dad_p_3i"};
         const char* z0k[4] = {"dad_Z0_v", "dad_Z0_i", "dad_Z0_2i", "dad_Z0_3i"};
         for (int m = 0; m < 4; ++m) {
@@ -767,6 +810,8 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     // ── Step 4 ──────────────────────────────────────────────────────────────
     P.moments = static_cast<int>(optional_param(p, "moments", 0.0));
     P.m_min   = optional_param(p, "m_min", 1.0);
+    P.max_steps = static_cast<long>(optional_param(p, "max_steps", 500000.0));
+    P.nonneg    = static_cast<int>(optional_param(p, "nonneg", 0.0));
     P.basal_chain = static_cast<int>(optional_param(p, "basal_chain", 0.0));
     P.eps_sfp   = optional_param(p, "eps_sfp",   0.0);
     P.n_sfp_nuc = optional_param(p, "n_sfp_nuc", 1.0);
@@ -871,6 +916,11 @@ inline Parameters build_parameters(const std::map<std::string, double>& p) {
     P.G_aiL = require_param(p, "G_aiL");
     P.G_vL  = require_param(p, "G_vL");
     P.G_avL = require_param(p, "G_avL");
+    // Default to the legacy pair: absent keys reproduce the previous behaviour
+    // exactly, since loop_model >= 1 routed G_vL to the basal family and G_avL
+    // to the prismatic vacancy variants.
+    P.G_vL_c = optional_param(p, "G_vL_c", P.G_vL);
+    P.G_vL_a = optional_param(p, "G_vL_a", P.G_avL);
 
     // Fractions
     P.f_a  = require_param(p, "f_a");

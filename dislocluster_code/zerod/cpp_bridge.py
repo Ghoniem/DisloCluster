@@ -155,6 +155,20 @@ def collect_solver_args(sim, solver_config):
     params['G_vL']  = inp.derived['G_vL']
     params['G_avL'] = inp.derived['G_avL']
 
+    # The CRYSTALLOGRAPHIC vacancy-loop split, which `loop_model >= 1`
+    # integrates in place of the aligned/non-aligned pair above. EMITTED ONLY
+    # WHEN IT DIFFERS: the C++ defaults G_vL_c/G_vL_a to G_vL/G_avL, so a case
+    # that has not set `epsilon_vL_c`/`epsilon_vL_a` produces the command line
+    # it always did -- which matters because the march's checkpoint fingerprint
+    # hashes that command line, and an unconditional pair would refuse every
+    # existing resume for a change that alters no number.
+    _gc = inp.derived.get('G_vL_c')
+    _ga = inp.derived.get('G_vL_a')
+    if _gc is not None and _ga is not None and (
+            _gc != inp.derived['G_vL'] or _ga != inp.derived['G_avL']):
+        params['G_vL_c'] = _gc
+        params['G_vL_a'] = _ga
+
     # ── Loop fractions ─────────────────────────────────────────────────────
     params['f_a']  = inp.derived['f_a']
     params['f_na'] = inp.derived['f_na']
@@ -406,6 +420,21 @@ def collect_solver_args(sim, solver_config):
         if int(solver_config.get('moments', 0)) != 0:
             params['moments'] = 1
             params['m_min'] = float(solver_config.get('m_min', 1.0))
+            # THE GATE'S LOG-VARIANCE FLOOR. Every transfer gate is an erfc in
+            # ln m whose width is s = sqrt(ln Delta), so a family narrowing
+            # toward a delta turns its gate into a STEP in m_bar -- which CVODE
+            # cannot integrate: it chops until it hits max_steps. Measured on
+            # the 1 um nine-family march at 1 dpa, on 12 000 real node states:
+            #
+            #     as run            2670 s   9 921/12 000 converged
+            #     gate_s2_floor 0.01 2476 s   9 921/12 000
+            #     gate_s2_floor 0.1    10 s  12 000/12 000
+            #
+            # i.e. 17% of the field was silently failing the step cap and one
+            # shard of sixteen ran 42 min against 7 s for the rest. 0 (the
+            # default) leaves the gate exactly as it was, bit-for-bit.
+            if float(solver_config.get('gate_s2_floor', 0.0)) > 0.0:
+                params['gate_s2_floor'] = float(solver_config['gate_s2_floor'])
             # THE DISTRIBUTION LEAKS AT BOTH ENDS. `nu_vanish`/`m_vanish` is the
             # small end -- loops that shrink below a minimum stable size
             # dissolve, which is the physical content of the tau_cvL step 3

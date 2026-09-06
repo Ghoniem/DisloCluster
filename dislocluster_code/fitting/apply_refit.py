@@ -42,7 +42,13 @@ BIAS_KEYS = ('dad_p_v', 'dad_p_i', 'dad_Z0_v', 'dad_Z0_i',
              'loop_sink_scale_c')
 
 #: Fitted names that are solver switches rather than workbook parameters.
-SOLVER_KEYS = ('m_min', 'chi', 'nu_vanish', 'm_vanish')
+#: `split` sends anything it does not recognise to the WORKBOOK, so a solver
+#: switch missing from this tuple does not raise -- it is quietly written into
+#: an override dict the solver never reads, and the run reports the switch while
+#: integrating without it. `gate_s2_floor` was added here after exactly that:
+#: the flag was set in a run script, appeared in the config, and was absent from
+#: the command line.
+SOLVER_KEYS = ('m_min', 'chi', 'nu_vanish', 'm_vanish', 'gate_s2_floor')
 
 
 def split(params):

@@ -1,0 +1,867 @@
+\section{Results: a 500\,nm Hexagonal Single Crystal to 40\,dpa}
+\label{sec:results}
+
+Every result below comes from one calculation: the calibrated parameter set of
+\cref{tab:fitted}, all nine families, three moments each, peripheral emission
+active, the basal chain inactive, and the grain-boundary loop channel of
+\cref{sec:gb-loops} active. Conditions are $T=573\,$K,
+$G=10^{-7}\,\mathrm{dpa\,s^{-1}}$, zero applied stress, and thirteen dose
+intervals from $10^{-4}$ to 40\,dpa. The upper limit is set by the measurements
+rather than by the model: the \cloop{} data reach 35\,dpa, so a calculation
+stopping at 10 would have to be extrapolated before it could be compared with
+them. Where a comparison is drawn against the same case
+\emph{without} the loop channel, that companion differs in nothing else.
+
+\subsection{Geometry, discretization and system size}
+\label{sec:geometry}
+
+The domain is a hexagonal prism of 500\,nm across flats and 800\,nm along
+$[0001]$, meshed with a refined boundary layer 100\,nm deep in which the target
+element size falls from 60 to 20\,nm (\cref{fig:mesh}). The refinement is not
+cosmetic: \cref{sec:results-mobile} measures interstitial boundary layers of
+$16$--$28\,$nm, so an unrefined mesh at $60\,$nm would resolve the steepest
+gradient in the problem with a single element.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.55\textwidth]{figures/fe_mesh.png}
+\caption{The finite-element mesh, cut in half so that the interior is visible:
+60\,922 tetrahedra on 12\,581 mesh vertices. The refinement toward the six
+prismatic faces and the two basal faces is the boundary layer, 100\,nm deep,
+within which the element size falls from 60 to 20\,nm. Crystal axes as in
+\cref{fig:hcp-cell}: $[10\bar10]$, $[\bar2\bar1\bar10]$ and $[0001]$.}
+\label{fig:mesh}
+\end{figure}
+
+The cluster-dynamics trial functions live on second-order elements, so the field
+nodes are more numerous than the mesh vertices: 90\,617 of them, filling a
+crystal of $1.295\times10^{8}\,\mathrm{nm^{3}}$, or $5.568\times10^{9}$ atoms.
+The resulting system sizes are those of \cref{tab:cost}: 362\,468 mobile
+degrees of freedom solved as one coupled algebraic system eight times, and
+2\,446\,659 immobile ones marched as 72\,928 independent 36-dimensional stiff
+systems at each of 24 substeps --- $7.8\times10^{7}$ scalar ordinary differential
+equations over the march, in 1\,h\,04\,m on 24 cores.
+
+The whole surface is a boundary. No face is periodic, so every face
+carries \cref{eq:bc}, and the maximum distance from any node to the nearest face
+is 215\,nm --- the inradius, and the cap $R_{\max}$ used in \cref{eq:trunc}.
+
+\subsection{Mobile defect fields}
+\label{sec:results-mobile}
+
+\Cref{fig:mobile} shows the four mobile species early in the transient
+($10^{-4}\,$dpa) and at 40\,dpa, on two orthogonal
+mid-cuts. Every panel has the same structure --- an interior plateau and a
+depleted shell --- and the differences between them are entirely in the width of
+that shell and in the level of the plateau.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/mobile_early_late.png}
+\caption{Mobile species at $10^{-4}\,$dpa (left) and 40\,dpa (right), on one
+vertical and one horizontal mid-cut. Rows, top to bottom: $C_v$, $C_i$,
+$C_{2i}$, $C_{3i}$; each row has its own logarithmic color scale, so levels are
+comparable across dose within a row and not between rows. The interior plateau
+falls and the depleted shell narrows between the two doses, both because the
+sink density has risen.}
+\label{fig:mobile}
+\end{figure}
+
+The boundary layer is a diffusion length and it orders the species.
+Measuring the layer as the distance at which the binned median recovers
+$1-e^{-1}$ of the interior plateau:
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Dose (dpa) & $C_v$ & $C_i$ & $C_{2i}$ & $C_{3i}$ \\
+\midrule
+$10^{-4}$ & 16.5\,nm & 27.5\,nm & 46.0\,nm & 46.0\,nm \\
+$10^{-2}$ & 14.9\,nm & 27.5\,nm & 46.0\,nm & 46.0\,nm \\
+$10$      &  8.0\,nm & 16.5\,nm & 18.2\,nm & 18.2\,nm \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two readings, and both are consequences of $L\sim\sqrt{D/k^{2}}$ rather than of
+anything fitted. \emph{Across species at fixed dose}, the layer widens with
+mobility: the vacancy, least mobile, is depleted over the shortest distance,
+while the interstitial clusters --- which reach a sink from further away ---
+carry the widest layer. \emph{Across dose at fixed species}, every layer
+narrows, by a factor of two between $10^{-4}$ and 10\,dpa, because $k^{2}$ has
+grown with the loop population that the same calculation is building. The
+boundary layer is therefore not a fixed geometric feature of the domain; it is a
+running measure of the sink density, and it tightens as the microstructure
+develops.
+
+Anisotropy acts on the shape of the layer, not only its width.
+Because the domain has two basal faces and six prismatic ones, the layer can be
+measured separately toward each set, using only the nodes for which that set is
+the nearer boundary:
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{$10^{-4}$\,dpa} & \multicolumn{2}{c}{40\,dpa} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Species & toward basal & toward prismatic & toward basal & toward prismatic \\
+\midrule
+$C_v$    & 84.8\,nm & 11.7\,nm & 24.0\,nm & 6.8\,nm \\
+$C_i$    & 12.8\,nm & 28.8\,nm &  7.5\,nm & 18.3\,nm \\
+$C_{2i}$ & 22.0\,nm & 45.2\,nm &  6.8\,nm & 24.0\,nm \\
+$C_{3i}$ & 24.0\,nm & 45.2\,nm &  6.8\,nm & 24.0\,nm \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The vacancy layer is $7.2$ times \emph{wider} toward the basal faces than toward
+the prismatic ones, which is the sign the $p^{v}=1.6$ this calculation was run at
+requires: vacancies are $(p^{v})^{6}=16.8$ times more mobile along $[0001]$, and a species
+that reaches a sink from further away is depleted over a longer distance. The
+scale expected from $L\sim\sqrt{D/k^{2}}$ is
+$\sqrt{16.8}=4.1$, so the measured $7.2$ is not a clean reading of the
+diffusivity ratio, and the interstitial rows show why. At $p^{i}=1.0$ the
+interstitials diffuse isotropically, yet their layer is \emph{narrower} toward
+the basal faces by a factor of $0.44$ --- an effect of domain shape rather than
+of transport, since a node near a prismatic face is close to several faces at
+once and is depleted more than its distance to the nearest one would suggest.
+Anisotropy and geometry therefore act in opposite directions here, and only
+their combination is directly observable.
+
+Two consequences. First, an SRCD calculation on a shaped grain measures the
+convolution of the diffusion tensor with the grain geometry, so extracting one
+requires the other to be known --- which is an argument for calibrating $p^{m}$
+atomistically rather than from a boundary-layer profile
+(\cref{sec:conclusions}). Second, the narrowest layer in the problem is the
+interstitial one toward a basal face, $7.5\,$nm at 10\,dpa, against a
+$20\,$nm boundary element: the steepest gradient the calculation contains is
+resolved by well under one element, and it is at exactly such a location that an
+earlier calculation on this geometry drove a single node beyond the integrator's
+reach.
+
+Interior median concentrations fall over the march --- $C_v$ from
+$7.22\times10^{-6}$ to $1.50\times10^{-6}$, $C_i$ from $6.75\times10^{-10}$ to
+$3.80\times10^{-10}$, and the clusters by nearly an order of magnitude --- which
+is the signature of a rising sink density at constant production.
+
+\subsection{Immobile fields and their moments}
+\label{sec:results-moments}
+
+\Cref{fig:moments-cf,fig:moments-a1} show the three carried moments of the
+faulted basal family and of one prismatic interstitial variant, at the same two
+doses. The three rows are not three views of one thing; they answer different
+questions, and their spatial structures differ.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/moments_cf.png}
+\caption{The basal faulted family $c_f$ at $10^{-4}$ and 40\,dpa: number density
+$n$ (top), stored content $c$ (middle), second content $q$ (bottom).}
+\label{fig:moments-cf}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/moments_a1.png}
+\caption{The prismatic interstitial variant $a_1$ at the same two doses, same
+three moments. The variants $a_2$ and $a_3$ are identical at zero applied
+stress and are not shown.}
+\label{fig:moments-a1}
+\end{figure}
+
+Number is boundary-peaked, content is interior-peaked, and that is
+the physics. Cascade nucleation is spatially uniform, but the only channel that
+removes a loop in the interior is coalescence, whose rate is driven by the
+absorbed mobile flux --- and that flux vanishes where the Dirichlet condition
+pins the mobile species. Near a boundary, loops are therefore nucleated and not
+removed, so $n$ rises steeply toward the surface. They are also not \emph{fed},
+because the same vanishing flux is what would grow them, so $c$ does not rise
+with $n$ and the mean size $c/n$ collapses. Without the channel of
+\cref{sec:gb-loops} that shell dominates every domain average, which is the
+artifact \cref{sec:results-volume} quantifies.
+
+The second moment does work, and it is realizable everywhere. The
+dispersion $\Delta_k=q n/c^{2}$ of \cref{eq:lognormal} must be $\ge1$ for the
+three carried numbers to be the moments of any distribution at all. Measured
+over the interior:
+
+\begin{center}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{$c_f$} & \multicolumn{2}{c}{$a_1$}
+& \multicolumn{2}{c}{$a_1^{v}$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Dose (dpa) & median & min & median & min & median & min \\
+\midrule
+$10^{-4}$ & 1.003 & 1.001 & 1.002 & 1.001 & 1.001 & 1.001 \\
+$10^{-2}$ & 1.473 & 1.098 & 1.883 & 1.090 & 1.509 & 1.076 \\
+$1$       & 1.559 & 1.250 & 2.724 & 2.442 & 2.215 & 2.112 \\
+$10$      & 1.585 & 1.266 & 2.705 & 2.439 & 2.175 & 2.104 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Three things follow. At $10^{-4}\,$dpa every family is monodisperse to
+three decimal places, as it must be --- the loops present are all fresh nuclei
+deposited at $m^{\mathrm{nuc}}_k$. By 1\,dpa the prismatic distribution has
+broadened to $\Delta=2.72$, i.e. $s=\sqrt{\ln\Delta}=1.00$, a log-normal a full
+decade wide at $\pm1\sigma$: a model carrying only $n$ and $c$ would represent
+that population by a single size. And $\Delta\ge1$ holds at \emph{every}
+interior node at every dose, minimum 1.001, which is the check that the channels
+debiting $q$ are consistent with those debiting $n$ and $c$ --- a check that no
+tolerance can substitute for, since $\Delta<1$ is not an inaccuracy but a
+statement that the state is not a moment triple.
+
+The basal family broadens less than the prismatic one ($1.59$ against $2.71$)
+because its number loss is dominated by the boundary channel, which removes the
+large end and therefore \emph{narrows} what remains, while the prismatic family
+broadens under growth with no comparable truncation.
+
+\subsection{Global conservation}
+\label{sec:results-conservation}
+
+The six atom-balance accumulators integrate the production, recombination and
+sink absorption of each character, and the two accumulators of
+\cref{sec:gb-loops} integrate the loop content taken by the boundary. In a
+spatially resolved calculation on a Dirichlet domain the balance cannot close on
+those channels alone, and the residual is not solver error: it is the atoms that
+left through the surface as \emph{mobile} species. The magnitude settles the
+matter --- nothing in an integration at $\mathrm{rtol}=10^{-6}$ is tens of
+percent wrong.
+
+\Cref{tab:conservation} is the balance over the whole march, per host atom.
+
+\begin{table}[htbp]
+\caption{The atom balance over $0\to10\,$dpa, volume-averaged, per host atom.
+Production and recombination are exactly equal between the characters, as
+Frenkel-pair production and recombination must be. The two channels that differ
+are where the physics is: the network absorbs more interstitials than vacancies
+(the bias), and the boundary absorbs vacancy \emph{loops} 60 times more than
+interstitial ones.}
+\label{tab:conservation}
+\centering
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Channel & interstitial & vacancy & \%\,prod ($i$) & \%\,prod ($v$) \\
+\midrule
+produced                  & 10.0000 & 10.0000 & 100.00 & 100.00 \\
+recombined                &  5.0832 &  5.0832 &  50.83 &  50.83 \\
+absorbed at the network   &  0.7885 &  0.5908 &   7.88 &   5.91 \\
+\textbf{loops at the boundary} & \textbf{0.0085} & \textbf{0.5123}
+                          & \textbf{0.08} & \textbf{5.12} \\
+stored in the microstructure & 0.0000 & 0.0020 & 0.00 & 0.02 \\
+\midrule
+mobile flux to the boundary (by difference)
+                          &  4.1198 &  3.8117 &  41.20 &  38.12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three readings.
+
+Both columns close on production. $10.0000 = 5.0832+0.7885+0.0085+
+0.0000+4.1198$ and likewise for the vacancies, so once the loop channel is
+carried explicitly, what remains in the residual is the mobile flux alone and
+the two do not contaminate each other. Before that channel was booked
+separately, its 5.1\% of vacancy production was silently absorbed into the
+residual, and because the residual is closure by difference, nothing looked
+wrong.
+
+The boundary is the dominant sink, by a wide margin. It takes
+$41\%$ and $38\%$ of production as mobile species, against $7.9\%$ and $5.9\%$
+at the network. That is a property of the geometry --- a 500\,nm grain with every
+face absorbing --- and it is precisely what a mean-field model represents by a
+single $k^{2}_{gb}$ and cannot resolve.
+
+The loop channel is strongly asymmetric. It removes $0.512$ vacancies
+per atom against $0.0085$ interstitials, a factor of 60. The asymmetry is
+geometric, not biased: \cloop{} loops reach a mean radius of $25\,$nm where
+\aloop{} loops reach $3\,$nm, so a basal loop intersects a face from far deeper
+inside the crystal. Note also that the boundary removes \emph{250 times more}
+vacancy loop content than the microstructure retains ($0.512$ against $0.0020$),
+which is the quantitative form of the statement that on this grain size the
+loop population is boundary-controlled.
+
+\Cref{fig:conservation} shows the channels against dose and the fractional
+decomposition. The fractions sum to unity once the boundary channels are
+included; without them the sum reached only $\sim0.3$.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/conservation_v.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/fractions_v.png}
+\end{minipage}
+\caption{Vacancy balance against dose: cumulative channels (left) and their
+fractions of production (right). The interstitial counterparts are similar
+except that the loop-at-boundary channel is 60 times smaller.}
+\label{fig:conservation}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/conservation_i.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/point_defects.png}
+\end{minipage}
+\caption{Left: the interstitial balance against dose, the counterpart of
+\cref{fig:conservation}. Right: the volume-averaged mobile concentrations, whose
+fall through the march is the rising sink density of
+\cref{sec:results-mobile} seen as an average rather than as a field.}
+\label{fig:conservation-i}
+\end{figure}
+
+\subsection{Grain-boundary effects and the denuded zone}
+\label{sec:results-gb}
+
+\Cref{fig:denuded} is the central result of the loop channel: loop density and
+mean diameter against distance to the nearest face, with and without it.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/denuded_zone.png}
+\caption{The loop-denuded zone at 40\,dpa. Solid: grain-boundary loop absorption
+active. Dashed: the identical calculation without it. Left, number density;
+right, content-weighted mean diameter. The abscissa is the minimum distance to
+any face, and the ordinate on the left is logarithmic over six decades.}
+\label{fig:denuded}
+\end{figure}
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+$x$ (nm) & $N_a$/twin & $N_c$/twin & $d_a$ (nm) & $d_c$ (nm) \\
+\midrule
+0--1        & $10^{-6}$ & $10^{-6}$ & 5.0 & 5.4 \\
+3.5--4.9    & 0.646 & 0.608 & 4.6 & 3.5 \\
+6.7--9.1    & 0.703 & 1.36  & 7.1 & 10.1 \\
+23.6--32.3  & 2.95  & 5.45  & 5.7 & 32.5 \\
+83.3--114.3 & 0.415 & 4.21  & 9.2 & 50.2 \\
+156.8--215  & 0.670 & 12.6  & 8.9 & 57.9 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The zone is real, sharp, and about 5\,nm wide. The face layer is swept
+to $10^{-6}$ of the companion calculation --- which is the concentration floor,
+so as complete a removal as this model can express --- and the depletion is still
+measurable at 5--9\,nm. Beyond that the profile is no longer denuded. The mean
+diameter recovers monotonically from $3.5\,$nm at the boundary to $58\,$nm in
+the interior, which is the size gradient a denuded zone is identified by in a
+micrograph: not merely fewer loops near the boundary, but \emph{smaller} ones,
+because the large end of the distribution is what \cref{eq:gbloop} removes first.
+
+The ledger and the density profile measure different things, and both
+are correct. Of the total absorption, only 1.7\% occurs within 2\,nm of a face
+and 93\% between 5 and 100\,nm. That is not a contradiction of the profile
+above: the face layer is swept within the first dose interval, so for 99\% of the
+march there is nothing left there to absorb, while the region further in keeps
+\emph{supplying} loops that grow into contact. The density says where loops are
+absent; the ledger says where the flux into the boundary came from over the whole
+history.
+
+A local channel with non-local consequences. The interior \cloop{}
+density is 4--5 times the companion calculation's at \emph{every} distance,
+including 200\,nm from any face where \cref{eq:mgb} removes nothing. The cause
+is the operator split working as intended: removing the shell's loops removes
+their sink strength from \cref{eq:KL}, the fast solve returns a different mobile
+field everywhere, and the interior responds to it. A model in which the boundary
+were only a mean-field sink strength could not produce this, because the
+boundary's effect on the interior would be a single number rather than a changed
+field.
+
+How this compares with experiment needs stating carefully. Loop-denuded and
+void-denuded zones at
+grain boundaries are a standard observation in irradiated
+metals~\citep{singh1973influence,bai2010efficient,sun2013situ,cheng2016grain}, and the mechanism
+assumed here --- the boundary as a strong sink whose influence extends a
+diffusion length into the grain --- is the standard interpretation. We
+do not compare quantitatively against a measured zone width in zirconium: no
+such measurement is in the data set of \cref{tab:targets}, and the width
+predicted here (a few nm for \aloop{}, growing to tens of nm in the size
+profile) is offered as a prediction rather than as a validated result. It is
+also, at $2$--$5\,$nm for the prismatic family, comparable with the $20\,$nm
+element size of the boundary layer, so the \aloop{} zone in particular is
+under-resolved and its width should be treated as an upper bound set by the
+mesh.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/gb_Cv.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/gb_N_c.png}
+\end{minipage}
+\caption{Profiles against distance from the boundary over the first
+\SI{150}{\nano\meter}, with every dose overlaid. Left: the mobile vacancy
+concentration, whose recovery length is the boundary layer tabulated above and
+which narrows as the dose accumulates. Right: the basal \cloop{} loop number
+density, whose profile is the denuded zone of \cref{fig:denuded} seen at every
+dose rather than only at the last.}
+\label{fig:gb-profiles}
+\end{figure}
+
+\subsection{Volume averages and comparison with experiment}
+\label{sec:results-volume}
+
+\Cref{fig:volavg} shows the volume-averaged trajectories.
+
+\begin{figure}[htbp]
+\centering
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/loop_density.png}
+\end{minipage}\hfill
+\begin{minipage}{0.49\textwidth}\centering
+  \includegraphics[width=\textwidth]{figures/loop_sizes_vs_exp.png}
+\end{minipage}
+\caption{Volume-averaged loop density against dose (left) and mean size against
+the experimental measurements (right).}
+\label{fig:volavg}
+\end{figure}
+
+Which average is quoted is not a presentational choice. On a Dirichlet
+domain the boundary shell is a sink for mobile defects and --- without the
+channel of \cref{sec:gb-loops} --- not a sink for loops, so it accumulates a
+loop population that is numerous, tiny, and entirely unphysical as a description
+of the material. At 40\,dpa:
+
+\begin{center}
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+& Region & $N_a$ (m$^{-3}$) & $d_a$ (nm) & $N_c$ (m$^{-3}$) & $d_c$ (nm) \\
+\midrule
+\multirow{2}{*}{loop channel off}
+ & domain   & $3.79\times10^{23}$ & 4.29 & $3.98\times10^{23}$ & 17.60 \\
+ & interior & $2.80\times10^{21}$ & 5.79 & $1.75\times10^{21}$ & 249.84 \\
+\midrule
+\multirow{2}{*}{loop channel on}
+ & domain   & $3.86\times10^{21}$ & 5.58 & $2.26\times10^{21}$ & 103.79 \\
+ & interior & $7.06\times10^{21}$ & 5.98 & $5.31\times10^{21}$ & 133.01 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Every entry is volume-weighted on the crystal itself rather than on its
+bounding box, and $d$ is the number-weighted mean diameter of
+\cref{fig:volavg}, so the table is that figure read at one dose. Without the
+channel the domain and interior means differ by a factor of $135$ in $N_a$ and
+$227$ in $N_c$, and the domain-mean diameter \emph{falls} to 18\,nm while the
+interior mean grows to 250\,nm --- the domain average is measuring the boundary
+shell and nothing else. With the channel the disparity collapses to a factor of
+$1.8$ in $N_a$ and $2.4$ in $N_c$, and it changes sign: the interior now carries
+\emph{more} loops than the domain mean, which is the ordering a sink at the
+surface should produce. A domain average becomes a statement about the material.
+That is the strongest single argument for carrying the channel: it removes an
+artifact that otherwise makes the most natural summary statistic meaningless.
+
+Against experiment, and the discrepancy. At $573\,$K and 24.5\,dpa
+the measurements give $N_c=8.0\times10^{20}\,\mathrm{m^{-3}}$ and
+$d_c=95\,$nm. That dose is now inside the calculation rather than beyond it,
+and the comparison no longer needs an extrapolation: at 40\,dpa the interior
+gives $N_c/N^{\exp}=6.6$ and $d_c/d^{\exp}=1.40$, and between 10 and 40\,dpa
+neither quantity moves by more than a percent, so which snapshot is read makes
+no difference to either ratio. Too many loops, and now too \emph{large}. The
+companion without the loop channel gives $2.2$ and $2.63$ --- closer on the
+density and much worse on the size, which is expected and is not an argument against the channel: the
+parameters of \cref{tab:fitted} were fitted in a $0$-D that has no boundary at
+all (\cref{sec:bias-caveat}), so the channel is an unmodeled loss acting on a
+population calibrated without it. A refit with the channel active is required
+before either number is quoted as a prediction.
+
+The direction of the discrepancy is the informative part, and it has changed
+with the refit. Earlier parameter sets produced \emph{more, smaller} \cloop{}
+loops than are observed --- the signature of a model removing loops faster than
+it grows them, so that the survivors are too young. This one produces
+\emph{more and larger} loops: the density is $6.6\times$ the measurement and
+the diameter $1.40\times$, so the stored basal content, which scales as
+$N_c d_c^{3}$, is $18\times$ what is observed. The two errors no longer oppose
+each other, and that is a harder failure to excuse than the old one. It is not a
+size problem that a growth term could absorb; it is too much vacancy content
+retained in basal loops, and the channels that could remove it --- coalescence,
+peripheral emission, the small-end leak --- are the ones the refit has already
+tuned. \Cref{sec:conclusions} states what
+this implies.
+
+\subsection{Continuum-to-discrete conversion}
+\label{sec:results-discrete}
+
+The conversion of \cref{sec:transfer} was applied to the fields at four doses.
+The number of loops is not a parameter of the conversion: it is
+$\sum_j n_j V_j$, the number the field says is present.
+
+\begin{center}
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Family & $10^{-4}$\,dpa & $10^{-2}$\,dpa & 1\,dpa & 40\,dpa \\
+\midrule
+$c_f$ (basal, vacancy)          & 5 & 238 & 642 & 691 \\
+$a_1$ (prismatic, interstitial) & 1 &  55 & 213 & 232 \\
+$a_1^{v}$ (prismatic, vacancy)  & 1 &  23 &  69 &  75 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\Cref{fig:discrete} shows the basal population at those four doses, drawn at
+true radius and true position, over the continuum content field it was drawn
+from. The two representations agree loop for loop: the figure is built from the
+same draw the conversion exports, so a reader comparing this figure with the
+exported loop table is comparing one object with itself.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/loops_c_4dose.png}
+\caption{The discrete basal \cloop{} population at (a) $10^{-4}$, (b) $10^{-2}$,
+(c) 1 and (d) 40\,dpa, drawn at true radius over the continuum content field.
+Counts are 5, 238, 642 and 691. The loops are clipped at the crystal surface;
+see the text.}
+\label{fig:discrete}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/loops_a1_4dose.png}
+\caption{The discrete prismatic \aloop{}$_1$ population at the same four doses,
+(a) $10^{-4}$, (b) $10^{-2}$, (c) 1 and (d) 40\,dpa, drawn at true radius.
+Counts are 1, 55, 213 and 232. At true scale these loops are $6$--$7$\,nm across
+in a \SI{500}{\nano\meter} crystal and are correspondingly sparse; the same
+population drawn with exaggerated radii is legible but is not a population.}
+\label{fig:discrete-a}
+\end{figure}
+
+Three observations.
+
+The count is not monotone, and it should not be. Between $10^{-2}$ and
+1\,dpa the prismatic count nearly quadruples, from 55 to 213, at a mean
+diameter that is unchanged at 2.14\,nm: prismatic interstitial loops are being
+nucleated and are not growing. Under the previous parameter set this count
+\emph{fell} over the same interval, which was coalescence merging loops into
+fewer larger ones; the refit has removed that behaviour from the prismatic
+family, and the conversion is where it becomes visible, because it reports
+number and size separately rather than the content that is their product.
+
+Most of the basal loops do not fit. At 40\,dpa, 419 of 691
+\cloop{} loops (60.6\%) are centered within their own radius of a face and
+overhang it, by up to 88\,nm; the corresponding prismatic figure is 3.5\%. The
+drawn population is clipped at the surface, but the clip is a drawing convention
+and the exported loops are whole. This is the same geometric refusal that
+\cref{sec:transfer} describes, and it means the basal handoff on a 500\,nm grain
+is only partially feasible above $\sim0.1\,$dpa: a discrete-dislocation solver
+would decline those loops, and their defects would have to remain in the
+continuum. \emph{The correction to the \cloop{} Burgers vector that made the two
+representations agree made this worse}, not better, because it raised the basal
+radius by $\sqrt2$ and a larger loop is harder to fit.
+
+The conversion is where the mean field is checked against itself. At
+$10^{-4}\,$dpa the population is 5 basal and 6 prismatic loops in
+$1.3\times10^{8}\,\mathrm{nm^{3}}$ --- a population so dilute that a continuum
+density describing it is a statement about an ensemble and not about this
+crystal. At 40\,dpa the basal loops are 131\,nm across with a mean spacing of
+57\,nm --- each loop is wider than the distance to its neighbour --- which is
+the opposite regime, and it is the one in which the
+Avrami kernels of \cref{eq:avrami} are working hardest and are least defensible.
+The conversion spans both, and the ledger of \cref{eq:ledger} closes on stored
+defects to machine precision and on loop number to the integer draw at every one
+of the four doses.
+
+\subsection{Evolution of the loop size distributions}
+\label{sec:results-spectrum}
+
+The three moments carried per family close on a log-normal
+(\cref{eq:lognormal}), so the model holds a genuine size distribution at every
+node and not merely a mean. Two distributions are in play and they are
+not the same. At one node the closure gives a log-normal in the defect count
+$m$, with $\bar m=c/n$ and dispersion $\Delta=qn/c^{2}=e^{s^{2}}$. Over the
+crystal the population is the \emph{volume-weighted mixture} of those per-node
+log-normals, and a mixture of log-normals is not log-normal: it is broader than
+any of its components and may be multimodal where the field varies strongly.
+The mixture is the observable one --- it is what a micrograph of a whole
+specimen samples --- and it is what \cref{fig:spectrum-dose} plots, as
+$\mathrm{d}N/\mathrm{d}d$ against a linear diameter axis, which is the form a
+measured size distribution takes. Curves are drawn from $1\,$nm upward: below
+that a loop is not resolvable in a micrograph, and the $1/d$ factor relating
+$\mathrm{d}N/\mathrm{d}d$ to $\mathrm{d}N/\mathrm{d}\ln d$ amplifies a tail
+that is in any case carried by the few anomalous nodes identified below.
+
+Working in diameter is exact rather than numerical: if $m$ is log-normal with
+parameters $(\mu,s)$ then $d=2\lambda_k\sqrt m$ is log-normal with
+$(\ln 2\lambda_k+\mu/2,\ s/2)$, so each node contributes a closed-form curve and
+the mixture is accumulated directly on a logarithmic diameter grid. Every
+distribution below is taken from the final state \emph{after} grain-boundary
+absorption, so the removals of \cref{eq:gbloop} are already inside the moments
+being inverted.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/size_spectrum_dose.png}
+\caption{Reconstructed loop size distributions over the whole crystal at
+$10^{-4}$, $10^{-2}$, 1 and 40\,dpa, for the basal faulted family and for one
+prismatic variant of each character; the fourth panel compares the three at
+40\,dpa. \emph{Key, first three panels:} one curve per dose, dark violet
+$10^{-4}$, blue $10^{-2}$, teal 1 and green 40\,dpa. \emph{Key, fourth panel:}
+one curve per family, blue $\langle c\rangle_f$, red $\langle a\rangle_1$, teal
+$\langle a\rangle^{v}_1$. The ordinate is the population per nanometre of
+diameter per cubic metre, $\mathrm{d}N/\mathrm{d}d$, and each panel is shown
+over three decades below its own peak. The two remaining basal states carry no
+population in this calculation: the pyramid $c_0$ and the perfect state $c_p$
+are fed only by the basal chain, which is switched off because its rates are
+uncalibrated (\cref{sec:immobile}).}
+\label{fig:spectrum-dose}
+\end{figure}
+
+The distributions are born monodisperse and broaden. At $10^{-4}\,$dpa every
+family is a near-delta function: $\Delta=1.001$--$1.003$,
+so $s=0.03$--$0.06$ and the distribution is a spike a few percent wide at the
+nucleation size, $4.6$--$5.5\,$nm. This is not an artifact of the closure but
+its correct statement of the physics --- at that dose every loop present is a
+fresh cascade nucleus deposited at $m^{\mathrm{nuc}}_k$, and there has been no
+time for anything to broaden it.
+
+By $10^{-2}\,$dpa the spike has become a distribution spanning more than a
+decade, and by 1\,dpa the shape has essentially stopped changing:
+the 1\,dpa and 40\,dpa curves are nearly coincident in every panel. The
+population saturates in shape as well as in the aggregates of
+\cref{sec:results-volume}, which is the signature of a balance between
+nucleation, growth and coalescence rather than of a still-developing
+microstructure.
+
+\begin{table}[htbp]
+\caption{Aggregates of the reconstructed distributions. $\bar d$ is the
+content-weighted mean diameter and $\Delta$ the median per-node dispersion;
+$\Delta=1$ is monodisperse and $\Delta=e$ is a distribution one $e$-fold wide in
+$m$. The interior quartile and the boundary shell are the innermost and
+outermost quarters of the crystal by distance to the nearest face.}
+\label{tab:spectrum}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+& \multicolumn{2}{c}{$\langle c\rangle_f$}
+& \multicolumn{2}{c}{$\langle a\rangle_1$}
+& \multicolumn{2}{c}{$\langle a\rangle_1^{v}$} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Dose (dpa) & $\bar d$ (nm) & $\Delta$ & $\bar d$ (nm) & $\Delta$
+           & $\bar d$ (nm) & $\Delta$ \\
+\midrule
+\multicolumn{7}{@{}l}{\emph{whole crystal}}\\
+$10^{-4}$ &  5.51 & 1.002 & 4.64 & 1.001 & 4.78 & 1.001 \\
+$10^{-2}$ & 28.52 & 1.160 & 6.69 & 1.792 & 7.66 & 1.365 \\
+$1$       & 37.52 & 1.145 & 8.50 & 1.994 & 6.06 & 2.011 \\
+$10$      & 37.07 & 1.162 & 8.66 & 1.977 & 5.97 & 2.028 \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{interior quartile}}\\
+$10^{-4}$ &  5.52 & 1.003 &  4.22 & 1.002 & 4.75 & 1.001 \\
+$10^{-2}$ & 28.42 & 1.473 &  6.53 & 1.883 & 5.91 & 1.509 \\
+$1$       & 51.30 & 1.559 & 12.04 & 2.724 & 2.83 & 2.215 \\
+$10$      & 50.62 & 1.585 & 12.11 & 2.705 & 2.84 & 2.175 \\
+\addlinespace
+\multicolumn{7}{@{}l}{\emph{boundary shell}}\\
+$10^{-4}$ & 5.41 & 1.000 & 5.21 & 1.000 & 4.79 & 1.000 \\
+$10^{-2}$ & 8.65 & 1.000 & 5.60 & 1.000 & 7.06 & 1.000 \\
+$1$       & 6.83 & 1.000 & 6.28 & 1.000 & 6.73 & 1.000 \\
+$10$      & 7.08 & 1.000 & 6.34 & 1.000 & 6.79 & 1.000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+That width is part spatial and part local, and the split is measurable.
+\Cref{fig:spectrum-regions} separates the two contributions, and the separation
+is unusually clean.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/size_spectrum_regions.png}
+\caption{The 40\,dpa distribution of each family over the whole crystal, its
+interior quartile and its boundary shell. \emph{Key:} solid black, whole
+crystal; dashed red, interior quartile; dotted teal, boundary shell. The
+dispersions these curves carry, as $\Delta$ (whole crystal, interior, shell),
+are $1.070$, $1.139$, $1.000$ for $\langle c\rangle_f$; $1.227$, $1.233$,
+$1.000$ for $\langle a\rangle_1$; and $1.461$, $2.513$, $1.000$ for
+$\langle a\rangle^{v}_1$. The shell is therefore monodisperse to three decimal
+places in every family, the interior is broad, and the whole-crystal spectrum is
+their mixture --- its multimodality is spatial.}
+\label{fig:spectrum-regions}
+\end{figure}
+
+The boundary shell is exactly monodisperse, $\Delta=1.000$ for every
+family at every dose, and it stays so. That is a physical result and not a
+numerical floor. Both terms that broaden a family in \cref{eq:q-FP} are
+proportional to the absorbed mobile flux --- the drift through
+$\Sigma^{\mathrm{net}}_k$ and the spreading through $\Sigma^{\mathrm{gro}}_k$ ---
+and that flux vanishes where the Dirichlet condition pins the mobile species. In
+the shell, loops are nucleated at one size and are neither fed nor starved, so
+nothing acts on the width. They are also small, $6$--$7\,$nm, because they never
+grow.
+
+The interior is broad, $\Delta=1.59$ for the basal family and
+$2.71$ for the prismatic interstitial one --- the latter a log-normal with
+$s=\sqrt{\ln2.705}=1.00$, a full decade wide at $\pm1\sigma$. A model carrying
+only $n$ and $c$ would represent that population by a single size.
+
+The whole-crystal spectrum is therefore a mixture of a narrow shell peak near
+$7\,$nm and a broad interior distribution centered near $50\,$nm for the basal
+family, and \emph{that} is the origin of the multimodality in
+\cref{fig:spectrum-dose}, not any structure in a local distribution. The
+distinction matters for what happens next: a locally broad population coarsens,
+because its large loops grow at the expense of its small ones; a spatially
+sorted one does not, because its two peaks are not in contact.
+
+\label{sec:spectrum-vs-window}%
+Each variant then behaves as the growth conditions predict. The three families
+evolve differently, and \cref{sec:coexistence} predicts exactly how. With the calibrated bias of \cref{tab:fitted} the thresholds of
+\cref{eq:thresholds} are
+\begin{equation}
+  x_c=\frac{Z^{0}_{I}A_c(p^{i})}{Z^{0}_{V}A_c(p^{v})}=0.625,
+  \qquad
+  x_a=\frac{Z^{0}_{I}A_a(p^{i})}{Z^{0}_{V}A_a(p^{v})}=1.005,
+  \label{eq:measured-thresholds}
+\end{equation}
+so the co-growth window \cref{eq:window} is $0.625<x<1.005$. Evaluating the flux
+ratio \cref{eq:fluxscales} on the interior of this calculation, from the
+diffusion tensors the march actually used and its own mobile fields:
+
+\begin{center}
+\begin{tabular}{@{}lrl@{}}
+\toprule
+Dose (dpa) & $x$ (interior) & Predicted \\
+\midrule
+$10^{-4}$ & 0.935 & $\langle c\rangle$ grows, $\langle a\rangle^{i}$ grows,
+                    $\langle a\rangle^{v}$ shrinks \\
+$10^{-2}$ & 0.913 & as above \\
+$1$       & 0.695 & as above \\
+$10$      & 0.711 & as above \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The operating point sits inside the predicted window at every dose,
+and the three predictions are exactly what \cref{tab:spectrum} shows in the
+interior:
+
+\begin{itemize}[itemsep=3pt]
+\item $\langle c\rangle_f$ grows strongly: its interior mean diameter
+      rises $5.5\to28.4\to51.3\,$nm and then holds. It is the family the window
+      most favors, since $x$ sits well above $x_c$.
+\item $\langle a\rangle_1$ grows and coarsens: its interior mean rises
+      $4.2\to6.5\to12.1\,$nm while its interior \emph{count falls} from 43.3 at
+      $10^{-2}\,$dpa to 25.8 at 1\,dpa. Fewer, larger loops holding more content
+      is coalescence, and it is visible in the spectrum as the small end
+      draining into a peak that moves right.
+\item $\langle a\rangle_1^{v}$ shrinks: its interior mean \emph{falls}
+      $5.9\to2.8\,$nm between $10^{-2}$ and 1\,dpa. It is the one family for
+      which $x<x_a$ places it on the shrinking side, and it is shrinking. Its
+      loops survive at all only because cascade nucleation keeps replacing them.
+\end{itemize}
+
+\Cref{fig:loops-all} shows those three directions as the population itself, all
+seven loop variants drawn together in the crystal they occupy. The reconstruction
+of \cref{fig:spectrum-dose} is a distribution; this is the object the
+distribution describes, at true radii and sampled positions, and the two are the
+same $\sum_j n_jV_j$ loops seen as a spectrum and as a microstructure.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/loops_all_4dose.png}
+\caption{The discrete loop population of the interior at $10^{-4}$, $10^{-2}$, 1
+and 40\,dpa, every variant superimposed and drawn at its true radius and sampled
+position: basal \cloop{} in blue, the three interstitial prismatic variants in
+red, green and gold, and the three vacancy prismatic variants in teal and
+purple. Each panel is the same crystal and the same viewpoint, so the panels are
+comparable across dose. The interior population runs $55\to333\to882\to1414$
+loops over the four panels, and the basal share of it $13\%\to50\%\to45\%\to43\%$
+--- so what the sequence shows is not the basal family becoming more numerous
+but its loops becoming very much larger, until at 40\,dpa they dominate the
+drawing at a diameter an order of magnitude above the prismatic variants. The
+three interstitial prismatic variants stay exactly equal in number ($232$ each
+at 40\,dpa), which is the isotropic variant weighting of \cref{eq:homnuc} under
+zero applied stress; the three vacancy variants likewise ($75$ each). That
+domination by size is why \cref{fig:discrete,fig:discrete-a} separate the
+families; here it is the subject.}
+\label{fig:loops-all}
+\end{figure}
+
+That three families move in three different directions, in the directions a
+criterion derived independently in \cref{sec:coexistence} specifies, is the
+strongest internal consistency check in this paper. It also demonstrates
+Resolution~1 of \cref{sec:coexistence} concretely: $x$ is a field, it
+differs between the shell and the interior, and the families sort themselves
+accordingly.
+
+Not everything in the reconstruction is well behaved, and the exception is worth
+reporting because it is structural rather than accidental. At 1 and 40\,dpa a
+single node of the 90\,663 --- node 51\,609, at $x=214.2\,$nm, the point of the
+prism \emph{furthest} from any face --- carries $\Delta=4.7\times10^{3}$ and
+$6.2\times10^{3}$ respectively, against a median of 1.070. It is the only node
+above $\Delta=3$ at any dose, and it holds under $0.002\%$ of the basal
+population; it is what produces the weak shoulder above $100\,$nm in
+\cref{fig:spectrum-dose}. Every other node stays below $\Delta=1.5$, so the
+gap between the outlier and the rest of the crystal is three orders of
+magnitude and there is nothing in between.
+
+The mechanism is in \cref{eq:q-FP}. The drift term carries $\Delta_k^{3/8}$ and
+the spreading term $\Delta_k^{-1/8}$, so a family that has already broadened
+broadens \emph{faster} while its spreading is damped: the dispersion is
+self-amplifying through the drift. Everywhere in this calculation that feedback
+is held in check by coalescence and by the finite mobile flux; at the one point
+where the flux is largest and no boundary channel acts, it is not. The remedy is
+not a tolerance --- $\Delta$ never violates $\Delta\ge1$, so no realizability
+test catches it --- but a bound on the drift exponent's effect, and identifying
+one is left as work the closure needs.
+
+\label{sec:annealing-outlook}%
+The natural next experiment on this model is a post-irradiation anneal: switch
+off the source, hold the temperature, and follow the distributions. It is worth
+setting out what the formulation predicts, because the model has no
+fitted annealing lifetime --- the two lifetimes of the mean-field treatment
+were deleted and replaced by peripheral emission against each family's own
+size-dependent binding energy (\cref{app:emission}) --- so an anneal is a
+genuine prediction rather than a fit.
+
+Four expectations follow, and each is falsifiable against standard annealing
+experiments.
+
+The flux ratio diverges, and the family ordering inverts. With the
+source off the interstitial supply collapses first, since interstitials are four
+orders of magnitude more mobile and drain to the sinks within
+$\tau_M\sim(k^{2}D)^{-1}$. So $x=\Phi_V/\Phi_I\to\infty$, which by
+\cref{eq:growconds} places \emph{every} vacancy family on the growing side and
+every interstitial family on the shrinking side. The prismatic interstitial
+loops --- the dominant population at the end of irradiation --- should therefore
+dissolve, while the prismatic vacancy family, which is shrinking under
+irradiation, should reverse. An anneal is the one experiment that reverses the
+sign of the interstitial--vacancy competition without changing a parameter.
+
+The small end evaporates and the mean rises. Once production stops the
+driver is thermal emission, and the binding energy of \cref{eq:Eb} falls with
+loop size, so small loops emit fastest. The distribution should lose its small
+end while its large end persists --- a rise in $\bar d$ accompanied by a fall in
+$N$, which is Ostwald ripening and is what annealing experiments on irradiated
+Zr report. In the moment language, $\dot n<0$ and $\dot c<0$ with
+$|\dot n|/n>|\dot c|/c$, and $\Delta$ falls: \emph{annealing narrows the
+distribution}, where irradiation broadened it.
+
+The anneal should be spatially structured, and a $0$-D model cannot
+produce that. The interior enters the anneal broad ($\Delta=1.6$--$2.7$) and
+the shell monodisperse ($\Delta=1.000$). A distribution with a small end has one
+to evaporate and will coarsen; a monodisperse one has none and can only shrink
+uniformly. The prediction is therefore that the interior coarsens while the
+shell dissolves \emph{en bloc}, and that the two-peak structure of
+\cref{fig:spectrum-regions} collapses toward the large peak. Separately, the
+denuded zone should \emph{widen} with annealing time, because the
+grain-boundary channel of \cref{eq:gbloop} keeps removing whatever grows into
+contact while nothing replaces it.
+
+It is the sharpest available test of the closure. Under irradiation the
+distribution is held near a driven balance and a wrong shape can be masked by a
+right mean. In an anneal the source term is gone, the shape evolves under
+emission alone, and the log-normal ansatz is exposed: if the true distribution
+develops the asymmetric large-size tail that ripening theory gives, a log-normal
+closure will misreport the lifetime of the population even while reproducing its
+initial mean. Comparing an annealed population against the isolated-loop law ---
+which the same binding energy generates for a single loop, and which can be
+integrated independently --- would separate an error in the emission physics
+from an error in the closure. That comparison is the natural companion to the
+present work and requires no new physics, only the source switched off.
