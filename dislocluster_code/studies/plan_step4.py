@@ -45,6 +45,27 @@ SLOT_C0, SLOT_CF, SLOT_CP = 8, 0, 7
 #: Conservation bar for goal (i), ten times the rtol the probes run at.
 CONSERVE_TOL = 1.0e-9
 
+#: Regression bar for `check_regression`, on the SAME convention: ten times the
+#: rtol the reference states were integrated at (1e-6), not the rtol itself.
+#:
+#: It was 1e-6 -- equal to rtol -- and that is too tight by construction. The
+#: two sides are independent integrations of a deliberately different implicit
+#: block (17 vs 19), each carrying ~rtol of its own error, so requiring their
+#: difference to fall below 1x rtol asks them to agree with each other better
+#: than either agrees with the truth.
+#:
+#: Measured before re-locking, on three 1 um nine-family marches at one dose and
+#: on four dose indices of one march: median 1.35e-06..2.92e-06, a 1.2x spread
+#: across runs and 2.2x across dose -- systematic, not parameter-sensitive. The
+#: pyramid family is identically zero with the chain off (n, c and q all exactly
+#: 0.0) and the entire difference sits in the pre-existing slots, led by n[c_f]
+#: and the three vacancy variants. The reported max of ~1.1 is floor noise:
+#: -8.97e-20 against 1.00e-20, both at or below the 1e-20 atol floor.
+#:
+#: A genuine leak -- a nonzero pyramid, or a family-scale difference -- still
+#: fails this by orders of magnitude.
+REGRESSION_TOL = 1.0e-5
+
 #: Everything except the basal chain switched off, so what the chain does is the
 #: only thing that moves. The mobile mobilities go too: with omega_* = 0 no
 #: family captures or emits anything and the transfers act alone, which is what
@@ -127,8 +148,9 @@ def check_regression(run_dir):
     print(f"  every component identical : {exact}")
     print(f"  relative difference       : median {np.median(rel):.2e}   "
           f"p90 {np.percentile(rel, 90):.2e}   max {rel.max():.2e}")
-    ok = float(np.median(rel)) < 1e-6
-    print(f"  within solver tolerance   : {ok}")
+    ok = float(np.median(rel)) < REGRESSION_TOL
+    print(f"  within solver tolerance   : {ok}  "
+          f"(bar {REGRESSION_TOL:.0e} = 10x rtol)")
     return ok
 
 
